@@ -1,6 +1,6 @@
 %% Synthetic data
 
-clear all
+clear
 addpath(genpath('~/Work/Matlab/HMM-MAR'))
 % Specify parameters
 K = 4; % number of states
