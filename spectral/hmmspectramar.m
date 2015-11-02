@@ -74,8 +74,8 @@ for j=1:N
         setstateoptions;
         W = zeros(order,ndim,ndim);
         for i=1:length(orders),
-            %W(i,:,:) = loadings *  hmmj.state(k).W.Mu_W(~zeromean + ((1:ndim) + (i-1)*ndim),:) * loadings' ;
-            W(i,:,:) = hmmj.state(k).W.Mu_W(~train.zeromean + ((1:ndim) + (i-1)*ndim),:);
+            %W(i,:,:) = loadings *  hmm.state(k).W.Mu_W(~zeromean + ((1:ndim) + (i-1)*ndim),:) * loadings' ;
+            W(i,:,:) = hmm.state(k).W.Mu_W(~train.zeromean + ((1:ndim) + (i-1)*ndim),:);
         end
         
         switch train.covtype
