@@ -166,6 +166,9 @@ for k=1:K
         end
     end
     
+    % weight the PSD by the inverse of the sampling rate
+    fit.state(k).psd = (1/options.Fs) * fit.state(k).psd; 
+    
  
 end
 end
