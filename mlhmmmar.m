@@ -23,7 +23,8 @@ K = size(Gamma,2);
 ndim = size(X,2);
 train = hmm.train;
 
-Sind = train.Sind; S = train.S==1; regressed = sum(S,1)>0;
+Sind = formindexes(orders,hmm.train.S);
+S = train.S==1; regressed = sum(S,1)>0;
 if ~train.zeromean, Sind = [true(1,size(X,2)); Sind]; end
 residuals =  getresiduals(X,T,Sind,train.maxorder,train.order,train.orderoffset,train.timelag,train.exptimelag,train.zeromean);
 pred = zeros(size(residuals));
