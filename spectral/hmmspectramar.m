@@ -40,7 +40,7 @@ if ~MLestimation
     hmm.train.Sind = formindexes(orders,hmm.train.S);
 end
 sT = sum(T);
-ndim = size(hmm.state(1).W.Mu_W,2);
+ndim = size(X,2);
 options.order = hmm.train.order;
 [options,Gamma] = checkoptions_spectra(options,ndim,T);
 if length(T)<5 && options.p>0,  error('You need at least 5 trials to compute error bars for MAR spectra'); end
@@ -51,7 +51,7 @@ if length(T)<5 && options.p>0,  error('You need at least 5 trials to compute err
 
 freqs = (0:options.Nf-1)*( (options.fpass(2) - options.fpass(1)) / (options.Nf-1)) + options.fpass(1);
 w=2*pi*freqs/options.Fs;
-K = length(hmm.state);
+K = size(Gamma,2);
 
 if options.p==0, N = 1; 
 else N = length(T); end
@@ -79,8 +79,10 @@ for j=1:N
     
     hmm0 = hmm;
     if MLestimation
+        %hmm0.train.zeromean = 0 ;
         hmm = mlhmmmar(Xj,Tj,hmm0,Gammaj,options.completelags);
     end
+    hmm0.train.Sind = hmm.train.Sind; hmm = hmm0; 
     
     for k=1:K
 
@@ -116,7 +118,7 @@ for j=1:N
             end
             iaf_tmp=inv(af_tmp);
             psdc(ff,:,:,j,k) = iaf_tmp * covmk * iaf_tmp';
-            psdc(ff,:,:,j,k) = inv(permute(psdc(ff,:,:,j,k),[2 3 1]));
+            ipsdc(ff,:,:,j,k) = inv(permute(psdc(ff,:,:,j,k),[2 3 1]));
                          
             % Get PDC
             if options.to_do(2)==1
@@ -146,6 +148,7 @@ for k=1:K
     
     fit.state(k).pdc = []; fit.state(k).coh = []; fit.state(k).pcoh = []; fit.state(k).phase = [];
     fit.state(k).psd = mean(psdc(:,:,:,:,k),4);
+    fit.state(k).ipsd = mean(ipsdc(:,:,:,:,k),4);
     if options.to_do(2)==1, 
         fit.state(k).pdc = mean(pdcc(:,:,:,:,k),4);
     end

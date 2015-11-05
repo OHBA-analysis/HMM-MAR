@@ -1,4 +1,4 @@
-function [hmm,pred,gcovm] = mlhmmmar (X,T,hmm,Gamma,completelags)
+function [hmm,pred,gcovm] = mlhmmmar (X,T,hmm0,Gamma,completelags)
 % Given the state time courses estimation, does a last estimation of each MAR using (local) ML
 %
 % INPUT
@@ -17,14 +17,19 @@ function [hmm,pred,gcovm] = mlhmmmar (X,T,hmm,Gamma,completelags)
 %
 % Author: Diego Vidaurre, OHBA, University of Oxford
 
+
+hmm = hmm0;
+
+if nargin<4, Gamma = ones(sum(T)-length(T)*hmm.train.order,1); end
 if nargin<5, completelags = 0; end
     
-K = size(Gamma,2);
 ndim = size(X,2);
+K = size(Gamma,2);
+hmm.K = K;
 train = hmm.train;
 
 orders = formorders(hmm.train.order,hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag);
-Sind = formindexes(orders,hmm.train.S); hmm.train.Sind = Sind; 
+Sind = formindexes(orders,hmm.train.S); hmm.train.Sind = Sind;  
 S = train.S==1; regressed = sum(S,1)>0;
 if ~train.zeromean, Sind = [true(1,size(X,2)); Sind]; end
 residuals =  getresiduals(X,T,Sind,train.maxorder,train.order,train.orderoffset,train.timelag,train.exptimelag,train.zeromean);
@@ -45,7 +50,7 @@ setxx; % build XX
 
 for k=1:K
     setstateoptions;
-    if isfield(hmm.state(k).W,'S_W'), hmm.state(k).W = rmfield(hmm.state(k).W,'S_W'); end
+    %if isfield(hmm.state(k).W,'S_W'), hmm.state(k).W = rmfield(hmm.state(k).W,'S_W'); end
     if train.uniqueAR
         XY = zeros(size(XX{kk},1)*ndim,1);
         XGX = zeros(size(XX{kk},2)/ndim,size(XX{kk},2)/ndim);
@@ -61,7 +66,7 @@ for k=1:K
         hmm.state(k).W.Mu_W = pinv(XX{kk} .* repmat(sqrt(Gamma(:,k)),1,size(XX{kk},2))) * residuals;
         predk = XX{kk} * hmm.state(k).W.Mu_W;
     else
-        hmm.state(k).W.Mu_W = zeros(size(hmm.state(k).W.Mu_W));
+        hmm.state(k).W.Mu_W = zeros(size(hmm0.state(k).W.Mu_W));
         for n=1:ndim
             if ~regressed(n), continue; end
             hmm.state(k).W.Mu_W(Sind(:,n),n) = pinv(XX{kk}(:,Sind(:,n)) .* repmat(sqrt(Gamma(:,k)),1,sum(Sind(:,n)))) * residuals(:,n);
@@ -78,6 +83,13 @@ for k=1:K
         hmm.state(k).Omega.Gam_irate(regressed,regressed) = inv(hmm.state(k).Omega.Gam_rate(regressed,regressed));
     end
 end
+
+if length(hmm.state)>K
+   state = hmm.state(1:K);
+   hmm = rmfield(hmm,'state');
+   hmm.state = state;
+end
+
 ge = residuals(:,regressed) - pred(:,regressed);
 if strcmp(hmm.train.covtype,'uniquediag')
     hmm.Omega.Gam_rate(regressed) = 0.5* sum( ge.^2 );
