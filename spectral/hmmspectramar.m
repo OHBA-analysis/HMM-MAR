@@ -12,6 +12,9 @@ function fit = hmmspectramar(hmm,X,T,options)
 %  .fpass:    Frequency band to be used [fmin fmax] (default [0 fs/2])
 %  .p:        p-value for computing jackknife confidence intervals (default 0)
 %  .Nf        No. of frequencies to be computed in the range minHz-maxHz
+%  .Gamma     State responsabilities - if not specified, it will use the
+%               MAR models as they were returned by the HMM-MAR inference (i.e. a
+%               posterior distribution instead of maximum likelihood)
 %
 % OUTPUT
 % fit is a list with K elements, each of which contains: 
@@ -29,8 +32,16 @@ function fit = hmmspectramar(hmm,X,T,options)
 %
 % Author: Diego Vidaurre, OHBA, University of Oxford (2014)
 
+MLestimation = isfield(options,'Gamma');
+if ~MLestimation
+    warning(strcat('Gamma was not provided: the posterior distribution of the MAR models, ', ...
+        ' as returned by the HMM inference, will be used instead of maximum likelihood.'))
+    orders = formorders(hmm.train.order,hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag);
+    hmm.train.Sind = formindexes(orders,hmm.train.S);
+end
 sT = sum(T);
 ndim = size(hmm.state(1).W.Mu_W,2);
+options.order = hmm.train.order;
 [options,Gamma] = checkoptions_spectra(options,ndim,T);
 if length(T)<5 && options.p>0,  error('You need at least 5 trials to compute error bars for MAR spectra'); end
 
@@ -67,7 +78,9 @@ for j=1:N
     end
     
     hmm0 = hmm;
-    hmm = mlhmmmar(Xj,Tj,hmm0,Gammaj,options.completelags);
+    if MLestimation
+        hmm = mlhmmmar(Xj,Tj,hmm0,Gammaj,options.completelags);
+    end
     
     for k=1:K
 
