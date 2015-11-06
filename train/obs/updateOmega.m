@@ -92,8 +92,13 @@ else % state dependent
             if ~isempty(hmm.state(k).W.Mu_W)  
                 for n=1:ndim
                     if ~regressed(n), continue; end
+                    if ndim==1
+                        swx2(:,n) = sum(XX{kk}(:,Sind(:,n)) * hmm.state(k).W.S_W(Sind(:,n),Sind(:,n)) ...
+                            .* XX{kk}(:,Sind(:,n)),2);
+                    else
                     swx2(:,n) = sum(XX{kk}(:,Sind(:,n)) * permute(hmm.state(k).W.S_W(n,Sind(:,n),Sind(:,n)),[2 3 1]) ...
                         .* XX{kk}(:,Sind(:,n)),2);
+                    end
                 end;
             end
             hmm.state(k).Omega.Gam_rate(regressed) = hmm.state(k).prior.Omega.Gam_rate(regressed) + ...

@@ -10,8 +10,8 @@ for k=1:K
     else omega = hmm.Omega;
     end
     if train.uniqueAR || ndim==1 % it is assumed that order>0 and cov matrix is diagonal
-        XY = zeros(length(orders),1);
-        XGX = zeros(length(orders));
+        XY = zeros(length(orders)+(~train.zeromean),1);
+        XGX = zeros(length(orders)+(~train.zeromean));
         for n=1:ndim
             ind = n:ndim:size(XX{kk},2);
             iomegan = omega.Gam_shape / omega.Gam_rate(n);

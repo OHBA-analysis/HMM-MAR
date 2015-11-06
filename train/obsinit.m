@@ -127,8 +127,8 @@ for k=1:K
     hmm.state(k).W = struct('Mu_W',[],'S_W',[]);
     if order>0 || ~train.zeromean
         if train.uniqueAR || ndim==1 % it is assumed that order>0 and cov matrix is diagonal
-            XY = zeros(length(orders),1);
-            XGX = zeros(length(orders));
+            XY = zeros(length(orders)+(~train.zeromean),1);
+            XGX = zeros(length(orders)+(~train.zeromean));
             for n=1:ndim
                 ind = n:ndim:size(XX{kk},2);
                 XGX = XGX + XXGXX{k}(ind,ind);
@@ -139,7 +139,7 @@ for k=1:K
                 hmm.state(k).W.Mu_W = hmm.state(k).W.S_W * (XY + train.prior.iSMu); % order by 1
             else
                 %hmm.state(k).W.S_W = inv(0.1 * mean(trace(XGX)) * eye(length(orders)) + XGX);
-                hmm.state(k).W.S_W = inv(0.01 * eye(length(orders)) + XGX);
+                hmm.state(k).W.S_W = inv(0.01 * eye(length(orders)+(~train.zeromean)) + XGX);
                 hmm.state(k).W.Mu_W = hmm.state(k).W.S_W * XY; % order by 1
             end
             

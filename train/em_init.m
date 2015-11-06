@@ -30,7 +30,6 @@ for in=1:N
 end
 
 XX = formautoregr(data.X,T,orders,op.maxorder,op.zeromean);
-if ~op.zeromean, Sind = [true(1,size(Sind,2)); Sind]; end
 
 LL = -Inf; 
 for n=1:op.initrep

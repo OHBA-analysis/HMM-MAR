@@ -16,7 +16,7 @@ for k=1:K,
     elseif ndim==1
         hmm.state(k).alpha.Gam_rate = hmm.state(k).alpha.Gam_rate + ...
             0.5 * ( hmm.state(k).W.Mu_W(1+(~train.zeromean) : end).^2 )' + ...
-            0.5 * diag(hmm.state(k).W.S_W)' ;
+            0.5 * diag(hmm.state(k).W.S_W(2:end,2:end))' ;
         hmm.state(k).alpha.Gam_shape = hmm.state(k).alpha.Gam_shape + 0.5;
    
     elseif strcmp(train.covtype,'full') || strcmp(train.covtype,'uniquefull')
