@@ -88,7 +88,10 @@ if ~isfield(options,'order'), error('order was not specified'); end
 if ~isfield(options,'covtype') && ndim==1, options.covtype = 'diag'; 
 elseif ~isfield(options,'covtype') && ndim>1, options.covtype = 'full'; 
 elseif (strcmp(options.covtype,'full') || strcmp(options.covtype,'uniquefull')) && ndim==1
-    error('Covariance has to be diag or uniquediag if data has only one channel')
+    warning('Covariance can only be diag or uniquediag if data has only one channel')
+    if strcmp(options.covtype,'full'), options.covtype = 'diag';
+    else options.covtype = 'uniquediag';
+    end
 end
 if ~isfield(options,'zeromean'), 
     if options.order>0, options.zeromean = 1; 
