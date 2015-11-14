@@ -28,21 +28,16 @@ ltpi = sum(regressed)/2 * log(2*pi);
 
 % compute entropy of hidden states
 Entr=0;
-for in=1:length(T);
-    j = sum(T(1:in-1)) - hmm.train.maxorder*(in-1) + 1;
-    logGamma = log(Gamma(j,:));
-    logGamma(isinf(-logGamma)) = log(realmin);
-    Entr = Entr - sum(Gamma(j,:).*logGamma);
-    jj = j+1:j+T(in)-1-hmm.train.maxorder;
-    Gammajj = Gamma(jj,:);
-    logGamma = log(Gammajj);
-    logGamma(isinf(-logGamma)) = log(realmin);
-    Entr = Entr + sum(Gammajj(:).*logGamma(:));
+for tr=1:length(T);
+    t = sum(T(1:tr-1)) - (tr-1)*scutoff + 1;
+    Entr = Entr - sum(Gamma(t,:) .* log(Gamma(t,:)));
+    ttXi = (sum(T(1:tr-1)) - (tr-1)*(scutoff+1) + 1) : ((sum(T(1:tr)) - tr*(scutoff+1)));
+    ttGamma = t:(sum(T(1:tr))-tr*scutoff-1);   
+    for s=1:length(ttXi)
+        Entr = Entr - sum(sum(Xi(ttXi(s),:,:) .* log( Xi(ttXi(s),:,:) ) )); 
+        Entr = Entr + sum (Gamma(ttGamma(s),:) .* log( Gamma(ttGamma(s),:) ) ); 
+    end
 end
-sXi = Xi(:); 
-logsXi = log(sXi);
-logsXi(isinf(-logsXi)) = log(realmin);
-Entr = Entr - sum(sXi .* logsXi);
 
 % Free energy terms for model not including obs. model
 % avLL for hidden state parameters and KL-divergence
