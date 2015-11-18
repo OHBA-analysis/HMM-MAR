@@ -30,7 +30,7 @@ switch hmm.train.covtype,
         for n=1:ndim,
             if ~regressed(n), continue; end
             ldetWishB=ldetWishB+0.5*log(hmm.Omega.Gam_rate(n));
-            PsiWish_alphasum=PsiWish_alphasum+0.5*psi(hmm.Omega.Gam_shape/2);
+            PsiWish_alphasum=PsiWish_alphasum+0.5*psi(hmm.Omega.Gam_shape);
         end;
         C = hmm.Omega.Gam_shape ./ hmm.Omega.Gam_rate;
     case 'uniquefull'
@@ -54,7 +54,7 @@ for k=1:K
             for n=1:ndim,
                 if ~regressed(n), continue; end
                 ldetWishB=ldetWishB+0.5*log(hs.Omega.Gam_rate(n));
-                PsiWish_alphasum=PsiWish_alphasum+0.5*psi(hs.Omega.Gam_shape/2);
+                PsiWish_alphasum=PsiWish_alphasum+0.5*psi(hs.Omega.Gam_shape);
             end;
             C = hs.Omega.Gam_shape ./ hs.Omega.Gam_rate;
         case 'full'
