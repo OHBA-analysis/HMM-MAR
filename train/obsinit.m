@@ -52,7 +52,7 @@ for k=1:hmm.K,
         defstateprior(k).alpha.Gam_shape = 0.1;
         defstateprior(k).alpha.Gam_rate = 0.1*ones(1,length(orders));
     end
-    if ~train.zeromean, 
+    if ~train.zeromean,
         defstateprior(k).Mean = struct('Mu',[],'iS',[]);
         defstateprior(k).Mean.Mu = zeros(ndim,1);
         defstateprior(k).Mean.S = rangresiduals2';
@@ -120,10 +120,10 @@ S = hmm.train.S==1; regressed = sum(S,1)>0;
 Gammasum = sum(Gamma);
 XXGXX = cell(K,1);
 setxx; % build XX and get orders
- 
+
 % W
 for k=1:K
-    setstateoptions; 
+    setstateoptions;
     hmm.state(k).W = struct('Mu_W',[],'S_W',[]);
     if order>0 || ~train.zeromean
         if train.uniqueAR || ndim==1 % it is assumed that order>0 and cov matrix is diagonal
@@ -177,7 +177,7 @@ if strcmp(hmm.train.covtype,'uniquediag') && hmm.train.uniqueAR
         hmm.Omega.Gam_rate = hmm.Omega.Gam_rate + ...
             0.5 * sum( repmat(Gamma(:,k),1,ndim) .* e );
     end;
-    hmm.Omega.Gam_shape = hmm.prior.Omega.Gam_shape + Tres / 2;    
+    hmm.Omega.Gam_shape = hmm.prior.Omega.Gam_shape + Tres / 2;
     
 elseif strcmp(hmm.train.covtype,'uniquediag')
     hmm.Omega.Gam_shape = hmm.prior.Omega.Gam_shape + Tres / 2;
@@ -207,7 +207,7 @@ elseif strcmp(hmm.train.covtype,'uniquefull')
             (e' .* repmat(Gamma(:,k)',sum(regressed),1)) * e;
     end
     hmm.Omega.Gam_irate(regressed,regressed) = inv(hmm.Omega.Gam_rate(regressed,regressed));
-
+    
     
 else % state dependent
     for k=1:K
@@ -222,9 +222,9 @@ else % state dependent
             hmm.state(k).Omega.Gam_rate = hmm.state(k).prior.Omega.Gam_rate + ...
                 0.5* sum( repmat(Gamma(:,k),1,ndim) .* e );
             hmm.state(k).Omega.Gam_shape = hmm.state(k).prior.Omega.Gam_shape + Gammasum(k) / 2;
-                
+            
         elseif strcmp(train.covtype,'diag')
-            if ~isempty(hmm.state(k).W.Mu_W)  
+            if ~isempty(hmm.state(k).W.Mu_W)
                 e = (residuals(:,regressed) - XX{kk} * hmm.state(k).W.Mu_W(:,regressed)).^2;
             else
                 e = residuals(:,regressed).^2;
@@ -234,7 +234,7 @@ else % state dependent
             hmm.state(k).Omega.Gam_shape = hmm.state(k).prior.Omega.Gam_shape + Gammasum(k) / 2;
             
         else % full
-            if ~isempty(hmm.state(k).W.Mu_W)  
+            if ~isempty(hmm.state(k).W.Mu_W)
                 e = residuals(:,regressed) - XX{kk} * hmm.state(k).W.Mu_W(:,regressed);
             else
                 e = residuals(:,regressed);
@@ -266,4 +266,6 @@ hmm = updateSigma(hmm);
 hmm = updateAlpha(hmm);
 
 end
+
+
 

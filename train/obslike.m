@@ -112,14 +112,16 @@ for k=1:K
                 if isempty(orders) 
                     NormWishtrace = 0.5 * sum(sum(C .* hs.W.S_W));
                 else
+                    I = (0:length(orders)*ndim+(~train.zeromean)-1) * ndim;
                     for n1=1:ndim
+                        if ~regressed(n1), continue; end
+                        index1 = I + n1; index1 = index1(Sind(:,n1)); 
+                        tmp = (XX{kk}(:,Sind(:,n1)) * hs.W.S_W(index1,:));
                         for n2=1:ndim
-                            if ~regressed(n1) || ~regressed(n2), continue; end
-                            index1 = (0:length(orders)*ndim+(~train.zeromean)-1) * ndim + n1;
-                            index2 = (0:length(orders)*ndim+(~train.zeromean)-1) * ndim + n2;
-                            index1 = index1(Sind(:,n1)); index2 = index2(Sind(:,n2));
+                            if ~regressed(n2), continue; end
+                            index2 = I + n2; index2 = index2(Sind(:,n2));
                             NormWishtrace = NormWishtrace + 0.5 * C(n1,n2) * ...
-                                sum( (XX{kk}(:,Sind(:,n1)) * hs.W.S_W(index1,index2)) .* XX{kk}(:,Sind(:,n2)),2);
+                                sum( tmp(:,index2) .* XX{kk}(:,Sind(:,n2)),2);
                         end
                     end
                 end
