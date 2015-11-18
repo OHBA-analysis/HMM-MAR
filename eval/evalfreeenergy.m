@@ -1,4 +1,4 @@
-function [FrEn] = evalfreeenergy (X,T,Gamma,Xi,hmm,residuals)
+function FrEn = evalfreeenergy (X,T,Gamma,Xi,hmm,residuals)
 % Computes the Free Energy of an HMM depending on observation model
 %
 % INPUT
@@ -29,13 +29,16 @@ ltpi = sum(regressed)/2 * log(2*pi);
 % compute entropy of hidden states
 Entr=0;
 for tr=1:length(T);
-    t = sum(T(1:tr-1)) - (tr-1)*scutoff + 1;
-    Entr = Entr - sum(Gamma(t,:) .* log(Gamma(t,:)));
-    ttXi = (sum(T(1:tr-1)) - (tr-1)*(scutoff+1) + 1) : ((sum(T(1:tr)) - tr*(scutoff+1)));
-    ttGamma = t:(sum(T(1:tr))-tr*scutoff-1);   
+    t = sum(T(1:tr-1)) - (tr-1)*order + 1;
+    Gamma_nz = Gamma(t,:); Gamma_nz(Gamma_nz==0) = realmin;
+    Entr = Entr - sum(Gamma_nz .* log(Gamma_nz));
+    ttXi = (sum(T(1:tr-1)) - (tr-1)*(order+1) + 1) : ((sum(T(1:tr)) - tr*(order+1)));
+    ttGamma = t:(sum(T(1:tr))-tr*order-1);   
     for s=1:length(ttXi)
-        Entr = Entr - sum(sum(Xi(ttXi(s),:,:) .* log( Xi(ttXi(s),:,:) ) )); 
-        Entr = Entr + sum (Gamma(ttGamma(s),:) .* log( Gamma(ttGamma(s),:) ) ); 
+        Xi_nz = Xi(ttXi(s),:,:); Xi_nz(Xi_nz==0) = realmin;
+        Gamma_nz = Gamma(ttGamma(s),:); Gamma_nz(Gamma_nz==0) = realmin;
+        Entr = Entr - sum(sum(Xi_nz .* log( Xi_nz ) )); 
+        Entr = Entr + sum(Gamma_nz .* log( Gamma_nz )); 
     end
 end
 
@@ -56,10 +59,8 @@ for l=1:K,
     avLL = avLL + sum(Gamma(jj,l)) * (psi(hmm.Dir_alpha(l)) - PsiDir_alphasum);
 end     
 % avLL remaining time points  
+PsiDir2d_alphasum=psi(sum(hmm.Dir2d_alpha(k,:),2));
 for k=1:K,
-    PsiDir2d_alphasum=psi(sum(hmm.Dir2d_alpha(k,:),2));
-    %avLL = avLL - sXi * psi(sum(hmm.Dir2d_alpha(:,k)));
-    %PsiDir2d_alphasum=psi(sum(hmm.Dir2d_alpha(:,k)));
     for l=1:K,
         avLL = avLL + sum(Xi(:,l,k)) * (psi(hmm.Dir2d_alpha(l,k))-PsiDir2d_alphasum);
     end
@@ -80,7 +81,7 @@ if strcmp(hmm.train.covtype,'uniquediag')
     for n=1:ndim,
         if ~regressed(n), continue; end
         ldetWishB=ldetWishB+0.5*log(hmm.Omega.Gam_rate(n));
-        PsiWish_alphasum=PsiWish_alphasum+0.5*psi(hmm.Omega.Gam_shape/2);
+        PsiWish_alphasum=PsiWish_alphasum+0.5*psi(hmm.Omega.Gam_shape);
     end;
     C = hmm.Omega.Gam_shape ./ hmm.Omega.Gam_rate;
     avLL=avLL+ Tres*(-ltpi-ldetWishB+PsiWish_alphasum);
@@ -109,7 +110,7 @@ for k=1:K,
             for n=1:ndim,
                 if ~regressed(n), continue; end 
                 ldetWishB=ldetWishB+0.5*log(hs.Omega.Gam_rate(n));
-                PsiWish_alphasum=PsiWish_alphasum+0.5*psi(hs.Omega.Gam_shape/2);
+                PsiWish_alphasum=PsiWish_alphasum+0.5*psi(hs.Omega.Gam_shape);
             end;
             C = hs.Omega.Gam_shape ./ hs.Omega.Gam_rate;
             avLL = avLL+ Gammasum(k)*(-ltpi-ldetWishB+PsiWish_alphasum);
@@ -169,14 +170,16 @@ for k=1:K,
                 if isempty(orders)
                     NormWishtrace = 0.5 * sum(sum(C .* hs.W.S_W));
                 else
+                    I = (0:length(orders)*ndim+(~train.zeromean)-1) * ndim;
                     for n1=1:ndim
+                        if ~regressed(n1), continue; end
+                        index1 = I + n1; index1 = index1(Sind(:,n1)); 
+                        tmp = (XX{kk}(:,Sind(:,n1)) * hs.W.S_W(index1,:));
                         for n2=1:ndim
-                            if ~regressed(n1) || ~regressed(n2), continue; end
-                            index1 = (0:length(orders)*ndim+(~train.zeromean)-1) * ndim + n1;
-                            index2 = (0:length(orders)*ndim+(~train.zeromean)-1) * ndim + n2;
-                            index1 = index1(Sind(:,n1)); index2 = index2(Sind(:,n2));
-                            NormWishtrace = NormWishtrace + 0.5 * C(n1,n2) *  ...
-                                sum( (XX{kk}(:,Sind(:,n1)) * hs.W.S_W(index1,index2)) .* XX{kk}(:,Sind(:,n2)),2);
+                            if ~regressed(n2), continue; end
+                            index2 = I + n2; index2 = index2(Sind(:,n2));
+                            NormWishtrace = NormWishtrace + 0.5 * C(n1,n2) * ...
+                                sum( tmp(:,index2) .* XX{kk}(:,Sind(:,n2)),2);
                         end
                     end
                 end
