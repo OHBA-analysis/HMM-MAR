@@ -59,7 +59,7 @@ for l=1:K,
     avLL = avLL + sum(Gamma(jj,l)) * (psi(hmm.Dir_alpha(l)) - PsiDir_alphasum);
 end     
 % avLL remaining time points  
-PsiDir2d_alphasum=psi(sum(hmm.Dir2d_alpha(k,:),2));
+PsiDir2d_alphasum=psi(sum(hmm.Dir2d_alpha(:)));
 for k=1:K,
     for l=1:K,
         avLL = avLL + sum(Xi(:,l,k)) * (psi(hmm.Dir2d_alpha(l,k))-PsiDir2d_alphasum);
