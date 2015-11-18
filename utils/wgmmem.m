@@ -44,7 +44,7 @@ end
 
 check_covars = 0;
 if options(5) >= 1
-  disp('check_covars is on');
+%  disp('check_covars is on');
   check_covars = 1;	% Ensure that covariances don't collapse
   MIN_COVAR = eps;	% Minimum singular value of covariance matrix
   init_covars = mix.covars;
@@ -133,6 +133,6 @@ for n = 1:niters
 end
 
 options(8) = -sum(log(gmmprob(mix, x)));
-if (display >= 0)
-  disp('Warning: Maximum number of iterations has been exceeded');
-end
+%if (display >= 0)
+%  disp('Warning: Maximum number of iterations has been exceeded');
+%end
