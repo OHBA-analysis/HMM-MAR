@@ -1,7 +1,7 @@
 function [options,Gamma] = checkoptions_spectra (options,ndim,T)
 
 if ~isfield(options,'Gamma'),
-    %if ~isfield(options,'order'), error('If you do not supply Gamma, you need to provide order'); end
+    if ~isfield(options,'order'), options.order = 0; end
     Gamma = ones(sum(T)-length(T)*options.order,1);
 else
     Gamma = options.Gamma;
