@@ -53,7 +53,15 @@ end
 % Main loop of algorithm
 for n = 1:niters
   % Calculate posteriors based on old parameters
+  if n>1, post0 = post;  
+  else post0 = NaN; 
+  end
   [post, act] = gmmpost(mix, x);
+  post = post + eps; post = post ./ repmat(sum(post,2),1,size(post,2));
+  if any(isnan(post)), 
+      post = post0; 
+      break
+  end
   
   % Calculate error value if needed
   if (display | store | test)
