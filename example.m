@@ -48,12 +48,14 @@ DD = [2 10 20 100 200];
 repetitions = 10;
 
 options = struct();
-options.covtype = 'full';
+options.covtype = 'diag';
 options.order = 0;
 options.tol = 1e-7;
 options.cyc = 100;
 options.zeromean = 0;
 options.inittype = 'GMM';
+options.initcyc = 100;
+options.initrep = 5;
 options.verbose = 0;
 
 FE = zeros(length(KK),length(DD),repetitions);
