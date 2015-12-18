@@ -31,7 +31,7 @@ if nargin<4, trim = 0; end
 if nargin<5, X0 = []; end
 if nargin<6, sim_state_tcs_only=0; end
 
-
+statepath=[];
 if isempty(Gamma), % Gamma is not provided, so we simulate it too
     for in=1:N
         Gammai = zeros(T(in),K);
