@@ -40,6 +40,7 @@ if ~isfield(options,'DirichletDiag'), options.DirichletDiag = 2; end
 %if ~isfield(options,'whitening'), options.whitening = 0; end
 if ~isfield(options,'repetitions'), options.repetitions = 1; end
 if ~isfield(options,'updateGamma'), options.updateGamma = 1; end
+if ~isfield(options,'decodeGamma'), options.decodeGamma = 1; end
 if ~isfield(options,'keepS_W'), options.keepS_W = 1; end
 if ~isfield(options,'verbose'), options.verbose = 1; end
 

@@ -42,6 +42,12 @@ function mix = gmm(dim, ncentres, covar_type, ppca_dim)
 
 %	Copyright (c) Ian T Nabney (1996-2001)
 
+if strcmp(covar_type,'uniquediag')
+    covar_type = 'diag';
+elseif strcmp(covar_type,'uniquefull')
+    covar_type = 'full';
+end
+    
 if ncentres < 1
   error('Number of centres must be greater than zero')
 end

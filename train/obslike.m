@@ -1,4 +1,4 @@
-function [B] = obslike (X,hmm,residuals)
+function B = obslike (X,hmm,residuals)
 %
 % Evaluate likelihood of data given observation model
 %

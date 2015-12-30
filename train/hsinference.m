@@ -1,4 +1,4 @@
-function [Gamma,Gammasum,Xi,LL]=hsinference(data,T,hmm,residuals)
+function [Gamma,Gammasum,Xi,LL]=hsinference(data,T,hmm,residuals,options)
 %
 % inference engine for HMMs.
 %
@@ -20,14 +20,28 @@ function [Gamma,Gammasum,Xi,LL]=hsinference(data,T,hmm,residuals)
 
 
 N = length(T);
+K = length(hmm.state);
+
+if ~isfield(hmm,'train')
+    if nargin<5, error('You must specify the field options if hmm.train is missing'); end
+    hmm.train = checkoptions(options,data.X,T,0);
+end
 
 if ~hmm.train.multipleConf
     [~,order] = formorders(hmm.train.order,hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag);
 else
     order = hmm.train.maxorder;
 end
+
+if nargin<4 || isempty(residuals)
+   residuals =  getresiduals(data.X,T,hmm.train.Sind,hmm.train.maxorder,hmm.train.order,...
+        hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag,hmm.train.zeromean);
+end
+
+if ~isfield(hmm,'P')
+    hmm = hmmhsinit (hmm);
+end
     
-K=hmm.K;
 Gamma=[]; LL = [];
 Gammasum=zeros(N,K);
 Xi=[];

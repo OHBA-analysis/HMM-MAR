@@ -90,7 +90,7 @@ for it=1:options.repetitions
     end
 end
 
-if options.updateGamma
+if options.decodeGamma && nargout >= 4
     vp = hmmdecode(data.X,T,hmm,residuals);
     vpath=[];
     for in=1:length(vp)

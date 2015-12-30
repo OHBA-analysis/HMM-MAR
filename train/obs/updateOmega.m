@@ -61,7 +61,7 @@ elseif strcmp(hmm.train.covtype,'uniquefull')
                     index1 = (0:length(orders)*ndim+(~hmm.train.zeromean)-1) * ndim + n1;
                     index2 = (0:length(orders)*ndim+(~hmm.train.zeromean)-1) * ndim + n2;
                     index1 = index1(Sind(:,n1)); index2 = index2(Sind(:,n2));
-                    swx2(n1,n2) = sum(sum(hmm.state(k).W.S_W(index1,index2) .* XXGXX{k}(Sind(:,n1),Sind(:,n2),k)));
+                    swx2(n1,n2) = sum(sum(hmm.state(k).W.S_W(index1,index2) .* XXGXX{k}(Sind(:,n1),Sind(:,n2))));
                     swx2(n2,n1) = swx2(n1,n2);
                 end
             end

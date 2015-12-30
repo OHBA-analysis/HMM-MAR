@@ -1,4 +1,4 @@
-function [hmm]=hsupdate(Xi,Gamma,T,hmm)
+function hmm = hsupdate(Xi,Gamma,T,hmm)
 %
 % updates hidden state parameters of an HMM
 %

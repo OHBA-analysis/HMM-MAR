@@ -1,4 +1,4 @@
-function [hmm] = hmmhsinit (hmm)
+function hmm = hmmhsinit (hmm)
 %
 % Initialise variables related to the Markov chain
 %
