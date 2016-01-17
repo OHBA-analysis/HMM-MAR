@@ -19,7 +19,7 @@ function [Gamma,Gammasum,Xi,LL]=hsinference(data,T,hmm,residuals,options)
 % Author: Diego Vidaurre, OHBA, University of Oxford
 
 
-N = length(T);
+N = length(T); ndim = size(data.X,2);
 K = length(hmm.state);
 
 if ~isfield(hmm,'train')
@@ -34,6 +34,11 @@ else
 end
 
 if nargin<4 || isempty(residuals)
+   if ~isfield(hmm.train,'Sind'), 
+       orders = formorders(hmm.train.order,hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag);
+       hmm.train.Sind = formindexes(orders,hmm.train.S); 
+   end
+   if ~hmm.train.zeromean, hmm.train.Sind = [true(1,ndim); hmm.train.Sind]; end
    residuals =  getresiduals(data.X,T,hmm.train.Sind,hmm.train.maxorder,hmm.train.order,...
         hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag,hmm.train.zeromean);
 end
@@ -91,17 +96,17 @@ for in=1:N
         xi = [xi; xit];
         gamma = [gamma; gammat];
         gammasum = gammasum + sum(gamma);
-        if nargout==4, ll = [ll; log(sum(Bt(order+1:end,:) .* gammat,2)) ]; end
+        if nargout==4, ll = [ll; sum(log(Bt(order+1:end,:)) .* gammat,2) ]; end
         if isempty(no_c), break;
         else t = no_c(1)+t-1;
         end;
     end
     Gamma=[Gamma;gamma];
     Gammasum(in,:)=gammasum;
-    if nargout==4, LL = [LL;ll]; end
+    if nargout==4, LL = [LL;sum(ll)]; end
     Xi=cat(1,Xi,reshape(xi,T(in)-order-1,K,K));
-end;
-
+end
+end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [Gamma,Xi,B]=nodecluster(X,K,hmm,residuals)
@@ -148,4 +153,5 @@ Xi=zeros(T-1-order,K*K);
 for i=1+order:T-1
     t=P.*( alpha(i,:)' * (beta(i+1,:).*B(i+1,:)));
     Xi(i-order,:)=t(:)'/sum(t(:));
+end
 end

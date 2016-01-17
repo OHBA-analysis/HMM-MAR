@@ -129,8 +129,6 @@ for k=1:K
     end
     
     B(hmm.train.maxorder+1:T,k)= - ltpi - ldetWishB + PsiWish_alphasum + dist - NormWishtrace; %-meanS
-    %aux(:,k,1) = ldetWishB;  aux(:,k,2) = PsiWish_alphasum; 
-    %aux(hmm.train.maxorder+1:T,k,3) = dist;  aux(hmm.train.maxorder+1:T,k,4) = NormWishtrace; 
-end;
+end
 B=exp(B);
-
+end

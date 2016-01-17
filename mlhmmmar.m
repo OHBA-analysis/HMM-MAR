@@ -25,33 +25,48 @@ if nargin<5, completelags = 0; end
     
 ndim = size(X,2);
 K = size(Gamma,2);
-hmm.K = K;
-train = hmm.train;
+hmm.K = K; N = length(T);
 
 orders = formorders(hmm.train.order,hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag);
 Sind = formindexes(orders,hmm.train.S); hmm.train.Sind = Sind;  
-S = train.S==1; regressed = sum(S,1)>0;
-if ~train.zeromean, Sind = [true(1,size(X,2)); Sind]; end
-residuals =  getresiduals(X,T,Sind,train.maxorder,train.order,train.orderoffset,train.timelag,train.exptimelag,train.zeromean);
-pred = zeros(size(residuals));
+S = hmm.train.S==1; regressed = sum(S,1)>0;
+if ~hmm.train.zeromean, Sind = [true(1,size(X,2)); Sind]; end
 if completelags
+    maxorder0 = hmm.train.maxorder;
     hmm.train.orderoffset=0; hmm.train.timelag=1; hmm.train.exptimelag=0;
+    hmm.train.maxorder = hmm.train.order;
     if hmm.train.multipleConf
         for k=1:K
             if isfield(hmm.state(k),'train') && ~isempty(hmm.state(k).train),
                 hmm.state(k).train.orderoffset=0; 
                 hmm.state(k).train.timelag=1; 
                 hmm.state(k).train.exptimelag=0;
+                hmm.train.maxorder = max(hmm.train.maxorder,hmm.state(k).train.order);
             end
         end
     end
+    maxorderd = hmm.train.maxorder - maxorder0;
+    if maxorderd>0 % adjust Gamma if maxorder has changed
+        Gamma0 = Gamma;
+        Gamma = zeros(sum(T)-hmm.train.maxorder*length(T),K);
+        for j = 1:N
+            t00 = sum(T(1:j-1)) - (j-1)*maxorder0 + 1;
+            t10 = sum(T(1:j)) - j*maxorder0;
+            t0 = sum(T(1:j-1)) - (j-1)*hmm.train.maxorder + 1;
+            t1 = sum(T(1:j)) - j*hmm.train.maxorder;
+            Gamma(t0:t1,:) = Gamma0(t00+maxorderd:t10,:);
+        end
+    end
 end
+residuals =  getresiduals(X,T,Sind,hmm.train.maxorder,hmm.train.order,hmm.train.orderoffset,...
+    hmm.train.timelag,hmm.train.exptimelag,hmm.train.zeromean);
+pred = zeros(size(residuals));
 setxx; % build XX 
 
 for k=1:K
     setstateoptions;
     %if isfield(hmm.state(k).W,'S_W'), hmm.state(k).W = rmfield(hmm.state(k).W,'S_W'); end
-    if train.uniqueAR
+    if hmm.train.uniqueAR
         XY = zeros(size(XX{kk},1)*ndim,1);
         XGX = zeros(size(XX{kk},2)/ndim,size(XX{kk},2)/ndim);
         for n=1:ndim
@@ -76,9 +91,9 @@ for k=1:K
     
     pred = pred + repmat(Gamma(:,k),1,ndim) .* predk;
     e = residuals(:,regressed) - predk(:,regressed);
-    if strcmp(train.covtype,'diag')
+    if strcmp(hmm.train.covtype,'diag')
         hmm.state(k).Omega.Gam_rate(regressed) = 0.5* sum( repmat(Gamma(:,k),1,sum(regressed)) .* e.^2 );
-    elseif strcmp(train.covtype,'full')
+    elseif strcmp(hmm.train.covtype,'full')
         hmm.state(k).Omega.Gam_rate(regressed,regressed) =  (e' .* repmat(Gamma(:,k)',sum(regressed),1)) * e;
         hmm.state(k).Omega.Gam_irate(regressed,regressed) = inv(hmm.state(k).Omega.Gam_rate(regressed,regressed));
     end
