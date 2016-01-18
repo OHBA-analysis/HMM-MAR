@@ -294,4 +294,3 @@ for k=1:K,
 end;
 
 FrEn=[-Entr -avLL -avLLGamma +KLdiv];
-[sum(-Entr) sum(-avLL) sum(-avLLGamma) sum(KLdiv) sum(FrEn)]
