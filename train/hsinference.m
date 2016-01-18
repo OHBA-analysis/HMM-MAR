@@ -109,7 +109,7 @@ end
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [Gamma,Xi,B]=nodecluster(X,K,hmm,residuals)
+function [Gamma,Xi,B,scale]=nodecluster(X,K,hmm,residuals)
 % inference using normal foward backward propagation
 
 T = size(X,1);
@@ -148,7 +148,7 @@ end;
 Gamma=(alpha.*beta);
 Gamma=Gamma(1+order:T,:);
 Gamma=rdiv(Gamma,rsum(Gamma));
-
+ 
 Xi=zeros(T-1-order,K*K);
 for i=1+order:T-1
     t=P.*( alpha(i,:)' * (beta(i+1,:).*B(i+1,:)));

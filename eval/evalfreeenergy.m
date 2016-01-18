@@ -36,20 +36,20 @@ end
 Gammasum=sum(Gamma,1);
 ltpi = sum(regressed)/2 * log(2*pi);
 
-% compute entropy of hidden states
-Entr=0;
+Entr = 0;
 for tr=1:length(T);
     t = sum(T(1:tr-1)) - (tr-1)*order + 1;
     Gamma_nz = Gamma(t,:); Gamma_nz(Gamma_nz==0) = realmin;
-    Entr = Entr - sum(Gamma_nz .* log(Gamma_nz));
-    ttXi = (sum(T(1:tr-1)) - (tr-1)*(order+1) + 1) : ((sum(T(1:tr)) - tr*(order+1)));
-    ttGamma = t:(sum(T(1:tr))-tr*order-1);   
-    for s=1:length(ttXi)
-        Xi_nz = Xi(ttXi(s),:,:); Xi_nz(Xi_nz==0) = realmin;
-        Gamma_nz = Gamma(ttGamma(s),:); Gamma_nz(Gamma_nz==0) = realmin;
-        Entr = Entr - sum(sum(Xi_nz .* log( Xi_nz ) )); 
-        Entr = Entr + sum(Gamma_nz .* log( Gamma_nz )); 
-    end
+    Entr = Entr - sum((Gamma_nz).*log(Gamma_nz));
+    t = (sum(T(1:tr-1)) - (tr-1)*(order+1) + 1) : ((sum(T(1:tr)) - tr*(order+1)));
+    Xi_nz = Xi(t,:,:); Xi_nz(Xi_nz==0) = realmin;
+    Psi=zeros(size(Xi_nz));                    % P(S_t|S_t-1)
+    for k = 1:K,
+        sXi = sum(Xi_nz(:,:,k),2);
+        Psi(:,:,k) = Xi_nz(:,:,k)./repmat(sXi,1,K);
+    end;
+    Psi(Psi==0) = realmin;
+    Entr = Entr - sum(Xi_nz(:).*log(Psi(:)));    % entropy of hidden states
 end
 
 % Free energy terms for model not including obs. model
@@ -229,7 +229,8 @@ for k=1:K,
                 if ~isempty(orders)
                     ndim_n = sum(S(:,n));
                     alphamat = repmat( (hs.alpha.Gam_shape ./  hs.alpha.Gam_rate), ndim_n, 1);
-                    prior_prec = [prior_prec; repmat(hs.sigma.Gam_shape(S(:,n)==1,n) ./ hs.sigma.Gam_rate(S(:,n)==1,n), length(orders), 1) .* alphamat(:)] ;
+                    prior_prec = [prior_prec; repmat(hs.sigma.Gam_shape(S(:,n)==1,n) ./ ...
+                        hs.sigma.Gam_rate(S(:,n)==1,n), length(orders), 1) .* alphamat(:)] ;
                 end
                 prior_var = diag(1 ./ prior_prec);
                 WKL = WKL + gauss_kl(hs.W.Mu_W(Sind(:,n),n),zeros(sum(Sind(:,n)),1), ...
@@ -293,3 +294,4 @@ for k=1:K,
 end;
 
 FrEn=[-Entr -avLL -avLLGamma +KLdiv];
+[sum(-Entr) sum(-avLL) sum(-avLLGamma) sum(KLdiv) sum(FrEn)]
