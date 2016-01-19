@@ -1,4 +1,4 @@
-function [Gamma,Gammasum,Xi,LL]=hsinference(data,T,hmm,residuals,options)
+function [Gamma,Gammasum,Xi,LL,scale]=hsinference(data,T,hmm,residuals,options)
 %
 % inference engine for HMMs.
 %
@@ -47,7 +47,7 @@ if ~isfield(hmm,'P')
     hmm = hmmhsinit (hmm);
 end
     
-Gamma=[]; LL = [];
+Gamma=[]; LL = []; scale = [];
 Gammasum=zeros(N,K);
 Xi=[];
 
@@ -78,7 +78,7 @@ for in=1:N
             end;
         end
         if isnan(C(t,1))
-            [gammat,xit,Bt]=nodecluster(X(slice,:),K,hmm,R(slicer,:));
+            [gammat,xit,Bt,sc]=nodecluster(X(slice,:),K,hmm,R(slicer,:));
         else
             gammat = zeros(length(slicer),K);
             if t==order+1, gammat(1,:) = C(slicer(1),:); end
@@ -88,7 +88,8 @@ for in=1:N
                 xitr = gammat(i-1,:)' * gammat(i,:) ;
                 xit(i-1,:) = xitr(:)';
             end
-            if nargout==4, Bt = obslike(X(slice,:),hmm,R(slicer,:)); end
+            if nargout>=4, Bt = obslike(X(slice,:),hmm,R(slicer,:)); end
+            if nargout==5, sc = ones(length(slicer,1)); end
         end
         if t>order+1,
             gammat = gammat(2:end,:);
@@ -96,7 +97,8 @@ for in=1:N
         xi = [xi; xit];
         gamma = [gamma; gammat];
         gammasum = gammasum + sum(gamma);
-        if nargout==4, ll = [ll; sum(log(Bt(order+1:end,:)) .* gammat,2) ]; end
+        if nargout>=4, ll = [ll; sum(log(Bt(order+1:end,:)) .* gammat,2) ]; end
+        if nargout==5, scale = [scale; sc ]; end
         if isempty(no_c), break;
         else t = no_c(1)+t-1;
         end;
