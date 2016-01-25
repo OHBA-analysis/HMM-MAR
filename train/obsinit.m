@@ -155,7 +155,8 @@ for k=1:K
                     repmat(Gamma(:,k)',(~train.zeromean)+ndim_n*length(orders),1)) * residuals(:,n);
             end;
         else
-            hmm.state(k).W.S_W = inv( kron(XXGXX{k},eye(ndim)) );
+            gram = kron(XXGXX{k},eye(ndim));
+            hmm.state(k).W.S_W = inv( gram + 0.01*eye(size(gram,1)) );
             hmm.state(k).W.Mu_W = (( XXGXX{k} \ XX{kk}' ) .* repmat(Gamma(:,k)',(~train.zeromean)+ndim*length(orders),1)) * residuals;
         end
     end

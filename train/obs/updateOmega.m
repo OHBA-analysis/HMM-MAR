@@ -96,8 +96,8 @@ else % state dependent
                         swx2(:,n) = sum(XX{kk}(:,Sind(:,n)) * hmm.state(k).W.S_W(Sind(:,n),Sind(:,n)) ...
                             .* XX{kk}(:,Sind(:,n)),2);
                     else
-                    swx2(:,n) = sum(XX{kk}(:,Sind(:,n)) * permute(hmm.state(k).W.S_W(n,Sind(:,n),Sind(:,n)),[2 3 1]) ...
-                        .* XX{kk}(:,Sind(:,n)),2);
+                        swx2(:,n) = sum(XX{kk}(:,Sind(:,n)) * permute(hmm.state(k).W.S_W(n,Sind(:,n),Sind(:,n)),[2 3 1]) ...
+                            .* XX{kk}(:,Sind(:,n)),2);
                     end
                 end;
             end

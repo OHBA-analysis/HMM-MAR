@@ -1,4 +1,4 @@
-function [hmm,Gamma,Xi,fehist,actstates]=hmmtrain(data,T,hmm,Gamma,residuals,fehist)
+function [hmm,Gamma,Xi,fehist,actstates] = hmmtrain(data,T,hmm,Gamma,residuals,fehist)
 %
 % Train Hidden Markov Model using using Variational Framework
 %

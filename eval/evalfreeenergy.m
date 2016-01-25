@@ -235,7 +235,7 @@ for k=1:K,
                 prior_var = diag(1 ./ prior_prec);
                 WKL = WKL + gauss_kl(hs.W.Mu_W(Sind(:,n),n),zeros(sum(Sind(:,n)),1), ...
                     permute(hs.W.S_W(n,Sind(:,n),Sind(:,n)),[2 3 1]), prior_var);
-            end;
+            end
         else % full or uniquefull
             prior_prec = [];
             if train.zeromean==0
@@ -275,8 +275,8 @@ for k=1:K,
                 if (train.symmetricprior && n2<n1) || S(n1,n2)==0, continue; end
                 sigmaKL = sigmaKL + gamma_kl(hs.sigma.Gam_shape(n1,n2),pr.sigma.Gam_shape(n1,n2), ...
                     hs.sigma.Gam_rate(n1,n2),pr.sigma.Gam_rate(n1,n2));
-            end;
-        end;
+            end
+        end
     end
     
     alphaKL = 0;
@@ -291,6 +291,6 @@ for k=1:K,
     
     %if any(isnan([OmegaKL sigmaKL alphaKL WKL])), keyboard; end
     
-end;
+end
 
 FrEn=[-Entr -avLL -avLLGamma +KLdiv];
