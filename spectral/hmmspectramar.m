@@ -182,7 +182,8 @@ for k=1:K
     end
     
     % weight the PSD by the inverse of the sampling rate
-    fit.state(k).psd = (1/options.Fs) * fit.state(k).psd;    
+    fit.state(k).psd = (1/options.Fs) * fit.state(k).psd;  
+    for n=1:ndim, fit.state(k).psd(:,n,n) = abs(fit.state(k).psd(:,n,n)); end
  
 end
 end

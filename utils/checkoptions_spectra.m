@@ -10,7 +10,7 @@ end
 % MT and common
 if ~isfield(options,'p'), options.p = 0; end
 if ~isfield(options,'removezeros'), options.removezeros = 0; end
-if ~isfield(options,'completelags'), options.completelags = 0; end
+if ~isfield(options,'completelags'), options.completelags = 1; end
 if ~isfield(options,'rlowess'), options.rlowess = 0; end
 if ~isfield(options,'numIterations'), options.numIterations = 100; end
 if ~isfield(options,'tol'), options.tol = 1e-18; end
