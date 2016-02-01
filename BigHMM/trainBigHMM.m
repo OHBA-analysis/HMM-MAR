@@ -37,7 +37,7 @@ if ~isfield(options,'BIGdelay'), BIGdelay = 1;
 else BIGdelay = options.BIGdelay; end
 if ~isfield(options,'BIGbase_weights'), BIGbase_weights = 1; % smaller will promote democracy
 else BIGbase_weights = options.BIGbase_weights; end
-if ~isfield(options,'BIGverbose'), BIGverbose = tempname; % smaller will promote democracy
+if ~isfield(options,'BIGverbose'), BIGverbose = 1;  
 else BIGverbose = options.BIGverbose; end
 
 % HMM-MAR options

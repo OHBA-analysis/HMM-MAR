@@ -51,6 +51,7 @@ if isempty(Gamma), % Gamma is not provided, so we simulate it too
 end
 
 X = [];
+if ~isfield(hmm.train,'maxorder'), hmm.train.maxorder = hmm.train.order; end
 
 if ~sim_state_tcs_only
     for in=1:N

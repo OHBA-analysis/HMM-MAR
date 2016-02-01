@@ -174,10 +174,9 @@ for k=1:K
             fit.state(k).coherr = coherr;
             fit.state(k).pcoherr = pcoherr;
             fit.state(k).sdphase = sdphase;
-        else
-            if options.to_do(1)==1
-                fit.state(k).pdcerr = pdcerr;
-            end
+        end
+        if options.to_do(2)==1
+            fit.state(k).pdcerr = pdcerr;
         end
     end
     
