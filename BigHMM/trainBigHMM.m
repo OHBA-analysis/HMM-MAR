@@ -376,8 +376,8 @@ Tfactor = N/BIGNbatch;
 for cycle = 2:BIGcyc
     
     % sampling batch
-    %I = datasample(1:N,BIGNbatch,'Replace',false,'Weights',sampling_weights);
-    I = 1:BIGNbatch; %I = 1:N;
+    I = datasample(1:N,BIGNbatch,'Replace',false,'Weights',sampling_weights);
+    %I = 1:BIGNbatch; %I = 1:N;
     nUsed(I) = nUsed(I) + 1;
     nUsed = nUsed - min(nUsed) + 1;
     sampling_weights = BIGbase_weights.^nUsed;
@@ -408,9 +408,7 @@ for cycle = 2:BIGcyc
         subjfe(i,2,cycle) = - GammaavLL(hmm,Gamma{ii},Xi{ii},T{i}); 
         subjfe(i,3,cycle) = + KLtransition(hmm);
     end
-    
-    sum(cell2mat(Gamma))
-    
+        
     % global parameters (metastates), and collect metastate free energy
     rho = (cycle + BIGdelay)^(-BIGforgetrate); 
     metastates = updateBigOmega(metastates,cell2mat(Gamma),X,Tbatch,Tfactor,rho,prior,options);
