@@ -1,7 +1,7 @@
-function hmm = loadhmm(hmm0,T,K,centroids,P,Pi,Dir2d_alpha,Dir_alpha,gram,prior)
+function hmm = loadhmm(hmm0,T,K,metastates,P,Pi,Dir2d_alpha,Dir_alpha,gram,prior)
 hmm = hmm0; hmm = rmfield(hmm,'state');
 for k = 1:K
-    s = state_new(centroids(k)); 
+    s = metastates(k); 
     s.prior = hmm0.state(k).prior;
     if isfield(prior,'Mean')
         s.prior.Mean.iS = prior.Mean.iS';
@@ -39,17 +39,5 @@ if ~isempty(gram)
     hmm.Omega.Gam_rate = gram + prior.Omega.Gam_rate;
     hmm.Omega.Gam_irate = inv(hmm.Omega.Gam_rate);
     hmm.Omega.Gam_shape = sum(T) + prior.Omega.Gam_shape;
-end
-end
-
-
-function state = state_new(centroid)
-state = struct();
-state.Omega.Gam_shape = centroid.shape;
-state.Omega.Gam_rate = centroid.rate;
-state.Omega.Gam_irate = centroid.irate;
-if isfield(centroid,'m')
-    state.W.Mu_W = centroid.m';
-    state.W.S_W = centroid.Sm;
 end
 end

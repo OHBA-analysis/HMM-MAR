@@ -1,11 +1,11 @@
-function [Path,stats] = decodeBigHMM(files,T,centroids,markovTrans,prior,type,options)
+function [Path,stats] = decodeBigHMM(files,T,metastates,markovTrans,prior,type,options)
 % 1) Compute the viterbi paths 
 % 2) Compute the entropy,avglifetime,nochanges from it
 %
 % INPUTS
 % files: cell with strings referring to the subject files
 % T: cell of vectors, where each element has the length of each trial per
-% centroids: the metastates computed from trainBigHMM
+% metastates: the metastates computed from trainBigHMM
 % markovTrans.P and Pi: transition prob table and initial prob
 % prior: prior distributions as returned by trainBigHMM
 % type: 0, state time courses; 1, viterbi path
@@ -14,11 +14,11 @@ function [Path,stats] = decodeBigHMM(files,T,centroids,markovTrans,prior,type,op
 % Diego Vidaurre, OHBA, University of Oxford (2015)
 
 N = length(files);
-K = length(centroids);
+K = length(metastates);
 if ~isfield(options,'covtype'), options.covtype = 'full'; end
 
 X = loadfile(files{1});
-hmm0 = initializeHMM(X,T{1},K,options.covtype);
+hmm0 = initializeHMM(X,T{1},options);
 
 AverageLifeTime = zeros(N,1);
 NoChanges = zeros(N,1);
@@ -39,7 +39,7 @@ for i = 1:N
     else
         gram = [];
     end  
-    hmm = loadhmm(hmm0,T{i},K,centroids,P{i},Pi{i},Dir2d_alpha{i},Dir_alpha{i},gram,prior);
+    hmm = loadhmm(hmm0,T{i},K,metastates,P{i},Pi{i},Dir2d_alpha{i},Dir_alpha{i},gram,prior);
     if type==0
         data = struct('X',X,'C',NaN(size(X,1),K));
         gamma = hsinference(data,T{i},hmm,[]);
@@ -67,20 +67,20 @@ stats = struct('AverageLifeTime',AverageLifeTime,...
 end
 
 
-function hmm = initializeHMM(X,T,K,covtype)
-
-options_hmm = struct();
-options_hmm.K = K;
-options_hmm.covtype = covtype;
-options_hmm.decodeGamma = 0;
-options_hmm.order = 0;
-options_hmm.cyc = 1;
-options_hmm.zeromean = 0;
-options_hmm.inittype = 'random';
-options_hmm.DirichletDiag = 10;
-options_hmm.initcyc = 1;
-options_hmm.initrep = 1;
-options_hmm.verbose = 0;
-hmm = hmmmar(X,T,options_hmm);
-
+function hmm = initializeHMM(X,T,options)
+if ~isfield(options,'zeromean'), options.zeromean = 0; end
+if ~isfield(options,'covtype'), options.covtype = 'full'; end
+if ~isfield(options,'order'), options.order = 0; end
+if ~isfield(options,'orderoffset'), options.orderoffset = 0; end
+if ~isfield(options,'timelag'), options.timelag = 1; end
+if ~isfield(options,'exptimelag'), options.exptimelag = 0; end
+if ~isfield(options,'cyc'), options.cyc = 50; end
+if ~isfield(options,'initcyc'), options.initcyc = 50; end
+if ~isfield(options,'initrep'), options.initrep = 3; end
+options.cyc = 1;
+options.inittype = 'random';
+options.initcyc = 1;
+options.initrep = 1;
+options.verbose = 0;
+hmm = hmmmar(X,T,options);
 end
