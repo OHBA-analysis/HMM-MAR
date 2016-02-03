@@ -1,4 +1,4 @@
-function [Gamma,Gammasum,Xi,LL]=hsinference(data,T,hmm,residuals)
+function [Gamma,Gammasum,Xi,LL,scale]=hsinference(data,T,hmm,residuals,options)
 %
 % inference engine for HMMs.
 %
@@ -19,16 +19,35 @@ function [Gamma,Gammasum,Xi,LL]=hsinference(data,T,hmm,residuals)
 % Author: Diego Vidaurre, OHBA, University of Oxford
 
 
-N = length(T);
+N = length(T); ndim = size(data.X,2);
+K = length(hmm.state);
+
+if ~isfield(hmm,'train')
+    if nargin<5, error('You must specify the field options if hmm.train is missing'); end
+    hmm.train = checkoptions(options,data.X,T,0);
+end
 
 if ~hmm.train.multipleConf
     [~,order] = formorders(hmm.train.order,hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag);
 else
     order = hmm.train.maxorder;
 end
+
+if nargin<4 || isempty(residuals)
+   if ~isfield(hmm.train,'Sind'), 
+       orders = formorders(hmm.train.order,hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag);
+       hmm.train.Sind = formindexes(orders,hmm.train.S); 
+   end
+   if ~hmm.train.zeromean, hmm.train.Sind = [true(1,ndim); hmm.train.Sind]; end
+   residuals =  getresiduals(data.X,T,hmm.train.Sind,hmm.train.maxorder,hmm.train.order,...
+        hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag,hmm.train.zeromean);
+end
+
+if ~isfield(hmm,'P')
+    hmm = hmmhsinit (hmm);
+end
     
-K=hmm.K;
-Gamma=[]; LL = [];
+Gamma=[]; LL = []; scale = [];
 Gammasum=zeros(N,K);
 Xi=[];
 
@@ -59,7 +78,7 @@ for in=1:N
             end;
         end
         if isnan(C(t,1))
-            [gammat,xit,Bt]=nodecluster(X(slice,:),K,hmm,R(slicer,:));
+            [gammat,xit,Bt,sc]=nodecluster(X(slice,:),K,hmm,R(slicer,:));
         else
             gammat = zeros(length(slicer),K);
             if t==order+1, gammat(1,:) = C(slicer(1),:); end
@@ -69,7 +88,8 @@ for in=1:N
                 xitr = gammat(i-1,:)' * gammat(i,:) ;
                 xit(i-1,:) = xitr(:)';
             end
-            if nargout==4, Bt = obslike(X(slice,:),hmm,R(slicer,:)); end
+            if nargout>=4, Bt = obslike(X(slice,:),hmm,R(slicer,:)); end
+            if nargout==5, sc = ones(length(slicer,1)); end
         end
         if t>order+1,
             gammat = gammat(2:end,:);
@@ -77,20 +97,21 @@ for in=1:N
         xi = [xi; xit];
         gamma = [gamma; gammat];
         gammasum = gammasum + sum(gamma);
-        if nargout==4, ll = [ll; log(sum(Bt(order+1:end,:) .* gammat,2)) ]; end
+        if nargout>=4, ll = [ll; sum(log(Bt(order+1:end,:)) .* gammat,2) ]; end
+        if nargout==5, scale = [scale; sc ]; end
         if isempty(no_c), break;
         else t = no_c(1)+t-1;
         end;
     end
     Gamma=[Gamma;gamma];
     Gammasum(in,:)=gammasum;
-    if nargout==4, LL = [LL;ll]; end
+    if nargout==4, LL = [LL;sum(ll)]; end
     Xi=cat(1,Xi,reshape(xi,T(in)-order-1,K,K));
-end;
-
+end
+end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [Gamma,Xi,B]=nodecluster(X,K,hmm,residuals)
+function [Gamma,Xi,B,scale]=nodecluster(X,K,hmm,residuals)
 % inference using normal foward backward propagation
 
 T = size(X,1);
@@ -129,9 +150,10 @@ end;
 Gamma=(alpha.*beta);
 Gamma=Gamma(1+order:T,:);
 Gamma=rdiv(Gamma,rsum(Gamma));
-
+ 
 Xi=zeros(T-1-order,K*K);
 for i=1+order:T-1
     t=P.*( alpha(i,:)' * (beta(i+1,:).*B(i+1,:)));
     Xi(i-order,:)=t(:)'/sum(t(:));
+end
 end

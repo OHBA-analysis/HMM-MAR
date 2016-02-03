@@ -1,14 +1,14 @@
-%% Synthetic data
+%% Synthetic data examples
 
 clear
-addpath(genpath('~/Work/Matlab/HMM-MAR'))
+addpath(genpath('./HMM-MAR'))
 % Specify parameters
 K = 4; % number of states
 T = 10000; % number of data points
 N = 3; % number of channels
 epsilon = 0.1; %level of noise
 StatePermanency = 100; % factor for the diagonal of the transtion matrix
-%%
+%% Generate the data
 hmmtrue = struct();
 hmmtrue.K = K;
 hmmtrue.state = struct();
@@ -22,7 +22,6 @@ hmmtrue.train.exptimelag = 0;
 hmmtrue.train.S =ones(N);
 hmmtrue.train.Sind = ones(1,N);
 hmmtrue.train.multipleConf = 0;
-
 
 for k = 1:K
     hmmtrue.state(k).W.Mu_W = rand(1,N);
@@ -41,19 +40,38 @@ hmmtrue.Pi=hmmtrue.Pi./sum(hmmtrue.Pi);
 
 [X,T,Gammatrue] = simhmmmar(T,hmmtrue,[]);
 
-%% Train  models
-
-KK = 2:8;
-DD = [2 10 20 100 200];
-repetitions = 10;
+%% Initial quick run to test that everything is ok
 
 options = struct();
+options.K = 2; 
 options.covtype = 'full';
 options.order = 0;
+%options.timelag = 2; 
+options.DirichletDiag = 2; 
 options.tol = 1e-7;
 options.cyc = 100;
 options.zeromean = 0;
 options.inittype = 'GMM';
+options.initcyc = 100;
+options.initrep = 5;
+options.verbose = 1;
+
+[hmm, Gamma,~, ~, ~, ~, fehist] = hmmmar(X,T,options);
+plot(fehist)
+%%
+options.completelags = 0;
+options.MLestimation = 1; 
+spectral_info = hmmspectramar(X,T,hmm,Gamma,options);
+for k=1:2
+    subplot(1,2,k)
+    plot(spectral_info.state(k).f,spectral_info.state(k).psd(:,1,1),'k')
+end
+
+%% Train models on a grid of parameters
+
+KK = 2:8;
+DD = [2 10 20 100 200];
+repetitions = 10;
 options.verbose = 0;
 
 FE = zeros(length(KK),length(DD),repetitions);

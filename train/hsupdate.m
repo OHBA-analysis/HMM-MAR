@@ -1,4 +1,4 @@
-function [hmm]=hsupdate(Xi,Gamma,T,hmm)
+function hmm = hsupdate(Xi,Gamma,T,hmm)
 %
 % updates hidden state parameters of an HMM
 %
@@ -22,8 +22,9 @@ K=hmm.K;
 sxi=squeeze(sum(Xi,1));   % counts over time
 
 hmm.Dir2d_alpha=sxi+hmm.prior.Dir2d_alpha;
-PsiSum=psi(sum(hmm.Dir2d_alpha(:),1));
+%PsiSum=psi(sum(hmm.Dir2d_alpha(:),1));
 for j=1:K,
+    PsiSum=psi(sum(hmm.Dir2d_alpha(j,:)));
     for i=1:K,
         hmm.P(j,i)=exp(psi(hmm.Dir2d_alpha(j,i))-PsiSum);
     end;

@@ -1,20 +1,23 @@
-function fit = hmmspectramar(hmm,X,T,options)
+function fit = hmmspectramar(X,T,hmm,Gamma,options)
 % Get ML spectral estimates from MAR model
 %
 % INPUT
 % X             time series 
 % T             Number of time points for each time series
 % hmm           An hmm-mar structure 
+% Gamma         State time course (not used if options.MLestimation=0)
 % options 
 
-%  .loadings	In case data are principal components, the PCA loading matrix  
 %  .Fs:       Sampling frequency
 %  .fpass:    Frequency band to be used [fmin fmax] (default [0 fs/2])
 %  .p:        p-value for computing jackknife confidence intervals (default 0)
 %  .Nf        No. of frequencies to be computed in the range minHz-maxHz
-%  .Gamma     State responsabilities - if not specified, it will use the
+%  .MLestimation     State responsabilities - if 0, it will use the
 %               MAR models as they were returned by the HMM-MAR inference (i.e. a
 %               posterior distribution instead of maximum likelihood)
+%  .completelags    if MLestimation is true and completelags is true,
+%               the MAR spectra will be calculated with the complete set of
+%               lags up to the specified order (lags=1,2,...,order)
 %
 % OUTPUT
 % fit is a list with K elements, each of which contains: 
@@ -32,17 +35,15 @@ function fit = hmmspectramar(hmm,X,T,options)
 %
 % Author: Diego Vidaurre, OHBA, University of Oxford (2014)
 
-MLestimation = isfield(options,'Gamma');
-if ~MLestimation
-    warning(strcat('Gamma was not provided: the posterior distribution of the MAR models, ', ...
-        ' as returned by the HMM inference, will be used instead of maximum likelihood.'))
-    orders = formorders(hmm.train.order,hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag);
-    hmm.train.Sind = formindexes(orders,hmm.train.S);
-end
 sT = sum(T);
 ndim = size(X,2);
 options.order = hmm.train.order;
-[options,Gamma] = checkoptions_spectra(options,ndim,T);
+options = checkoptions_spectra(options,ndim,T);
+
+if options.MLestimation, K = size(Gamma,2);
+else K = length(hmm.state);
+end
+
 if length(T)<5 && options.p>0,  error('You need at least 5 trials to compute error bars for MAR spectra'); end
 
 %loadings = options.loadings;
@@ -51,19 +52,19 @@ if length(T)<5 && options.p>0,  error('You need at least 5 trials to compute err
 
 freqs = (0:options.Nf-1)*( (options.fpass(2) - options.fpass(1)) / (options.Nf-1)) + options.fpass(1);
 w=2*pi*freqs/options.Fs;
-K = size(Gamma,2);
 
 if options.p==0, N = 1; 
 else N = length(T); end
 
 psdc = zeros(options.Nf,ndim,ndim,N,K);
 pdcc = zeros(options.Nf,ndim,ndim,N,K);
-% ipsdc = zeros(options.Nf,ndim,ndim,size(Tm,1),K);
-% cohc = zeros(options.Nf,ndim,ndim,size(Tm,1),K);
-% pcohc = zeros(options.Nf,ndim,ndim,size(Tm,1),K);
-% phasec = zeros(options.Nf,ndim,ndim,size(Tm,1),K);
+ipsdc = zeros(options.Nf,ndim,ndim,N,K);
+% cohc = zeros(options.Nf,ndim,ndim,N,K);
+% pcohc = zeros(options.Nf,ndim,ndim,N,K);
+% phasec = zeros(options.Nf,ndim,ndim,N,K);
 
 if size(T,1)==1, T=T'; end
+hmm0 = hmm;
 
 for j=1:N
     
@@ -77,17 +78,15 @@ for j=1:N
         Gammaj = Gamma(jj,:);
     end
     
-    hmm0 = hmm;
-    if MLestimation
+    if options.MLestimation
         %hmm0.train.zeromean = 0 ;
         hmm = mlhmmmar(Xj,Tj,hmm0,Gammaj,options.completelags);
     end
-    hmm0.train.Sind = hmm.train.Sind; hmm = hmm0; 
     
     for k=1:K
-
+                
         setstateoptions;
-        W = zeros(order,ndim,ndim);
+        W = zeros(length(orders),ndim,ndim);
         for i=1:length(orders),
             %W(i,:,:) = loadings *  hmm.state(k).W.Mu_W(~zeromean + ((1:ndim) + (i-1)*ndim),:) * loadings' ;
             W(i,:,:) = hmm.state(k).W.Mu_W(~train.zeromean + ((1:ndim) + (i-1)*ndim),:);
@@ -141,7 +140,7 @@ for j=1:N
 %         end
         
     end
-    hmm = hmm0; clear hmm0
+    
 end
     
 for k=1:K
@@ -175,16 +174,15 @@ for k=1:K
             fit.state(k).coherr = coherr;
             fit.state(k).pcoherr = pcoherr;
             fit.state(k).sdphase = sdphase;
-        else
-            if options.to_do(1)==1
-                fit.state(k).pdcerr = pdcerr;
-            end
+        end
+        if options.to_do(2)==1
+            fit.state(k).pdcerr = pdcerr;
         end
     end
     
     % weight the PSD by the inverse of the sampling rate
-    fit.state(k).psd = (1/options.Fs) * fit.state(k).psd; 
-    
+    fit.state(k).psd = (1/options.Fs) * fit.state(k).psd;  
+    for n=1:ndim, fit.state(k).psd(:,n,n) = abs(fit.state(k).psd(:,n,n)); end
  
 end
 end

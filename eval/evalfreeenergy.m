@@ -23,23 +23,33 @@ Tres = sum(T) - length(T)*hmm.train.maxorder;
 S = hmm.train.S==1;
 regressed = sum(S,1)>0;
 
+if nargin<6 || isempty(residuals)
+    if ~isfield(hmm.train,'Sind'), 
+        orders = formorders(hmm.train.order,hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag);
+        hmm.train.Sind = formindexes(orders,hmm.train.S); 
+    end
+    if ~hmm.train.zeromean, hmm.train.Sind = [true(1,ndim); hmm.train.Sind]; end
+    residuals =  getresiduals(X,T,hmm.train.Sind,hmm.train.maxorder,hmm.train.order,...
+        hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag,hmm.train.zeromean);
+end
+
 Gammasum=sum(Gamma,1);
 ltpi = sum(regressed)/2 * log(2*pi);
 
-% compute entropy of hidden states
-Entr=0;
+Entr = 0;
 for tr=1:length(T);
     t = sum(T(1:tr-1)) - (tr-1)*order + 1;
     Gamma_nz = Gamma(t,:); Gamma_nz(Gamma_nz==0) = realmin;
-    Entr = Entr - sum(Gamma_nz .* log(Gamma_nz));
-    ttXi = (sum(T(1:tr-1)) - (tr-1)*(order+1) + 1) : ((sum(T(1:tr)) - tr*(order+1)));
-    ttGamma = t:(sum(T(1:tr))-tr*order-1);   
-    for s=1:length(ttXi)
-        Xi_nz = Xi(ttXi(s),:,:); Xi_nz(Xi_nz==0) = realmin;
-        Gamma_nz = Gamma(ttGamma(s),:); Gamma_nz(Gamma_nz==0) = realmin;
-        Entr = Entr - sum(sum(Xi_nz .* log( Xi_nz ) )); 
-        Entr = Entr + sum(Gamma_nz .* log( Gamma_nz )); 
-    end
+    Entr = Entr - sum(Gamma_nz.*log(Gamma_nz));
+    t = (sum(T(1:tr-1)) - (tr-1)*(order+1) + 1) : ((sum(T(1:tr)) - tr*(order+1)));
+    Xi_nz = Xi(t,:,:); Xi_nz(Xi_nz==0) = realmin;
+    Psi=zeros(size(Xi_nz));                    % P(S_t|S_t-1)
+    for k = 1:K,
+        sXi = sum(permute(Xi_nz(:,k,:),[1 3 2]),2);
+        Psi(:,k,:) = Xi_nz(:,k,:)./repmat(sXi,[1 1 K]); 
+    end;
+    Psi(Psi==0) = realmin;
+    Entr = Entr - sum(Xi_nz(:).*log(Psi(:)));    % entropy of hidden states
 end
 
 % Free energy terms for model not including obs. model
@@ -47,7 +57,7 @@ end
 KLdiv=dirichlet_kl(hmm.Dir_alpha,hmm.prior.Dir_alpha);
 PsiDir_alphasum=psi(sum(hmm.Dir_alpha,2));
 
-avLL = 0;  
+avLLGamma = 0;  
 jj = zeros(length(T),1); % reference to first time point of the segments
 for in=1:length(T);
     jj(in) = sum(T(1:in-1)) - hmm.train.maxorder*(in-1) + 1;
@@ -56,17 +66,19 @@ for l=1:K,
     % KL-divergence for transition prob
     KLdiv=[KLdiv dirichlet_kl(hmm.Dir2d_alpha(l,:),hmm.prior.Dir2d_alpha(l,:))];
     % avLL initial state  
-    avLL = avLL + sum(Gamma(jj,l)) * (psi(hmm.Dir_alpha(l)) - PsiDir_alphasum);
+    avLLGamma = avLLGamma + sum(Gamma(jj,l)) * (psi(hmm.Dir_alpha(l)) - PsiDir_alphasum);
 end     
 % avLL remaining time points  
-PsiDir2d_alphasum=psi(sum(hmm.Dir2d_alpha(:)));
+%PsiDir2d_alphasum=psi(sum(hmm.Dir2d_alpha(:)));
 for k=1:K,
+    PsiDir2d_alphasum=psi(sum(hmm.Dir2d_alpha(:,k)));
     for l=1:K,
-        avLL = avLL + sum(Xi(:,l,k)) * (psi(hmm.Dir2d_alpha(l,k))-PsiDir2d_alphasum);
+        avLLGamma = avLLGamma + sum(Xi(:,l,k)) * (psi(hmm.Dir2d_alpha(l,k))-PsiDir2d_alphasum);
     end
 end
 
 OmegaKL = 0;
+avLL = 0;  
 
 if strcmp(hmm.train.covtype,'uniquediag')
     OmegaKL = 0;
@@ -102,27 +114,26 @@ for k=1:K,
     hs=hmm.state(k);		 
     pr=hmm.state(k).prior;
     setstateoptions;
- 
-    switch train.covtype,
-        case 'diag'
-            ldetWishB=0;
-            PsiWish_alphasum=0;
-            for n=1:ndim,
-                if ~regressed(n), continue; end 
-                ldetWishB=ldetWishB+0.5*log(hs.Omega.Gam_rate(n));
-                PsiWish_alphasum=PsiWish_alphasum+0.5*psi(hs.Omega.Gam_shape);
-            end;
-            C = hs.Omega.Gam_shape ./ hs.Omega.Gam_rate;
-            avLL = avLL+ Gammasum(k)*(-ltpi-ldetWishB+PsiWish_alphasum);
-        case 'full'
-            ldetWishB=0.5*logdet(hs.Omega.Gam_rate(regressed,regressed));
-            PsiWish_alphasum=0;
-            for n=1:sum(regressed),
-                PsiWish_alphasum=PsiWish_alphasum+0.5*psi(hs.Omega.Gam_shape/2+0.5-n/2);   
-            end;
-            C = hs.Omega.Gam_shape * hs.Omega.Gam_irate;
-            avLL = avLL + Gammasum(k) * (-ltpi-ldetWishB+PsiWish_alphasum);
-    end;
+    
+    if strcmp(train.covtype,'diag')
+        ldetWishB=0;
+        PsiWish_alphasum=0;
+        for n=1:ndim,
+            if ~regressed(n), continue; end
+            ldetWishB=ldetWishB+0.5*log(hs.Omega.Gam_rate(n));
+            PsiWish_alphasum=PsiWish_alphasum+0.5*psi(hs.Omega.Gam_shape);
+        end;
+        C = hs.Omega.Gam_shape ./ hs.Omega.Gam_rate;
+        avLL = avLL+ Gammasum(k)*(-ltpi-ldetWishB+PsiWish_alphasum);
+    elseif strcmp(train.covtype,'full')
+        ldetWishB=0.5*logdet(hs.Omega.Gam_rate(regressed,regressed));
+        PsiWish_alphasum=0;
+        for n=1:sum(regressed),
+            PsiWish_alphasum=PsiWish_alphasum+0.5*psi(hs.Omega.Gam_shape/2+0.5-n/2);
+        end;
+        C = hs.Omega.Gam_shape * hs.Omega.Gam_irate;
+        avLL = avLL + Gammasum(k) * (-ltpi-ldetWishB+PsiWish_alphasum);
+    end
     
     meand = zeros(size(XX{kk},1),sum(regressed));
     if train.uniqueAR
@@ -219,12 +230,13 @@ for k=1:K,
                 if ~isempty(orders)
                     ndim_n = sum(S(:,n));
                     alphamat = repmat( (hs.alpha.Gam_shape ./  hs.alpha.Gam_rate), ndim_n, 1);
-                    prior_prec = [prior_prec; repmat(hs.sigma.Gam_shape(S(:,n)==1,n) ./ hs.sigma.Gam_rate(S(:,n)==1,n), length(orders), 1) .* alphamat(:)] ;
+                    prior_prec = [prior_prec; repmat(hs.sigma.Gam_shape(S(:,n)==1,n) ./ ...
+                        hs.sigma.Gam_rate(S(:,n)==1,n), length(orders), 1) .* alphamat(:)] ;
                 end
                 prior_var = diag(1 ./ prior_prec);
                 WKL = WKL + gauss_kl(hs.W.Mu_W(Sind(:,n),n),zeros(sum(Sind(:,n)),1), ...
                     permute(hs.W.S_W(n,Sind(:,n),Sind(:,n)),[2 3 1]), prior_var);
-            end;
+            end
         else % full or uniquefull
             prior_prec = [];
             if train.zeromean==0
@@ -264,8 +276,8 @@ for k=1:K,
                 if (train.symmetricprior && n2<n1) || S(n1,n2)==0, continue; end
                 sigmaKL = sigmaKL + gamma_kl(hs.sigma.Gam_shape(n1,n2),pr.sigma.Gam_shape(n1,n2), ...
                     hs.sigma.Gam_rate(n1,n2),pr.sigma.Gam_rate(n1,n2));
-            end;
-        end;
+            end
+        end
     end
     
     alphaKL = 0;
@@ -280,6 +292,6 @@ for k=1:K,
     
     %if any(isnan([OmegaKL sigmaKL alphaKL WKL])), keyboard; end
     
-end;
+end
 
-FrEn=[-Entr -avLL +KLdiv];
+FrEn=[-Entr -avLL -avLLGamma +KLdiv];

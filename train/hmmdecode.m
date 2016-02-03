@@ -1,14 +1,15 @@
-function [vpath]=hmmdecode(X,T,hmm,residuals)
+function vpath = hmmdecode(X,T,hmm,residuals,options)
 %
 % Viterbi and single-state decoding for hmm
 % The algorithm is run for the whole data set, including those whose class
 % was fixed. This means that the assignment for those can be different.
 %
 % INPUT
-% X      Observations
+% X             Observations
 % T             length of series
-% hmm       hmm data structure
-% residuals     in case we train on residuals, the value of those.
+% hmm           hmm data structure
+% residuals     in case we train on residuals, the value of those (optional)
+% options       the hmm options, that will be used if hmm.train is missing
 %
 % OUTPUT
 % vpath(i).q_star    maximum likelihood state sequence
@@ -16,9 +17,24 @@ function [vpath]=hmmdecode(X,T,hmm,residuals)
 % Author: Diego Vidaurre, OHBA, University of Oxford
 
 N = length(T);
-K=hmm.K;
-P=hmm.P;
-Pi=hmm.Pi;
+K = length(hmm.state);
+
+if ~isfield(hmm,'train')
+    if nargin<5, error('You must specify the field options if hmm.train is missing'); end
+    hmm.train = checkoptions(options,X,T,0);
+end
+
+if nargin<4 || isempty(residuals)
+   residuals =  getresiduals(X,T,hmm.train.Sind,hmm.train.maxorder,hmm.train.order,...
+        hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag,hmm.train.zeromean);
+end
+
+if ~isfield(hmm,'P')
+    hmm = hmmhsinit (hmm);
+end
+    
+P = hmm.P;
+Pi = hmm.Pi;
 
 if ~hmm.train.multipleConf
     [~,order] = formorders(hmm.train.order,hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag);
