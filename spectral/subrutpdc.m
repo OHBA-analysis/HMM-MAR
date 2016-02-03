@@ -1,4 +1,4 @@
-function pdc = subrutpdc(S,numIterations,tol)
+function [pdc, dtf] = subrutpdc(S,numIterations,tol)
 % obtains approximated pdc and dc from cross-spectral information
 
 Nf = size(S,1); N = size(S,2);
@@ -7,17 +7,20 @@ H = wilsonfact(permute(S,[2 3 1]),numIterations,tol);
 % Computing the PDC
 G = zeros(size(H));
 pdc = zeros(size(H));
+dtf = zeros(size(H));
 for f=1:Nf
     G(:,:,f) = inv(H(:,:,f));
     for i=1:N
         for j=1:N
             if i~=j
                 pdc(i,j,f) = abs(G(i,j,f)) / sqrt(sum( abs(G(:,j,f)).^2 )) ;
+                dtf(i,j,f) = abs(H(i,j,f)) / sqrt(sum( abs(H(i,:,f)).^2 )) ;  % note different normalisation
             end
         end
     end
 end
 pdc = permute(pdc,[3 1 2]);
+dtf = permute(dtf,[3 1 2]);
 end
 
 %-------------------------------------------------------------------

@@ -134,7 +134,7 @@ for k=1:K
     end
     
     if (options.to_do(2)==1)
-        pdc = subrutpdc(psd,options.numIterations,options.tol);
+        [pdc, dtf] = subrutpdc(psd,options.numIterations,options.tol);
     end
     
     if options.p>0 % jackknife
@@ -182,6 +182,7 @@ for k=1:K
     end
     if (options.to_do(2)==1),
         fit.state(k).pdc = pdc;
+        fit.state(k).dtf = dtf;
     end
     if options.p>0
         fit.state(k).psderr = psderr;
