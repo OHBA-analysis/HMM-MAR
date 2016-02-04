@@ -21,6 +21,7 @@ else K = options.K; end
 % Specific BigHMM options
 if ~isfield(options,'BIGNbatch'), BIGNbatch = 10;
 else BIGNbatch = options.BIGNbatch; end
+if ~isfield(options,'BIGprior'), options.BIGprior = []; end
 if ~isfield(options,'BIGcyc'), BIGcyc = 200;
 else BIGcyc = options.BIGcyc; end
 if ~isfield(options,'BIGmincyc'), BIGmincyc = 50;
@@ -31,11 +32,11 @@ if ~isfield(options,'BIGtol'), BIGtol = 1e-5;
 else BIGtol = options.BIGtol; end
 if ~isfield(options,'BIGinitcyc'), BIGinitcyc = 4;
 else BIGinitcyc = options.BIGinitcyc; end
-if ~isfield(options,'BIGforgetrate'), BIGforgetrate = 4;
+if ~isfield(options,'BIGforgetrate'), BIGforgetrate = 0.9;
 else BIGforgetrate = options.BIGforgetrate; end
 if ~isfield(options,'BIGdelay'), BIGdelay = 1;
 else BIGdelay = options.BIGdelay; end
-if ~isfield(options,'BIGbase_weights'), BIGbase_weights = 1; % smaller will promote democracy
+if ~isfield(options,'BIGbase_weights'), BIGbase_weights = 0.95; % < 1 will promote democracy
 else BIGbase_weights = options.BIGbase_weights; end
 if ~isfield(options,'BIGverbose'), BIGverbose = 1;  
 else BIGverbose = options.BIGverbose; end
@@ -50,6 +51,7 @@ if ~isfield(options,'exptimelag'), options.exptimelag = 0; end
 if ~isfield(options,'cyc'), options.cyc = 50; end
 if ~isfield(options,'initcyc'), options.initcyc = 50; end
 if ~isfield(options,'initrep'), options.initrep = 3; end
+
 options.verbose = 0; % shut up the individual hmmmar output
 
 if options.order>0
@@ -182,27 +184,31 @@ if ~isfield(options,'metastates')
         end
         
         % set prior
-        if cycle==1
-            prior = struct();
-            prior.Omega = struct();
-            if strcmp(options.covtype,'uniquediag') || strcmp(options.covtype,'diag')
-                prior.Omega.Gam_shape = 0.5 * (ndim+0.1-1);
-                prior.Omega.Gam_rate = 0.5 * range_data;
+        if cycle==1 
+            if isempty(options.BIGprior)
+                prior = struct();
+                prior.Omega = struct();
+                if strcmp(options.covtype,'uniquediag') || strcmp(options.covtype,'diag')
+                    prior.Omega.Gam_shape = 0.5 * (ndim+0.1-1);
+                    prior.Omega.Gam_rate = 0.5 * range_data;
+                else
+                    prior.Omega.Gam_shape = ndim+0.1-1;
+                    prior.Omega.Gam_rate = diag(range_data);
+                end
+                prior.Mean = struct();
+                prior.Mean.S = (range_data/2).^2;
+                prior.Mean.iS = 1 ./ prior.Mean.S;
+                prior.Mean.Mu = zeros(1,ndim);
+                if ~isempty(options.orders)
+                    prior.sigma = struct();
+                    prior.sigma.Gam_shape = 0.1*ones(ndim,ndim); %+ 0.05*eye(ndim);
+                    prior.sigma.Gam_rate = 0.1*ones(ndim,ndim);%  + 0.05*eye(ndim);
+                    prior.alpha = struct();
+                    prior.alpha.Gam_shape = 0.1;
+                    prior.alpha.Gam_rate = 0.1*ones(1,length(orders));
+                end
             else
-                prior.Omega.Gam_shape = ndim+0.1-1;
-                prior.Omega.Gam_rate = diag(range_data);
-            end
-            prior.Mean = struct();
-            prior.Mean.S = (range_data/2).^2;
-            prior.Mean.iS = 1 ./ prior.Mean.S;
-            prior.Mean.Mu = zeros(1,ndim);
-            if ~isempty(options.orders)
-                prior.sigma = struct();
-                prior.sigma.Gam_shape = 0.1*ones(ndim,ndim); %+ 0.05*eye(ndim);
-                prior.sigma.Gam_rate = 0.1*ones(ndim,ndim);%  + 0.05*eye(ndim);
-                prior.alpha = struct();
-                prior.alpha.Gam_shape = 0.1;
-                prior.alpha.Gam_rate = 0.1*ones(1,length(orders));
+                prior = options.BIGprior;
             end
         end
         
@@ -456,8 +462,10 @@ markovTrans.P = P;
 markovTrans.Pi = Pi;
 markovTrans.Dir2d_alpha = Dir2d_alpha;
 markovTrans.Dir_alpha = Dir_alpha;
+markovTrans.prior.Dir2d_alpha = hmm.prior.Dir2d_alpha;
+markovTrans.prior.Dir_alpha = hmm.prior.Dir_alpha;
 
-feterms = [loglik' squeeze(subjfe(:,1,:))'  squeeze(subjfe(:,2,:))' squeeze(subjfe(:,3,:))' statekl'];
+feterms = [sum(loglik(:,end)) sum(subjfe(:,:,end)) sum(statekl(:,end)) ];
 
 end
 
@@ -510,198 +518,6 @@ kl = 0;
 for n=1:ndim
     kl = 0.5 * gauss_kl(m1.W.Mu_W(:,n),m2.W.Mu_W(:,n),m1.W.S_W,m2.W.S_W) + ...
         0.5 * gauss_kl(m2.W.Mu_W(:,n),m1.W.Mu_W(:,n),m2.W.S_W,m1.W.S_W);
-end
-end
-
-
-function Entr = GammaEntropy(Gamma,Xi,T,order)
-% Entropy of the state time courses
-Entr = 0; K = size(Gamma,2);
-for tr=1:length(T);
-    t = sum(T(1:tr-1)) - (tr-1)*order + 1;
-    Gamma_nz = Gamma(t,:); Gamma_nz(Gamma_nz==0) = realmin;
-    Entr = Entr - sum(Gamma_nz.*log(Gamma_nz));
-    t = (sum(T(1:tr-1)) - (tr-1)*(order+1) + 1) : ((sum(T(1:tr)) - tr*(order+1)));
-    Xi_nz = Xi(t,:,:); Xi_nz(Xi_nz==0) = realmin;
-    Psi=zeros(size(Xi_nz));                    % P(S_t|S_t-1)
-    for k = 1:K,
-        sXi = sum(permute(Xi_nz(:,k,:),[1 3 2]),2);
-        Psi(:,k,:) = Xi_nz(:,k,:)./repmat(sXi,[1 1 K]); 
-    end;
-    Psi(Psi==0) = realmin;
-    Entr = Entr - sum(Xi_nz(:).*log(Psi(:)));    % entropy of hidden states
-end
-
-end
-
-
-function avLL = GammaavLL(hmm,Gamma,Xi,T)
-% average loglikelihood for state time course
-avLL = 0; K = size(Gamma,2);
-jj = zeros(length(T),1); % reference to first time point of the segments
-for in=1:length(T);
-    jj(in) = sum(T(1:in-1)) + 1;
-end
-PsiDir_alphasum = psi(sum(hmm.Dir_alpha,2));
-for l=1:K,
-    % avLL initial state  
-    avLL = avLL + sum(Gamma(jj,l)) * (psi(hmm.Dir_alpha(l)) - PsiDir_alphasum);
-end     
-% avLL remaining time points  
-for k=1:K,
-    PsiDir2d_alphasum=psi(sum(hmm.Dir2d_alpha(:,k)));
-    for l=1:K,
-        avLL = avLL + sum(Xi(:,l,k)) * (psi(hmm.Dir2d_alpha(l,k))-PsiDir2d_alphasum);
-    end
-end
-end
-
-
-function avLL = XavLL(X,T,metastates,Gamma,options)
-N = length(Gamma); K = length(metastates);
-avLL = zeros(N,1); ndim = size(X,2); 
-ltpi = ndim/2 * log(2*pi);
-tacc = 0; 
-orders = options.orders;
-for i = 1:N
-    T_i = T{i};
-    X_i = X( (1:sum(T_i)) + tacc,:); tacc = tacc + sum(T_i);
-    XX = formautoregr(X_i,T_i,orders,options.order,options.zeromean);
-    X_i = X_i(1+options.order:end,:);
-    Gamma_i = Gamma{i};
-    for k=1:K
-        m = metastates(k);
-        NormWishtrace = zeros(sum(T_i),1);
-        if isvector(m.Omega.Gam_rate)
-            ldetWishB=0;
-            PsiWish_alphasum=0;
-            C = m.Omega.Gam_shape ./ m.Omega.Gam_rate;
-            for n=1:ndim,
-                ldetWishB=ldetWishB+0.5*log(m.Omega.Gam_rate(n));
-                PsiWish_alphasum=PsiWish_alphasum+0.5*psi(m.Omega.Gam_shape);
-                if ndim==1
-                    NormWishtrace =  0.5 * C(n) * sum( (XX * m.W.S_W) .* XX, 2);
-                else
-                    NormWishtrace = NormWishtrace + 0.5 * C(n) * ...
-                            sum( (XX * permute(m.W.S_W(n,:,:),[2 3 1])) .* XX, 2);
-                end
-            end;
-            avLL(i) = avLL(i) + sum(Gamma_i(:,k)) * (-ltpi-ldetWishB+PsiWish_alphasum);
-        else 
-            ldetWishB=0.5*logdet(m.Omega.Gam_rate);
-            PsiWish_alphasum=0;
-            C = m.Omega.Gam_shape * m.Omega.Gam_irate;
-            if isempty(orders)
-                NormWishtrace = 0.5 * sum(sum(C .* m.W.S_W));
-            else
-                I = (0:length(orders)*ndim+(~options.zeromean)-1) * ndim;
-            end
-            for n=1:ndim
-                PsiWish_alphasum=PsiWish_alphasum+0.5*psi(m.Omega.Gam_shape/2+0.5-n/2);
-                if ~isempty(orders)
-                    index1 = I + n1;  
-                    tmp = (XX * m.W.S_W(index1,:));
-                    for n2=1:ndim
-                        index2 = I + n2;  
-                        NormWishtrace = NormWishtrace + 0.5 * C(n1,n2) * ...
-                            sum( tmp(:,index2) .* XX,2);
-                    end
-                end
-            end;
-            avLL(i) = avLL(i) + sum(Gamma{i}(:,k)) * (-ltpi-ldetWishB+PsiWish_alphasum);
-            NormWishtrace = 0.5 * sum(sum(m.W.S_W .* C));
-        end
-        d = X_i - XX * m.W.Mu_W;
-        if isvector(m.Omega.Gam_rate)
-            Cd =  repmat(C',1,sum(T{i})) .* d';
-        else
-            Cd = C * d';
-        end
-        dist=zeros(sum(T{i}),1);
-        for n=1:ndim,
-            dist=dist-0.5*d(:,n).*Cd(n,:)';
-        end
-        avLL(i) = avLL(i) + sum(Gamma{i}(:,k).*(dist - NormWishtrace));
-    end
-end
-end
-
-function KLdiv = KLtransition(hmm)
-% KL divergence for the transition and initial probabilities
-KLdiv = dirichlet_kl(hmm.Dir_alpha,hmm.prior.Dir_alpha); % + ...
-%    dirichlet_kl(hmm.Dir2d_alpha(:)',hmm.prior.Dir2d_alpha(:)'); 
-K = length(hmm.state);
-for l=1:K,
-    % KL-divergence for transition prob
-    KLdiv = KLdiv + dirichlet_kl(hmm.Dir2d_alpha(l,:),hmm.prior.Dir2d_alpha(l,:));
-end
-end
-
-
-function KLdiv = KLstate(metastate,prior,options) 
-% KL divergence between a state and its prior (cov and mean)
-KLdiv = 0;  
-orders = options.orders;
-% cov matrix
-if strcmp(options.covtype,'full') 
-    ndim = size(metastate.Omega.Gam_rate,1);
-    KLdiv = wishart_kl(metastate.Omega.Gam_rate,prior.Omega.Gam_rate, ...
-                metastate.Omega.Gam_shape,prior.Omega.Gam_shape);
-elseif strcmp(options.covtype,'diag')
-    ndim = length(metastate.Omega.Gam_rate);
-    for n=1:ndim
-        KLdiv = KLdiv + gamma_kl(metastate.Omega.Gam_shape,prior.Omega.Gam_shape, ...
-            metastate.Omega.Gam_rate(n),prior.Omega.Gam_rate(n));
-    end
-end
-% W
-if ~options.zeromean || ~isempty(options.orders)
-    if strcmp(options.covtype,'full') 
-        prior_prec = [];
-        if options.zeromean==0
-            prior_prec = prior.Mean.iS;
-        end
-        if ~isempty(orders)
-            sigmaterm = (metastate.sigma.Gam_shape ./ metastate.sigma.Gam_rate );
-            sigmaterm = repmat(sigmaterm, length(orders), 1);
-            alphaterm = repmat( (metastate.alpha.Gam_shape ./  metastate.alpha.Gam_rate), ndim^2, 1);
-            alphaterm = alphaterm(:);
-            prior_prec = [prior_prec; alphaterm .* sigmaterm];
-        end
-        prior_var = diag(1 ./ prior_prec);
-        mu_w = metastate.W.Mu_W';
-        mu_w = mu_w(:);        
-        KLdiv = KLdiv + gauss_kl(mu_w,zeros(length(mu_w),1), metastate.W.S_W, prior_var); 
-    else
-        
-        for n=1:ndim
-            prior_prec = [];
-            if options.zeromean==0
-                prior_prec = metastate.prior.Mean.iS(n);
-            end
-            if ~isempty(orders)
-                alphamat = repmat( (metastate.alpha.Gam_shape ./  metastate.alpha.Gam_rate), ndim, 1);
-                prior_prec = [prior_prec; repmat(metastate.sigma.Gam_shape(:,n) ./ ...
-                    metastate.sigma.Gam_rate(:,n), length(orders), 1) .* alphamat(:)] ;
-            end
-            prior_var = diag(1 ./ prior_prec);
-            KLdiv = KLdiv + gauss_kl(metastate.W.Mu_W(:,n),zeros(ndim,1), ...
-                permute(metastate.W.S_W(n,:,:),[2 3 1]), prior_var);
-        end
-    end
-end
-% sigma and alpha
-if ~isempty(orders)
-    for n1=1:ndim % sigma
-        for n2=1:ndim
-            KLdiv = KLdiv + gamma_kl(metastate.sigma.Gam_shape(n1,n2),prior.sigma.Gam_shape(n1,n2), ...
-                metastate.sigma.Gam_rate(n1,n2),prior.sigma.Gam_rate(n1,n2));
-        end
-    end
-    for i=1:length(orders)
-        KLdiv = KLdiv + gamma_kl(metastate.alpha.Gam_shape,prior.alpha.Gam_shape, ...
-            metastate.alpha.Gam_rate(i),pr.alpha.Gam_rate(i));
-    end
 end
 end
 
