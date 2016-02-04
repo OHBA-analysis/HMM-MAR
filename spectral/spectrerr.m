@@ -5,19 +5,25 @@ Nf = options.Nf;
 ndim = size(psdc,2);
 jksamples = size(psdc,4);
 psd = mean(psdc,4);
-SA = []; cohA = []; pdcA = [];  
-atanhcohA = [];
-atanhpdcA = [];
-phasefactorA = [];
-for in=1:jksamples;
+SA = zeros(Nf,ndim,ndim,jksamples);
+if options.to_do(1)==1
+    cohA = zeros(Nf,ndim,ndim,jksamples);
+    atanhcohA = zeros(Nf,ndim,ndim,jksamples);
+    phasefactorA = zeros(Nf,ndim,ndim,jksamples);
+end
+if options.to_do(2)==1
+    atanhpdcA = zeros(Nf,ndim,ndim,jksamples);
+    pdcA = zeros(Nf,ndim,ndim,jksamples);
+end
+
+for in=1:jksamples
     %fprintf('%d of %d \n',in,size(psdc,4))
     indxk=setdiff(1:jksamples,in);
     Si = mean(psdc(:,:,:,indxk),4);
-    SA = cat(4,SA,Si);
-    if (options.to_do(1)==1),
+    SA(:,:,:,in) = Si;
+    if options.to_do(1)==1
         cohi = zeros(Nf,ndim,ndim);
         atanhcohi = zeros(Nf,ndim,ndim);
-        atanhpdci = zeros(Nf,ndim,ndim);
         phasefactori = zeros(Nf,ndim,ndim);
         for j=1:ndim,
             for l=1:ndim,
@@ -27,11 +33,12 @@ for in=1:jksamples;
                 phasefactori(:,j,l)=cjl./cohi(:,j,l);
             end
         end
-        cohA = cat(4,cohA,cohi);
-        atanhcohA = cat(4,atanhcohA,atanhcohi);
-        phasefactorA = cat(4,phasefactorA,phasefactori);
+        cohA(:,:,:,in) = cohi;
+        atanhcohA(:,:,:,in) = atanhcohi;
+        phasefactorA(:,:,:,in) = phasefactori;
     end
-    if (options.to_do(2)==1),
+    if options.to_do(2)==1
+        atanhpdci = zeros(Nf,ndim,ndim);
         if isempty(pdcc)
             pdci = subrutpdc(Si,options.numIterations,options.tol);
         else
@@ -42,8 +49,8 @@ for in=1:jksamples;
                 atanhpdci(:,j,l) = sqrt(2*jksamples-2)*atanh(pdci(:,j,l));
             end
         end
-        atanhpdcA = cat(4,atanhpdcA,atanhpdci);
-        pdcA = cat(4,pdcA,pdci);
+        atanhpdcA(:,:,:,in) = atanhpdci;
+        pdcA(:,:,:,in) = pdci;
     end
 end
 dof = jksamples-1;
