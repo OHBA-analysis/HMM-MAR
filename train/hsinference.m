@@ -1,4 +1,4 @@
-function [Gamma,Gammasum,Xi,LL,scale]=hsinference(data,T,hmm,residuals,options)
+function [Gamma,Gammasum,Xi,LL,scale, Bt]=hsinference(data,T,hmm,residuals,options)
 %
 % inference engine for HMMs.
 %
