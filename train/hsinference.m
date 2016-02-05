@@ -114,6 +114,14 @@ end
 function [Gamma,Xi,B,scale]=nodecluster(X,K,hmm,residuals)
 % inference using normal foward backward propagation
 
+% Preamble to check for mex function
+if exist('hidden_state_inference_mx', 'file') == 3,
+	useMEX = true;
+else
+	useMEX = false;
+end
+
+% Extract relevant variables and compute likelihoods
 T = size(X,1);
 P=hmm.P;
 Pi=hmm.Pi;
@@ -127,6 +135,16 @@ end
 B = obslike(X,hmm,residuals);
 B(B<realmin) = realmin;
 
+% pass to mex file?
+if useMEX,
+	[Gamma, Xi, scale] = hidden_state_inference_mx(B, Pi, P, order);
+	return;
+else
+	% carry on
+end%if
+
+
+% forwards-backwards algorithm begins now
 scale=zeros(T,1);
 alpha=zeros(T,K);
 beta=zeros(T,K);
@@ -157,3 +175,4 @@ for i=1+order:T-1
     Xi(i-order,:)=t(:)'/sum(t(:));
 end
 end
+
