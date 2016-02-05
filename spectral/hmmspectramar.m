@@ -168,7 +168,7 @@ for k=1:K
     
     if options.p>0 % jackknife
         [psderr,coherr,pcoherr,pdcerr,sdphase] = spectrerr(psdc(:,:,:,:,k),pdcc(:,:,:,:,k),fit.state(k).coh, ...
-            fit.state(k).pcoh,fit.state(k).pdc,options);
+            fit.state(k).pcoh,fit.state(k).pdc,options,1);
         fit.state(k).psderr = psderr;
         if options.to_do(1)==1
             fit.state(k).coherr = coherr;

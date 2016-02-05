@@ -1,4 +1,6 @@
-function [psderr,coherr,pcoherr,pdcerr,sdphase] = spectrerr(psdc,pdcc,coh,pcoh,pdc,options)
+function [psderr,coherr,pcoherr,pdcerr,sdphase] = spectrerr(psdc,pdcc,coh,pcoh,pdc,options,mar)
+
+if nargin<7, mar = 0; end
 
 coherr = []; pcoherr = []; pdcerr = []; sdphase = [];
 Nf = options.Nf;
@@ -18,8 +20,12 @@ end
 
 for in=1:jksamples
     %fprintf('%d of %d \n',in,size(psdc,4))
-    indxk=setdiff(1:jksamples,in);
-    Si = mean(psdc(:,:,:,indxk),4);
+    if mar==1
+        Si = psdc(:,:,:,in);
+    else
+        indxk = setdiff(1:jksamples,in);
+        Si = mean(psdc(:,:,:,indxk),4);
+    end
     SA(:,:,:,in) = Si;
     if options.to_do(1)==1
         cohi = zeros(Nf,ndim,ndim);

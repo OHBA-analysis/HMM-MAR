@@ -31,4 +31,8 @@ if ~isfield(options,'Nf'),  options.Nf=256; end;
 if ~isfield(options,'MLestimation'), options.MLestimation = 1; end
 if ~isfield(options,'completelags'), options.completelags = 1; end
 
+if options.MLestimation == 0, 
+    error('options.MLestimation equal to 0 is not currently an option')
+end
+
 end
