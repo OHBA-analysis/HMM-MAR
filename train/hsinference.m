@@ -1,4 +1,4 @@
-function [Gamma,Gammasum,Xi,LL,scale, Bt]=hsinference(data,T,hmm,residuals,options)
+function [Gamma,Gammasum,Xi,LL,scale,Bt]=hsinference(data,T,hmm,residuals,options)
 %
 % inference engine for HMMs.
 %
@@ -98,7 +98,7 @@ for in=1:N
         gamma = [gamma; gammat];
         gammasum = gammasum + sum(gamma);
         if nargout>=4, ll = [ll; sum(log(Bt(order+1:end,:)) .* gammat,2) ]; end
-        if nargout==5, scale = [scale; sc ]; end
+        if nargout>=5, scale = [scale; sc ]; end
         if isempty(no_c), break;
         else t = no_c(1)+t-1;
         end;
