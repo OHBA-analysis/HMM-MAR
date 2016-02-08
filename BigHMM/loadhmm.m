@@ -18,6 +18,7 @@ end
 hmm.K = K;
 hmm.train.Sind = formindexes([],hmm.train.S);
 hmm.train.Sind = [true(1,size(hmm.train.S,1)); hmm.train.Sind];
+if isfield(hmm0.train,'active'), hmm.train.active = hmm0.train.active;
 if isempty(P)
     hmm.Dir_alpha = ones(1,K);
     hmm.prior.Dir_alpha = ones(1,K);

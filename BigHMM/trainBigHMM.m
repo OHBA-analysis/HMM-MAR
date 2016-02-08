@@ -21,6 +21,8 @@ else K = options.K; end
 % Specific BigHMM options
 if ~isfield(options,'BIGNbatch'), BIGNbatch = 10;
 else BIGNbatch = options.BIGNbatch; end
+if ~isfield(options,'uniqueTrans'), uniqueTrans = 0;
+else uniqueTrans = options.uniqueTrans; end
 if ~isfield(options,'BIGprior'), options.BIGprior = []; end
 if ~isfield(options,'BIGcyc'), BIGcyc = 200;
 else BIGcyc = options.BIGcyc; end
@@ -51,7 +53,7 @@ if ~isfield(options,'exptimelag'), options.exptimelag = 0; end
 if ~isfield(options,'cyc'), options.cyc = 50; end
 if ~isfield(options,'initcyc'), options.initcyc = 50; end
 if ~isfield(options,'initrep'), options.initrep = 3; end
-
+options.dropstates = 0; 
 options.verbose = 0; % shut up the individual hmmmar output
 
 if options.order>0
@@ -97,9 +99,9 @@ if ~isfield(options,'metastates')
     subj_time_init = zeros(N,K);
     
     % init subject parameters
-    P_init = cell(N,1); Pi_init = cell(N,1);
-    Dir2d_alpha_init = cell(N,1); Dir_alpha_init = cell(N,1);
-
+    P_init = zeros(K,K,N); Pi_init = zeros(K,N);
+    Dir2d_alpha_init = zeros(K,K,N); Dir_alpha_init = zeros(K,N);
+    
     best_fe = Inf;
     for cycle = 1:BIGinitcyc
         
@@ -119,12 +121,26 @@ if ~isfield(options,'metastates')
                 end
             end
             % Running the individual HMM
-            [hmm_i,Gamma] = hmmmar(X,T{i},options);  
+            [hmm_i,Gamma,Xi] = hmmmar(X,T{i},options); 
+            if uniqueTrans && ii==1
+                Dir2d_alpha_prior = hmm_i.prior.Dir2d_alpha;
+                Dir_alpha_prior = hmm_i.prior.Dir_alpha;
+            end
             if BIGverbose
                 fprintf('Init run %d, subject %d \n',cycle,ii);
             end
-            P_init{i} = hmm_i.P; Pi_init{i} = hmm_i.Pi;
-            Dir2d_alpha_init{i} = hmm_i.Dir2d_alpha; Dir_alpha_init{i} = hmm_i.Dir_alpha;
+            if uniqueTrans % one P/Pi for all subjects
+                for trial=1:length(T{i})
+                    t = sum(T{i}(1:trial-1)) - options.order*(trial-1) + 1;
+                    Dir_alpha_init(:,i) = Dir_alpha_init(:,i) + Gamma(t,:)';
+                end
+                Dir2d_alpha_init(:,:,i) = squeeze(sum(Xi,1));
+                [P_init,Pi_init] = computePandPi(Dir_alpha_init,Dir2d_alpha_init);
+            else
+                P_init(:,:,i) = hmm_i.P; Pi_init(:,i) = hmm_i.Pi';
+                Dir2d_alpha_init(:,:,i) = hmm_i.Dir2d_alpha; 
+                Dir_alpha_init(:,i) = hmm_i.Dir_alpha';                
+            end
             K_i = length(hmm_i.state);
             % Reassigning ordering of the states according the closest metastates
             if ii==1
@@ -163,7 +179,7 @@ if ~isfield(options,'metastates')
                 % hence, an underestimation of the group ones
             end
             if strcmp(options.covtype,'uniquefull') || strcmp(options.covtype,'uniquediag')
-                gram_init = gram_init + hmm.Omega.Gam_rate;
+                gram_init = gram_init + hmm_i.Omega.Gam_rate;
             end
             % updating the metastates
             for k = 1:K_i
@@ -216,15 +232,34 @@ if ~isfield(options,'metastates')
         % unbiased group estimation of the metastate covariance matrices;
         % obtaining subject parameters and computing free energy
         metastates_init = adjSw_in_metastate(metastates_init); % adjust the dim of S_W
+        if uniqueTrans
+            Dir2d_alpha_init_pre = sum(Dir2d_alpha_init) + Dir2d_alpha_prior;  
+            Dir_alpha_init_pre = sum(Dir_alpha_init,2)' + Dir_alpha_prior;
+            [P_init_pre,Pi_init_pre] = computePandPi(Dir_alpha_init_pre,Dir2d_alpha_init_pre);
+        end
         for i = 1:N
             X = loadfile(files{i});
             data = struct('X',X,'C',NaN(sum(T{i})-length(T{i})*options.order,K));
-            hmm = loadhmm(hmm_i,T{i},K,metastates_init,...
-                P_init{i},Pi_init{i},Dir2d_alpha_init{i},Dir_alpha_init{i},gram_init,prior);
+            if uniqueTrans
+                hmm = loadhmm(hmm_i,T{i},K,metastates_init,...
+                    P_init_pre,Pi_init_pre,Dir2d_alpha_init_pre,Dir_alpha_init_pre,gram_init,prior);
+            else
+                hmm = loadhmm(hmm_i,T{i},K,metastates_init,...
+                    P_init(:,:,i),Pi_init(:,i)',Dir2d_alpha_init(:,:,i),Dir_alpha_init(:,i)',...
+                    gram_init,prior);                
+            end
             [Gamma,~,Xi,l] = hsinference(data,T{i},hmm,[]);
             hmm = hsupdate(Xi,Gamma,T{i},hmm);
-            P_init{i} = hmm.P; Pi_init{i} = hmm.Pi; % one per subject, not like pure group HMM
-            Dir2d_alpha_init{i} = hmm.Dir2d_alpha; Dir_alpha_init{i} = hmm.Dir_alpha;
+            if uniqueTrans
+                for trial=1:length(T{i})
+                    t = sum(T{i}(1:trial-1)) - options.order*(trial-1) + 1;
+                    Dir_alpha_init(:,i) = Dir_alpha_init(:,i) + Gamma(t,:)';
+                end
+                Dir2d_alpha_init(:,:,i) = squeeze(sum(Xi,1));
+            else
+                P_init(:,:,i) = hmm.P; Pi_init(:,i) = hmm.Pi'; % one per subject, not like pure group HMM
+                Dir2d_alpha_init(:,:,i) = hmm.Dir2d_alpha; Dir_alpha_init(:,i) = hmm.Dir_alpha';
+            end
             for k=1:K
                 if ~isempty(options.orders) || (~options.zeromean)
                     E = X - XX * metastates_init(k).W.Mu_W; % using the current mean estimation
@@ -242,8 +277,16 @@ if ~isfield(options,'metastates')
             end
             subjfe_init(i,1) = - GammaEntropy(Gamma,Xi,T{i},0); 
             subjfe_init(i,2) = - GammaavLL(hmm,Gamma,Xi,T{i});
-            subjfe_init(i,3) = + KLtransition(hmm);
+            if ~uniqueTrans
+                subjfe_init(i,3) = + KLtransition(hmm);
+            end
             loglik_init(i) = sum(l);
+        end
+        if uniqueTrans
+            hmm.Dir_alpha = sum(Dir_alpha_init,2)' + Dir_alpha_prior; 
+            hmm.Dir2d_alpha = sum(Dir2d_alpha_init,3) + Dir2d_alpha_prior;
+            [P_init,Pi_init] = computePandPi(hmm.Dir_alpha_init,hmm.Dir2d_alpha_init);
+            subjfe_init(:,3) = + KLtransition(hmm) / N; % "share" the common KL
         end
         for k = 1:K 
             statekl_init(k) = KLstate(metastates_init(k),prior,options);
@@ -285,9 +328,9 @@ else % initial metastates specified by the user
     else % uniquefull
         gramm = zeros(ndim,ndim);  
     end
-    
-    P = cell(N,1); Pi = cell(N,1);
-    Dir2d_alpha = cell(N,1); Dir_alpha = cell(N,1);
+       
+    P = zeros(K,K,N); Pi = zeros(K,N);
+    Dir2d_alpha = zeros(K,K,N); Dir_alpha = zeros(K,N);
 
     % collect some stats
     for i = 1:N
@@ -339,13 +382,29 @@ else % initial metastates specified by the user
         [Gamma,~,Xi,l] = hsinference(data,T{i},hmm,[]);
         % compute transition prob
         hmm = hsupdate(Xi,Gamma,T{i},hmm);
-        P{i} = hmm.P; Pi{i} = hmm.Pi;
-        Dir2d_alpha{i} = hmm.Dir2d_alpha; Dir_alpha{i} = hmm.Dir_alpha;
+        if uniqueTrans
+            for trial=1:length(T{i})
+                t = sum(T{i}(1:trial-1)) - options.order*(trial-1) + 1;
+                Dir_alpha(:,i) = Dir_alpha(:,i) + Gamma(t,:)';
+            end
+            Dir2d_alpha(:,:,i) = squeeze(sum(Xi,1));
+        else
+            P(:,:,i) = hmm.P; Pi(:,i) = hmm.Pi'; % one per subject, not like pure group HMM
+            Dir2d_alpha(:,:,i) = hmm.Dir2d_alpha; Dir_alpha(:,i) = hmm.Dir_alpha';
+        end
         % compute free energy
         loglik(i,1) = sum(l);  
         subjfe(i,1,1) = - GammaEntropy(Gamma,Xi,T{i},0); 
         subjfe(i,2,1) = - GammaavLL(hmm,Gamma,Xi,T{i});
-        subjfe(i,3,1) = + KLtransition(hmm);
+        if ~uniqueTrans
+            subjfe(i,3,1) = + KLtransition(hmm);
+        end
+    end
+    if uniqueTrans
+        hmm.Dir_alpha = sum(Dir_alpha,2)' + Dir_alpha_prior;
+        hmm.Dir2d_alpha = sum(Dir2d_alpha,3) + Dir2d_alpha_prior;
+        [P,Pi] = computePandPi(hmm.Dir_alpha,hmm.Dir2d_alpha);
+        subjfe(:,3,1) = KLtransition(hmm) / N; % "share" the common KL
     end
     for k = 1:K
         statekl(k,1) = KLstate(metastates(k),prior,options.covtype,options.zeromean);
@@ -405,16 +464,36 @@ for cycle = 2:BIGcyc
         i = I(ii); 
         t = (1:sum(T{i})) + tacc; tacc = tacc + length(t);
         data = struct('X',X(t,:),'C',NaN(sum(T{i})-length(T{i})*options.order,K));
-        hmm = loadhmm(hmm0,T{i},K,metastates,P{i},Pi{i},Dir2d_alpha{i},Dir_alpha{i},gramm,prior);
+        if uniqueTrans
+            hmm = loadhmm(hmm0,T{i},K,metastates,P,Pi,hmm.Dir2d_alpha,hmm.Dir_alpha,gramm,prior);
+        else
+            hmm = loadhmm(hmm0,T{i},K,metastates,P(:,:,i),Pi(:,i)',Dir2d_alpha(:,:,i),Dir_alpha(:,i)',gramm,prior);
+        end
         [Gamma{ii},~,Xi{ii},l] = hsinference(data,T{i},hmm,[]); 
         hmm = hsupdate(Xi{ii},Gamma{ii},T{i},hmm);
-        P{i} = hmm.P; Pi{i} = hmm.Pi; % one per subject, not like pure group HMM
-        Dir2d_alpha{i} = hmm.Dir2d_alpha; Dir_alpha{i} = hmm.Dir_alpha;
+        if uniqueTrans
+            for trial=1:length(T{i})
+                t = sum(T{i}(1:trial-1)) - options.order*(trial-1) + 1;
+                Dir_alpha(:,i) = Dir_alpha(:,i) + Gamma(t,:)';
+            end
+            Dir2d_alpha(:,:,i) = Dir2d_alpha(:,:,i) + squeeze(sum(Xi,1));
+        else
+            P(:,:,i) = hmm.P; Pi(:,i) = hmm.Pi'; % one per subject, not like pure group HMM
+            Dir2d_alpha(:,:,i) = hmm.Dir2d_alpha; Dir_alpha(:,i) = hmm.Dir_alpha';
+        end
         subjfe(i,1,cycle) = - GammaEntropy(Gamma{ii},Xi{ii},T{i},0); 
         subjfe(i,2,cycle) = - GammaavLL(hmm,Gamma{ii},Xi{ii},T{i}); 
-        subjfe(i,3,cycle) = + KLtransition(hmm);
+        if ~uniqueTrans
+            subjfe(i,3,cycle) = + KLtransition(hmm);
+        end
     end
-        
+    if uniqueTrans
+        hmm.Dir_alpha = sum(Dir_alpha_init,2)' + Dir_alpha_prior;
+        hmm.Dir2d_alpha = sum(Dir2d_alpha_init,3) + Dir2d_alpha_prior;
+        [P,Pi] = computePandPi(hmm.Dir_alpha,hmm.Dir2d_alpha);
+        subjfe(:,3,cycle) = + KLtransition(hmm) / N; % "share" the common KL
+    end
+    
     % global parameters (metastates), and collect metastate free energy
     rho = (cycle + BIGdelay)^(-BIGforgetrate); 
     metastates = updateBigOmega(metastates,cell2mat(Gamma),X,Tbatch,Tfactor,rho,prior,options);
@@ -501,13 +580,31 @@ for k = 1:length(metastates)
         end
     else
         metastates(k).W.S_W = zeros(ndim*nprec,ndim*nprec);
-        for n=1:ndim
+        for n = 1:ndim
             ind = (1:nprec) + (n-1)*nprec;
             metastates(k).W.S_W(ind,ind) = S_W;
             metastates(k).W.iS_W(ind,ind) = iS_W;
         end
     end
 end
+end
+
+
+function [P,Pi] = computePandPi(Dir_alpha,Dir2d_alpha)
+K = length(Dir_alpha);
+P = zeros(K); Pi = zeros(1,K);
+for j = 1:K
+    PsiSum = psi(sum(Dir2d_alpha(j,:)));
+    for i = 1:K,
+        P(j,i) = exp(psi(Dir2d_alpha(j,i))-PsiSum);
+    end;
+    P(j,:) = P(j,:) ./ sum(P(j,:));
+end
+PsiSum = psi(sum(Dir_alpha,2));
+for i = 1:K
+    hmm.Pi(i) = exp(psi(Dir_alpha(i))-PsiSum);
+end
+Pi = Pi ./ sum(Pi);
 end
 
 

@@ -186,6 +186,42 @@ plot(1:200,Gamma(101:300,:)); ylim([-.25 1.25])
 xlabel('Time','FontSize',18)
 ylabel('Estimated state time courses','FontSize',18)
 
+
+%% Test BigHMM algorithm 
+
+% Big-HMM options
+options_bighmm = struct();
+% Specific BigHMM-MAR options
+options_bighmm.K = 8;
+options_bighmm.BIGNbatch = 2;
+options_bighmm.uniqueTrans = 0;
+options_bighmm.BIGtol = 1e-7;
+options_bighmm.BIGcyc = 100;
+options_bighmm.BIGinitcyc = 1;
+options_bighmm.BIGundertol_tostop = 5;
+options_bighmm.BIGdelay = 1;
+options_bighmm.BIGforgetrate = 0.9;
+options_bighmm.BIGbase_weights = 0.9;
+options_bighmm.BIGverbose = 1;
+% HMM-MAR options
+options_bighmm.covtype = 'full';
+options_bighmm.order = 0;
+options_bighmm.zeromean = 0;
+options_bighmm.decodeGamma = 0;
+options_bighmm.tol = 1e-7;
+options_bighmm.cyc = 50;
+options_bighmm.inittype = 'GMM';
+options_bighmm.DirichletDiag = 2;
+options_bighmm.initcyc = 5;
+options_bighmm.initrep = 1;
+
+TBig = {}; for n=1:length(T), TBig{n} = T(n); end
+XBig = {}; for n=1:length(T), XBig{n} = X((1:T(n))+sum(T(1:n-1)),:); end
+
+[states_bighmm,markovTrans_bighmm,prior] = trainBigHMM(XBig,TBig,options_bighmm);
+Gamma = decodeBigHMM(XBig,TBig,states_bighmm,markovTrans_bighmm,prior,0,options_bighmm);
+
+
 %% Test sign flipping
 
 for in = 1:N

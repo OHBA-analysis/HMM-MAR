@@ -19,6 +19,7 @@ if ~isfield(options,'covtype'), options.covtype = 'full'; end
 
 X = loadfile(files{1});
 hmm0 = initializeHMM(X,T{1},options);
+TT = []; for i=1:N, TT = [TT T{i}]; end
 
 AverageLifeTime = zeros(N,1);
 NoChanges = zeros(N,1);
@@ -29,6 +30,7 @@ P = markovTrans.P;
 Pi = markovTrans.Pi;
 Dir2d_alpha = markovTrans.Dir2d_alpha;
 Dir_alpha = markovTrans.Dir_alpha;
+uniqueTrans = length(size(Dir2d_alpha))==2;
 
 for i = 1:N
     X = loadfile(files{i});        
@@ -39,7 +41,12 @@ for i = 1:N
     else
         gram = [];
     end  
-    hmm = loadhmm(hmm0,T{i},K,metastates,P{i},Pi{i},Dir2d_alpha{i},Dir_alpha{i},gram,prior);
+    
+    if uniqueTrans
+        hmm = loadhmm(hmm0,T{i},K,metastates,P,Pi,Dir2d_alpha,Dir_alpha,gram,prior);
+    else
+        hmm = loadhmm(hmm0,T{i},K,metastates,P(:,:,i),Pi(:,i)',Dir2d_alpha(:,:,i),Dir_alpha(:,i)',gram,prior);
+    end
     if type==0
         data = struct('X',X,'C',NaN(size(X,1),K));
         gamma = hsinference(data,T{i},hmm,[]);
@@ -52,17 +59,21 @@ for i = 1:N
         vp = vp(:);
         for k=1:K, gamma(vp==k,k) = 1; end
     end
-    slt=collect_times(gamma);
-    AverageLifeTime(i) = mean(slt);
-    NoChanges(i) = length(slt);
-    gammasum = sum(gamma);
-    gammasum = gammasum + eps;
-    Entropy(i) = sum(log(gammasum) .* gammasum);
+    if nargout==2
+        slt=collect_times(gamma,TT);
+        AverageLifeTime(i) = mean(slt);
+        NoChanges(i) = length(slt);
+        gammasum = sum(gamma);
+        gammasum = gammasum + eps;
+        Entropy(i) = sum(log(gammasum) .* gammasum);
+    end
 end
 
-stats = struct('AverageLifeTime',AverageLifeTime,...
-    'NoChanges',NoChanges,...
-    'Entropy',Entropy);
+if nargout==2
+    stats = struct('AverageLifeTime',AverageLifeTime,...
+        'NoChanges',NoChanges,...
+        'Entropy',Entropy);
+end
 
 end
 
