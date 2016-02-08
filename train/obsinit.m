@@ -98,7 +98,8 @@ end
 
 % moving the state options for convenience
 for k=1:hmm.K,
-    if isfield(hmm.train,'state') && isfield(hmm.train.state(k),'train') && ~isempty(hmm.train.state(k).train)
+    if isfield(hmm.train,'state') && isfield(hmm.train.state(k),'train') ...
+            && ~isempty(hmm.train.state(k).train)
         hmm.state(k).train = hmm.train.state(k).train;
     end
 end
@@ -115,6 +116,7 @@ Tres = sum(T) - length(T)*hmm.train.maxorder;
 ndim = size(X,2);
 K = hmm.K;
 S = hmm.train.S==1; regressed = sum(S,1)>0;
+hmm.train.active = ones(1,K);
 
 % initial random values for the states - multinomial
 Gammasum = sum(Gamma);
@@ -145,19 +147,23 @@ for k=1:K
             
         elseif strcmp(train.covtype,'uniquediag') || strcmp(train.covtype,'diag')
             hmm.state(k).W.Mu_W = zeros((~train.zeromean)+ndim*length(orders),ndim);
-            hmm.state(k).W.S_W = zeros(ndim,(~train.zeromean)+ndim*length(orders),(~train.zeromean)+ndim*length(orders));
+            hmm.state(k).W.S_W = zeros(ndim,(~train.zeromean)+ndim*length(orders),...
+                (~train.zeromean)+ndim*length(orders));
             for n=1:ndim
                 ndim_n = sum(S(:,n));
                 if ndim_n==0, continue; end
-                hmm.state(k).W.S_W(n,Sind(:,n),Sind(:,n)) = inv( ((XX{kk}(:,Sind(:,n))' .* repmat(Gamma(:,k)',(~train.zeromean)+ndim_n*length(orders),1) ) * ...
+                hmm.state(k).W.S_W(n,Sind(:,n),Sind(:,n)) = inv( ((XX{kk}(:,Sind(:,n))' .* repmat(Gamma(:,k)',...
+                    (~train.zeromean)+ndim_n*length(orders),1) ) * ...
                     XX{kk}(:,Sind(:,n))) + 0.01*eye((~train.zeromean) + ndim_n*length(orders))  )   ;
-                hmm.state(k).W.Mu_W(Sind(:,n),n) = (( permute(hmm.state(k).W.S_W(1,Sind(:,n),Sind(:,n)),[2 3 1]) * XX{kk}(:,Sind(:,n))') .* ...
-                    repmat(Gamma(:,k)',(~train.zeromean)+ndim_n*length(orders),1)) * residuals(:,n);
+                hmm.state(k).W.Mu_W(Sind(:,n),n) = (( permute(hmm.state(k).W.S_W(1,Sind(:,n),Sind(:,n)),[2 3 1])...
+                    * XX{kk}(:,Sind(:,n))') .* repmat(Gamma(:,k)',(~train.zeromean)+ndim_n*length(orders),1)) ...
+                    * residuals(:,n);
             end;
         else
             gram = kron(XXGXX{k},eye(ndim));
             hmm.state(k).W.S_W = inv( gram + 0.01*eye(size(gram,1)) );
-            hmm.state(k).W.Mu_W = (( XXGXX{k} \ XX{kk}' ) .* repmat(Gamma(:,k)',(~train.zeromean)+ndim*length(orders),1)) * residuals;
+            hmm.state(k).W.Mu_W = (( XXGXX{k} \ XX{kk}' ) .* repmat(Gamma(:,k)',...
+                (~train.zeromean)+ndim*length(orders),1)) * residuals;
         end
     end
 end;
@@ -242,9 +248,11 @@ else % state dependent
             end
             hmm.state(k).Omega.Gam_shape = hmm.state(k).prior.Omega.Gam_shape + Gammasum(k);
             hmm.state(k).Omega.Gam_rate = zeros(ndim,ndim); hmm.state(k).Omega.Gam_irate = zeros(ndim,ndim);
-            hmm.state(k).Omega.Gam_rate(regressed,regressed) =  hmm.state(k).prior.Omega.Gam_rate(regressed,regressed) +  ...
+            hmm.state(k).Omega.Gam_rate(regressed,regressed) =  ...
+                hmm.state(k).prior.Omega.Gam_rate(regressed,regressed) +  ...
                 (e' .* repmat(Gamma(:,k)',sum(regressed),1)) * e;
-            hmm.state(k).Omega.Gam_irate(regressed,regressed) = inv(hmm.state(k).Omega.Gam_rate(regressed,regressed));
+            hmm.state(k).Omega.Gam_irate(regressed,regressed) = ...
+                inv(hmm.state(k).Omega.Gam_rate(regressed,regressed));
         end
     end
     

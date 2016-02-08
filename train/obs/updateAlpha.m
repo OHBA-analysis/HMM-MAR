@@ -2,7 +2,8 @@ function hmm = updateAlpha(hmm)
 
 K = length(hmm.state); ndim = hmm.train.ndim;
 
-for k=1:K,
+for k=1:K
+    if ~hmm.train.active(k), continue; end
     setstateoptions;
     if isempty(orders) || ~isempty(train.prior), continue; end
     hmm.state(k).alpha.Gam_shape = hmm.state(k).prior.alpha.Gam_shape;

@@ -5,7 +5,7 @@ S = hmm.train.S==1; regressed = sum(S,1)>0;
 
 if strcmp(hmm.train.covtype,'uniquediag') && hmm.train.uniqueAR 
     % all are AR and there's a single covariance matrix
-    hmm.Omega.Gam_rate = hmm.prior.Omega.Gam_rate;
+    hmm.Omega.Gam_rate(k) = hmm.prior.Omega.Gam_rate;
     for k=1:K
         if hmm.train.multipleConf, kk = k;
         else kk = 1;
@@ -73,6 +73,7 @@ elseif strcmp(hmm.train.covtype,'uniquefull')
     
 else % state dependent
     for k=1:K
+        if ~hmm.train.active, continue; end
         setstateoptions;
         XWk = permute(XW(k,:,:),[2 3 1]);
         if train.uniqueAR

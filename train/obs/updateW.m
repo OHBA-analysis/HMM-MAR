@@ -4,6 +4,7 @@ K = length(hmm.state); ndim = hmm.train.ndim;
 XW = zeros(K,size(XX{1},1),ndim);
 
 for k=1:K
+    if ~hmm.train.active(k), continue; end
     setstateoptions;
     if isempty(orders) && train.zeromean, continue; end
     if strcmp(train.covtype,'diag') || strcmp(train.covtype,'full'), omega = hmm.state(k).Omega;
