@@ -1,4 +1,4 @@
-function [Path,stats] = decodeBigHMM(files,T,metastates,markovTrans,prior,type,options)
+function [Path,stats] = decodeBigHMM(Xin,T,metastates,markovTrans,prior,type,options)
 % 1) Compute the viterbi paths 
 % 2) Compute the entropy,avglifetime,nochanges from it
 %
@@ -13,11 +13,11 @@ function [Path,stats] = decodeBigHMM(files,T,metastates,markovTrans,prior,type,o
 %
 % Diego Vidaurre, OHBA, University of Oxford (2015)
 
-N = length(files);
+N = length(Xin);
 K = length(metastates);
 if ~isfield(options,'covtype'), options.covtype = 'full'; end
 
-X = loadfile(files{1});
+X = loadfile(Xin{1});
 hmm0 = initializeHMM(X,T{1},options);
 TT = []; for i=1:N, TT = [TT T{i}]; end
 
@@ -30,10 +30,10 @@ P = markovTrans.P;
 Pi = markovTrans.Pi;
 Dir2d_alpha = markovTrans.Dir2d_alpha;
 Dir_alpha = markovTrans.Dir_alpha;
-uniqueTrans = length(size(Dir2d_alpha))==2;
+BIGuniqueTrans = length(size(Dir2d_alpha))==2;
 
 for i = 1:N
-    X = loadfile(files{i});        
+    X = loadfile(Xin{i});        
     if strcmp(options.covtype,'uniquefull') 
         gram = X' * X;
     elseif strcmp(options.covtype,'uniquediag')
@@ -42,7 +42,7 @@ for i = 1:N
         gram = [];
     end  
     
-    if uniqueTrans
+    if BIGuniqueTrans
         hmm = loadhmm(hmm0,T{i},K,metastates,P,Pi,Dir2d_alpha,Dir_alpha,gram,prior);
     else
         hmm = loadhmm(hmm0,T{i},K,metastates,P(:,:,i),Pi(:,i)',Dir2d_alpha(:,:,i),Dir_alpha(:,i)',gram,prior);

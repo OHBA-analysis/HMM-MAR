@@ -1,28 +1,29 @@
-function [metastates,markovTrans,prior,fehist,feterms] = ...
-    trainBigHMM(files,T,options)
+function [metastates,markovTrans,prior,fehist,feterms] = trainBigHMM(Xin,T,options)
 % 1) Initialize BigHMM by estimating a separate HMM on each file,
 %    and then using an adapted version of kmeans to clusterize the states
 %    (see initBigHMM)
 % 2) Run the BigHMM algorithm
 %
 % INPUTS
-% files: cell with strings referring to the subject files
+% Xin: cell with strings referring to the files containing each subject's data, 
+%       or cell with with matrices (time points x channels) with each
+%       subject's data
 % T: cell of vectors, where each element has the length of each trial per
 %       subject. Dimension of T{n} has to be (1 x nTrials)
 % options: HMM options for both the subject and the group runs
 %
 % COVTYPE=UNIQUEFULL/UNIQUEDIAG NOT COMPLETELY IMPLEMENTED!!
-% Diego Vidaurre, OHBA, University of Oxford (2015)
+% Diego Vidaurre, OHBA, University of Oxford (2016)
 
-N = length(files);
+N = length(Xin);
 
 if ~isfield(options,'K'), error('K was not specified');
 else K = options.K; end
 % Specific BigHMM options
 if ~isfield(options,'BIGNbatch'), BIGNbatch = 10;
 else BIGNbatch = options.BIGNbatch; end
-if ~isfield(options,'uniqueTrans'), uniqueTrans = 0;
-else uniqueTrans = options.uniqueTrans; end
+if ~isfield(options,'BIGuniqueTrans'), BIGuniqueTrans = 0;
+else BIGuniqueTrans = options.BIGuniqueTrans; end
 if ~isfield(options,'BIGprior'), options.BIGprior = []; end
 if ~isfield(options,'BIGcyc'), BIGcyc = 200;
 else BIGcyc = options.BIGcyc; end
@@ -72,7 +73,7 @@ else
     BIGcovtype = 'unique';
 end
     
-X = loadfile(files{1}); ndim = size(X,2); sumT = 0;
+X = loadfile(Xin{1}); ndim = size(X,2); sumT = 0;
 subjfe_init = zeros(N,3);
 loglik_init = zeros(N,1);
 statekl_init = zeros(K,1);
@@ -110,7 +111,7 @@ if ~isfield(options,'metastates')
         for ii = 1:length(I)
             % read data
             i = I(ii);
-            X = loadfile(files{i});
+            X = loadfile(Xin{i});
             XX = formautoregr(X,T{i},options.orders,options.order,options.zeromean);
             sumT = sumT + sum(T{i});
             if cycle==1
@@ -122,14 +123,14 @@ if ~isfield(options,'metastates')
             end
             % Running the individual HMM
             [hmm_i,Gamma,Xi] = hmmmar(X,T{i},options); 
-            if uniqueTrans && ii==1
+            if BIGuniqueTrans && ii==1
                 Dir2d_alpha_prior = hmm_i.prior.Dir2d_alpha;
                 Dir_alpha_prior = hmm_i.prior.Dir_alpha;
             end
             if BIGverbose
                 fprintf('Init run %d, subject %d \n',cycle,ii);
             end
-            if uniqueTrans % one P/Pi for all subjects
+            if BIGuniqueTrans % one P/Pi for all subjects
                 for trial=1:length(T{i})
                     t = sum(T{i}(1:trial-1)) - options.order*(trial-1) + 1;
                     Dir_alpha_init(:,i) = Dir_alpha_init(:,i) + Gamma(t,:)';
@@ -232,15 +233,15 @@ if ~isfield(options,'metastates')
         % unbiased group estimation of the metastate covariance matrices;
         % obtaining subject parameters and computing free energy
         metastates_init = adjSw_in_metastate(metastates_init); % adjust the dim of S_W
-        if uniqueTrans
+        if BIGuniqueTrans
             Dir2d_alpha_init_pre = sum(Dir2d_alpha_init) + Dir2d_alpha_prior;  
             Dir_alpha_init_pre = sum(Dir_alpha_init,2)' + Dir_alpha_prior;
             [P_init_pre,Pi_init_pre] = computePandPi(Dir_alpha_init_pre,Dir2d_alpha_init_pre);
         end
         for i = 1:N
-            X = loadfile(files{i});
+            X = loadfile(Xin{i});
             data = struct('X',X,'C',NaN(sum(T{i})-length(T{i})*options.order,K));
-            if uniqueTrans
+            if BIGuniqueTrans
                 hmm = loadhmm(hmm_i,T{i},K,metastates_init,...
                     P_init_pre,Pi_init_pre,Dir2d_alpha_init_pre,Dir_alpha_init_pre,gram_init,prior);
             else
@@ -250,7 +251,7 @@ if ~isfield(options,'metastates')
             end
             [Gamma,~,Xi,l] = hsinference(data,T{i},hmm,[]);
             hmm = hsupdate(Xi,Gamma,T{i},hmm);
-            if uniqueTrans
+            if BIGuniqueTrans
                 for trial=1:length(T{i})
                     t = sum(T{i}(1:trial-1)) - options.order*(trial-1) + 1;
                     Dir_alpha_init(:,i) = Dir_alpha_init(:,i) + Gamma(t,:)';
@@ -277,12 +278,12 @@ if ~isfield(options,'metastates')
             end
             subjfe_init(i,1) = - GammaEntropy(Gamma,Xi,T{i},0); 
             subjfe_init(i,2) = - GammaavLL(hmm,Gamma,Xi,T{i});
-            if ~uniqueTrans
+            if ~BIGuniqueTrans
                 subjfe_init(i,3) = + KLtransition(hmm);
             end
             loglik_init(i) = sum(l);
         end
-        if uniqueTrans
+        if BIGuniqueTrans
             hmm.Dir_alpha = sum(Dir_alpha_init,2)' + Dir_alpha_prior; 
             hmm.Dir2d_alpha = sum(Dir2d_alpha_init,3) + Dir2d_alpha_prior;
             [P_init,Pi_init] = computePandPi(hmm.Dir_alpha_init,hmm.Dir2d_alpha_init);
@@ -334,7 +335,7 @@ else % initial metastates specified by the user
 
     % collect some stats
     for i = 1:N
-        X = loadfile(files{i});
+        X = loadfile(Xin{i});
         if i==1
             options.inittype = 'random';
             options.cyc = 1;
@@ -375,14 +376,14 @@ else % initial metastates specified by the user
     
     % Init subject models and free energy computation
     for i = 1:N
-        X = loadfile(files{i});
+        X = loadfile(Xin{i});
         data = struct('X',X,'C',NaN(size(X,1),K));
         hmm = loadhmm(hmm0,T{i},K,metastates,[],[],[],[],gramm,prior);
         % get gamma
         [Gamma,~,Xi,l] = hsinference(data,T{i},hmm,[]);
         % compute transition prob
         hmm = hsupdate(Xi,Gamma,T{i},hmm);
-        if uniqueTrans
+        if BIGuniqueTrans
             for trial=1:length(T{i})
                 t = sum(T{i}(1:trial-1)) - options.order*(trial-1) + 1;
                 Dir_alpha(:,i) = Dir_alpha(:,i) + Gamma(t,:)';
@@ -396,11 +397,11 @@ else % initial metastates specified by the user
         loglik(i,1) = sum(l);  
         subjfe(i,1,1) = - GammaEntropy(Gamma,Xi,T{i},0); 
         subjfe(i,2,1) = - GammaavLL(hmm,Gamma,Xi,T{i});
-        if ~uniqueTrans
+        if ~BIGuniqueTrans
             subjfe(i,3,1) = + KLtransition(hmm);
         end
     end
-    if uniqueTrans
+    if BIGuniqueTrans
         hmm.Dir_alpha = sum(Dir_alpha,2)' + Dir_alpha_prior;
         hmm.Dir2d_alpha = sum(Dir2d_alpha,3) + Dir2d_alpha_prior;
         [P,Pi] = computePandPi(hmm.Dir_alpha,hmm.Dir2d_alpha);
@@ -436,7 +437,6 @@ Tfactor = N/BIGNbatch;
 
 %[ sum(loglik(:,1)) squeeze(sum(subjfe(:,1,1),1)) squeeze(sum(subjfe(:,2,1),1)) squeeze(sum(subjfe(:,3,1),1))]
 
-%load('/tmp/debugBigHMM.mat')
 % Stochastic learning
 for cycle = 2:BIGcyc
     
@@ -453,7 +453,7 @@ for cycle = 2:BIGcyc
     X = zeros(sum(Tbatch),ndim); t = 0;
     for ii = 1:length(I)
         i = I(ii);
-        X(t+1:t+sum(T{i}),:) = loadfile(files{i});
+        X(t+1:t+sum(T{i}),:) = loadfile(Xin{i});
         t = t + sum(T{i});
     end
     
@@ -464,14 +464,14 @@ for cycle = 2:BIGcyc
         i = I(ii); 
         t = (1:sum(T{i})) + tacc; tacc = tacc + length(t);
         data = struct('X',X(t,:),'C',NaN(sum(T{i})-length(T{i})*options.order,K));
-        if uniqueTrans
+        if BIGuniqueTrans
             hmm = loadhmm(hmm0,T{i},K,metastates,P,Pi,hmm.Dir2d_alpha,hmm.Dir_alpha,gramm,prior);
         else
             hmm = loadhmm(hmm0,T{i},K,metastates,P(:,:,i),Pi(:,i)',Dir2d_alpha(:,:,i),Dir_alpha(:,i)',gramm,prior);
         end
         [Gamma{ii},~,Xi{ii},l] = hsinference(data,T{i},hmm,[]); 
         hmm = hsupdate(Xi{ii},Gamma{ii},T{i},hmm);
-        if uniqueTrans
+        if BIGuniqueTrans
             for trial=1:length(T{i})
                 t = sum(T{i}(1:trial-1)) - options.order*(trial-1) + 1;
                 Dir_alpha(:,i) = Dir_alpha(:,i) + Gamma(t,:)';
@@ -483,11 +483,11 @@ for cycle = 2:BIGcyc
         end
         subjfe(i,1,cycle) = - GammaEntropy(Gamma{ii},Xi{ii},T{i},0); 
         subjfe(i,2,cycle) = - GammaavLL(hmm,Gamma{ii},Xi{ii},T{i}); 
-        if ~uniqueTrans
+        if ~BIGuniqueTrans
             subjfe(i,3,cycle) = + KLtransition(hmm);
         end
     end
-    if uniqueTrans
+    if BIGuniqueTrans
         hmm.Dir_alpha = sum(Dir_alpha_init,2)' + Dir_alpha_prior;
         hmm.Dir2d_alpha = sum(Dir2d_alpha_init,3) + Dir2d_alpha_prior;
         [P,Pi] = computePandPi(hmm.Dir_alpha,hmm.Dir2d_alpha);
