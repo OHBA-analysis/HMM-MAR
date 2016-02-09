@@ -1,0 +1,33 @@
+1. Install gcc-fortran to get gfortran compiler:
+ sudo zypper install gcc-fortran
+
+2. Get OpenBLAS - NOT NECESSARY
+ wget https://github.com/xianyi/OpenBLAS.git
+
+3. Install OpenBLAS - NOT NECESSARY
+ Untar. In file, type make FC=gfortran and sudo make install. 
+ Key files are in /opt/OpenBLAS/lib and /opt/OpenBLAS/include
+
+4. Install lapack, if not already installed. 
+ sudo zypper search lapack
+ - I had liblapack3 installed, but no ideas where it was. 
+ sudo zypper install lapack
+ - this asked for a number of repo ownership changes, but these all looked fine. 
+ - Now -llapack seems to work fine.
+
+5. Install openblas and lapack
+ sudo zypper search openblas
+ sudo zypper install openblas-devel
+
+6. Note that these libraries are in /usr/lib64
+
+7. Also install arpack, superlu and atlas. Make sure you've got the devel version of each library, too. 
+
+sudo zypper install libatlas3-sse3-devel
+sudo zypper install arpack-ng-devel
+
+8. Untar armadillo, run cmake . and make and sudo make install
+
+ 
+
+ Next steps relevant for building from source: download the armadillo tarball. 
