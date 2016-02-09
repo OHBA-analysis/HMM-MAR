@@ -4,7 +4,7 @@ function [hmm,pred,gcovm] = mlhmmmar (X,T,hmm0,Gamma,completelags)
 % INPUT
 % X             observations
 % T             length of series
-% hmm           HMM-MAR structure
+% hmm0          HMM-MAR structure
 % Gamma         p(state given X) - has to be fully defined
 % completelags  if 1, the lags are made linear with timelag=1 (i.e. a complete set)
 
