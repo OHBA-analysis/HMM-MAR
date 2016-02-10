@@ -1,4 +1,5 @@
 # makefile for hidden_state_inference
+# designed for linux distributions
 #
 # Giles Colclough
 #
@@ -12,31 +13,17 @@
 #  make tar
 #  make tidy - remove object files
 
-# USER NOTES: CHANGE THE LINES BELOW TO REFLECT YOUR MATLAB INSTALLATION
-MATLAB_DIR    = /Applications/MATLAB_R2015a.app/#
-MATLAB_ARCH   = maci64# e.g. $(MATLAB_DIR)/bin/$(MATLAB_ARCH)/
-MACOS_VERSION = 10.10
-
-# If you want to link dynamically, change the lines below to reflect your armadillo installation
-# Install armadillo on mac with 'brew install armadillo' (assuming you have homebrew)
-#
-# If you don't have homebrew, get it by running this at the terminal prompt.
-# /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
-#
-# Matlab mex files need these direct paths to the dynamic libraries. If you know how to link statically, please tell me. 
-ARMADILLO_DIR = /usr/local/opt/armadillo/lib
-ARMADILLO_LIB = $(ARMADILLO_DIR)/libarmadillo.dylib #file found in ARMADILLO_DIR
-
+# Be aware: Armadillo suggests that linking to blas and lapack should be done STATICALLY
 
 
 
 
 # Variables for mex file
 TARGET   = hidden_state_inference
-SRCS     = $(TARGET)_test.cpp  $(TARGET).cpp
+SRCS     = ./test/$(TARGET)_test.cpp  $(TARGET).cpp
 OBJS     = $(SRCS:.cpp=.o)
-OPT      = -Ofast # -O0 #
-CC       = clang++ $(OPT) -std=c++14 -march=native
+OPT      = -O0 # -O3
+CC       = g++ $(OPT) -march=native
 DEBUG    = -DARMA_NO_DEBUG -DNDEBUG # this speeds things up but makes debugging hard. Use -g to help debugging
 CFLAGS   = -Wall -c $(DEBUG) 
 LFLAGS   = -Wall -larmadillo $(DEBUG) 

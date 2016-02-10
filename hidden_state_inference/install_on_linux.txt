@@ -5,7 +5,7 @@
  wget https://github.com/xianyi/OpenBLAS.git
 
 3. Install OpenBLAS - NOT NECESSARY
- Untar. In file, type make FC=gfortran and sudo make install. 
+ Untar. In folder, type make FC=gfortran and sudo make install. 
  Key files are in /opt/OpenBLAS/lib and /opt/OpenBLAS/include
 
 4. Install lapack, if not already installed. 
@@ -26,8 +26,23 @@
 sudo zypper install libatlas3-sse3-devel
 sudo zypper install arpack-ng-devel
 
-8. Untar armadillo, run cmake . and make and sudo make install
-
+8. If needing to build from source, downaload armadillo.  Untar armadillo, run cmake . and make and sudo make install
  
+9. If needing c++11, we need gcc>4.7, then clang. - note that build of gcc5.3 failed. As did gcc4.8.5. As did gcc4.7.4. David Rhodes suggests that it's not possible....
+ #sudo zypper install gmp-devel
+ #sudo zypper install mpc-devel
+ #sudo zypper install mpfr-devel
+ cd ~/src
+ svn checkout svn://gcc.gnu.org/svn/gcc/tags/gcc_5_3_0_release gcc-5.3.0
+ mkdir gcc-5.3.0-build
+ cd gcc-5.3.0 ./contrib/download_prerequisites
+ cd gcc-5.3.0-build
+ $PWD/../gcc-5.3.0/configure \
+    --prefix=/usr/local/gcc-5.3.0 \
+    --program-suffix=-5.3.0       \
+    --enable-languages=c,c++,fortran \
+    --disable-multilib
+ make -j$(nproc)
+ sudo make install
 
- Next steps relevant for building from source: download the armadillo tarball. 
+
