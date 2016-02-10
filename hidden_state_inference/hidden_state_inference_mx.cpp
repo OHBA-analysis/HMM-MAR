@@ -87,8 +87,8 @@ void mexFunction(int nlhs, mxArray* plhs[], int nrhs, const mxArray* prhs[]) {
     /* get dimensions of the input matrix */
     nrows = mxGetM(prhs[0]);
     ncols = mxGetN(prhs[0]);
-    int nSamples {static_cast<int> (nrows)};
-    int nClasses {static_cast<int> (ncols)};  
+    int nSamples = (int) nrows; //{static_cast<int> (nrows)};
+    int nClasses = (int) ncols; //{static_cast<int> (ncols)};  
     
     /* Check dimensions match */
     if (1 != mxGetM(prhs[1]) && mxGetN(prhs[1]) != ncols) { 
@@ -114,16 +114,17 @@ void mexFunction(int nlhs, mxArray* plhs[], int nrhs, const mxArray* prhs[]) {
     arma::mat    B (nSamples, nClasses);
     arma::rowvec Pi_0 (nClasses);
     arma::mat    A (nClasses, nClasses);
-    arma::uword  ii {0};
-    for (auto index = 0; index < nSamples * nClasses; index++) {
+    arma::uword  ii = 0;
+	
+    for (int index = 0; index < nSamples * nClasses; index++) {
         ii    = index;
         B(ii) = B_[index];
     }
-    for (auto index = 0; index < nClasses; index++) {
+    for (int index = 0; index < nClasses; index++) {
         ii       = index;
         Pi_0(ii) = PI_0_[index];
     }
-    for (auto index = 0; index < std::pow(nClasses,2); index++) {
+    for (int index = 0; index < std::pow(nClasses,2); index++) {
         ii    = index;
         A(ii) = A_[index];
     }
@@ -145,7 +146,7 @@ void mexFunction(int nlhs, mxArray* plhs[], int nrhs, const mxArray* prhs[]) {
         ii         = index;
         Xi_[index] = Xi(index);
     }
-	for (auto index = 0; index < nSamples; index++) {
+	for (int index = 0; index < nSamples; index++) {
 		scale_[index] = scale(index);
 	}
     

@@ -33,10 +33,10 @@ ARMADILLO_LIB = $(ARMADILLO_DIR)/libarmadillo.dylib #file found in ARMADILLO_DIR
 
 # Variables for mex file
 TARGET   = hidden_state_inference
-SRCS     = $(TARGET)_test.cpp  $(TARGET).cpp
+SRCS     = ./test/$(TARGET)_test.cpp  $(TARGET).cpp
 OBJS     = $(SRCS:.cpp=.o)
 OPT      = -Ofast # -O0 #
-CC       = clang++ $(OPT) -std=c++14 -march=native
+CC       = clang++ $(OPT) -march=native #-std=c++14 
 DEBUG    = -DARMA_NO_DEBUG -DNDEBUG # this speeds things up but makes debugging hard. Use -g to help debugging
 CFLAGS   = -Wall -c $(DEBUG) 
 LFLAGS   = -Wall -larmadillo $(DEBUG) 
@@ -53,7 +53,7 @@ MEX_LFLAGS  = -Wall $(DEBUG) -L$(ARMADILLO_DIR) $(ARMADILLO_LIB)
 MEX_CXXOPT  = CXXOPTIMFLAGS="$(OPT) $(DEBUG)"
 
 ARMA_STATIC = -DARMA_DONT_USE_WRAPPER # to force linking to lapack and blas, with simple inclusion of header files
-ARMA_FLAGS  = -DARMA_BLAS_LONG_LONG -DARMA_64BIT_WORD -DARMA_USE_CXX11 # These flags are important to allow armadillo to sync with Matlab
+ARMA_FLAGS  = -DARMA_BLAS_LONG_LONG -DARMA_64BIT_WORD #-DARMA_USE_CXX11 # These flags are important to allow armadillo to sync with Matlab
 
 MEX_LFLAGS_STATIC = LINKLIBS='-L$(MATLAB_DIR)/bin/$(MATLAB_ARCH)/ -lmx -lmex -lmat -framework Accelerate'  # LINKLIBS='-L$(MATLAB_DIR)/bin/$(MATLAB_ARCH)/ -lmx -lmex -lmat $(BLAS_LIB) $(LAPACK_LIB)' # - use these to link against matlab intel MKL libraries, not to MacOSX framework Accelerate #
 
@@ -88,7 +88,7 @@ mex: $(TARGET).o
 
 # Object files
 $(TARGET)_test.o: $(TARGET).hpp
-	$(CC) $(CFLAGS) $(ARMA_FLAGS) $(ARMA_STATIC) ./$(TARGET)_test.cpp $(INCLUDE)
+	$(CC) $(CFLAGS) $(ARMA_FLAGS) $(ARMA_STATIC) ./test/$(TARGET)_test.cpp $(INCLUDE)
 
 $(TARGET).o: 
 	$(CC) $(CFLAGS) $(ARMA_FLAGS) $(ARMA_STATIC) ./$(TARGET).cpp $(INCLUDE)
@@ -100,10 +100,10 @@ docs:
 	$(MAKE) -C latex 
 
 tidy:
-	\rm *.o *~ *.tar.gz
+	\rm *.o *~ *.tar.gz ./test/*.o ./test/*~
 
 clean:
-	\rm -r *.o test $(TARGET).tar.gz *.mex* *~  ./latex ./html
+	\rm -r *.o test $(TARGET).tar.gz *.mex* *~ ./test/*.o ./test/*~ ./test/test ./latex ./html
 
 tar:
 	tar cfv html_doc.tar.gz ./html/*

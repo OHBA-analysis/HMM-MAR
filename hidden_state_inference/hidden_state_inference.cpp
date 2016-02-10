@@ -83,8 +83,8 @@ void hidden_state_inference(arma::mat          &gamma,   //!<[in] Probability of
     static const double EPS {std::numeric_limits<double>::min()};
     
 	/* Memory declaration */
-    auto nSamples = gamma.n_rows;
-    auto nClasses = gamma.n_cols; 
+    arma::uword  nSamples = gamma.n_rows;
+    arma::uword  nClasses = gamma.n_cols; 
     arma::mat    alpha(nSamples - order, nClasses);
     arma::mat    beta(nSamples - order, nClasses);
     arma::mat    t(nClasses, nClasses);
@@ -98,7 +98,7 @@ void hidden_state_inference(arma::mat          &gamma,   //!<[in] Probability of
 	 * with the matlab code. 
 	 */
 	if (order > 0) {
-		for (auto i = 0; i < order; i++) {
+		for (int i = 0; i < order; i++) {
 			//alpha.row(i).fill(0.0);
 			scale(i) = 0.0;
 			//beta.row(i).fill(0.0);
@@ -110,7 +110,7 @@ void hidden_state_inference(arma::mat          &gamma,   //!<[in] Probability of
     scale(order)  = arma::sum(alpha.row(0));
     alpha.row(0) /= scale(order) + EPS;
     
-    for (auto i = 1 + order; i < nSamples; i++) {
+    for (int i = 1 + order; i < nSamples; i++) {
         alpha.row(i-order)  = (alpha.row(i-1-order) * P) % B.row(i);
         scale(i)            = arma::sum(alpha.row(i-order));
         alpha.row(i-order) /= scale(i) + EPS;
@@ -129,7 +129,7 @@ void hidden_state_inference(arma::mat          &gamma,   //!<[in] Probability of
     gamma             = alpha % beta;
     gamma.each_col() /= arma::sum(gamma,1); // divide by row sums
     
-    for (auto i = order; i < nSamples - 1; i++) {
+    for (int i = order; i < nSamples - 1; i++) {
         t               = P % ((alpha.row(i)).t() * (beta.row(i+1) % B.row(i+1)));
         Xi.row(i-order) = reshape(t, 1,std::pow(nClasses,2));
         Xi.row(i-order) /= (accu(t) + EPS);
