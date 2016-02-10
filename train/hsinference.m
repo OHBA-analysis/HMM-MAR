@@ -115,7 +115,7 @@ function [Gamma,Xi,B,scale]=nodecluster(X,K,hmm,residuals)
 % inference using normal foward backward propagation
 
 % Preamble to check for mex function
-if ismac && exist('hidden_state_inference_mx', 'file') == 3,
+if (ismac || isunix) && exist('hidden_state_inference_mx', 'file') == 3,
 	useMEX = true;
 else
 	useMEX = false;
