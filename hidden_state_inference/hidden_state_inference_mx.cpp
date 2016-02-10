@@ -108,7 +108,7 @@ void mexFunction(int nlhs, mxArray* plhs[], int nrhs, const mxArray* prhs[]) {
     /* get a pointer to the real data in the output matrices */
     gamma_ = mxGetPr(plhs[0]);
     Xi_    = mxGetPr(plhs[1]);
-	scale_ = mxGetPr(plhs[2]);
+    scale_ = mxGetPr(plhs[2]);
     
     /* assign input matrices to arma mat*/
     arma::mat    B (nSamples, nClasses);

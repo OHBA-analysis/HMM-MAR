@@ -40,7 +40,7 @@ hmm_wr.Pi = Pi_0;
 % compare to matlab code
 display('Pure matlab')
 tic;
-for i=1:400,
+for i=1:40,
 [g_check, ~, Xi_check, ~, scale_check, B] = hsinference(data, T, hmm_wr, [], options);
 end
 toc
@@ -48,7 +48,7 @@ toc
 % run mex file
 display('Mex implementation')
 tic;
-for i=1:400,
+for i=1:40,
 [gamma, Xi, scale] = hidden_state_inference_mx(B, Pi_0, P, options.order);
 end
 toc
