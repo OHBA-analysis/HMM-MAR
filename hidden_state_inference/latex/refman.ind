@@ -1,14 +1,27 @@
 \begin{theindex}
 
-  \item {hidden\+\_\+state\+\_\+inference}
-    \subitem {hidden\+\_\+state\+\_\+inference.\+cpp}, \hyperpage{4}
-  \item {hidden\+\_\+state\+\_\+inference.\+cpp}, \hyperpage{3}
-    \subitem {hidden\+\_\+state\+\_\+inference}, \hyperpage{4}
-  \item {hidden\+\_\+state\+\_\+inference\+\_\+mx.\+cpp}, \hyperpage{4}
-    \subitem {mex\+Function}, \hyperpage{5}
+  \item {/\+Users/gilesc/src/\+H\+M\+M-\/\+M\+A\+R/hidden\+\_\+state\+\_\+inference/hidden\+\_\+state\+\_\+inference.\+cpp}, 
+		\hyperpage{3}
+  \item {/\+Users/gilesc/src/\+H\+M\+M-\/\+M\+A\+R/hidden\+\_\+state\+\_\+inference/hidden\+\_\+state\+\_\+inference\+\_\+mx.\+cpp}, 
+		\hyperpage{4}
 
   \indexspace
 
+  \item {hidden\+\_\+state\+\_\+inference}
+    \subitem {hidden\+\_\+state\+\_\+inference.\+cpp}, \hyperpage{4}
+  \item {hidden\+\_\+state\+\_\+inference.\+cpp}
+    \subitem {hidden\+\_\+state\+\_\+inference}, \hyperpage{4}
+  \item {hidden\+\_\+state\+\_\+inference\+\_\+mx.\+cpp}
+    \subitem {mex\+Function}, \hyperpage{5}
+  \item {hidden\+\_\+state\+\_\+inference\+\_\+test.\+cpp}, 
+		\hyperpage{5}
+    \subitem {main}, \hyperpage{6}
+
+  \indexspace
+
+  \item {main}
+    \subitem {hidden\+\_\+state\+\_\+inference\+\_\+test.\+cpp}, 
+		\hyperpage{6}
   \item {mex\+Function}
     \subitem {hidden\+\_\+state\+\_\+inference\+\_\+mx.\+cpp}, 
 		\hyperpage{5}
