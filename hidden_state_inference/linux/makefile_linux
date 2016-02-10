@@ -40,7 +40,7 @@ MWLAPACK_LIB = $(MATLAB_DIR)/bin/$(ARCH)/libmwlapack.so
 MEX         = $(MATLAB_DIR)/bin/mex
 MEX_FLAGS   = -v -largeArrayDims
 MEX_INCLUDE = -I./ -I/usr/include
-MEX_LFLAGS  = -Wall $(DEBUG) $(ARMADILLO_LIB)
+MEX_LFLAGS  = -Wall $(DEBUG) #$(ARMADILLO_LIB)
 MEX_CXXOPT  = CXXOPTIMFLAGS="$(OPT) $(DEBUG)"
 
 ARMA_STATIC = -DARMA_DONT_USE_WRAPPER # to force linking to lapack and blas, with simple inclusion of header files

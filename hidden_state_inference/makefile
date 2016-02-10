@@ -55,7 +55,7 @@ MEX_CXXOPT  = CXXOPTIMFLAGS="$(OPT) $(DEBUG)"
 ARMA_STATIC = -DARMA_DONT_USE_WRAPPER # to force linking to lapack and blas, with simple inclusion of header files
 ARMA_FLAGS  = -DARMA_BLAS_LONG_LONG -DARMA_64BIT_WORD -DARMA_USE_CXX11 # These flags are important to allow armadillo to sync with Matlab
 
-MEX_LFLAGS_STATIC = LINKLIBS='-L$(MATLAB_DIR)/bin/$(MATLAB_ARCH)/ -lmx -lmex -lmat -framework Accelerate'  # LINKLIBS='-L$(MATLAB_DIR)/bin/$(MATLAB_ARCH)/ -lmx -lmex -lmat $(BLAS_LIB) $(LAPACK_LIB)' # - use these to link against matlab intel MKL libraries, not to MacOSX framework Accelerate #
+MEX_LFLAGS_STATIC = LINKLIBS='-L$(MATLAB_DIR)/bin/$(MATLAB_ARCH)/ -lmx -lmex -lm -lmat -framework Accelerate'  # LINKLIBS='-L$(MATLAB_DIR)/bin/$(MATLAB_ARCH)/ -lmx -lmex -lmat $(BLAS_LIB) $(LAPACK_LIB)' # - use these to link against matlab intel MKL libraries, not to MacOSX framework Accelerate #
 
 # This line is very machine specific. Try commenting this out, and running mex in verbose mode - it should print out the defaults for your system. Unfortunately, setting this file up to just append to this variable seems impossible.
 MEX_CXXFLAG = CXXFLAGS="-fno-common -arch x86_64 -march=native -mmacosx-version-min=10.9 -fexceptions -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX$(MACOS_VERSION).sdk -fobjc-arc -std=c++14 -stdlib=libc++ -Wall"
