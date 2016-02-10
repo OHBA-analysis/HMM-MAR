@@ -5,6 +5,7 @@
 
 #include "armadillo"
 #include <cmath>
+#include <stdexcept>
 
 void hidden_state_inference(arma::mat          &gamma,   //!<[in] Probability of hidden state given data
 							arma::mat          &Xi,      //!<[in] Probability of hidden state given child and parent states, given data

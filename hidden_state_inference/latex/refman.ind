@@ -6,15 +6,9 @@
     \subitem {hidden\+\_\+state\+\_\+inference}, \hyperpage{4}
   \item {hidden\+\_\+state\+\_\+inference\+\_\+mx.\+cpp}, \hyperpage{4}
     \subitem {mex\+Function}, \hyperpage{5}
-  \item {hidden\+\_\+state\+\_\+inference\+\_\+test.\+cpp}, 
-		\hyperpage{5}
-    \subitem {main}, \hyperpage{6}
 
   \indexspace
 
-  \item {main}
-    \subitem {hidden\+\_\+state\+\_\+inference\+\_\+test.\+cpp}, 
-		\hyperpage{6}
   \item {mex\+Function}
     \subitem {hidden\+\_\+state\+\_\+inference\+\_\+mx.\+cpp}, 
 		\hyperpage{5}

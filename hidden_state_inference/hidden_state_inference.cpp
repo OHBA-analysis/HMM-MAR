@@ -79,8 +79,15 @@ void hidden_state_inference(arma::mat          &gamma,   //!<[in] Probability of
 							const int          order     //!<[in] order of MAR model [default = 0 for MVN]
 							) {
     
+	/* Deal with inadequacies in code */
+	#ifdef NDEBUG
+	if (0 != order) {
+		throw std::runtime_error("This code currently fails for orders other than 0. ");
+	}
+	#endif
+	
 	/* define a very small number */
-    static const double EPS {std::numeric_limits<double>::min()};
+    static const double EPS = std::numeric_limits<double>::min();
     
 	/* Memory declaration */
     arma::uword  nSamples = gamma.n_rows;
