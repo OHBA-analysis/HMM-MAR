@@ -37,7 +37,8 @@ P = hmm.P;
 Pi = hmm.Pi;
 
 if ~hmm.train.multipleConf
-    [~,order] = formorders(hmm.train.order,hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag);
+    [~,order] = formorders(hmm.train.order,hmm.train.orderoffset,...
+        hmm.train.timelag,hmm.train.exptimelag);
 else
     order = hmm.train.maxorder;
 end

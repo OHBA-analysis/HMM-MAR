@@ -1,23 +1,23 @@
-function [actstates,hmm,Gamma,Xi] = getactivestates(X,hmm,Gamma,Xi)
+function [actstates,hmm,Gamma,Xi] = getactivestates(hmm,Gamma,Xi)
 
-ndim = size(X,2);
+%ndim = size(X,2);
 K = hmm.K;
-orders = formorders(hmm.train.order,hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag);
+%orders = formorders(hmm.train.order,hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag);
 Gammasum = sum(Gamma);
 
-actstates = ones(1,K); % of length equal to the last no. of states (=the original K if dropstates==0)
+actstates = ones(1,K); % length = to the last no. of states (=the original K if dropstates==0)
 for k=1:K
-    if Gammasum(:,k) < max(length(orders)*ndim,5)
+    if Gammasum(:,k) < 10 %max(length(orders)*ndim,5)
         if ~hmm.train.dropstates && hmm.train.active(k)==1
             fprintf('State %d has been switched off with %f points\n',k,Gammasum(k))
+            hmm.train.active(k) = 0;
         end
-        hmm.train.active(k) = 0;
         actstates(k) = 0;
     else
         if ~hmm.train.dropstates && hmm.train.active(k)==0
             fprintf('State %d has been switched on with %f points\n',k,Gammasum(k))
+            hmm.train.active(k) = 1;
         end
-        hmm.train.active(k) = 1;
     end
 end
 
@@ -46,6 +46,7 @@ if hmm.train.dropstates==1
     hmm.P = hmm.P(actstates==1,actstates==1);
     hmm.Pi = hmm.Pi(actstates==1);
     Xi = Xi(:,actstates==1,actstates==1);
+    hmm.train.active = ones(1,sum(actstates));
 end
 
 end

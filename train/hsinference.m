@@ -1,4 +1,4 @@
-function [Gamma,Gammasum,Xi,LL,scale,Bt]=hsinference(data,T,hmm,residuals,options)
+function [Gamma,Gammasum,Xi,LL,scale] = hsinference(data,T,hmm,residuals,options,XX)
 %
 % inference engine for HMMs.
 %
@@ -8,6 +8,7 @@ function [Gamma,Gammasum,Xi,LL,scale,Bt]=hsinference(data,T,hmm,residuals,option
 % T         Number of time points for each time series
 % hmm       hmm data structure
 % residuals in case we train on residuals, the value of those.
+% XX        optionally, XX, as computed by setxx.m, can be supplied 
 %
 % OUTPUT
 %
@@ -19,21 +20,19 @@ function [Gamma,Gammasum,Xi,LL,scale,Bt]=hsinference(data,T,hmm,residuals,option
 % Author: Diego Vidaurre, OHBA, University of Oxford
 
 
-N = length(T); ndim = size(data.X,2);
+N = length(T);  
 K = length(hmm.state);
 
 if ~isfield(hmm,'train')
-    if nargin<5, error('You must specify the field options if hmm.train is missing'); end
+    if nargin<5 || isempty(options), 
+        error('You must specify the field options if hmm.train is missing'); 
+    end
     hmm.train = checkoptions(options,data.X,T,0);
 end
-
-if ~hmm.train.multipleConf
-    [~,order] = formorders(hmm.train.order,hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag);
-else
-    order = hmm.train.maxorder;
-end
+order = hmm.train.maxorder;
 
 if nargin<4 || isempty(residuals)
+   ndim = size(data.X,2);
    if ~isfield(hmm.train,'Sind'), 
        orders = formorders(hmm.train.order,hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag);
        hmm.train.Sind = formindexes(orders,hmm.train.S); 
@@ -47,13 +46,15 @@ if ~isfield(hmm,'P')
     hmm = hmmhsinit (hmm);
 end
     
-Gamma=[]; LL = []; scale = [];
-Gammasum=zeros(N,K);
-Xi=[];
+Gamma = cell(N,1); 
+LL = zeros(N,1); 
+scale = cell(N,1);
+Gammasum = zeros(N,K);
+Xi = cell(N,1);
 
-for in=1:N
+parfor in=1:N
+    Bt = []; sc = [];
     t0 = sum(T(1:in-1)); s0 = t0 - order*(in-1);
-    X = data.X(t0+1:t0+T(in),:);
     if order>0
         C = [zeros(order,K); data.C(s0+1:s0+T(in)-order,:)];
         R = [zeros(order,size(residuals,2));  residuals(s0+1:s0+T(in)-order,:)];
@@ -63,22 +64,24 @@ for in=1:N
     end
     % we jump over the fixed parts of the chain
     t = order+1;
-    xi = []; gamma = []; gammasum = zeros(1,K); ll = [];
+    xi = []; gamma = []; gammasum = zeros(1,K); ll = 0;
     while t<=T(in)
         if isnan(C(t,1)), no_c = find(~isnan(C(t:T(in),1)));
         else no_c = find(isnan(C(t:T(in),1)));
         end
         if t>order+1
-            if isempty(no_c), slice = (t-order-1):T(in); slicer = (t-1):T(in);
-            else slice = (t-order-1):(no_c(1)+t-2); slicer = (t-1):(no_c(1)+t-2);
+            if isempty(no_c), slicer = (t-1):T(in); %slice = (t-order-1):T(in); 
+            else slicer = (t-1):(no_c(1)+t-2); %slice = (t-order-1):(no_c(1)+t-2); 
             end;
         else
-            if isempty(no_c), slice = (t-order):T(in); slicer = t:T(in);
-            else slice = (t-order):(no_c(1)+t-2); slicer = t:(no_c(1)+t-2);
+            if isempty(no_c), slicer = t:T(in); %slice = (t-order):T(in); 
+            else slicer = t:(no_c(1)+t-2); %slice = (t-order):(no_c(1)+t-2); 
             end;
         end
+        XXt = cell(length(XX),1);
+        for k=1:length(XX), XXt{k} = XX{k}(slicer + s0 - order,:); end
         if isnan(C(t,1))
-            [gammat,xit,Bt,sc]=nodecluster(X(slice,:),K,hmm,R(slicer,:));
+            [gammat,xit,Bt,sc] = nodecluster(XXt,K,hmm,R(slicer,:));
         else
             gammat = zeros(length(slicer),K);
             if t==order+1, gammat(1,:) = C(slicer(1),:); end
@@ -88,8 +91,8 @@ for in=1:N
                 xitr = gammat(i-1,:)' * gammat(i,:) ;
                 xit(i-1,:) = xitr(:)';
             end
-            if nargout>=4, Bt = obslike(X(slice,:),hmm,R(slicer,:)); end
-            if nargout==5, sc = ones(length(slicer,1)); end
+            if nargout>=4, Bt = obslike([],hmm,R(slicer,:),XXt); end
+            if nargout==5, sc = ones(length(slicer),1); end
         end
         if t>order+1,
             gammat = gammat(2:end,:);
@@ -97,34 +100,36 @@ for in=1:N
         xi = [xi; xit];
         gamma = [gamma; gammat];
         gammasum = gammasum + sum(gamma);
-        if nargout>=4, ll = [ll; sum(log(Bt(order+1:end,:)) .* gammat,2) ]; end
+        if nargout>=4, ll = ll + sum(log(Bt(order+1:end,:)) .* gammat,2); end
         if nargout>=5, scale = [scale; sc ]; end
         if isempty(no_c), break;
         else t = no_c(1)+t-1;
         end;
     end
-    Gamma=[Gamma;gamma];
-    Gammasum(in,:)=gammasum;
-    if nargout==4, LL = [LL;sum(ll)]; end
-    Xi=cat(1,Xi,reshape(xi,T(in)-order-1,K,K));
+    Gamma{in} = gamma;
+    Gammasum(in,:) = gammasum;
+    if nargout>=4, LL(in) = ll; end
+    %Xi=cat(1,Xi,reshape(xi,T(in)-order-1,K,K));
+    Xi{in} = reshape(xi,T(in)-order-1,K,K); 
 end
+
+% join
+Gamma = cell2mat(Gamma);
+scale = cell2mat(scale);
+Xi = cell2mat(Xi);
+
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [Gamma,Xi,B,scale]=nodecluster(X,K,hmm,residuals)
+function [Gamma,Xi,B,scale]=nodecluster(XX,K,hmm,residuals)
 % inference using normal foward backward propagation
 
-T = size(X,1);
-P=hmm.P;
-Pi=hmm.Pi;
+order = hmm.train.maxorder;
+T = size(residuals,1) + order;
+P = hmm.P;
+Pi = hmm.Pi;
 
-if ~hmm.train.multipleConf
-    [~,order] = formorders(hmm.train.order,hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag);
-else
-    order = hmm.train.maxorder;
-end
-
-B = obslike(X,hmm,residuals);
+B = obslike([],hmm,residuals,XX);
 B(B<realmin) = realmin;
 
 scale=zeros(T,1);
@@ -157,3 +162,4 @@ for i=1+order:T-1
     Xi(i-order,:)=t(:)'/sum(t(:));
 end
 end
+

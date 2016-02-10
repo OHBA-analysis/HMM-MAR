@@ -1,4 +1,4 @@
-function [hmm] = obsupdate (X,T,Gamma,hmm,residuals)
+function [hmm] = obsupdate (T,Gamma,hmm,residuals,XX,XXGXX)
 %
 % Update observation model
 %
@@ -23,8 +23,6 @@ obs_it = 1;
 
 % Some stuff that will be later used
 Gammasum = sum(Gamma);
-XXGXX = cell(K,1);
-setxx;
 Tres = sum(T) - length(T)*hmm.train.maxorder;
 
 while mean_change>obs_tol && obs_it<=obs_maxit,
@@ -47,7 +45,8 @@ while mean_change>obs_tol && obs_it<=obs_maxit,
     obs_it = obs_it + 1;
     mean_changew = 0;
     for k=1:K
-        mean_changew = mean_changew + sum(sum(abs(last_state(k).W.Mu_W - hmm.state(k).W.Mu_W))) / length(orders) / sum(hmm.train.S(:)) / K;
+        mean_changew = mean_changew + sum(sum(abs(last_state(k).W.Mu_W - hmm.state(k).W.Mu_W))) ...
+            / numel(hmm.state(k).W.Mu_W) / K;
     end;
     mean_change = mean_changew;
 end;

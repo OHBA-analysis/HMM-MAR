@@ -1,4 +1,4 @@
-function B = obslike (X,hmm,residuals)
+function B = obslike (X,hmm,residuals,XX)
 %
 % Evaluate likelihood of data given observation model
 %
@@ -6,22 +6,26 @@ function B = obslike (X,hmm,residuals)
 % X          N by ndim data matrix
 % hmm        hmm data structure
 % residuals  in case we train on residuals, the value of those.
-%
+% XX        alternatively to X (which in this case can be specified as []),
+%               XX can be provided as computed by setxx.m
 % OUTPUT
 % B          Likelihood of N data points
 %
 % Author: Diego Vidaurre, OHBA, University of Oxford
  
-[T,ndim]=size(X);
 K=hmm.K;
-setxx; % build XX and get orders
+if nargin<4 || isempty(XX)
+    [T,ndim]=size(X);
+    setxx; % build XX and get orders
+else
+    [T,ndim] = size(residuals);
+    T = T + hmm.train.maxorder;
+end
 
 Tres = T-hmm.train.maxorder;
 S = hmm.train.S==1; regressed = sum(S,1)>0;
 ltpi = sum(regressed)/2 * log(2*pi);
-B =zeros(T,K);  
-
-%aux = zeros(T,K,4);
+B = zeros(T,K);  
 
 switch hmm.train.covtype,
     case 'uniquediag'

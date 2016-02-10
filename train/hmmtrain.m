@@ -24,43 +24,41 @@ function [hmm,Gamma,Xi,fehist] = hmmtrain(data,T,hmm,Gamma,residuals,fehist)
 % Author: Diego Vidaurre, OHBA, University of Oxford
 
 N = length(T); K = hmm.train.K;
-ndim = size(data.X,2); 
+ndim = size(data.X,2);
 
-if nargin<6, fehist=[]; 
-elseif ~isempty(fehist), fprintf('Restarting at cycle %d \n',length(fehist)+1); 
+if nargin<6, fehist=[];
+elseif ~isempty(fehist), fprintf('Restarting at cycle %d \n',length(fehist)+1);
 end
-
-hmm.train.active = ones(1,K);
 cyc_to_go = 0;
+setxx;
 
-for cycle=1:hmm.train.cyc    
+for cycle=1:hmm.train.cyc
     
-    if hmm.train.updateGamma,
-              
+    if hmm.train.updateGamma
+        
         %%%% E step
         if hmm.K>1 || cycle==1
             % state inference
-            [Gamma,Gammasum,Xi] = hsinference(data,T,hmm,residuals);
-            if size(Gammasum,1)>1, Gammasum = sum(Gammasum); end
-            if (hmm.K>1 && any(round(Gammasum) >= sum(T)-N*hmm.train.maxorder))
-                fprintf('cycle %i: All the points collapsed in one state \n',cycle)
-                break
+            [Gamma,~,Xi] = hsinference(data,T,hmm,residuals,[],XX);
+            % any state to remove?
+            [as,hmm,Gamma,Xi] = getactivestates(hmm,Gamma,Xi);
+            if hmm.train.dropstates
+                if any(as==0)
+                    cyc_to_go = hmm.train.cycstogoafterevent;
+                    data.C = data.C(:,as==1);
+                end
+                if sum(hmm.train.active)==1
+                    fprintf('cycle %i: All the points collapsed in one state \n',cycle)
+                    K = 1; break
+                end
             end
+            setxx;
         end
-        % any state to remove?
-        as1 = find(hmm.train.active==1);
-        [as,hmm,Gamma,Xi] = getactivestates(data.X,hmm,Gamma,Xi);
-        if hmm.train.dropstates
-            if any(as==0)
-                cyc_to_go = hmm.train.cycstogoafterevent;
-                data.C = data.C(:,as==1);
-            end
-        end
-        
+
         %%%% Free energy computation
-        fehist = [fehist; sum(evalfreeenergy(data.X,T,Gamma,Xi,hmm,residuals))];
+        fehist = [fehist; sum(evalfreeenergy(data.X,T,Gamma,Xi,hmm,residuals,XX))];
         strwin = ''; if hmm.train.meancycstop>1, strwin = 'windowed'; end
-        if cycle>(hmm.train.meancycstop+1) && cyc_to_go==0
+        if cycle>(hmm.train.meancycstop+1) 
             chgFrEn = mean( fehist(end:-1:(end-hmm.train.meancycstop+1)) - ...
                 fehist(end-1:-1:(end-hmm.train.meancycstop)) )  ...
                 / (fehist(1) - fehist(end));
@@ -68,8 +66,9 @@ for cycle=1:hmm.train.cyc
                 fprintf('cycle %i free energy = %g, %s relative change = %g \n',...
                     cycle,fehist(end),strwin,chgFrEn); 
             end
-            if (abs(chgFrEn) < hmm.train.tol), break; end
-        elseif hmm.train.verbose, fprintf('cycle %i free energy = %g \n',cycle,fehist(end)); %&& cycle>1
+            if (abs(chgFrEn) < hmm.train.tol) && cyc_to_go==0, break; end
+        elseif hmm.train.verbose, 
+            fprintf('cycle %i free energy = %g \n',cycle,fehist(end)); %&& cycle>1
         end
         if cyc_to_go>0, cyc_to_go = cyc_to_go - 1; end
         
@@ -80,7 +79,7 @@ for cycle=1:hmm.train.cyc
     %%%% M STEP
        
     % Observation model
-    hmm = obsupdate(data.X,T,Gamma,hmm,residuals);
+    hmm = obsupdate(T,Gamma,hmm,residuals,XX,XXGXX);
     
     if hmm.train.updateGamma,
         % transition matrices and initial state

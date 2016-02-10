@@ -120,7 +120,6 @@ hmm.train.active = ones(1,K);
 
 % initial random values for the states - multinomial
 Gammasum = sum(Gamma);
-XXGXX = cell(K,1);
 setxx; % build XX and get orders
 
 % W

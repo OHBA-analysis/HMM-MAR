@@ -8,16 +8,19 @@ function [XX,Y] = formautoregr(X,T,orders,maxorder,zeromean)
 N = length(T); ndim = size(X,2);
 if nargin<5, zeromean = 1; end
     
-XX = []; Y = [];
+XX = zeros(sum(T)-length(T)*maxorder,length(orders)*ndim); 
+if nargout==2
+    Y = zeros(sum(T)-length(T)*maxorder,ndim);
+end
 for in=1:N
-    t0 = sum(T(1:in-1)); 
-    Y = [Y; X(t0+maxorder+1:t0+T(in),:)];
-    XX0 = zeros(T(in)-maxorder,length(orders)*ndim);
+    t0 = sum(T(1:in-1)); s0 = sum(T(1:in-1)) - maxorder*(in-1);
+    if nargout==2
+        Y(s0+1:s0+T(in)-maxorder,:) = X(t0+maxorder+1:t0+T(in),:);
+    end
     for i=1:length(orders)
         o = orders(i);
-        XX0(:,(1:ndim) + (i-1)*ndim) = X(t0+maxorder-o+1:t0+T(in)-o,:);
+        XX(s0+1:s0+T(in)-maxorder,(1:ndim) + (i-1)*ndim) = X(t0+maxorder-o+1:t0+T(in)-o,:);
     end;
-    XX = [XX; XX0];
 end
 if ~zeromean, 
     XX = [ones(size(XX,1),1) XX];

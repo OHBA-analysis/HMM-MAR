@@ -18,8 +18,9 @@ function [hmm, Gamma, Xi, vpath, GammaInit, residuals, fehist] = hmmmar (data,T,
 % residuals     if the model is trained on the residuals, the value of those
 % fehist        historic of the free energies across iterations
 %
-% Author: Diego Vidaurre, OHBA, University of Oxford
+% Author: Diego Vidaurre, OHBA, University of Oxford (2015)
 
+mamon = 1; 
 [options,data] = checkoptions(options,data,T,0);
 
 if length(options.embeddedlags)>1

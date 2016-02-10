@@ -1,4 +1,4 @@
-function FrEn = evalfreeenergy (X,T,Gamma,Xi,hmm,residuals)
+function FrEn = evalfreeenergy (X,T,Gamma,Xi,hmm,residuals,XX)
 % Computes the Free Energy of an HMM depending on observation model
 %
 % INPUT
@@ -15,9 +15,13 @@ function FrEn = evalfreeenergy (X,T,Gamma,Xi,hmm,residuals)
 %
 % Author: Diego Vidaurre, OHBA, University of Oxford
 
-ndim = size(X,2); 
-K=hmm.K;
-setxx; % build XX and get orders
+K = hmm.K;
+if nargin<7, 
+    setxx; % build XX and get orders
+    ndim = size(residuals,2);
+else
+    ndim = size(residuals,2);
+end 
 
 Tres = sum(T) - length(T)*hmm.train.maxorder;
 S = hmm.train.S==1;
@@ -38,10 +42,10 @@ ltpi = sum(regressed)/2 * log(2*pi);
 
 Entr = 0;
 for tr=1:length(T);
-    t = sum(T(1:tr-1)) - (tr-1)*order + 1;
+    t = sum(T(1:tr-1)) - (tr-1)*hmm.train.maxorder + 1;
     Gamma_nz = Gamma(t,:); Gamma_nz(Gamma_nz==0) = realmin;
     Entr = Entr - sum(Gamma_nz.*log(Gamma_nz));
-    t = (sum(T(1:tr-1)) - (tr-1)*(order+1) + 1) : ((sum(T(1:tr)) - tr*(order+1)));
+    t = (sum(T(1:tr-1)) - (tr-1)*(hmm.train.maxorder+1) + 1) : ((sum(T(1:tr)) - tr*(hmm.train.maxorder+1)));
     Xi_nz = Xi(t,:,:); Xi_nz(Xi_nz==0) = realmin;
     Psi=zeros(size(Xi_nz));                    % P(S_t|S_t-1)
     for k = 1:K,
