@@ -1,12 +1,6 @@
 1. Install gcc-fortran to get gfortran compiler:
  sudo zypper install gcc-fortran
 
-2. Get OpenBLAS - NOT NECESSARY
- wget https://github.com/xianyi/OpenBLAS.git
-
-3. Install OpenBLAS - NOT NECESSARY
- Untar. In folder, type make FC=gfortran and sudo make install. 
- Key files are in /opt/OpenBLAS/lib and /opt/OpenBLAS/include
 
 4. Install lapack, if not already installed. 
  sudo zypper search lapack
@@ -26,7 +20,27 @@
 sudo zypper install libatlas3-sse3-devel
 sudo zypper install arpack-ng-devel
 
+With all of these libraries, the compiled .mexa64 mex file should work fine.
+
+
+
+
+
+
+
+
+
+
+####### BELOW FOR BUILDING FROM SOURCE ########
+
 8. If needing to build from source, downaload armadillo.  Untar armadillo, run cmake . and make and sudo make install
+
+
+Run the makefile from inside the linux subfolder. 
+
+
+
+##### BELOW ONLY FOR C++11 FANCIES
  
 9. If needing c++11, we need gcc>4.7, then clang. - note that build of gcc5.3 failed. As did gcc4.8.5. As did gcc4.7.4. David Rhodes suggests that it's not possible....
  #sudo zypper install gmp-devel
@@ -44,5 +58,13 @@ sudo zypper install arpack-ng-devel
     --disable-multilib
  make -j$(nproc)
  sudo make install
+
+
+2. Get OpenBLAS - NOT NECESSARY
+ wget https://github.com/xianyi/OpenBLAS.git
+
+3. Install OpenBLAS - NOT NECESSARY
+ Untar. In folder, type make FC=gfortran and sudo make install. 
+ Key files are in /opt/OpenBLAS/lib and /opt/OpenBLAS/include
 
 

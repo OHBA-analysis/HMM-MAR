@@ -20,7 +20,7 @@ ARCH       = glnxa64#
 
 # Variables for mex file
 TARGET   = hidden_state_inference
-SRCS     = ../test/$(TARGET)_test.cpp  ./$(TARGET).cpp
+SRCS     = ../test/$(TARGET)_test.cpp  ../$(TARGET).cpp
 OBJS     = $(TARGET)_test.o $(TARGET).o # $(SRCS:.cpp=.o)
 OPT      = -O3 #-O0
 CC       = g++ $(OPT) -march=native 
@@ -64,7 +64,6 @@ test: $(OBJS)
 	$(CC) $(OBJS) -o ../test/test $(INCLUDE) $(LFLAGS_STATIC) $(ARMA_FLAGS)
 
 mex: 
-	echo '$(BLAS_LIB)'
 	$(MEX) ../$(TARGET)_mx.cpp ../$(TARGET).cpp $(MEX_FLAGS) $(MEX_CXXOPT) $(MEX_INCLUDE) $(MEX_CXXFLAG) $(ARMA_STATIC) $(MEX_LFLAGS_STATIC) $(ARMA_FLAGS)
 
 
@@ -75,13 +74,17 @@ $(TARGET)_test.o: ../$(TARGET).hpp
 	$(CC) $(CFLAGS) $(ARMA_FLAGS) $(ARMA_STATIC) ./test/$(TARGET)_test.cpp $(INCLUDE)
 
 $(TARGET).o: 
-	$(CC) $(CFLAGS) $(ARMA_FLAGS) $(ARMA_STATIC) ./$(TARGET).cpp $(INCLUDE)
+	$(CC) $(CFLAGS) $(ARMA_FLAGS) $(ARMA_STATIC) ../$(TARGET).cpp $(INCLUDE)
 
 
 # Utility functions
 docs:
 	doxygen ../$(TARGET).doxy
-	$(MAKE) -C ../latex 
+	rm -rf ../latex
+	rm -rf ../html
+	mv -f latex ../
+	mv -f html ../
+	$(MAKE) -C ../latex
 
 tidy:
 	\rm *.o *~ ../*.tar.gz ../*.o ../*~ ../test/*.o ../test/*~

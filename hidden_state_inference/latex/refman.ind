@@ -4,6 +4,8 @@
 		\hyperpage{3}
   \item {/\+Users/gilesc/src/\+H\+M\+M-\/\+M\+A\+R/hidden\+\_\+state\+\_\+inference/hidden\+\_\+state\+\_\+inference\+\_\+mx.\+cpp}, 
 		\hyperpage{4}
+  \item {/\+Users/gilesc/src/\+H\+M\+M-\/\+M\+A\+R/hidden\+\_\+state\+\_\+inference/test/hidden\+\_\+state\+\_\+inference\+\_\+test.\+cpp}, 
+		\hyperpage{5}
 
   \indexspace
 
@@ -13,8 +15,7 @@
     \subitem {hidden\+\_\+state\+\_\+inference}, \hyperpage{4}
   \item {hidden\+\_\+state\+\_\+inference\+\_\+mx.\+cpp}
     \subitem {mex\+Function}, \hyperpage{5}
-  \item {hidden\+\_\+state\+\_\+inference\+\_\+test.\+cpp}, 
-		\hyperpage{5}
+  \item {hidden\+\_\+state\+\_\+inference\+\_\+test.\+cpp}
     \subitem {main}, \hyperpage{6}
 
   \indexspace

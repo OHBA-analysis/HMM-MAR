@@ -63,7 +63,6 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
       <li><a href="globals.html"><span>File&#160;Members</span></a></li>
     </ul>
   </div>
-</div><!-- top -->
 <!-- window showing the filter options -->
 <div id="MSearchSelectWindow"
      onmouseover="return searchBox.OnSearchSelectShow()"
@@ -78,9 +77,14 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 </iframe>
 </div>
 
+<div id="nav-path" class="navpath">
+  <ul>
+<li class="navelem"><a class="el" href="dir_d522931ffa1371640980b621734a4381.html">Users</a></li><li class="navelem"><a class="el" href="dir_7e14d5f904951c4510c95d0d497f269e.html">gilesc</a></li><li class="navelem"><a class="el" href="dir_9e71b698d1a086593714153877818ac2.html">src</a></li><li class="navelem"><a class="el" href="dir_74696b2102b67499ccf3d969f10ea646.html">HMM-MAR</a></li><li class="navelem"><a class="el" href="dir_3a233a1aad57f8ee2488d596d7459bed.html">hidden_state_inference</a></li>  </ul>
+</div>
+</div><!-- top -->
 <div class="header">
   <div class="headertitle">
-<div class="title">/Users/gilesc/src/HMM-MAR/hidden_state_inference/hidden_state_inference.hpp</div>  </div>
+<div class="title">hidden_state_inference.hpp</div>  </div>
 </div><!--header-->
 <div class="contents">
 <div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;<span class="comment">/* hidden_state_inference.hpp */</span></div><div class="line"><a name="l00002"></a><span class="lineno">    2</span>&#160;</div><div class="line"><a name="l00003"></a><span class="lineno">    3</span>&#160;<span class="preprocessor">#ifndef __HIDDEN_STATE_INFERENCE__</span></div><div class="line"><a name="l00004"></a><span class="lineno">    4</span>&#160;<span class="preprocessor">#define __HIDDEN_STATE_INFERENCE__</span></div><div class="line"><a name="l00005"></a><span class="lineno">    5</span>&#160;</div><div class="line"><a name="l00006"></a><span class="lineno">    6</span>&#160;<span class="preprocessor">#include &quot;armadillo&quot;</span></div><div class="line"><a name="l00007"></a><span class="lineno">    7</span>&#160;<span class="preprocessor">#include &lt;cmath&gt;</span></div><div class="line"><a name="l00008"></a><span class="lineno">    8</span>&#160;<span class="preprocessor">#include &lt;stdexcept&gt;</span></div><div class="line"><a name="l00009"></a><span class="lineno">    9</span>&#160;</div><div class="line"><a name="l00010"></a><span class="lineno">   10</span>&#160;<span class="keywordtype">void</span> <a class="code" href="hidden__state__inference_8cpp.html#aba4b427cad857378f3508488162e661b">hidden_state_inference</a>(arma::mat          &amp;gamma,   </div><div class="line"><a name="l00011"></a><span class="lineno">   11</span>&#160;                            arma::mat          &amp;Xi,      </div><div class="line"><a name="l00012"></a><span class="lineno">   12</span>&#160;                            arma::colvec       &amp;scale,   </div><div class="line"><a name="l00013"></a><span class="lineno">   13</span>&#160;                            <span class="keyword">const</span> arma::mat    &amp;B,       </div><div class="line"><a name="l00014"></a><span class="lineno">   14</span>&#160;                            <span class="keyword">const</span> arma::rowvec &amp;Pi_0,    </div><div class="line"><a name="l00015"></a><span class="lineno">   15</span>&#160;                            <span class="keyword">const</span> arma::mat    &amp;P,       </div><div class="line"><a name="l00016"></a><span class="lineno">   16</span>&#160;                            <span class="keyword">const</span> <span class="keywordtype">int</span>          order = 0 </div><div class="line"><a name="l00017"></a><span class="lineno">   17</span>&#160;                            );</div><div class="line"><a name="l00018"></a><span class="lineno">   18</span>&#160;<span class="preprocessor">#endif</span></div><div class="ttc" id="hidden__state__inference_8cpp_html_aba4b427cad857378f3508488162e661b"><div class="ttname"><a href="hidden__state__inference_8cpp.html#aba4b427cad857378f3508488162e661b">hidden_state_inference</a></div><div class="ttdeci">void hidden_state_inference(arma::mat &amp;gamma, arma::mat &amp;Xi, arma::colvec &amp;scale, const arma::mat &amp;B, const arma::rowvec &amp;Pi_0, const arma::mat &amp;P, const int order)</div><div class="ttdoc">hidden state inference </div><div class="ttdef"><b>Definition:</b> hidden_state_inference.cpp:73</div></div>

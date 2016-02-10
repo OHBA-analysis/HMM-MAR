@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.1415926-2.5-1.40.14 (TeX Live 2013) (format=pdflatex 2013.11.28)  10 FEB 2016 14:40
+This is pdfTeX, Version 3.1415926-2.5-1.40.14 (TeX Live 2013) (format=pdflatex 2013.11.28)  10 FEB 2016 17:59
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1230,9 +1230,21 @@ Underfull \hbox (badness 10000) in paragraph at lines 8--9
  []
 
 [4]) (./hidden__state__inference__test_8cpp.tex
+Underfull \hbox (badness 10000) in paragraph at lines 1--1
+[]\T1/phv/bc/n/14.4 /[]Users/gilesc/src/[]H[]M[]M-[]M[]A[]R/hidden[]_[]state[]_
+[]inference/test/hidden[]_[]state[]_[]inference[]_[]
+ []
+
+
 Underfull \hbox (badness 10000) in paragraph at lines 8--9
 
  []
+
+
+Package Fancyhdr Warning: \headheight is too small (12.0pt): 
+ Make it at least 22.16548pt.
+ We now make it that large for the rest of the document.
+ This may cause the page layout to be inconsistent, however.
 
 [5]) [6] (./refman.ind
 Overfull \hbox (24.6571pt too wide) in paragraph at lines 3--5
@@ -1244,6 +1256,12 @@ nference/hidden[]
 Overfull \hbox (24.6571pt too wide) in paragraph at lines 5--7
 []\T1/phv/m/n/10 /[]Users/gilesc/src/[]H[]M[]M-[]M[]A[]R/hidden[]_[]state[]_[]i
 nference/hidden[]
+ []
+
+
+Overfull \hbox (41.66666pt too wide) in paragraph at lines 7--9
+[]\T1/phv/m/n/10 /[]Users/gilesc/src/[]H[]M[]M-[]M[]A[]R/hidden[]_[]state[]_[]i
+nference/test/hidden[]
  []
 
 [7
@@ -1258,7 +1276,7 @@ Package atveryend Info: Empty hook `AfterLastShipout' on input line 156.
 Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 156.
 Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 156.
 Package rerunfilecheck Info: File `refman.out' has not changed.
-(rerunfilecheck)             Checksum: 4EE631089C841B22E080728026FBF1AB;4823.
+(rerunfilecheck)             Checksum: 5516D0D6E4D1EA75CF50D9968F244950;5099.
 
 
 LaTeX Warning: There were undefined references.
@@ -1268,11 +1286,11 @@ Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 156.
 Here is how much of TeX's memory you used:
  14687 strings out of 493315
  209497 string characters out of 6137903
- 308758 words of memory out of 5000000
+ 310823 words of memory out of 5000000
  17861 multiletter control sequences out of 15000+600000
  63279 words of font info for 67 fonts, out of 8000000 for 9000
  957 hyphenation exceptions out of 8191
- 53i,16n,92p,2128b,589s stack positions out of 5000i,500n,10000p,200000b,80000s
+ 53i,16n,92p,2135b,589s stack positions out of 5000i,500n,10000p,200000b,80000s
 {/usr/local/texlive/2013/texmf-dist/fonts/enc/dvips/base/8r.enc}</usr/local/t
 exlive/2013/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi7.pfb></usr/local/tex
 live/2013/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/local/texl
@@ -1283,10 +1301,10 @@ st/fonts/type1/urw/helvetic/uhvb8ac.pfb></usr/local/texlive/2013/texmf-dist/fon
 ts/type1/urw/helvetic/uhvbo8ac.pfb></usr/local/texlive/2013/texmf-dist/fonts/ty
 pe1/urw/helvetic/uhvr8a.pfb></usr/local/texlive/2013/texmf-dist/fonts/type1/urw
 /helvetic/uhvro8a.pfb>
-Output written on refman.pdf (11 pages, 93643 bytes).
+Output written on refman.pdf (11 pages, 94289 bytes).
 PDF statistics:
- 220 PDF objects out of 1000 (max. 8388607)
- 196 compressed objects within 2 object streams
+ 221 PDF objects out of 1000 (max. 8388607)
+ 197 compressed objects within 2 object streams
  35 named destinations out of 1000 (max. 500000)
  129 words of extra memory for PDF output out of 10000 (max. 10000000)
 
