@@ -1,11 +1,13 @@
 1. Install gcc-fortran to get gfortran compiler:
  sudo zypper install gcc-fortran
 
+2. Add science repository
+ sudo zypper addrepo http://download.opensuse.org/repositories/science/SLE_11_SP3/science.repo
 
 4. Install lapack, if not already installed. 
  sudo zypper search lapack
  - I had liblapack3 installed, but no ideas where it was. 
- sudo zypper install lapack
+ sudo zypper install lapack-devel
  - this asked for a number of repo ownership changes, but these all looked fine. 
  - Now -llapack seems to work fine.
 
@@ -35,6 +37,8 @@ With all of these libraries, the compiled .mexa64 mex file should work fine.
 
 8. If needing to build from source, downaload armadillo.  Untar armadillo, run cmake . and make and sudo make install
 
+9. You'll also need to make sure you've a c++ compiler. You can get one using sudo zypper install gcc43-c++, which installs the program g++-4.3 (have a look in /usr/bin).
+   You'll have to change the name of CC in the makefile to reflect your compiler, obviously. 
 
 Run the makefile from inside the linux subfolder. 
 
