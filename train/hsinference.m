@@ -1,4 +1,4 @@
-function [Gamma,Gammasum,Xi,LL,scale] = hsinference(data,T,hmm,residuals,options,XX)
+function [Gamma,Gammasum,Xi,LL,scale,B] = hsinference(data,T,hmm,residuals,options,XX)
 %
 % inference engine for HMMs.
 %
@@ -92,7 +92,7 @@ parfor in=1:N
                 xit(i-1,:) = xitr(:)';
             end
             if nargout>=4, Bt = obslike([],hmm,R(slicer,:),XXt); end
-            if nargout==5, sc = ones(length(slicer),1); end
+            if nargout>=5, sc = ones(length(slicer),1); end
         end
         if t>order+1,
             gammat = gammat(2:end,:);
@@ -111,12 +111,14 @@ parfor in=1:N
     if nargout>=4, LL(in) = ll; end
     %Xi=cat(1,Xi,reshape(xi,T(in)-order-1,K,K));
     Xi{in} = reshape(xi,T(in)-order-1,K,K); 
+	B{in}  = Bt;
 end
 
 % join
 Gamma = cell2mat(Gamma);
 scale = cell2mat(scale);
-Xi = cell2mat(Xi);
+Xi    = cell2mat(Xi);
+B     = cell2mat(B);
 
 end
 

@@ -34,19 +34,20 @@ options.zeromean = 0;
 hmm_wr = hmm;
 hmm_wr.P = P;
 hmm_wr.Pi = Pi_0; 
+setxx;
 
 % compare to matlab code
 display('Pure matlab')
 tic;
-for i=1:40,
-[g_check, ~, Xi_check, ~, scale_check, B] = hsinference(data, T, hmm_wr, [], options);
+for i=1:100,
+[g_check, ~, Xi_check, ~, scale_check, B] = hsinference(data, T, hmm_wr, [], options, XX);
 end
 toc
 
 % run mex file
 display('Mex implementation')
 tic;
-for i=1:40,
+for i=1:100,
 [gamma, Xi, scale] = hidden_state_inference_mx(B, Pi_0, P, options.order);
 end
 toc
@@ -55,7 +56,7 @@ toc
 display('Differences in result:')
 display(max(abs(g_check(:) - gamma(:))));
 display(max(abs(Xi(:) - Xi_check(:))));
-display(max(abs(scale(:) - scale_check(:))));
+% display(max(abs(scale(:) - scale_check(:))));
 
 fprintf('Machine precision is about %g. \n', eps(max(abs(gamma(:)))));
 
