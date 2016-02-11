@@ -136,7 +136,7 @@ void mexFunction(int nlhs, mxArray* plhs[], int nrhs, const mxArray* prhs[]) {
     
     /* Run worker function */
     hidden_state_inference(gamma, Xi, scale, B, Pi_0, A, order_);
-    
+	
     /* Save out results */
     for (int index = 0; index < (nSamples - order_) * nClasses; index++) {
         ii            = index;

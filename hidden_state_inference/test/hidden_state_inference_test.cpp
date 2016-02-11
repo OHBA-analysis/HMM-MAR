@@ -71,9 +71,9 @@ int main(int argc, char* const argv[]) {
     
     /* Try again with fixed state movement */
     arma::rowvec Pi_1 {0.9, 0.1, 0.0};
-    arma::mat A_1 {{1.0, 0.0, 0.0},
-                 {0.0, 1.0, 0.0}, 
-                 {0.0, 0.0, 1.0}};
+    arma::mat    A_1 {{1.0, 0.0, 0.0},
+                      {0.0, 1.0, 0.0}, 
+                      {0.0, 0.0, 1.0}};
                  
     hidden_state_inference(gamma, Xi, scale, B, Pi_1, A_1);
     

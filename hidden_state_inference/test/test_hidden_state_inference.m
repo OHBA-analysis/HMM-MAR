@@ -23,17 +23,15 @@ options.inittype = 'EM';
 options.initcyc = 50;
 options.initrep = 1;
 options.K = nClasses;
-options.order = 0; % changing this breaks Diego's code in ways I don't understand. 
+options.order = 2; % changing this breaks Diego's code in ways I don't understand. 
 options.Ninits = 1;
 options.zeromean = 0;
-[options, data] = checkoptions(options, X, T, 0);
-options.nu = sum(T)/200;
-options.Gamma = em_init(data,T,options,options.Sind);
-hmm_wr = struct('train',struct());
-hmm_wr.K = options.K;
-hmm_wr.train = options;
-hmm_wr=hmmhsinit(hmm_wr);
-[hmm_wr,residuals_wr]=obsinit(data,T,hmm_wr,options.Gamma);
+
+% perform a run to initialise hmm obj
+[hmm,GM, XI, ~,~,~,resid] = hmmmar(X, T, options);
+
+[~, data] = checkoptions(options, X, T, 0);
+hmm_wr = hmm;
 hmm_wr.P = P;
 hmm_wr.Pi = Pi_0; 
 

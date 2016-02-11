@@ -78,23 +78,29 @@ void hidden_state_inference(arma::mat          &gamma,   //!<[in] Probability of
 							const arma::mat    &P,       //!<[in] State transition probabilities
 							const int          order     //!<[in] order of MAR model [default = 0 for MVN]
 							) {
-    
-	/* Deal with inadequacies in code */
-	#ifdef NDEBUG
-	if (0 != order) {
-		throw std::runtime_error("This code currently fails for orders other than 0. ");
-	}
-	#endif
 	
 	/* define a very small number */
     static const double EPS = std::numeric_limits<double>::min();
     
 	/* Memory declaration */
-    arma::uword  nSamples = gamma.n_rows;
-    arma::uword  nClasses = gamma.n_cols; 
+    arma::uword  nSamples = B.n_rows;
+    arma::uword  nClasses = B.n_cols; 
     arma::mat    alpha(nSamples - order, nClasses);
     arma::mat    beta(nSamples - order, nClasses);
     arma::mat    t(nClasses, nClasses);
+	
+	/* check input dimensions */
+	#ifndef NDEBUG
+	    if (gamma.n_rows + order != nSamples || gamma.n_cols != nClasses) {
+			throw std::runtime_error("Gamma should be (nSamples - order) x nClasses. ");
+		}
+		if (Xi.n_rows + order + 1 != nSamples || Xi.n_cols != std::pow(nClasses,2)) {
+			throw std::runtime_error("Xi should be (nSamples - order - 1) x nClasses**2. ");
+		}
+		if (scale.n_elem != nSamples) {
+			throw std::runtime_error("scale should have nSamples elements. ");
+		}
+	#endif
     
 	/* fill in memory below order 
 	 * 
@@ -106,9 +112,7 @@ void hidden_state_inference(arma::mat          &gamma,   //!<[in] Probability of
 	 */
 	if (order > 0) {
 		for (int i = 0; i < order; i++) {
-			//alpha.row(i).fill(0.0);
 			scale(i) = 0.0;
-			//beta.row(i).fill(0.0);
 		}
 	}
 	
@@ -137,11 +141,10 @@ void hidden_state_inference(arma::mat          &gamma,   //!<[in] Probability of
     gamma.each_col() /= arma::sum(gamma,1); // divide by row sums
     
     for (int i = order; i < (int) nSamples - 1; i++) {
-        t               = P % ((alpha.row(i)).t() * (beta.row(i+1) % B.row(i+1)));
-        Xi.row(i-order) = reshape(t, 1,std::pow(nClasses,2));
+        t                = P % ((alpha.row(i - order)).t() * (beta.row(i+1-order) % B.row(i+1)));
+        Xi.row(i-order)  = reshape(t, 1, std::pow(nClasses,2));
         Xi.row(i-order) /= (accu(t) + EPS);
     }   
-    
     return;
 }
 /* [EOF] */
