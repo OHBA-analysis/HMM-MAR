@@ -136,7 +136,7 @@ B = obslike(X,hmm,residuals);
 B(B<realmin) = realmin;
 
 % pass to mex file?
-if useMEX && ~order, % only works for order=0 atm.
+if useMEX,
 	[Gamma, Xi, scale] = hidden_state_inference_mx(B, Pi, P, order);
 	return;
 else
