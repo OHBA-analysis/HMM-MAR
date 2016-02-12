@@ -32,7 +32,10 @@ if ~isfield(options,'meancycstop'), options.meancycstop = 1; end
 if ~isfield(options,'cycstogoafterevent'), options.cycstogoafterevent = 20; end
 if ~isfield(options,'initcyc'), options.initcyc = 100; end
 if ~isfield(options,'initrep'), options.initrep = 5; end
-if ~isfield(options,'inittype'), options.inittype = 'hmmmar'; end
+if ~isfield(options,'inittype'), 
+    if options.maxorder==0, options.inittype = 'GMM'; 
+    else options.inittype = 'hmmmar'; end
+end
 if ~isfield(options,'Gamma'), options.Gamma = []; end
 if ~isfield(options,'hmm'), options.hmm = []; end
 if ~isfield(options,'fehist'), options.fehist = []; end

@@ -45,15 +45,19 @@ end
 if isempty(options.Gamma),
     if options.K > 1
         Sind = options.Sind;
-        if options.initrep>0 && strcmp(options.inittype,'HMM-MAR')
+        if options.initrep>0 && ...
+                (strcmpi(options.inittype,'HMM-MAR') || strcmpi(options.inittype,'HMMMAR')) 
             options.Gamma = hmmmar_init(data,T,options,Sind);
-        elseif options.initrep>0 && strcmp(options.inittype,'EM')
+        elseif options.initrep>0 &&  strcmpi(options.inittype,'EM')  
+            warning('EM is deprecated; HMM-MAR init is suggested instead')
             options.nu = sum(T)/200;
             options.Gamma = em_init(data,T,options,Sind);
-        elseif options.initrep>0 && strcmp(options.inittype,'GMM')
+        elseif options.initrep>0 && strcmpi(options.inittype,'GMM')
             options.Gamma = gmm_init(data,T,options);
-        else % options.inittype=='random'
+        elseif strcmpi(options.inittype,'random')  
             options.Gamma = initGamma_random(T-options.maxorder,options.K,options.DirichletDiag);
+        else
+            warning('Unknown init method, initialising at random')
         end
     else
        options.Gamma = ones(sum(T)-length(T)*options.maxorder,1); 
