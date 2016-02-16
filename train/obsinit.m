@@ -146,21 +146,25 @@ for k=1:K
             
         elseif strcmp(train.covtype,'uniquediag') || strcmp(train.covtype,'diag')
             hmm.state(k).W.Mu_W = zeros((~train.zeromean)+ndim*length(orders),ndim);
+            hmm.state(k).W.iS_W = zeros(ndim,(~train.zeromean)+ndim*length(orders),...
+                (~train.zeromean)+ndim*length(orders));
             hmm.state(k).W.S_W = zeros(ndim,(~train.zeromean)+ndim*length(orders),...
                 (~train.zeromean)+ndim*length(orders));
             for n=1:ndim
                 ndim_n = sum(S(:,n));
                 if ndim_n==0, continue; end
-                hmm.state(k).W.S_W(n,Sind(:,n),Sind(:,n)) = inv( ((XX{kk}(:,Sind(:,n))' .* repmat(Gamma(:,k)',...
+                hmm.state(k).W.iS_W(n,Sind(:,n),Sind(:,n)) = ((XX{kk}(:,Sind(:,n))' .* repmat(Gamma(:,k)',...
                     (~train.zeromean)+ndim_n*length(orders),1) ) * ...
-                    XX{kk}(:,Sind(:,n))) + 0.01*eye((~train.zeromean) + ndim_n*length(orders))  )   ;
+                    XX{kk}(:,Sind(:,n))) + 0.01*eye((~train.zeromean) + ndim_n*length(orders)) ;
+                hmm.state(k).W.S_W(n,Sind(:,n),Sind(:,n)) = inv(permute(hmm.state(k).W.iS_W(n,Sind(:,n),Sind(:,n)),[2 3 1]));
                 hmm.state(k).W.Mu_W(Sind(:,n),n) = (( permute(hmm.state(k).W.S_W(1,Sind(:,n),Sind(:,n)),[2 3 1])...
                     * XX{kk}(:,Sind(:,n))') .* repmat(Gamma(:,k)',(~train.zeromean)+ndim_n*length(orders),1)) ...
                     * residuals(:,n);
             end;
         else
             gram = kron(XXGXX{k},eye(ndim));
-            hmm.state(k).W.S_W = inv( gram + 0.01*eye(size(gram,1)) );
+            hmm.state(k).W.iS_W = gram + 0.01*eye(size(gram,1));
+            hmm.state(k).W.S_W = inv( hmm.state(k).W.iS_W );
             hmm.state(k).W.Mu_W = (( XXGXX{k} \ XX{kk}' ) .* repmat(Gamma(:,k)',...
                 (~train.zeromean)+ndim*length(orders),1)) * residuals;
         end

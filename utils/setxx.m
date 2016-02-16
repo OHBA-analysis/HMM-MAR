@@ -2,8 +2,8 @@ K = length(hmm.state);
 if exist('Gamma','var')
     XXGXX = cell(K,1);
 end
-if ~hmm.train.multipleConf
-    if ~exist('XX','var')
+if ~isfield(hmm.train,'multipleConf') || ~hmm.train.multipleConf
+    if ~exist('XX','var') || isempty(XX)
         XX = cell(1);
         orders = formorders(hmm.train.order,hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag);
         if exist('data','var')

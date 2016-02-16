@@ -20,11 +20,25 @@ function [hmm, Gamma, Xi, vpath, GammaInit, residuals, fehist] = hmmmar (data,T,
 %
 % Author: Diego Vidaurre, OHBA, University of Oxford (2015)
 
-mamon = 1; 
 [options,data] = checkoptions(options,data,T,0);
 
+ver = version('-release');
+oldMatlab = ~isempty(strfind(ver,'2010')) || ~isempty(strfind(ver,'2010')) ...
+    || ~isempty(strfind(ver,'2011')) || ~isempty(strfind(ver,'2012'));
+
+% set the matlab parallel computing environment
+if options.useParallel==1
+    if oldMatlab
+        if matlabpool('size')==0
+            matlabpool
+        end 
+    else
+        gcp;
+    end
+end
+
 if length(options.embeddedlags)>1
-   X = []; C = [];
+    X = []; C = [];
    for in=1:length(T)
        [x, ind] = embedx(data.X(sum(T(1:in-1))+1:sum(T(1:in)),:),options.embeddedlags); X = [X; x ]; 
        c = data.C( sum(T(1:in-1))+1: sum(T(1:in)) , : ); c = c(ind,:); C = [C; c];
@@ -49,7 +63,7 @@ if isempty(options.Gamma),
                 (strcmpi(options.inittype,'HMM-MAR') || strcmpi(options.inittype,'HMMMAR')) 
             options.Gamma = hmmmar_init(data,T,options,Sind);
         elseif options.initrep>0 &&  strcmpi(options.inittype,'EM')  
-            warning('EM is deprecated; HMM-MAR init is suggested instead')
+            warning('EM is deprecated; HMM-MAR initialisation is suggested instead')
             options.nu = sum(T)/200;
             options.Gamma = em_init(data,T,options,Sind);
         elseif options.initrep>0 && strcmpi(options.inittype,'GMM')
@@ -96,11 +110,7 @@ for it=1:options.repetitions
 end
 
 if options.decodeGamma && nargout >= 4
-    vp = hmmdecode(data.X,T,hmm,residuals);
-    vpath=[];
-    for in=1:length(vp)
-        vpath = [vpath; vp(in).q_star];
-    end
+    vpath = hmmdecode(data.X,T,hmm,residuals);
     if ~options.keepS_W
         for i=1:hmm.K
             hmm.state(i).W.S_W = [];

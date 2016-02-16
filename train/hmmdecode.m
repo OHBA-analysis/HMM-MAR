@@ -12,7 +12,7 @@ function vpath = hmmdecode(X,T,hmm,residuals,options)
 % options       the hmm options, that will be used if hmm.train is missing
 %
 % OUTPUT
-% vpath(i).q_star    maximum likelihood state sequence
+% vpath         (T x 1) maximum likelihood state sequence
 %
 % Author: Diego Vidaurre, OHBA, University of Oxford
 
@@ -42,6 +42,9 @@ if ~hmm.train.multipleConf
 else
     order = hmm.train.maxorder;
 end
+
+vpath = zeros(sum(T)-length(T)*order,1);
+tacc = 0;
 
 for tr=1:N
     
@@ -118,7 +121,8 @@ for tr=1:N
         q_star(i) = psi(i+1,q_star(i+1));
     end
     
-    vpath(tr).q_star = q_star;
+    vpath( (1:(T(i)-order)) + tacc ) = q_star;
+    tacc = tacc + T(i)-order;
     
 end
 

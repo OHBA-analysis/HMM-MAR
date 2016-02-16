@@ -46,6 +46,11 @@ if ~isfield(options,'repetitions'), options.repetitions = 1; end
 if ~isfield(options,'updateGamma'), options.updateGamma = 1; end
 if ~isfield(options,'decodeGamma'), options.decodeGamma = 1; end
 if ~isfield(options,'keepS_W'), options.keepS_W = 1; end
+if ~isfield(options,'useParallel'), 
+    if length(T)>1, options.useParallel = 1; 
+    else options.useParallel = 0;
+    end
+end
 if ~isfield(options,'verbose'), options.verbose = 1; end
 
 if isempty(options.Gamma) && ~isempty(options.hmm)
@@ -72,6 +77,11 @@ if ~isempty(options.Gamma)
     if (size(options.Gamma,1) ~= (sum(T) - options.maxorder*length(T))) || (size(options.Gamma,2) ~= options.K),
         error('The supplied Gamma has not the right dimensions')
     end
+end
+
+if length(T) == 1 && options.useParallel == 1
+    warning('Only one trial, no use for parallel computing')
+    options.useParallel = 0;
 end
 
 if cv==1

@@ -57,7 +57,10 @@ Gammasum = zeros(N,K);
 Xi = cell(N,1);
 B = cell(N,1);
 
-if N>1 % to duplicate this code is really ugly but there doesn't seem to be any other way
+if hmm.train.useParallel==1 
+            
+    % to duplicate this code is really ugly but there doesn't seem to be
+    % any other way - more Matlab's fault than mine 
     parfor in=1:N 
         Bt = []; sc = [];
         t0 = sum(T(1:in-1)); s0 = t0 - order*(in-1);
@@ -193,13 +196,6 @@ end
 function [Gamma,Xi,B,scale] = nodecluster(XX,K,hmm,residuals)
 % inference using normal foward backward propagation
 
-% Preamble to check for mex function
-if (ismac || isunix) && exist('hidden_state_inference_mx', 'file') == 3,
-	useMEX = true;
-else
-	useMEX = false;
-end
-
 order = hmm.train.maxorder;
 T = size(residuals,1) + order;
 P = hmm.P;
@@ -209,7 +205,7 @@ B = obslike([],hmm,residuals,XX);
 B(B<realmin) = realmin;
 
 % pass to mex file?
-if useMEX,
+if ( (ismac || isunix) && exist('hidden_state_inference_mx', 'file') == 3 )
 	[Gamma, Xi, scale] = hidden_state_inference_mx(B, Pi, P, order);
 	return;
 end

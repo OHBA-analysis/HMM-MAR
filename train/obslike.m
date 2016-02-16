@@ -70,7 +70,7 @@ for k=1:K
             C = hs.Omega.Gam_shape * hs.Omega.Gam_irate;
     end;
     
-    meand = zeros(size(XX{kk},1),sum(regressed));
+    try, meand = zeros(size(XX{kk},1),sum(regressed)); catch ec, keyboard; end
     if train.uniqueAR
         for n=1:ndim
             ind = n:ndim:size(XX{kk},2);

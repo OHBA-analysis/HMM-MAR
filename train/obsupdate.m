@@ -1,4 +1,4 @@
-function [hmm] = obsupdate (T,Gamma,hmm,residuals,XX,XXGXX)
+function [hmm] = obsupdate (T,Gamma,hmm,residuals,XX,XXGXX,Tfactor)
 %
 % Update observation model
 %
@@ -24,16 +24,17 @@ obs_it = 1;
 % Some stuff that will be later used
 Gammasum = sum(Gamma);
 Tres = sum(T) - length(T)*hmm.train.maxorder;
+if nargin<7, Tfactor = 1; end
 
 while mean_change>obs_tol && obs_it<=obs_maxit,
     
     last_state = hmm.state;
         
     %%% W
-    [hmm,XW] = updateW(hmm,Gamma,residuals,XX,XXGXX);
+    [hmm,XW] = updateW(hmm,Gamma,residuals,XX,XXGXX,Tfactor);
 
     %%% Omega
-    hmm = updateOmega(hmm,Gamma,Gammasum,residuals,Tres,XX,XXGXX,XW);
+    hmm = updateOmega(hmm,Gamma,Gammasum,residuals,T,XX,XXGXX,XW,Tfactor);
     
     %%% sigma - channel x channel coefficients
     hmm = updateSigma(hmm);

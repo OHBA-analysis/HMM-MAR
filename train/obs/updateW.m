@@ -1,7 +1,8 @@
-function [hmm,XW] = updateW(hmm,Gamma,residuals,XX,XXGXX)
+function [hmm,XW] = updateW(hmm,Gamma,residuals,XX,XXGXX,Tfactor)
 
 K = length(hmm.state); ndim = hmm.train.ndim;
 XW = zeros(K,size(XX{1},1),ndim);
+if nargin<6, Tfactor = 1; end
 
 for k=1:K
     if ~hmm.train.active(k), continue; end
@@ -23,14 +24,16 @@ for k=1:K
             hmm.state(k).W.S_W = inv(train.prior.iS + XGX);
             hmm.state(k).W.Mu_W = hmm.state(k).W.S_W * (XY + train.prior.iSMu); % order by 1
         else
-            if train.zeromean==0,
+            if train.zeromean==0 && ~isempty(orders)
                 regterm = diag([hmm.state(k).prior.Mean.iS (hmm.state(k).alpha.Gam_shape ./ ...
                     hmm.state(k).alpha.Gam_rate) ]);
+            elseif train.zeromean==0
+                regterm = diag(hmm.state(k).prior.Mean.iS);
             else
                 regterm = diag((hmm.state(k).alpha.Gam_shape ./  hmm.state(k).alpha.Gam_rate));
             end
-            hmm.state(k).W.S_W = inv(regterm + XGX);
-            hmm.state(k).W.Mu_W = hmm.state(k).W.S_W * XY; % order by 1
+            hmm.state(k).W.S_W = inv(regterm + Tfactor * XGX);
+            hmm.state(k).W.Mu_W = Tfactor * hmm.state(k).W.S_W * XY; % order by 1
         end        
         for n=1:ndim
             ind = n:ndim:size(XX{kk},2);
@@ -54,10 +57,12 @@ for k=1:K
             end
             if isempty(regterm), regterm = 0; end
             regterm = diag(regterm);
-            prec =  regterm + (omega.Gam_shape / omega.Gam_rate(n)) * XXGXX{k}(Sind(:,n),Sind(:,n));
-            hmm.state(k).W.S_W(n,Sind(:,n),Sind(:,n)) = inv(prec);
+            hmm.state(k).W.iS_W(n,Sind(:,n),Sind(:,n)) = ...
+                regterm + Tfactor * (omega.Gam_shape / omega.Gam_rate(n)) * XXGXX{k}(Sind(:,n),Sind(:,n));
+            hmm.state(k).W.S_W(n,Sind(:,n),Sind(:,n)) = ...
+                inv(permute(hmm.state(k).W.iS_W(n,Sind(:,n),Sind(:,n)),[2 3 1]));
             hmm.state(k).W.Mu_W(Sind(:,n),n) = (( permute(hmm.state(k).W.S_W(n,Sind(:,n),Sind(:,n)),[2 3 1]) * ...
-                (omega.Gam_shape / omega.Gam_rate(n)) * XX{kk}(:,Sind(:,n))') .* ...
+                Tfactor * (omega.Gam_shape / omega.Gam_rate(n)) * XX{kk}(:,Sind(:,n))') .* ...
                 repmat(Gamma(:,k)',sum(Sind(:,n)),1)) * residuals(:,n);
         end;
         XW(k,:,:) = XX{kk} * hmm.state(k).W.Mu_W;
@@ -78,8 +83,9 @@ for k=1:K
         regterm = diag(regterm);
         prec = omega.Gam_shape * omega.Gam_irate;
         gram = kron(XXGXX{k}, prec);
-        hmm.state(k).W.S_W = inv(regterm + gram);
-        muW = hmm.state(k).W.S_W * gram * mlW(:);
+        hmm.state(k).W.iS_W = regterm + Tfactor * gram;
+        hmm.state(k).W.S_W = inv(hmm.state(k).W.iS_W);
+        muW = Tfactor * hmm.state(k).W.S_W * gram * mlW(:);
         hmm.state(k).W.Mu_W = reshape(muW,ndim,~train.zeromean+ndim*length(orders))';
         XW(k,:,:) = XX{kk} * hmm.state(k).W.Mu_W;
     end
