@@ -57,6 +57,8 @@ Gammasum = zeros(N,K);
 Xi = cell(N,1);
 B = cell(N,1);
 
+n_argout = nargout;
+
 if hmm.train.useParallel==1 
             
     % to duplicate this code is really ugly but there doesn't seem to be
@@ -100,8 +102,8 @@ if hmm.train.useParallel==1
                     xitr = gammat(i-1,:)' * gammat(i,:) ;
                     xit(i-1,:) = xitr(:)';
                 end
-                if nargout>=4, Bt = obslike([],hmm,R(slicer,:),XXt); end
-                if nargout==5, sc = ones(length(slicer),1); end
+                if n_argout>=4, Bt = obslike([],hmm,R(slicer,:),XXt); end
+                if n_argout==5, sc = ones(length(slicer),1); end
             end
             if t>order+1,
                 gammat = gammat(2:end,:);
@@ -109,15 +111,15 @@ if hmm.train.useParallel==1
             xi = [xi; xit];
             gamma = [gamma; gammat];
             gammasum = gammasum + sum(gamma);
-            if nargout>=4, ll = ll + sum(sum(log(Bt(order+1:end,:)) .* gammat,2)); end
-            if nargout>=5, scale = [scale; sc ]; end
+            if n_argout>=4, ll = ll + sum(sum(log(Bt(order+1:end,:)) .* gammat,2)); end
+            if n_argout>=5, scale = [scale; sc ]; end
             if isempty(no_c), break;
             else t = no_c(1)+t-1;
             end;
         end
         Gamma{in} = gamma;
         Gammasum(in,:) = gammasum;
-        if nargout>=4, LL(in) = ll; end
+        if n_argout>=4, LL(in) = ll; end
         %Xi=cat(1,Xi,reshape(xi,T(in)-order-1,K,K));
         Xi{in} = reshape(xi,T(in)-order-1,K,K);
     end
