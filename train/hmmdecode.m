@@ -121,8 +121,8 @@ for tr=1:N
         q_star(i) = psi(i+1,q_star(i+1));
     end
     
-    vpath( (1:(T(i)-order)) + tacc ) = q_star;
-    tacc = tacc + T(i)-order;
+    vpath( (1:(T(tr)-order)) + tacc ) = q_star;
+    tacc = tacc + T(tr)-order;
     
 end
 
