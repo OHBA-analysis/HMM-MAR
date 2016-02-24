@@ -123,7 +123,9 @@ if hmm.train.useParallel==1
         %Xi=cat(1,Xi,reshape(xi,T(in)-order-1,K,K));
         Xi{in} = reshape(xi,T(in)-order-1,K,K);
     end
+    
 else
+    
     for in=1:N % this is exactly the same than the code above but changing parfor by for
        Bt = []; sc = [];
         t0 = sum(T(1:in-1)); s0 = t0 - order*(in-1);
@@ -208,8 +210,14 @@ B(B<realmin) = realmin;
 
 % pass to mex file?
 if ( (ismac || isunix) && exist('hidden_state_inference_mx', 'file') == 3 )
-	[Gamma, Xi, scale] = hidden_state_inference_mx(B, Pi, P, order);
-	return;
+    finish = 1; 
+	try 
+        [Gamma, Xi, scale] = hidden_state_inference_mx(B, Pi, P, order);
+    catch 
+        fprintf('MEX file cannot be used, going on to Matlab code.../n')
+        finish = 0;
+    end
+	if finish==1, return; end
 end
 
 scale=zeros(T,1);
