@@ -40,6 +40,10 @@ ndim = size(X,2);
 options.order = hmm.train.order;
 options = checkoptions_spectra(options,ndim,T);
 
+if hmm.train.maxorder==0
+    error('MAR spectra cannot be estimated for MAR order equal to 0')
+end
+
 if options.MLestimation, K = size(Gamma,2);
 else K = length(hmm.state);
 end
