@@ -47,13 +47,13 @@ ndim = size(X,2);
 
 % remove the exceeding part of X (with no attached Gamma)
 order = (size(X,1) - size(Gamma,1)) / length(T);
-X2 = []; T2 = T;
-for in=1:length(T),
-    t0 = sum(T(1:in-1));
-    X2 = [X2; X(t0+1+order:t0+T(in),:)];
-    T2(in) = T2(in) - order;
+X2 = zeros(sum(T)-length(T)*order,ndim); 
+for in = 1:length(T),
+    t0 = sum(T(1:in-1)); t00 = sum(T(1:in-1)) - (in-1)*order;
+    X2(t00+1:t00+T(in)-order,:) = X(t0+1+order:t0+T(in),:);
 end
-X = X2; T = T2; clear X2 T2;
+T = T - order;
+X = X2; clear X2;
 
 %for in=1:length(T)    
     
