@@ -60,6 +60,7 @@ options.verbose = 1;
 [hmm, Gamma,~, ~, ~, ~, fehist] = hmmmar(X,T,options);
 plot(fehist)
 %% MAR spectra
+
 options.Fs = 100; 
 options.completelags = 1;
 options.MLestimation = 1; 
