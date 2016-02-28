@@ -1,13 +1,7 @@
 function [options,Gamma] = checkoptions_spectra (options,ndim,T)
 
-if ~isfield(options,'Gamma'),
-    if ~isfield(options,'order'), options.order = 0; end
-    Gamma = ones(sum(T)-length(T)*options.order,1);
-else
-    Gamma = options.Gamma;
-end
-
 % MT and common
+if ~isfield(options,'order'), options.order = 0; end
 if ~isfield(options,'p'), options.p = 0; end
 if ~isfield(options,'removezeros'), options.removezeros = 0; end
 if ~isfield(options,'completelags'), options.completelags = 1; end
@@ -32,7 +26,15 @@ if ~isfield(options,'MLestimation'), options.MLestimation = 1; end
 if ~isfield(options,'completelags'), options.completelags = 1; end
 
 if options.MLestimation == 0, 
-    error('options.MLestimation equal to 0 is not currently an option')
+    error('options.MLestimation equal to 0 (Bayesian) is not currently an option')
+end
+
+if nargout==2
+    if ~isfield(options,'Gamma'),
+        Gamma = ones(sum(T)-length(T)*options.order,1);
+    else
+        Gamma = options.Gamma;
+    end
 end
 
 end
