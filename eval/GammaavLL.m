@@ -3,7 +3,7 @@ function avLL = GammaavLL(hmm,Gamma,Xi,T)
 avLL = 0; K = size(Gamma,2);
 jj = zeros(length(T),1); % reference to first time point of the segments
 for in=1:length(T);
-    jj(in) = sum(T(1:in-1)) + 1;
+    jj(in) = sum(T(1:in-1)) - hmm.train.maxorder*(in-1) + 1;
 end
 PsiDir_alphasum = psi(sum(hmm.Dir_alpha,2));
 for l=1:K,

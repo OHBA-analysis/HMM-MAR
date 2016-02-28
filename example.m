@@ -235,8 +235,8 @@ options_bighmm.initrep = 1;
 TBig = {}; for n=1:length(T), TBig{n} = T(n); end
 XBig = {}; for n=1:length(T), XBig{n} = X((1:T(n))+sum(T(1:n-1)),:); end
 
-[states_bighmm,markovTrans_bighmm,fehist] = trainBigHMM(XBig,TBig,options_bighmm);
-Gamma = decodeBigHMM(XBig,TBig,states_bighmm,markovTrans_bighmm,0);
+[hmm,markovTrans,fehist] = trainBigHMM(XBig,TBig,options_bighmm);
+Gamma = decodeBigHMM(XBig,TBig,hmm,markovTrans,0);
 
 
 %% Test sign flipping
