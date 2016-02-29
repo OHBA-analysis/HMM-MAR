@@ -39,6 +39,9 @@ function fit = hmmspectramar(X,T,hmm,Gamma,options)
 
 sT = sum(T);
 ndim = size(X,2);
+if isfield(hmm.train,'S') && size(hmm.train.S,1)~=ndim
+    hmm.train.S = ones(ndim);
+end
 
 if ~isempty(hmm), K = length(hmm.state); 
 else K = size(Gamma,2);
