@@ -60,9 +60,6 @@ end
 freqs = (0:Nf-1)*( (fpass(2) - fpass(1)) / (Nf-1)) + fpass(1);
 w = 2*pi*freqs/options.Fs;
 
-if options.p==0, N = 1; 
-else  end
-
 corrc = zeros(nlags,N);
 % get mean lagged probabilities
 for i=1:N
@@ -72,15 +69,13 @@ for i=1:N
         corrc(j,i) = mean(sum(Gammaj(1:Tj-nlags,:) .* Gammaj(1+j:Tj-nlags+j,:),2));
     end
 end
+corrc = [corrc(end:-1:1,:); ones(1,N); corrc];
    
-varc = var(corrc(:));
 psdc = zeros(Nf,N);
 % fourier on mean lagged probabilities
 for ff=1:Nf,
-    for i=1:N
-        af_tmp = 1 - exp(-1i*w(ff)*(1:nlags)) * corrc(:,i);
-        iaf_tmp = 1 / af_tmp;
-        psdc(ff,i) = iaf_tmp * varc * iaf_tmp';
+    for i=1:N % Wiener?Khinchin theorem
+        psdc(ff,i) = exp(-1i*w(ff)*(-nlags:nlags)) * corrc(:,i);
     end
 end
 psdc = abs(psdc);
@@ -90,7 +85,7 @@ fit.psd = mean(psdc,2);
 fit.corr = mean(corrc,2);
 if options.p>0 % jackknife estimation
     psd_jackknife = zeros(Nf,N);
-    corr_jackknife = zeros(nlags,N);
+    corr_jackknife = zeros(2*nlags+1,N);
     for i = 1:N
         ind = setdiff(1:N,i);
         psd_jackknife(:,i) = mean(psdc(:,ind),2);

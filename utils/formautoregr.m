@@ -8,7 +8,7 @@ function [XX,Y] = formautoregr(X,T,orders,maxorder,zeromean)
 N = length(T); ndim = size(X,2);
 if nargin<5, zeromean = 1; end
     
-XX = zeros(sum(T)-length(T)*maxorder,length(orders)*ndim); 
+XX = ones(sum(T)-length(T)*maxorder,length(orders)*ndim+(~zeromean)); 
 if nargout==2
     Y = zeros(sum(T)-length(T)*maxorder,ndim);
 end
@@ -19,9 +19,8 @@ for in=1:N
     end
     for i=1:length(orders)
         o = orders(i);
-        XX(s0+1:s0+T(in)-maxorder,(1:ndim) + (i-1)*ndim) = X(t0+maxorder-o+1:t0+T(in)-o,:);
-    end;
+        XX(s0+1:s0+T(in)-maxorder,(1:ndim)+(i-1)*ndim+(~zeromean)) = ...
+            X(t0+maxorder-o+1:t0+T(in)-o,:);
+    end  
 end
-if ~zeromean, 
-    XX = [ones(size(XX,1),1) XX];
 end

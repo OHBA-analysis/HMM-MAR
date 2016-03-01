@@ -210,17 +210,17 @@ B(B<realmin) = realmin;
 
 % pass to mex file?
 if ( (ismac || isunix) && ...
-        exist('hidden_state_inference_mx', 'file') == 3 ) && ...
-        exist('ignore_MEX', 'file') == 0
-    finish = 1; 
-	try 
+        exist('hidden_state_inference_mx', 'file') == 3 && ...
+        exist('ignore_MEX', 'file') == 0 )
+    finish = 1;
+    try
         [Gamma, Xi, scale] = hidden_state_inference_mx(B, Pi, P, order);
-    catch 
-        warning('MEX file cannot be used, going on to Matlab code..')
-        fclose(fopen('ignore_MEX', 'w')); 
+    catch
+        fprintf('MEX file cannot be used, going on to Matlab code..\n')
+        fclose(fopen('ignore_MEX', 'w'));
         finish = 0;
     end
-	if finish==1, return; end
+    if finish==1, return; end
 end
 
 scale=zeros(T,1);
