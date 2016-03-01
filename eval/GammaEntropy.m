@@ -11,7 +11,7 @@ for tr=1:length(T);
     for k = 1:K,
         sXi = sum(permute(Xi_nz(:,k,:),[1 3 2]),2);
         Psi(:,k,:) = Xi_nz(:,k,:)./repmat(sXi,[1 1 K]); 
-    end;
+    end
     Psi(Psi==0) = realmin;
     Entr = Entr - sum(Xi_nz(:).*log(Psi(:)));    % entropy of hidden states
 end

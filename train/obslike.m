@@ -1,6 +1,6 @@
 function B = obslike (X,hmm,residuals,XX)
 %
-% Evaluate likelihood of data given observation model
+% Evaluate likelihood of data given observation model, for one continuous trial
 %
 % INPUT
 % X          N by ndim data matrix
@@ -20,6 +20,17 @@ if nargin<4 || isempty(XX)
 else
     [T,ndim] = size(residuals);
     T = T + hmm.train.maxorder;
+end
+
+if nargin<3 || isempty(residuals)
+    ndim = size(X,2);
+    if ~isfield(hmm.train,'Sind'),
+        orders = formorders(hmm.train.order,hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag);
+        hmm.train.Sind = formindexes(orders,hmm.train.S);
+    end
+    if ~hmm.train.zeromean, hmm.train.Sind = [true(1,ndim); hmm.train.Sind]; end
+    residuals =  getresiduals(X,T,hmm.train.Sind,hmm.train.maxorder,hmm.train.order,...
+        hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag,hmm.train.zeromean);
 end
 
 Tres = T-hmm.train.maxorder;
@@ -70,7 +81,7 @@ for k=1:K
             C = hs.Omega.Gam_shape * hs.Omega.Gam_irate;
     end;
     
-    try, meand = zeros(size(XX{kk},1),sum(regressed)); catch ec, keyboard; end
+    meand = zeros(size(XX{kk},1),sum(regressed));
     if train.uniqueAR
         for n=1:ndim
             ind = n:ndim:size(XX{kk},2);
@@ -81,7 +92,7 @@ for k=1:K
     end
     d = residuals(:,regressed) - meand;    
     if strcmp(train.covtype,'diag') || strcmp(train.covtype,'uniquediag')
-        Cd =  repmat(C(regressed)',1,Tres) .* d';
+        Cd = repmat(C(regressed)',1,Tres) .* d';
     else
         Cd = C(regressed,regressed) * d';
     end

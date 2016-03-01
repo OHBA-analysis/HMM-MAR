@@ -46,8 +46,8 @@ for d=1:ndim, X(:,d) = smooth(X(:,d)); end
 options = struct();
 options.K = 2; 
 options.covtype = 'full';
-options.order = 0;
-%options.timelag = 2; 
+options.order = 6;
+options.timelag = 2; 
 options.DirichletDiag = 2; 
 options.tol = 1e-12;
 options.cyc = 100;
@@ -59,16 +59,33 @@ options.verbose = 1;
 
 [hmm, Gamma,~, ~, ~, ~, fehist] = hmmmar(X,T,options);
 plot(fehist)
-%%
+%% MAR spectra
+
 options.Fs = 100; 
 options.completelags = 1;
 options.MLestimation = 1; 
+options.order = 10; % increase the order
+
 spectral_info = hmmspectramar(X,T,hmm,Gamma,options);
 for k=1:2
     subplot(1,2,k)
     plot(spectral_info.state(k).f,spectral_info.state(k).psd(:,1,1),'k')
 end
 
+%% MT spectra
+
+options_mt = struct('Fs',200);
+options_mt.fpass = [1 48];
+options_mt.tapers = [4 7];
+options_mt.p = 0;
+options_mt.win = 500;
+options_mt.Gamma = Gamma;
+%options_mt.to_do = [1 0]; % just coherence, not PDC
+spectral_info = hmmspectramt(X,T,options_mt);
+for k=1:2
+    subplot(1,2,k)
+    plot(spectral_info.state(k).f,spectral_info.state(k).psd(:,1,1),'k')
+end
 %% Train models on a grid of parameters
 
 KK = 2:8;
@@ -194,13 +211,13 @@ options_bighmm = struct();
 % Specific BigHMM-MAR options
 options_bighmm.K = 8;
 options_bighmm.BIGNbatch = 2;
-options_bighmm.uniqueTrans = 0;
+options_bighmm.BIGuniqueTrans = 1;
 options_bighmm.BIGtol = 1e-7;
 options_bighmm.BIGcyc = 100;
 options_bighmm.BIGinitcyc = 1;
 options_bighmm.BIGundertol_tostop = 5;
-options_bighmm.BIGdelay = 1;
-options_bighmm.BIGforgetrate = 0.9;
+options_bighmm.BIGdelay = 5;
+options_bighmm.BIGforgetrate = 0.75;
 options_bighmm.BIGbase_weights = 0.9;
 options_bighmm.BIGverbose = 1;
 % HMM-MAR options
@@ -218,8 +235,8 @@ options_bighmm.initrep = 1;
 TBig = {}; for n=1:length(T), TBig{n} = T(n); end
 XBig = {}; for n=1:length(T), XBig{n} = X((1:T(n))+sum(T(1:n-1)),:); end
 
-[states_bighmm,markovTrans_bighmm,prior] = trainBigHMM(XBig,TBig,options_bighmm);
-Gamma = decodeBigHMM(XBig,TBig,states_bighmm,markovTrans_bighmm,prior,0,options_bighmm);
+[hmm,markovTrans,fehist] = trainBigHMM(XBig,TBig,options_bighmm);
+Gamma = decodeBigHMM(XBig,TBig,hmm,markovTrans,0);
 
 
 %% Test sign flipping

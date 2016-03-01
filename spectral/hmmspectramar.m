@@ -18,6 +18,8 @@ function fit = hmmspectramar(X,T,hmm,Gamma,options)
 %  .completelags    if MLestimation is true and completelags is true,
 %               the MAR spectra will be calculated with the complete set of
 %               lags up to the specified order (lags=1,2,...,order)
+%  .order     If we want a higher MAR order than that used for training,
+%               specify it here - a new set of MAR models will be estimated
 %
 % OUTPUT
 % fit is a list with K elements, each of which contains: 
@@ -37,36 +39,80 @@ function fit = hmmspectramar(X,T,hmm,Gamma,options)
 
 sT = sum(T);
 ndim = size(X,2);
-options.order = hmm.train.order;
-options = checkoptions_spectra(options,ndim,T);
-
-if options.MLestimation, K = size(Gamma,2);
-else K = length(hmm.state);
+if isfield(hmm.train,'S') && size(hmm.train.S,1)~=ndim
+    hmm.train.S = ones(ndim);
 end
 
-if length(T)<5 && options.p>0,  error('You need at least 5 trials to compute error bars for MAR spectra'); end
+if ~isempty(hmm), K = length(hmm.state); 
+else K = size(Gamma,2);
+end
+
+if isfield(options,'order') && ~isempty(hmm)
+    for k=1:K, 
+        hmm.state(k).order = options.order; 
+        if isfield(hmm.state(k),'train'), hmm.state(k).train.order = options.order; end
+    end
+    hmm.train.order = options.order;
+end
+
+if isfield(options,'order') && options.order~=hmm.train.maxorder
+   if options.order<hmm.train.maxorder
+       error('If you specify a new MAR order, has to be higher than hmm.train.maxorder')
+   end
+   Gamma2 = zeros(sT-length(T)*options.order,K);
+   for in = 1:length(T),
+       t0 = sum(T(1:in-1)) - (in-1)*hmm.train.order;
+       t00 = sum(T(1:in-1)) - (in-1)*options.order;
+       Gamma2(t00+1:t00+T(in)-options.order,:) = ...
+           Gamma(t0+1+options.order:t0+T(in),:);
+   end
+   Gamma = Gamma2; clear Gamma2
+   hmm.train.maxorder = options.order; 
+end
+
+options = checkoptions_spectra(options,ndim,T);
+
+if hmm.train.maxorder==0
+    error('MAR spectra cannot be estimated for MAR order equal to 0')
+end
+
+if length(T)<5 && options.p>0,  
+    error('You need at least 5 trials to compute error bars for MAR spectra'); 
+end
 
 %loadings = options.loadings;
 %if hmm.train.whitening, loadings = loadings * iA; end
 %M = size(options.loadings,1);
 
-freqs = (0:options.Nf-1)*( (options.fpass(2) - options.fpass(1)) / (options.Nf-1)) + options.fpass(1);
+freqs = (0:options.Nf-1)* ...
+    ( (options.fpass(2) - options.fpass(1)) / (options.Nf-1)) + options.fpass(1);
 w=2*pi*freqs/options.Fs;
 
 if options.p==0, N = 1; 
 else N = length(T); end
 
-psdc = zeros(options.Nf,ndim,ndim,N,K);
-pdcc = zeros(options.Nf,ndim,ndim,N,K);
-ipsdc = zeros(options.Nf,ndim,ndim,N,K);
-% cohc = zeros(options.Nf,ndim,ndim,N,K);
-% pcohc = zeros(options.Nf,ndim,ndim,N,K);
-% phasec = zeros(options.Nf,ndim,ndim,N,K);
+if options.p==0
+    psdc = zeros(options.Nf,ndim,ndim,N,K);
+    pdcc = zeros(options.Nf,ndim,ndim,N,K);
+    ipsdc = zeros(options.Nf,ndim,ndim,N,K);
+    % cohc = zeros(options.Nf,ndim,ndim,N,K);
+    % pcohc = zeros(options.Nf,ndim,ndim,N,K);
+    % phasec = zeros(options.Nf,ndim,ndim,N,K);
+    NN = 1; 
+else
+    psdc = zeros(options.Nf,ndim,ndim,1,K);
+    pdcc = zeros(options.Nf,ndim,ndim,1,K);
+    ipsdc = zeros(options.Nf,ndim,ndim,1,K);
+    % cohc = zeros(options.Nf,ndim,ndim,1,K);
+    % pcohc = zeros(options.Nf,ndim,ndim,1,K);
+    % phasec = zeros(options.Nf,ndim,ndim,1,K);    
+    NN = N;
+end
 
 if size(T,1)==1, T=T'; end
 hmm0 = hmm;
 
-for j=1:N
+for j=1:NN
     
     if options.p==0
         Gammaj = Gamma; Xj = X; Tj = T;
