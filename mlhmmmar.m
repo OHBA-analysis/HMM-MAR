@@ -92,9 +92,11 @@ for k=1:K
     pred = pred + repmat(Gamma(:,k),1,ndim) .* predk;
     e = residuals(:,regressed) - predk(:,regressed);
     if strcmp(hmm.train.covtype,'diag')
+        hmm.state(k).Omega.Gam_shape = 0.5 * sum(Gamma(:,k));
         hmm.state(k).Omega.Gam_rate = zeros(1,ndim);
-        hmm.state(k).Omega.Gam_rate(regressed) = 0.5* sum( repmat(Gamma(:,k),1,sum(regressed)) .* e.^2 );
+        hmm.state(k).Omega.Gam_rate(regressed) = 0.5 * sum( repmat(Gamma(:,k),1,sum(regressed)) .* e.^2 );
     elseif strcmp(hmm.train.covtype,'full')
+        hmm.state(k).Omega.Gam_shape = sum(Gamma(:,k));
         hmm.state(k).Omega.Gam_rate = zeros(ndim);
         hmm.state(k).Omega.Gam_rate(regressed,regressed) =  (e' .* repmat(Gamma(:,k)',sum(regressed),1)) * e;
         hmm.state(k).Omega.Gam_irate(regressed,regressed) = inv(hmm.state(k).Omega.Gam_rate(regressed,regressed));
@@ -109,9 +111,11 @@ end
 
 ge = residuals(:,regressed) - pred(:,regressed);
 if strcmp(hmm.train.covtype,'uniquediag')
+    hmm.Omega.Gam_shape = 0.5 * sum(T);
     hmm.Omega.Gam_rate = zeros(1,ndim);
-    hmm.Omega.Gam_rate(regressed) = 0.5* sum( ge.^2 );
+    hmm.Omega.Gam_rate(regressed) = 0.5 * sum( ge.^2 );
 elseif strcmp(hmm.train.covtype,'uniquefull')
+    hmm.Omega.Gam_shape = sum(T);
     hmm.Omega.Gam_rate = zeros(ndim);
     hmm.Omega.Gam_rate(regressed,regressed) =  (ge' * ge);
     hmm.Omega.Gam_irate(regressed,regressed) = inv(hmm.Omega.Gam_rate(regressed,regressed));
