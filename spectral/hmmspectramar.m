@@ -154,15 +154,19 @@ for j=1:NN
             case 'uniquediag'
                 covmk = diag(hmm.Omega.Gam_rate / hmm.Omega.Gam_shape);
                 preck = diag(hmm.Omega.Gam_shape ./ hmm.Omega.Gam_rate);
+                preckd = hmm.Omega.Gam_shape ./ hmm.Omega.Gam_rate;
             case 'diag'
                 covmk = diag(hmm.state(k).Omega.Gam_rate / hmm.state(k).Omega.Gam_shape);
                 preck = diag(hmm.state(k).Omega.Gam_shape ./ hmm.state(k).Omega.Gam_rate);
+                preckd = hmm.state(k).Omega.Gam_shape ./ hmm.state(k).Omega.Gam_rate;
             case 'uniquefull'
                 covmk = hmm.Omega.Gam_rate ./ hmm.Omega.Gam_shape;
                 preck = inv(covmk);
+                preckd = hmm.Omega.Gam_shape ./ diag(hmm.Omega.Gam_rate)';
             case 'full'
                 covmk = hmm.state(k).Omega.Gam_rate ./ hmm.state(k).Omega.Gam_shape;
                 preck = inv(covmk);
+                preckd = hmm.state(k).Omega.Gam_shape ./ diag(hmm.state(k).Omega.Gam_rate)';
         end
         
         % Get Power Spectral Density matrix and PDC for state K
@@ -181,9 +185,9 @@ for j=1:NN
             % Get PDC
             if options.to_do(2)==1
                 for n=1:ndim,
-                    prec_nn=1/sqrt(covmk(n,n));
                     for l=1:ndim,
-                        pdcc(ff,n,l,j,k) = prec_nn * abs(af_tmp(n,l))/sqrt(abs(af_tmp(:,l)'*preck*af_tmp(:,l)));
+                        pdcc(ff,n,l,j,k) = sqrt(preckd(n)) * abs(af_tmp(n,l)) / ...
+                            sqrt( preckd * (abs(af_tmp(:,l)).^2) );
                     end
                 end
             end
@@ -253,7 +257,8 @@ for k=1:K
     end
     
     if options.p>0 % jackknife
-        [psderr,coherr,pcoherr,pdcerr,sdphase] = spectrerr(psdc(:,:,:,:,k),pdcc(:,:,:,:,k),fit.state(k).coh, ...
+        [psderr,coherr,pcoherr,pdcerr,sdphase] = ...
+            spectrerr(psdc(:,:,:,:,k),pdcc(:,:,:,:,k),fit.state(k).coh, ...
             fit.state(k).pcoh,fit.state(k).pdc,options,1);
         fit.state(k).psderr = psderr;
         if options.to_do(1)==1

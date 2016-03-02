@@ -59,14 +59,16 @@ for in=1:jksamples
         pdcA(:,:,:,in) = pdci;
     end
 end
-dof = jksamples-1;
-tcrit=tinv(1-options.p/2,dof); % Inverse of Student's T cumulative distribution function
+dof = jksamples;
+tcrit=tinv(1-options.p/2,dof-1); % Inverse of Student's T cumulative distribution function
 % psd errors
-sigmaS = tcrit * sqrt(dof)*std(log(SA),1,4);
+sigmaS = tcrit * sqrt(dof-1) * std(log(SA),1,4);
 psderr = zeros([2 size(psd)]);
 psderr(1,:,:,:) = psd .* exp(-sigmaS);
 psderr(2,:,:,:) = psd .* exp(sigmaS);
 % coh errors
+dof = 2*jksamples;
+tcrit=tinv(1-options.p/2,dof-1);
 if (options.to_do(1)==1),
     atanhcoh=sqrt(2*jksamples-2)*atanh(coh); % z
     sigma12=sqrt(jksamples-1)*std(atanhcohA,1,4); % Jackknife estimate std(z)=sqrt(dim-1)*std of 1-drop estimates
@@ -93,6 +95,6 @@ if (options.to_do(2)==1),
     Cu=atanhpdc+tcrit*sigma12;
     Cl=atanhpdc-tcrit*sigma12;
     pdcerr = zeros([2 size(pdc)]);
-    pdcerr(1,:,:,:) = max(tanh(Cl/sqrt(2*jksamples-2)),0); % This ensures that the lower confidence band remains positive
+    pdcerr(1,:,:,:) = tanh(Cl/sqrt(2*jksamples-2)); % This ensures that the lower confidence band remains positive
     pdcerr(2,:,:,:) = tanh(Cu/sqrt(2*jksamples-2));
 end
