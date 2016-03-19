@@ -70,7 +70,7 @@ if any(isnan(Gamma)),
         if in==1, s0 = 0; else s0 = sum(T(1:in-1)) - order*(in-1); end
         data.C = [data.C; NaN(order,K); Gamma(s0+1:s0+T(in)-order,:)];
     end
-    Gamma=hsinference(data,T,hmm,residuals);
+    Gamma = hsinference(data,T,hmm,residuals);
 end
 
 setxx; % build XX 
