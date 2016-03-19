@@ -14,7 +14,7 @@ function [hmm, Gamma, Xi, vpath, GammaInit, residuals, fehist] = hmmmar (data,T,
 % Gamma         Time courses of the states probabilities given data
 % Xi            joint probability of past and future states conditioned on data
 % vpath         most likely state path of hard assignments
-% GammaInit     Time courses used after initialization.
+% GammaInit     Time courses used after initialisation.
 % residuals     if the model is trained on the residuals, the value of those
 % fehist        historic of the free energies across iterations
 %
@@ -39,12 +39,12 @@ end
 
 if length(options.embeddedlags)>1
     X = []; C = [];
-   for in=1:length(T)
-       [x, ind] = embedx(data.X(sum(T(1:in-1))+1:sum(T(1:in)),:),options.embeddedlags); X = [X; x ]; 
-       c = data.C( sum(T(1:in-1))+1: sum(T(1:in)) , : ); c = c(ind,:); C = [C; c];
-       T(in) = size(c,1);
-   end
-   data.X = X; data.C = C;
+    for in=1:length(T)
+        [x, ind] = embedx(data.X(sum(T(1:in-1))+1:sum(T(1:in)),:),options.embeddedlags); X = [X; x ];
+        c = data.C( sum(T(1:in-1))+1: sum(T(1:in)) , : ); c = c(ind,:); C = [C; c];
+        T(in) = size(c,1);
+    end
+    data.X = X; data.C = C;
 end
 
 % if options.whitening>0  
@@ -56,7 +56,7 @@ end
 %     iA = pinv(A);
 % end
 
-if isempty(options.Gamma),
+if isempty(options.Gamma) && isempty(options.hmm)
     if options.K > 1
         Sind = options.Sind;
         if options.initrep>0 && ...
@@ -76,10 +76,15 @@ if isempty(options.Gamma),
     else
        options.Gamma = ones(sum(T)-length(T)*options.maxorder,1); 
     end
+    GammaInit = options.Gamma;
+    options = rmfield(options,'Gamma');
+elseif isempty(options.Gamma) && ~isempty(options.hmm)  
+    GammaInit = [];
+else
+    GammaInit = options.Gamma;
+    options = rmfield(options,'Gamma');
 end   
 
-GammaInit = options.Gamma;
-options = rmfield(options,'Gamma');
 fehist = Inf;
 if isempty(options.hmm) % Initialisation of the hmm
     hmm_wr = struct('train',struct());

@@ -9,12 +9,12 @@ function fit = hmmspectramar(X,T,hmm,Gamma,options)
 % options 
 
 %  .Fs:       Sampling frequency
-%  .fpass:    Frequency band to be used [fmin fmax] (default [0 fs/2])
+%  .fpass:    Frequency band to be used [fmin fmax] (default [0 Fs/2])
 %  .p:        p-value for computing jackknife confidence intervals (default 0)
 %  .Nf        No. of frequencies to be computed in the range minHz-maxHz
 %  .order     If we want a higher MAR order than that used for training,
 %               specify it here - a new set of MAR models will be estimated
-%  .MLestimation     State responsabilities - if 0, it will use the
+%  .MLestimation     if 0, it will use the
 %               MAR models as they were returned by the HMM-MAR inference (i.e. a
 %               posterior distribution instead of maximum likelihood)
 %  .completelags    if MLestimation is true and completelags is true,

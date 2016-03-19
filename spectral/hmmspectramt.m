@@ -20,6 +20,8 @@ function fit = hmmspectramt(X,T,options)
 %   .Fs: Sampling frequency
 %   .fpass: Frequency band to be used [fmin fmax] (default [0 fs/2])
 %   .p: p-value for computing jackknife confidence intervals (default 0)
+%   .to_do: a (2 by 1) vector, with component indicating, respectively, 
+% 		whether a estimation of coherence and/or PDC is going to be produced (default is [1 1])
 %   .numIterations: no. iterations for the Wilson algorithm (default: 100)
 %   .tol: tolerance limit (default: 1e-18)
 %

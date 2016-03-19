@@ -10,11 +10,10 @@ function [FrEn,avLL] = evalfreeenergy(X,T,Gamma,Xi,hmm,residuals,XX,todo)
 % residuals    in case we train on residuals, the value of those.
 %
 % OUTPUT
-% FrEn         value of the variational free energy, separated in the
-%               different terms:
+% FrEn         the variational free energy, separated in different terms:
 %                   element 1: Gamma Entropy
-%                   element 2: data loglikelihood
-%                   element 3: Gamma loglikelihood
+%                   element 2: data negative loglikelihood
+%                   element 3: Gamma negative loglikelihood
 %                   element 4: KL for initial and transition probabilities
 %                   elements 5-: KL for the state parameters
 % avLL         log likelihood of the observed data, per trial

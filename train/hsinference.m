@@ -31,6 +31,11 @@ if ~isfield(hmm,'train')
 end
 order = hmm.train.maxorder;
 
+if ~isstruct(data), 
+    data = struct('X',data); 
+    data.C = NaN(size(data.X,1)-order*length(T),K);
+end
+
 if nargin<4 || isempty(residuals)
     ndim = size(data.X,2);
     if ~isfield(hmm.train,'Sind'),

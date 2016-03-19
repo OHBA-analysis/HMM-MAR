@@ -1,4 +1,4 @@
-function [flips,scorepath,covmats_unflipped] = unflipchannels(X,T,options)
+function [flips,X,scorepath,covmats_unflipped] = unflipchannels(X,T,options)
 % Finds an optimal permutation of the channels, where goodness is measured
 % as the mean lagged partial  cross-correlation across pair of channels and lags.
 % In other words, it finds a permutation where the signs of the lagged
@@ -11,22 +11,23 @@ function [flips,scorepath,covmats_unflipped] = unflipchannels(X,T,options)
 % T             length of series
 % options:
 %  maxlag        max lag to consider 
-%  nbatch        no. of channels to look at at each iteration
-%  noruns        how many random initializations we're doing
+%  nbatch        no. of channels to evaluate at each iteration
+%  noruns        how many random initialisations will be carried out
 %  standardize   if 1, standardize the data
 %  maxcyc        for each initialization, maximum number of cycles of the greedy algorithm
 %  mincyc        for each initialization, minimum number of cycles of the greedy algorithm
 %
 % OUTPUT
-% flips         No. of time series X No. channels binary matrix saying which channels must be flipped for each time series
+% flips         (length(T) X No. channels) binary matrix saying which channels must be flipped for each time series
 % scorepath     cell with the score of the winning solutions
+% X             the disambiguated time series
 %
 % Author: Diego Vidaurre, University of Oxford.
 
 N = length(T); ndim = size(X,2);
 
 if ~isfield(options,'maxlag'), options.maxlag = 4; end
-if ~isfield(options,'noruns'), options.noruns = 10; end
+if ~isfield(options,'noruns'), options.noruns = 50; end
 if ~isfield(options,'maxcyc'), options.maxcyc = 100*N*ndim; end
 if ~isfield(options,'mincyc'), options.mincyc = 10; end
 if ~isfield(options,'probinitflip'), options.probinitflip = 0.25; end
@@ -135,6 +136,17 @@ fprintf('Final Score=%f\n',score)
 for in = 1:N
     if mean(flips(in,:))>0.5
         flips(in,:) = 1 - flips(in,:);
+    end
+end
+
+if nargout>1
+    for in = 1:N
+        ind = (1:T(in)) + sum(T(1:in-1));
+        for d = 1:ndim
+            if flips(in,d)==1
+                X(ind,d) = -X(ind,d);
+            end
+        end
     end
 end
 
