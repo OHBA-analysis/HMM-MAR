@@ -1,4 +1,4 @@
-function [flips,X,scorepath,covmats_unflipped] = unflipchannels(X,T,options)
+function [flips,scorepath,covmats_unflipped] = findflip(X,T,options)
 % Finds an optimal permutation of the channels, where goodness is measured
 % as the mean lagged partial  cross-correlation across pair of channels and lags.
 % In other words, it finds a permutation where the signs of the lagged
