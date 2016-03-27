@@ -47,13 +47,13 @@ np = length(Masks);
 P = cell(1,np); Pi = cell(1,np);
 
 for im = 1:np
-    fprintf('Mask %d \n',im)
+    %fprintf('Mask %d \n',im)
     mask = Masks{im};
     T0 = []; Gamma0 = []; Xi0 = [];
     for i=1:N
         t0 = sum(T(1:i-1)); t1 = sum(T(1:i));
         ind_ix = mask(mask>=t0+1 & mask<=t1); % the ones belonging to this trial
-        if length(ind_ix)<6, continue; end
+        if length(ind_ix)<=(order+2), continue; end
         T0 = [T0; length(ind_ix)];
         ind_ig = ind_ix(ind_ix>=t0+order+1);
         ind_ig = ind_ig - i*order;

@@ -62,6 +62,10 @@ if ~isfield(options,'useParallel'),
 end
 if ~isfield(options,'verbose'), options.verbose = 1; end
 
+if options.maxorder+1 >= min(T)
+   error('There is at least one trial that is too short for the specified order') 
+end
+
 if isempty(options.Gamma) && ~isempty(options.hmm)
     error('Gamma must be provided in options if you want a warm restart')
 end
