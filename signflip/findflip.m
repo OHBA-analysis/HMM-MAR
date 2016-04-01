@@ -18,9 +18,10 @@ function [flips,scorepath,covmats_unflipped] = findflip(X,T,options)
 %  mincyc        for each initialization, minimum number of cycles of the greedy algorithm
 %
 % OUTPUT
-% flips         (length(T) X No. channels) binary matrix saying which channels must be flipped for each time series
+% flips         (length(T) X No. channels) binary matrix saying which channels must be 
+%               flipped for each time series
 % scorepath     cell with the score of the winning solutions
-% X             the disambiguated time series
+% covmats_unflipped  the disambiguated covariance matrices
 %
 % Author: Diego Vidaurre, University of Oxford.
 
