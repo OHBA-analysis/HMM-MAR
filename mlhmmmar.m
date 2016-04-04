@@ -63,7 +63,7 @@ residuals =  getresiduals(X,T,Sind,hmm.train.maxorder,hmm.train.order,hmm.train.
 pred = zeros(size(residuals));
 setxx; % build XX 
 
-for k=1:K % For each state
+for k=1:K
     setstateoptions;
     %if isfield(hmm.state(k).W,'S_W'), hmm.state(k).W = rmfield(hmm.state(k).W,'S_W'); end
     if hmm.train.uniqueAR

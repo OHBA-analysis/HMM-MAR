@@ -23,6 +23,7 @@ fehist = inf(options.initrep,1);
 Gamma = cell(options.initrep,1);
 
 parfor it=1:options.initrep
+
     opt_worker = options;
     opt_worker.Gamma = initGamma_random(T-opt_worker.maxorder,opt_worker.K,opt_worker.DirichletDiag);
     hmm0=struct('train',struct());
@@ -32,15 +33,14 @@ parfor it=1:options.initrep
     hmm0.train.cyc = hmm0.train.initcyc;
     hmm0.train.verbose = 0;
     hmm0 = hmmhsinit(hmm0);
-    [hmm0,residuals0]=obsinit(data,T,hmm0,options.Gamma);
-    [~,Gamma0,~,fehist0] = hmmtrain(data,T,hmm0,options.Gamma,residuals0);
-    if size(Gamma0,2)<options.K
-        Gamma0 = [Gamma0 0.0001*rand(size(Gamma0,1),options.K-size(Gamma0,2))];
-        Gamma0 = Gamma0 ./ repmat(sum(Gamma0,2),1,options.K);
+    [hmm0,residuals0]=obsinit(data,T,hmm0,opt_worker.Gamma);
+    [~,Gamma{it},~,fehist0] = hmmtrain(data,T,hmm0,opt_worker.Gamma,residuals0);
+    fehist(it) = fehist0(end);
+    if size(Gamma{it},2)<opt_worker.K
+        Gamma{it} = [Gamma{it} 0.0001*rand(size(Gamma{it},1),opt_worker.K-size(Gamma{it},2))];
+        Gamma{it} = Gamma{it} ./ repmat(sum(Gamma{it},2),1,opt_worker.K);
     end
-    if options.verbose,
-        fprintf('Init run %d, Free Energy %f \n',it,fehist0(end));
-    end
+
     if opt_worker.verbose,
         fprintf('Init run %d, Free Energy %f \n',it,fehist(it));
     end
