@@ -219,7 +219,7 @@ if ( (ismac || isunix) && ...
         exist('ignore_MEX', 'file') == 0 )
     finish = 1;
     try
-        [Gamma, Xi] = hidden_state_inference_mx(B, Pi, P, order);
+        [Gamma, Xi, scale] = hidden_state_inference_mx(B, Pi, P, order);
     catch
         fprintf('MEX file cannot be used, going on to Matlab code..\n')
         fclose(fopen('ignore_MEX', 'w'));
