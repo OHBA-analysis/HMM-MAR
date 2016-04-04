@@ -20,24 +20,27 @@ function fit = hmmspectramt(X,T,options)
 %   .Fs: Sampling frequency
 %   .fpass: Frequency band to be used [fmin fmax] (default [0 fs/2])
 %   .p: p-value for computing jackknife confidence intervals (default 0)
+%   .to_do: a (2 by 1) vector, with component indicating, respectively, 
+% 		whether a estimation of coherence and/or PDC is going to be produced (default is [1 1])
 %   .numIterations: no. iterations for the Wilson algorithm (default: 100)
 %   .tol: tolerance limit (default: 1e-18)
 %
 % OUTPUTS:
 %
 % fit is a list with K elements, each of which contains:
-% fit.state(k).psd: cross-spectral density (Nf x N x N)
-% fit.state(k).ipsd inverse power spectral density matrix [Nf x N x N]
-% fit.state(k).coh: coherence (Nf x N x N)
-% fit.state(k).pcoh partial coherence (Nf x N x N)
-% fit.state(k).pdc: partial directed coherence estimate (Nf x N x N)
-% fit.state(k).phase: phase of the coherence, in degrees (Nf x N x N)
-% fit.state(k).psderr: interval of confidence for the cross-spectral density (2 x Nf x N x N)
-% fit.state(k).coherr: interval of confidence for the coherence (2 x Nf x N x N)
-% fit.state(k).pcoherr: interval of confidence for the partial coherence (2 x Nf x N x N)
-% fit.state(k).pdcerr: interval of confidence for the partial directed coherence (2 x Nf x N x N)
+% fit.state(k).psd: cross-spectral density (Nf x ndim x ndim)
+% fit.state(k).ipsd inverse power spectral density matrix (Nf x ndim x ndim)
+% fit.state(k).coh: coherence (Nf x ndim x ndim)
+% fit.state(k).pcoh partial coherence (Nf x ndim x ndim)
+% fit.state(k).pdc: partial directed coherence estimate (Nf x ndim x ndim)
+% fit.state(k).phase: phase of the coherence, in degrees (Nf x ndim x ndim)
+% fit.state(k).psderr: interval of confidence for the cross-spectral density (2 x Nf x ndim x ndim)
+% fit.state(k).coherr: interval of confidence for the coherence (2 x Nf x ndim x ndim)
+% fit.state(k).pcoherr: interval of confidence for the partial coherence (2 x Nf x ndim x ndim)
+% fit.state(k).pdcerr: interval of confidence for the partial directed coherence (2 x Nf x ndim x ndim)
 % fit.state(k).sdphase: jackknife standard deviation of the phase
 % fit.state(k).f: frequencies (Nf x 1)
+%       (where ndim is the number of channels) 
 %
 % Author: Diego Vidaurre, OHBA, University of Oxford (2014)
 %  the code uses some parts from Chronux

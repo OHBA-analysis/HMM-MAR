@@ -12,7 +12,6 @@ function [metahmm,markovTrans,fehist,feterms,rho] = trainBigHMM(Xin,T,options)
 %       subject. Dimension of T{n} has to be (1 x nTrials)
 % options: HMM options for both the subject and the group runs
 %
-% COVTYPE=UNIQUEFULL/UNIQUEDIAG NOT COMPLETELY IMPLEMENTED!!
 % Diego Vidaurre, OHBA, University of Oxford (2016)
 
 N = length(Xin);
@@ -20,9 +19,9 @@ N = length(Xin);
 % Check parameters
 checkBigHMMparameters;
 X = loadfile(Xin{1},T{1}); ndim = size(X,2); XW = [];
-subjfe = zeros(N,3);
-loglik = zeros(N,1);
-statekl = 0;
+subjfe = zeros(N,3); % Gamma entropy, Gamma loglik and KL-divergences of transition prob. mat.
+loglik = zeros(N,1); % data log likelihood
+statekl = 0; % state KL-divergences
 Dir2d_alpha = zeros(K,K,N); Dir_alpha = zeros(K,N);
 fehist = 0; rho = 0;
 
@@ -109,7 +108,7 @@ for cycle = 2:BIGcyc
         metahmm.Dir_alpha = sum(Dir_alpha,2)' + Dir_alpha_prior;
         metahmm.Dir2d_alpha = sum(Dir2d_alpha,3) + Dir2d_alpha_prior;
         [metahmm.P,metahmm.Pi] = computePandPi(metahmm.Dir_alpha,metahmm.Dir2d_alpha);
-        subjfe(:,3,cycle) = evalfreeenergy([],[],[],[],metahmm,[],[],[0 0 0 1 0]) / N; % "share" KL
+        subjfe(:,3,cycle) = evalfreeenergy([],[],[],[],metahmm,[],[],[0 0 0 1 0]) / N; % "shared" KL
     end
         
     % global parameters (metahmm), and collect metastate free energy

@@ -1,4 +1,4 @@
-function [mcv,cv] = cvhmmmar (data,T,options)
+function [mcv,cv] = cvhmmmar(data,T,options)
 %
 % Obtains the cross-validated sum of prediction quadratic errors.
 %
@@ -28,6 +28,7 @@ if length(options.embeddedlags)>1
 end
 
 options.verbose = options.cvverbose;
+options.dropstates = 0;
 options.updateGamma = options.K>1;
 
 mcv = 0; if options.cvmode>2, mcv = [0 0]; end
@@ -38,28 +39,36 @@ nfolds = max(options.cvfolds);
 
 [orders,order] = formorders(options.order,options.orderoffset,options.timelag,options.exptimelag);
 Sind = formindexes(orders,options.S);
-%if ~options.zeromean, Sind = [true(1,size(Sind,2)); Sind]; end
+if ~options.zeromean, Sind = [true(1,size(Sind,2)); Sind]; end
 
 Ttotal = 0;
 cv = zeros(nfolds,1);
 for fold=1:nfolds
-    datatr.X = []; datatr.C = []; Ttr = [];
-    datate.X = []; datate.C = []; Tte = []; Gammate = []; test = [];
+    Ttr = [];
+    indtr1 = []; indtr2 = [];
+    Tte = []; 
+    indte1 = []; indte2 = [];
+    test = [];
     % build fold
     for i=1:length(T)
-        t0 = sum(T(1:(i-1)))+1; t1 = sum(T(1:i)); Ti = t1-t0+1;
+        t0 = sum(T(1:(i-1)))+1; t1 = sum(T(1:i)); 
+        s0 = sum(T(1:(i-1)))-order*(i-1)+1; s1 = sum(T(1:i))-order*i;
+        Ti = t1-t0+1;
         if options.cvfolds(i)==fold % in testing
-            datate.X = [datate.X; data.X(t0:t1,:)];
-            datate.C = [datate.C; data.C(t0:t1,:)];
+            indte1 = [indte1 (t0:t1)];
+            indte2 = [indte2 (s0:s1)];
             Tte = [Tte Ti];
-            Gammate = [Gammate; data.C(t0+order:t1,:)];
             test = [test; ones(Ti,1)];
         else % in training
-            datatr.X = [datatr.X; data.X(t0:t1,:)];
-            datatr.C = [datatr.C; data.C(t0:t1,:)];
+            indtr1 = [indtr1 (t0:t1)];
+            indtr2 = [indtr2 (s0:s1)];
             Ttr = [Ttr Ti];
         end
     end
+    datatr.X = data.X(indtr1,:); datatr.C = data.C(indtr2,:);
+    datate.X = data.X(indte1,:); datate.C = data.C(indte2,:);
+    Gammate = data.C(indte2,:);
+    
     Ttotal = Ttotal + sum(Tte) - length(Tte)*order;
     
     %if options.whitening>0
@@ -79,11 +88,14 @@ for fold=1:nfolds
         % init Gamma
         options.Gamma = [];
         if options.K > 1
-            if options.initrep>0 && strcmp(options.inittype,'HMM-MAR')
+            if options.initrep>0 && ...
+                    (strcmpi(options.inittype,'HMM-MAR') || strcmpi(options.inittype,'HMMMAR'))
                 options.Gamma = hmmmar_init(datatr,Ttr,options,Sind);
-            elseif options.initrep>0 && strcmp(options.inittype,'EM')
+            elseif options.initrep>0 && strcmpi(options.inittype,'EM')
                 options.nu = sum(T)/200;
                 options.Gamma = em_init(datatr,Ttr,options,Sind);
+            elseif options.initrep>0 && strcmpi(options.inittype,'GMM')
+                options.Gamma = gmm_init(datatr,Ttr,options);
             else
                 options.Gamma = [];
                 for in=1:length(Ttr)
@@ -98,23 +110,23 @@ for fold=1:nfolds
         hmmtr.train = options; 
         hmmtr.train.Sind = Sind; 
         hmmtr=hmmhsinit(hmmtr);
-        [hmmtr,residualstr,W0tr]=obsinit(datatr,Ttr,hmmtr,options.Gamma);
-        [hmmtr,~,~,fe,actstates] = hmmtrain(datatr,Ttr,hmmtr,options.Gamma,residualstr); fe = fe(end);
+        [hmmtr,residualstr,W0tr] = obsinit(datatr,Ttr,hmmtr,options.Gamma);
+        [hmmtr,~,~,fe] = hmmtrain(datatr,Ttr,hmmtr,options.Gamma,residualstr); fe = fe(end);
         % test
         if fe<Fe,
             Fe = fe;
-            residualste =  getresiduals(datate.X,Tte,hmmtr.train.Sind,hmmtr.train.order,hmmtr.train.maxorder,...
+            residualste =  getresiduals(datate.X,Tte,hmmtr.train.Sind,hmmtr.train.maxorder,hmmtr.train.order,...
                 hmmtr.train.orderoffset,hmmtr.train.timelag,hmmtr.train.exptimelag,hmmtr.train.zeromean,W0tr);
             if options.cvmode==1
                 [~,~,~,LL] = hsinference(datate,Tte,hmmtr,residualste);
                 cv(fold) = sum(LL);
             elseif options.cvmode==2
-                [~,fracerr] = hmmerror(datate.X,Tte,hmmtr,Gammate,test,residualste,actstates);
+                [~,fracerr] = hmmerror(datate.X,Tte,hmmtr,Gammate,test,residualste);
                 cv(fold) = mean(fracerr);
             else
                 [~,~,~,LL] = hsinference(datate,Tte,hmmtr,residualste);
                 cv(fold,1) = sum(LL);
-                [~,fracerr] = hmmerror(datate.X,Tte,hmmtr,Gammate,test,residualste,actstates);
+                [~,fracerr] = hmmerror(datate.X,Tte,hmmtr,Gammate,test,residualste);
                 cv(fold,2) = mean(fracerr);
             end
         end

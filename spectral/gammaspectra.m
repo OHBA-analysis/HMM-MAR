@@ -74,7 +74,7 @@ corrc = [corrc(end:-1:1,:); ones(1,N); corrc];
 psdc = zeros(Nf,N);
 % fourier on mean lagged probabilities
 for ff=1:Nf,
-    for i=1:N % Wiener?Khinchin theorem
+    for i=1:N % Wiener-Khinchin theorem
         psdc(ff,i) = exp(-1i*w(ff)*(-nlags:nlags)) * corrc(:,i);
     end
 end

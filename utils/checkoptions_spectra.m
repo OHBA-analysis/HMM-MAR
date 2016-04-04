@@ -24,9 +24,15 @@ if ~isfield(options,'loadings'), options.loadings=eye(ndim); end;
 if ~isfield(options,'Nf'),  options.Nf=256; end;
 if ~isfield(options,'MLestimation'), options.MLestimation = 1; end
 if ~isfield(options,'completelags'), options.completelags = 0; end
+if ~isfield(options,'level'), options.level = 'group'; end
 
 if options.MLestimation == 0, 
     error('options.MLestimation equal to 0 (Bayesian) is not currently an option')
+end
+
+if strcmp(options.level,'subject') && options.p>0
+   warning('Intervals of confidence can only be computed when subject.level is group; setting options.p=0 ...')
+   options.p = 0;
 end
 
 if nargout==2

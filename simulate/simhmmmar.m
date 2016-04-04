@@ -1,4 +1,4 @@
-function [X,T,Gamma,statepath]=simhmmmar(T,hmm,Gamma,trim,X0,sim_state_tcs_only)
+function [X,T,Gamma,statepath] = simhmmmar(T,hmm,Gamma,trim,X0,sim_state_tcs_only)
 
 % [X,T,Gamma,statepath]=simhmmmar(T,hmm,Gamma,trim,X0,sim_state_tcs_only)
 % 
@@ -12,7 +12,7 @@ function [X,T,Gamma,statepath]=simhmmmar(T,hmm,Gamma,trim,X0,sim_state_tcs_only)
 % trim                  how many time points to remove from the beginning of each trial
 % X0                    A starting point for the time series ( no. time points x ndim x length(T) )
 %                       - if not provided, it is set to Gaussian noise
-% sim_state_tcs_only    Flag to indicate that only gamma time courses will be
+% sim_state_tcs_only    Flag to indicate that only state time courses will be
 %                       simulated
 %
 % OUTPUTS
