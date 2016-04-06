@@ -1,7 +1,7 @@
 
 subjfe_init = zeros(N,3);
 loglik_init = zeros(N,1);
-npred = length(options.orders) + (~options.zeromean);
+npred = length(options.orders)*ndim + (~options.zeromean);
 
 % init sufficient statistics
 
@@ -118,7 +118,7 @@ for cycle = 1:BIGinitcyc
                     sum(subj_m_init(:,:,I(1:ii),k),3));
             elseif strcmp(options.covtype,'diag')
                 metahmm_init.state(k) = metastate_new( ...
-                    sum(subj_err_init(:,I(1:ii),k),2)' + hmm_i.state(k).prior.Omega.Gam_rate', ...
+                    sum(subj_err_init(:,I(1:ii),k),2)' + hmm_i.state(k).prior.Omega.Gam_rate, ...
                     sum(subj_time_init(I(1:ii),k)) + hmm_i.state(k).prior.Omega.Gam_shape, ...
                     sum(subj_gram_init(:,:,I(1:ii),k),3) + 0.01 * eye(size(XX,2)), ...
                     sum(subj_m_init(:,:,I(1:ii),k),3));
@@ -130,7 +130,7 @@ for cycle = 1:BIGinitcyc
         end
         metahmm_init = adjSw_in_metastate(metahmm_init); % adjust dimension of S_W
     end
-    
+        
     % adjust prior
     if cycle==1
         if isempty(options.BIGprior)
@@ -144,7 +144,8 @@ for cycle = 1:BIGinitcyc
                     end
                 end
                 if isfield(metahmm_init.state(k).prior,'Mean')
-                    metahmm_init.state(k).prior.Mean.S = (range_data/2).^2;
+                    metahmm_init.state(k).prior.Mean.Mu = zeros(ndim,1);
+                    metahmm_init.state(k).prior.Mean.S = ((range_data/2).^2)';
                     metahmm_init.state(k).prior.Mean.iS = 1 ./ metahmm_init.state(k).prior.Mean.S;
                 end
             end
@@ -164,6 +165,16 @@ for cycle = 1:BIGinitcyc
         metahmm_init.K = K;
     end
     
+    % distribution of sigma and alpha, variances of the MAR coeff distributions
+    if ~isempty(options.orders)
+        for k=1:K,
+            metahmm_init.state(k).alpha.Gam_shape = metahmm_init.state(k).prior.alpha.Gam_shape;
+            metahmm_init.state(k).alpha.Gam_rate = metahmm_init.state(k).prior.alpha.Gam_rate;
+        end
+        metahmm_init = updateSigma(metahmm_init);
+        metahmm_init = updateAlpha(metahmm_init);
+    end
+
     % Compute Gamma to get an
     % unbiased group estimation of the metastate covariance matrices;
     % obtaining subject parameters (transition probs)  
@@ -200,7 +211,7 @@ for cycle = 1:BIGinitcyc
         end
         for k=1:K
             if ~isempty(options.orders) || (~options.zeromean)
-                E = X - XX * metahmm_init.state(k).W.Mu_W; % using the current mean estimation
+                E = Y - XX * metahmm_init.state(k).W.Mu_W; % using the current mean estimation
             else
                 E = X;
             end
