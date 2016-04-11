@@ -13,7 +13,7 @@
 #  make tidy - remove object files
 
 # USER NOTES: CHANGE THE LINES BELOW TO REFLECT YOUR MATLAB INSTALLATION
-MATLAB_DIR    = /Applications/MATLAB_R2015b.app/#
+MATLAB_DIR    = /Applications/MATLAB_R2015b.app/
 MATLAB_ARCH   = maci64# e.g. $(MATLAB_DIR)/bin/$(MATLAB_ARCH)/
 MACOS_VERSION = 10.11
 
@@ -70,7 +70,7 @@ default: all
 
 
 # Multiple target calls
-all: mex test docs tidy
+all: mex test tidy # docs tidy
 
 
 # Executable targets
