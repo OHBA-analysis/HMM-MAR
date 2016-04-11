@@ -71,7 +71,7 @@ mex:
 
 # Object files
 $(TARGET)_test.o: ../$(TARGET).hpp
-	$(CC) $(CFLAGS) $(ARMA_FLAGS) $(ARMA_STATIC) ./test/$(TARGET)_test.cpp $(INCLUDE)
+	$(CC) $(CFLAGS) $(ARMA_FLAGS) $(ARMA_STATIC) ../test/$(TARGET)_test.cpp $(INCLUDE)
 
 $(TARGET).o: 
 	$(CC) $(CFLAGS) $(ARMA_FLAGS) $(ARMA_STATIC) ../$(TARGET).cpp $(INCLUDE)
