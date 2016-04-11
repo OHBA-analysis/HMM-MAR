@@ -64,7 +64,7 @@ B = cell(N,1);
 
 n_argout = nargout;
 
-if hmm.train.useParallel==1 
+if hmm.train.useParallel==1 && N>1
             
     % to duplicate this code is really ugly but there doesn't seem to be
     % any other way - more Matlab's fault than mine 
@@ -214,7 +214,7 @@ B = obslike([],hmm,residuals,XX);
 B(B<realmin) = realmin;
 
 % pass to mex file?
-if ( (ismac || isunix) && ...
+if ( (ismac || isunix) && hmm.train.useMEX ==1 && ...
         exist('hidden_state_inference_mx', 'file') == 3 && ...
         exist('ignore_MEX', 'file') == 0 )
     finish = 1;

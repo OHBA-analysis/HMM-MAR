@@ -60,6 +60,8 @@ if ~isfield(options,'useParallel'),
     else options.useParallel = 0;
     end
 end
+if ~isfield(options,'useMEX'), options.useMEX = 1; end
+
 if ~isfield(options,'verbose'), options.verbose = 1; end
 
 if options.maxorder+1 >= min(T)

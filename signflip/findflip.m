@@ -27,7 +27,7 @@ function [flips,scorepath,covmats_unflipped] = findflip(X,T,options)
 
 N = length(T); ndim = size(X,2);
 
-if ~isfield(options,'maxlag'), options.maxlag = 4; end
+if ~isfield(options,'maxlag'), options.maxlag = 2; end
 if ~isfield(options,'noruns'), options.noruns = 50; end
 if ~isfield(options,'maxcyc'), options.maxcyc = 100*N*ndim; end
 if ~isfield(options,'mincyc'), options.mincyc = 10; end

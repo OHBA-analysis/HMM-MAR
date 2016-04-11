@@ -1,7 +1,22 @@
+function [metahmm,info] = hmmsinit(Xin,T,options)
+% Initialisation before stochastic HMM variational inference
+%
+% INPUTS
+% Xin: cell with strings referring to the files containing each subject's data, 
+%       or cell with with matrices (time points x channels) with each
+%       subject's data
+% T: cell of vectors, where each element has the length of each trial per
+%       subject. Dimension of T{n} has to be (1 x nTrials)
+% options: HMM options for both the subject and the group runs
+%
+% Diego Vidaurre, OHBA, University of Oxford (2016)
 
+N = length(T); K = options.K;
+X = loadfile(Xin{1},T{1}); ndim = size(X,2);
 subjfe_init = zeros(N,3);
 loglik_init = zeros(N,1);
 npred = length(options.orders)*ndim + (~options.zeromean);
+info = struct();
 
 % init sufficient statistics
 
@@ -23,7 +38,7 @@ P_init = zeros(K,K,N); Pi_init = zeros(K,N);
 Dir2d_alpha_init = zeros(K,K,N); Dir_alpha_init = zeros(K,N);
 
 best_fe = Inf;
-for cycle = 1:BIGinitcyc
+for cycle = 1:options.BIGinitcyc
     
     % train individual HMMs
     I = randperm(N);
@@ -44,10 +59,10 @@ for cycle = 1:BIGinitcyc
             Dir2d_alpha_prior = hmm_i.prior.Dir2d_alpha;
             Dir_alpha_prior = hmm_i.prior.Dir_alpha;
         end
-        if BIGverbose
+        if options.BIGverbose
             fprintf('Init run %d, subject %d \n',cycle,ii);
         end
-        if BIGuniqueTrans % update transition probabilities
+        if options.BIGuniqueTrans % update transition probabilities
             Dir_alpha_init(:,i) = 0;
             for trial=1:length(T{i})
                 t = sum(T{i}(1:trial-1)) - options.order*(trial-1) + 1;
@@ -178,7 +193,7 @@ for cycle = 1:BIGinitcyc
     % Compute Gamma to get an
     % unbiased group estimation of the metastate covariance matrices;
     % obtaining subject parameters (transition probs)  
-    if BIGuniqueTrans
+    if options.BIGuniqueTrans
         Dir2d_alpha_init_pre = sum(Dir2d_alpha_init,3) + Dir2d_alpha_prior;
         Dir_alpha_init_pre = sum(Dir_alpha_init,2)' + Dir_alpha_prior;
         [P_init_pre,Pi_init_pre] = computePandPi(Dir_alpha_init_pre,Dir2d_alpha_init_pre);
@@ -187,7 +202,7 @@ for cycle = 1:BIGinitcyc
         [X,XX,Y] = loadfile(Xin{i},T{i},options);
         XX_i = cell(1); XX_i{1} = XX;
         data = struct('X',X,'C',NaN(sum(T{i})-length(T{i})*options.order,K));
-        if BIGuniqueTrans
+        if options.BIGuniqueTrans
             metahmm_init_i = copyhmm(metahmm_init,...
                 P_init_pre,Pi_init_pre,Dir2d_alpha_init_pre,Dir_alpha_init_pre);
         else
@@ -196,7 +211,7 @@ for cycle = 1:BIGinitcyc
         end
         [Gamma,~,Xi,l] = hsinference(data,T{i},metahmm_init_i,Y,[],XX_i);
         metahmm_init_i = hsupdate(Xi,Gamma,T{i},metahmm_init_i);
-        if BIGuniqueTrans
+        if options.BIGuniqueTrans
             for trial=1:length(T{i})
                 t = sum(T{i}(1:trial-1)) - options.order*(trial-1) + 1;
                 Dir_alpha_init(:,i) = Dir_alpha_init(:,i) + Gamma(t,:)';
@@ -238,14 +253,14 @@ for cycle = 1:BIGinitcyc
         if strcmp(options.covtype,'uniquefull') || strcmp(options.covtype,'uniquediag') 
             metahmm_init.Omega.Gam_rate = EE + metahmm_init.prior.Omega.Gam_rate;
         end
-        if BIGuniqueTrans
+        if options.BIGuniqueTrans
             subjfe_init(i,1:2) = evalfreeenergy([],T{i},Gamma,Xi,metahmm_init_i,[],[],[1 0 1 0 0]); % Gamma entropy&LL
         else
             subjfe_init(i,:) = evalfreeenergy([],T{i},Gamma,Xi,metahmm_init_i,[],[],[1 0 1 1 0]); 
         end
         loglik_init(i) = sum(l);
     end
-    if BIGuniqueTrans
+    if options.BIGuniqueTrans
         metahmm_init.Dir_alpha = sum(Dir_alpha_init,2)' + Dir_alpha_prior;
         metahmm_init.Dir2d_alpha = sum(Dir2d_alpha_init,3) + Dir2d_alpha_prior;
         [metahmm_init.P_init,metahmm_init.Pi_init] = ...
@@ -258,15 +273,15 @@ for cycle = 1:BIGinitcyc
     if fe<best_fe
         best_fe = fe;
         metahmm = metahmm_init;
-        P = P_init; Pi = Pi_init;
-        Dir2d_alpha = Dir2d_alpha_init; Dir_alpha = Dir_alpha_init;
-        subjfe = subjfe_init;
-        loglik = loglik_init;
-        statekl = statekl_init;
-        fehist = (-sum(loglik) + sum(statekl) + sum(sum(subjfe(:,:))));
+        info.P = P_init; info.Pi = Pi_init;
+        info.Dir2d_alpha = Dir2d_alpha_init; info.Dir_alpha = Dir_alpha_init;
+        info.subjfe = subjfe_init;
+        info.loglik = loglik_init;
+        info.statekl = statekl_init;
+        info.fehist = (-sum(info.loglik) + sum(info.statekl) + sum(sum(info.subjfe)));
     end
     
-    if BIGverbose
+    if options.BIGverbose
         fprintf('Init run %d, free energy = %g (best=%g) \n',cycle,fe,best_fe);
     end
     
@@ -276,110 +291,3 @@ metahmm.prior.Dir_alpha_prior = Dir_alpha_prior;
 metahmm.prior.Dir2d_alpha_prior = Dir2d_alpha_prior;
 
 
-%if BIGverbose
-%    fprintf('Cycle 1, free energy: %g \n',fehist);
-%end
-
-% else % initial metahmm specified by the user
-%     
-%     metahmm = options.metahmm; options = rmfield(options,'metahmm');
-%     if strcmp(options.covtype,'diag')
-%         gramm = [];
-%     elseif strcmp(options.covtype,'full')
-%         gramm = [];
-%     elseif strcmp(options.covtype,'uniquediag')
-%         gramm = zeros(1,ndim);  
-%     else % uniquefull
-%         gramm = zeros(ndim,ndim);  
-%     end
-%        
-%     P = zeros(K,K,N); Pi = zeros(K,N);
-%     Dir2d_alpha = zeros(K,K,N); Dir_alpha = zeros(K,N);
-% 
-%     % collect some stats
-%     for i = 1:N
-%         X = loadfile(Xin{i});
-%         if i==1
-%             options.inittype = 'random';
-%             options.cyc = 1;
-%             hmm0 = hmmmar(X,T{i},options);
-%             range_data = range(X);
-%         else
-%             range_data = max(range_data,range(X));
-%         end
-%         if strcmp(options.covtype,'uniquefull')
-%             gramm = gramm + X' * X;
-%         elseif strcmp(options.covtype,'uniquediag')
-%             gramm = gramm + sum(X.^2);
-%         end
-%     end
-%     
-%     % set prior
-%     prior = struct();
-%     prior.Omega = struct();
-%     if strcmp(options.covtype,'uniquediag') || strcmp(options.covtype,'diag')
-%         prior.Omega.Gam_shape = 0.5 * (ndim+0.1-1);
-%         prior.Omega.Gam_rate = 0.5 * range_data;
-%     else
-%         prior.Omega.Gam_shape = ndim+0.1-1;
-%         prior.Omega.Gam_rate = diag(range_data);
-%     end
-%     prior.Mean = struct();
-%     prior.Mean.S = (range_data/2).^2;
-%     prior.Mean.iS = 1 ./ prior.Mean.S;
-%     prior.Mean.Mu = zeros(1,ndim);
-%     if ~isempty(options.orders)
-%         prior.sigma = struct();
-%         prior.sigma.Gam_shape = 0.1*ones(ndim,ndim); %+ 0.05*eye(ndim);
-%         prior.sigma.Gam_rate = 0.1*ones(ndim,ndim);%  + 0.05*eye(ndim);
-%         prior.alpha = struct();
-%         prior.alpha.Gam_shape = 0.1;
-%         prior.alpha.Gam_rate = 0.1*ones(1,length(orders));
-%     end
-%     
-%     % Init subject models and free energy computation
-%     for i = 1:N
-%         X = loadfile(Xin{i});
-%         data = struct('X',X,'C',NaN(size(X,1),K));
-%         hmm = loadhmm(hmm0,T{i},K,metahmm,[],[],[],[],gramm,prior);
-%         % get gamma
-%         [Gamma,~,Xi,l] = hsinference(data,T{i},hmm,[]);
-%         % compute transition prob
-%         hmm = hsupdate(Xi,Gamma,T{i},hmm);
-%         if BIGuniqueTrans
-%             for trial=1:length(T{i})
-%                 t = sum(T{i}(1:trial-1)) - options.order*(trial-1) + 1;
-%                 Dir_alpha(:,i) = Dir_alpha(:,i) + Gamma(t,:)';
-%             end
-%             Dir2d_alpha(:,:,i) = squeeze(sum(Xi,1));
-%         else
-%             P(:,:,i) = hmm.P; Pi(:,i) = hmm.Pi'; % one per subject, not like pure group HMM
-%             Dir2d_alpha(:,:,i) = hmm.Dir2d_alpha; Dir_alpha(:,i) = hmm.Dir_alpha';
-%         end
-%         % compute free energy
-%         loglik(i,1) = sum(l);  
-%         subjfe(i,1,1) = - GammaEntropy(Gamma,Xi,T{i},0); 
-%         subjfe(i,2,1) = - GammaavLL(hmm,Gamma,Xi,T{i});
-%         if ~BIGuniqueTrans
-%             subjfe(i,3,1) = + KLtransition(hmm);
-%         end
-%     end
-%     if BIGuniqueTrans
-%         hmm.Dir_alpha = sum(Dir_alpha,2)' + Dir_alpha_prior;
-%         hmm.Dir2d_alpha = sum(Dir2d_alpha,3) + Dir2d_alpha_prior;
-%         [P,Pi] = computePandPi(hmm.Dir_alpha,hmm.Dir2d_alpha);
-%         subjfe(:,3,1) = KLtransition(hmm) / N; % "share" the common KL
-%     end
-%     for k = 1:K
-%         statekl(k,1) = KLstate(metahmm(k),prior,options.covtype,options.zeromean);
-%     end
-%     fehist = sum(- loglik(:,1) + sum(sum(subjfe(:,:,1))) + sum(statekl(:,1)));
-%     
-%     if BIGverbose
-%         fprintf('Cycle 1, free energy: %g \n',fehist);
-%     end
-%   
-% end
-
-clear metastate_gamma_init metastate_m_init metastate_gram_init metahmm_init metahmm_init_i
-clear gram_init subjfe_init loglik_init statekl_init Pi_init P_init Dir2d_alpha_init Dir_alpha_init
