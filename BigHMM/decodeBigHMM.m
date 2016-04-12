@@ -21,11 +21,13 @@ NoChanges = zeros(N,1);
 Entropy = zeros(N,1);
 Path = zeros(sum(TT)-length(TT)*metahmm.train.order,K);
 
-P = markovTrans.P;
-Pi = markovTrans.Pi;
-Dir2d_alpha = markovTrans.Dir2d_alpha;
-Dir_alpha = markovTrans.Dir_alpha;
 BIGuniqueTrans = metahmm.train.BIGuniqueTrans;
+if ~BIGuniqueTrans
+    P = markovTrans.P;
+    Pi = markovTrans.Pi;
+    Dir2d_alpha = markovTrans.Dir2d_alpha;
+    Dir_alpha = markovTrans.Dir_alpha;
+end
 
 for i = 1:N
     [X,XX,Y] = loadfile(Xin{i},T{i},metahmm.train);    
