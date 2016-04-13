@@ -20,10 +20,28 @@ function [hmm, Gamma, Xi, vpath, GammaInit, residuals, fehist, feterms, markovTr
 %
 % Author: Diego Vidaurre, OHBA, University of Oxford (2015)
 
-stochastic_learn = iscell(T);
-if stochastic_learn
+if iscell(T), 
+    for i = 1:length(T)
+        if size(T{i},1)==1, T{i} = T{i}'; end
+    end
+    N = numel(cell2mat(T));
+else
+    N = length(T);
+end
+
+stochastic_learn = isfield(options,'BIGNbatch') && options.BIGNbatch < N;
+
+if stochastic_learn, 
     options = checkBIGoptions(options,T);
 else
+    if iscell(data)
+        if size(data,1)==1, data = data'; end
+        data = cell2mat(data);
+    end
+    if iscell(T)
+        if size(T,1)==1, T = T'; end
+        T = cell2mat(T);
+    end
     [options,data] = checkoptions(options,data,T,0);
 end
 
@@ -49,7 +67,7 @@ if stochastic_learn
     Gamma = []; Xi = []; vpath = []; GammaInit = []; residuals = [];
     
 else
-    
+        
     if length(options.embeddedlags)>1
         X = []; C = [];
         for in=1:length(T)

@@ -54,7 +54,8 @@ for cycle = 1:options.BIGinitcyc
             end
         end
         % Running the individual HMM
-        [hmm_i,Gamma,Xi] = hmmmar(X,T{i},options);
+        options_copy = options; options_copy.BIGNbatch = length(T{i}); 
+        [hmm_i,Gamma,Xi] = hmmmar(X,T{i},options_copy);
         if ii==1 % get priors
             Dir2d_alpha_prior = hmm_i.prior.Dir2d_alpha;
             Dir_alpha_prior = hmm_i.prior.Dir_alpha;
