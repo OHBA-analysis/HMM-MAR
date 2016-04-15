@@ -1,4 +1,4 @@
-function [Path,stats] = hmmsdecode(Xin,T,metahmm,markovTrans,type)
+function Path = hmmsdecode(Xin,T,metahmm,markovTrans,type)
 % 1) Compute the stata time courses or viterbi paths 
 % 2) Compute the entropy,avglifetime,nochanges from it
 %
@@ -8,8 +8,12 @@ function [Path,stats] = hmmsdecode(Xin,T,metahmm,markovTrans,type)
 % metahmm: the metastates computed from trainBigHMM
 % markovTrans.P and Pi: transition prob table and initial prob
 % type: 0, state time courses; 1, viterbi path
+% NOTE: computations of stats now done in getshmmstats.m
 %
 % Diego Vidaurre, OHBA, University of Oxford (2015)
+
+if nargin<4, markovTrans = []; end
+if nargin<5, type = 0; end
 
 for i = 1:length(T)
     if size(T{i},1)==1, T{i} = T{i}'; end
@@ -20,13 +24,13 @@ K = length(metahmm.state);
 TT = []; for i=1:N, TT = [TT; T{i}]; end
 tacc = 0; 
 
-AverageLifeTime = zeros(N,1);
-NoChanges = zeros(N,1);
-Entropy = zeros(N,1);
 Path = zeros(sum(TT)-length(TT)*metahmm.train.order,K);
 
 BIGuniqueTrans = metahmm.train.BIGuniqueTrans;
 if ~BIGuniqueTrans
+    if isempty(markovTrans)
+        error('Parameter markovTrans needs to be supplied')
+    end
     P = markovTrans.P;
     Pi = markovTrans.Pi;
     Dir2d_alpha = markovTrans.Dir2d_alpha;
@@ -54,20 +58,8 @@ for i = 1:N
         for k=1:K, gamma(vp==k,k) = 1; end
         Path(t,:) = gamma;
     end
-    if nargout==2
-        slt=collect_times(gamma,TT);
-        AverageLifeTime(i) = mean(slt);
-        NoChanges(i) = length(slt);
-        gammasum = sum(gamma);
-        gammasum = gammasum + eps;
-        Entropy(i) = sum(log(gammasum) .* gammasum);
-    end
+
 end
 
-if nargout==2
-    stats = struct('AverageLifeTime',AverageLifeTime,...
-        'NoChanges',NoChanges,...
-        'Entropy',Entropy);
-end
 
 end

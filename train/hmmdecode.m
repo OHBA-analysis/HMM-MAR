@@ -1,4 +1,4 @@
-function vpath = hmmdecode(X,T,hmm,residuals,options)
+function Path = hmmdecode(X,T,hmm,residuals,options,type,markovTrans)
 %
 % Viterbi and single-state decoding for hmm
 % The algorithm is run for the whole data set, including those whose class
@@ -10,11 +10,23 @@ function vpath = hmmdecode(X,T,hmm,residuals,options)
 % hmm           hmm data structure
 % residuals     in case we train on residuals, the value of those (optional)
 % options       the hmm options, that will be used if hmm.train is missing
+% type: 0, state time courses; 1, viterbi path
 %
 % OUTPUT
-% vpath         (T x 1) maximum likelihood state sequence
+% vpath         (T x 1) maximum likelihood state sequence (type=0 OR
+% vpath         (T x K) state time courses
 %
 % Author: Diego Vidaurre, OHBA, University of Oxford
+
+if nargin<4, residuals = []; end
+if nargin<5, options = []; end
+if nargin<6, type = 1; end
+if nargin<7, markovTrans = []; end
+
+if type==0
+   Path = hsinference(X,T,hmm,residuals,options); 
+   return
+end
 
 N = length(T);
 K = length(hmm.state);
@@ -24,7 +36,12 @@ if ~isfield(hmm,'train')
     hmm.train = checkoptions(options,X,T,0);
 end
 
-if nargin<4 || isempty(residuals)
+if isfield(hmm.train,'BIGNbatch') && hmm.train.BIGNbatch < N;
+    Path = hmmsdecode(X,T,hmm,markovTrans,type);
+    return
+end
+
+if isempty(residuals)
    residuals =  getresiduals(X,T,hmm.train.Sind,hmm.train.maxorder,hmm.train.order,...
         hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag,hmm.train.zeromean);
 end
@@ -43,7 +60,7 @@ else
     order = hmm.train.maxorder;
 end
 
-vpath = zeros(sum(T)-length(T)*order,1);
+Path = zeros(sum(T)-length(T)*order,1);
 tacc = 0;
 
 for tr=1:N
@@ -121,7 +138,7 @@ for tr=1:N
         q_star(i) = psi(i+1,q_star(i+1));
     end
     
-    vpath( (1:(T(tr)-order)) + tacc ) = q_star;
+    Path( (1:(T(tr)-order)) + tacc ) = q_star;
     tacc = tacc + T(tr)-order;
     
 end
