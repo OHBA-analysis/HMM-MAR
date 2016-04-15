@@ -17,7 +17,7 @@ end
 
 N = length(Xin);
 K = length(metahmm.state);
-TT = []; for i=1:N, TT = [TT T{i}]; end
+TT = []; for i=1:N, TT = [TT; T{i}]; end
 tacc = 0; 
 
 AverageLifeTime = zeros(N,1);
