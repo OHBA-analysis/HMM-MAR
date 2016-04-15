@@ -1,6 +1,6 @@
 function Path = hmmdecode(X,T,hmm,type,residuals,options,markovTrans)
 %
-% Viterbi and single-state decoding for hmm
+% State time course and Viterbi decoding for hmm
 % The algorithm is run for the whole data set, including those whose class
 % was fixed. This means that the assignment for those can be different.
 %
@@ -28,21 +28,36 @@ if type==0
    return
 end
 
-N = length(T);
-K = length(hmm.state);
+if isfield(hmm.train,'BIGNbatch') && hmm.train.BIGNbatch < length(T);
+    Path = hmmsdecode(X,T,hmm,type,markovTrans);
+    return
+end
 
 if ~isfield(hmm,'train')
     if nargin<5, error('You must specify the field options if hmm.train is missing'); end
     hmm.train = checkoptions(options,X,T,0);
 end
 
-if isfield(hmm.train,'BIGNbatch') && hmm.train.BIGNbatch < N;
-    Path = hmmsdecode(X,T,hmm,type,markovTrans);
-    return
+if iscell(T)
+    for i = 1:length(T)
+        if size(T{i},1)==1, T{i} = T{i}'; end
+    end
+    if size(T,1)==1, T = T'; end
+    T = cell2mat(T);
+end
+if iscell(X)
+    X = cell2mat(X);
 end
 
+N = length(T);
+K = length(hmm.state);
+
 if isempty(residuals)
-   residuals =  getresiduals(X,T,hmm.train.Sind,hmm.train.maxorder,hmm.train.order,...
+    if ~isfield(hmm.train,'Sind')
+        orders = formorders(hmm.train.order,hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag);
+        hmm.train.Sind = formindexes(orders,hmm.train.S);
+    end
+    residuals =  getresiduals(X,T,hmm.train.Sind,hmm.train.maxorder,hmm.train.order,...
         hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag,hmm.train.zeromean);
 end
 
@@ -141,5 +156,7 @@ for tr=1:N
     Path( (1:(T(tr)-order)) + tacc ) = q_star;
     tacc = tacc + T(tr)-order;
     
+end
+
 end
 
