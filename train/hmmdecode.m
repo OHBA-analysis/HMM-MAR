@@ -36,6 +36,7 @@ if iscell(T)
     T = cell2mat(T);
 end
 if iscell(X)
+    if size(X,1)==1, X = X'; end
     X = cell2mat(X);
 end
 
