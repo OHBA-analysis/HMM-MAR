@@ -1,4 +1,4 @@
-function Path = hmmsdecode(Xin,T,metahmm,markovTrans,type)
+function Path = hmmsdecode(Xin,T,metahmm,type,markovTrans)
 % 1) Compute the stata time courses or viterbi paths 
 % 2) Compute the entropy,avglifetime,nochanges from it
 %
@@ -6,14 +6,14 @@ function Path = hmmsdecode(Xin,T,metahmm,markovTrans,type)
 % Xin: cell with strings referring to the subject files
 % T: cell of vectors, where each element has the length of each trial per
 % metahmm: the metastates computed from trainBigHMM
-% markovTrans.P and Pi: transition prob table and initial prob
 % type: 0, state time courses; 1, viterbi path
+% markovTrans.P and Pi: transition prob table and initial prob
 % NOTE: computations of stats now done in getshmmstats.m
 %
 % Diego Vidaurre, OHBA, University of Oxford (2015)
 
-if nargin<4, markovTrans = []; end
-if nargin<5, type = 0; end
+if nargin<4, type = 0; end
+if nargin<5, markovTrans = []; end
 
 for i = 1:length(T)
     if size(T{i},1)==1, T{i} = T{i}'; end
@@ -52,7 +52,7 @@ for i = 1:N
         gamma = hsinference(data,T{i},metahmm_i,Y,[],XX_i);
         Path(t,:) = single(gamma);
     else
-        vp = hmmdecode(X,T{i},metahmm,Y);
+        vp = hmmdecode(X,T{i},metahmm,type,Y);
         gamma = zeros(numel(vp),K,'single');
         vp = vp(:);
         for k=1:K, gamma(vp==k,k) = 1; end

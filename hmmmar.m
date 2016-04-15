@@ -146,7 +146,7 @@ else
     end
     
     if options.decodeGamma && nargout >= 4
-        vpath = hmmdecode(data.X,T,hmm,residuals);
+        vpath = hmmdecode(data.X,T,hmm,1,residuals);
         if ~options.keepS_W
             for i=1:hmm.K
                 hmm.state(i).W.S_W = [];

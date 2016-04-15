@@ -1,4 +1,4 @@
-function Path = hmmdecode(X,T,hmm,residuals,options,type,markovTrans)
+function Path = hmmdecode(X,T,hmm,type,residuals,options,markovTrans)
 %
 % Viterbi and single-state decoding for hmm
 % The algorithm is run for the whole data set, including those whose class
@@ -18,9 +18,9 @@ function Path = hmmdecode(X,T,hmm,residuals,options,type,markovTrans)
 %
 % Author: Diego Vidaurre, OHBA, University of Oxford
 
-if nargin<4, residuals = []; end
-if nargin<5, options = []; end
-if nargin<6, type = 1; end
+if nargin<4, type = 0; end
+if nargin<5, residuals = []; end
+if nargin<6, options = []; end
 if nargin<7, markovTrans = []; end
 
 if type==0
@@ -37,7 +37,7 @@ if ~isfield(hmm,'train')
 end
 
 if isfield(hmm.train,'BIGNbatch') && hmm.train.BIGNbatch < N;
-    Path = hmmsdecode(X,T,hmm,markovTrans,type);
+    Path = hmmsdecode(X,T,hmm,type,markovTrans);
     return
 end
 
