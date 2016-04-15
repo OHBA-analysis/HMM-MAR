@@ -111,7 +111,7 @@ else
         options = rmfield(options,'Gamma');
     elseif isempty(options.Gamma) && ~isempty(options.hmm)
         GammaInit = [];
-    else
+    else % ~isempty(options.Gamma)
         GammaInit = options.Gamma;
         options = rmfield(options,'Gamma');
     end
@@ -122,8 +122,8 @@ else
         hmm_wr.K = options.K;
         hmm_wr.train = options;
         %if options.whitening, hmm_wr.train.A = A; hmm_wr.train.iA = iA;  end
-        hmm_wr=hmmhsinit(hmm_wr);
-        [hmm_wr,residuals_wr]=obsinit(data,T,hmm_wr,GammaInit);
+        hmm_wr = hmmhsinit(hmm_wr);
+        [hmm_wr,residuals_wr] = obsinit(data,T,hmm_wr,GammaInit);
     else % using a warm restart from a previous run
         hmm_wr = options.hmm;
         options = rmfield(options,'hmm');

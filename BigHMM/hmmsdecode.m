@@ -1,4 +1,4 @@
-function [Path,stats] = decodeBigHMM(Xin,T,metahmm,markovTrans,type)
+function [Path,stats] = hmmsdecode(Xin,T,metahmm,markovTrans,type)
 % 1) Compute the stata time courses or viterbi paths 
 % 2) Compute the entropy,avglifetime,nochanges from it
 %
@@ -10,6 +10,10 @@ function [Path,stats] = decodeBigHMM(Xin,T,metahmm,markovTrans,type)
 % type: 0, state time courses; 1, viterbi path
 %
 % Diego Vidaurre, OHBA, University of Oxford (2015)
+
+for i = 1:length(T)
+    if size(T{i},1)==1, T{i} = T{i}'; end
+end
 
 N = length(Xin);
 K = length(metahmm.state);

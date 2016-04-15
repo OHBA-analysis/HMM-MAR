@@ -181,6 +181,11 @@ end
 if options.uniqueAR && ~options.zeromean
     error('When unique==1, modelling the mean is not yet supported')
 end
+if (strcmp(options.covtype,'uniquediag') || strcmp(options.covtype,'uniquefull')) && ...
+        options.order == 0 && options.zeromean == 1
+   error('Unique covariance matrix, order=0 and no mean modelling: there is nothing left to drive the states..') 
+end
+
 options.Sind = formindexes(orders,options.S);
 if ~options.zeromean, options.Sind = [true(1,ndim); options.Sind]; end
 end

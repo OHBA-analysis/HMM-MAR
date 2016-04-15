@@ -40,7 +40,7 @@ for cycle = 2:options.BIGcyc
         
     % read data for this batch
     Tbatch = [];
-    for ii = 1:length(I), i = I(ii); Tbatch = [Tbatch T{i}]; end
+    for ii = 1:length(I), i = I(ii); Tbatch = [Tbatch; T{i}]; end
     X = zeros(sum(Tbatch),ndim);
     XX = cell(1); 
     XX{1} = zeros(sum(Tbatch)-length(Tbatch)*options.order,length(orders)*ndim+(~options.zeromean));

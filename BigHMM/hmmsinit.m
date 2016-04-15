@@ -38,7 +38,7 @@ P_init = zeros(K,K,N); Pi_init = zeros(K,N);
 Dir2d_alpha_init = zeros(K,K,N); Dir_alpha_init = zeros(K,N);
 
 best_fe = Inf;
-for cycle = 1:options.BIGinitcyc
+for rep = 1:options.BIGinitrep
     
     % train individual HMMs
     I = randperm(N);
@@ -46,7 +46,7 @@ for cycle = 1:options.BIGinitcyc
         % read data
         i = I(ii);
         [X,XX,Y] = loadfile(Xin{i},T{i},options);
-        if cycle==1
+        if rep==1
             if ii==1
                 range_data = range(X);
             else
@@ -61,7 +61,7 @@ for cycle = 1:options.BIGinitcyc
             Dir_alpha_prior = hmm_i.prior.Dir_alpha;
         end
         if options.BIGverbose
-            fprintf('Init run %d, subject %d \n',cycle,ii);
+            fprintf('Init: repetition %d, subject %d \n',rep,ii);
         end
         if options.BIGuniqueTrans % update transition probabilities
             Dir_alpha_init(:,i) = 0;
@@ -148,7 +148,7 @@ for cycle = 1:options.BIGinitcyc
     end
         
     % adjust prior
-    if cycle==1
+    if rep==1
         if isempty(options.BIGprior)
             for k = 1:K
                 metahmm_init.state(k).prior = hmm_i.state(k).prior;
@@ -283,7 +283,7 @@ for cycle = 1:options.BIGinitcyc
     end
     
     if options.BIGverbose
-        fprintf('Init run %d, free energy = %g (best=%g) \n',cycle,fe,best_fe);
+        fprintf('Init run %d, free energy = %g (best=%g) \n',rep,fe,best_fe);
     end
     
 end
