@@ -23,19 +23,9 @@ if nargin<5, residuals = []; end
 if nargin<6, options = []; end
 if nargin<7, markovTrans = []; end
 
-if type==0
-   Path = hsinference(X,T,hmm,residuals,options); 
-   return
-end
-
 if isfield(hmm.train,'BIGNbatch') && hmm.train.BIGNbatch < length(T);
     Path = hmmsdecode(X,T,hmm,type,markovTrans);
     return
-end
-
-if ~isfield(hmm,'train')
-    if nargin<5, error('You must specify the field options if hmm.train is missing'); end
-    hmm.train = checkoptions(options,X,T,0);
 end
 
 if iscell(T)
@@ -47,6 +37,16 @@ if iscell(T)
 end
 if iscell(X)
     X = cell2mat(X);
+end
+
+if type==0
+   Path = hsinference(X,T,hmm,residuals,options); 
+   return
+end
+
+if ~isfield(hmm,'train')
+    if nargin<5, error('You must specify the field options if hmm.train is missing'); end
+    hmm.train = checkoptions(options,X,T,0);
 end
 
 N = length(T);

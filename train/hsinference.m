@@ -19,14 +19,6 @@ function [Gamma,Gammasum,Xi,LL,scale,B] = hsinference(data,T,hmm,residuals,optio
 %
 % Author: Diego Vidaurre, OHBA, University of Oxford
 
-if iscell(T)
-    for i = 1:length(T)
-        if size(T{i},1)==1, T{i} = T{i}'; end
-    end
-    if size(T,1)==1, T = T'; end
-    T = cell2mat(T);
-end
-
 N = length(T);
 K = length(hmm.state);
 

@@ -20,7 +20,7 @@ function [hmm, Gamma, Xi, vpath, GammaInit, residuals, fehist, feterms, markovTr
 %
 % Author: Diego Vidaurre, OHBA, University of Oxford (2015)
 
-if iscell(T), 
+if iscell(T)
     for i = 1:length(T)
         if size(T{i},1)==1, T{i} = T{i}'; end
     end
