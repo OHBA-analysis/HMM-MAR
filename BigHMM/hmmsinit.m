@@ -54,7 +54,8 @@ for rep = 1:options.BIGinitrep
             end
         end
         % Running the individual HMM
-        options_copy = options; options_copy.BIGNbatch = length(T{i}); 
+        options_copy = options; options_copy = rmfield(options_copy,'BIGNbatch');
+        if length(T{i})==1, options_copy.useParallel = 0; end 
         [hmm_i,Gamma,Xi] = hmmmar(X,T{i},options_copy);
         if ii==1 % get priors
             Dir2d_alpha_prior = hmm_i.prior.Dir2d_alpha;
@@ -118,7 +119,7 @@ for rep = 1:options.BIGinitrep
             % cov mats: note also that these are the individual ones, and,
             % hence, an underestimation of the group ones
         end
-        if strcmp(options.covtype,'uniquefull') || strcmp(options.covtype,'uniquediag')
+        if ii>1 && (strcmp(options.covtype,'uniquefull') || strcmp(options.covtype,'uniquediag'))
             metahmm_init.Omega.Gam_shape = metahmm_init.Omega.Gam_shape + ...
                 hmm_i.Omega.Gam_shape - hmm_i.prior.Omega.Gam_shape;
             metahmm_init.Omega.Gam_rate = metahmm_init.Omega.Gam_rate + ...
@@ -199,8 +200,12 @@ for rep = 1:options.BIGinitrep
         Dir_alpha_init_pre = sum(Dir_alpha_init,2)' + Dir_alpha_prior;
         [P_init_pre,Pi_init_pre] = computePandPi(Dir_alpha_init_pre,Dir2d_alpha_init_pre);
     end
+    if strcmp(options.covtype,'uniquefull'), EE = zeros(ndim); Tac = 0;
+    elseif strcmp(options.covtype,'uniquediag'), EE = zeros(1,ndim); Tac = 0;
+    end
     for i = 1:N
         [X,XX,Y] = loadfile(Xin{i},T{i},options);
+        Tac = Tac + size(X,1);
         XX_i = cell(1); XX_i{1} = XX;
         data = struct('X',X,'C',NaN(sum(T{i})-length(T{i})*options.order,K));
         if options.BIGuniqueTrans
@@ -221,9 +226,6 @@ for rep = 1:options.BIGinitrep
         else
             P_init(:,:,i) = metahmm_init_i.P; Pi_init(:,i) = metahmm_init_i.Pi'; % one per subject, not like pure group HMM
             Dir2d_alpha_init(:,:,i) = metahmm_init_i.Dir2d_alpha; Dir_alpha_init(:,i) = metahmm_init_i.Dir_alpha';
-        end
-        if strcmp(options.covtype,'uniquefull'), EE = zeros(ndim);
-        elseif strcmp(options.covtype,'uniquediag'), EE = zeros(1,ndim);
         end
         for k=1:K
             if ~isempty(options.orders) || (~options.zeromean)
@@ -253,6 +255,7 @@ for rep = 1:options.BIGinitrep
         end
         if strcmp(options.covtype,'uniquefull') || strcmp(options.covtype,'uniquediag') 
             metahmm_init.Omega.Gam_rate = EE + metahmm_init.prior.Omega.Gam_rate;
+            metahmm_init.Omega.Gam_shape = Tac + metahmm_init.prior.Omega.Gam_shape;
         end
         if options.BIGuniqueTrans
             subjfe_init(i,1:2) = evalfreeenergy([],T{i},Gamma,Xi,metahmm_init_i,[],[],[1 0 1 0 0]); % Gamma entropy&LL
