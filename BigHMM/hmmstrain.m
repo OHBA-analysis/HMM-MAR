@@ -19,7 +19,10 @@ statekl = info.statekl;
 Dir2d_alpha = info.Dir2d_alpha;
 Dir_alpha = info.Dir_alpha;
 fehist = info.fehist; 
-metahmm_best = metahmm; 
+metahmm_best = metahmm;
+Dir2d_alpha_best = Dir2d_alpha; 
+Dir_alpha_best = Dir_alpha;
+
 clear info;
 
 % init stochastic learning stuff
