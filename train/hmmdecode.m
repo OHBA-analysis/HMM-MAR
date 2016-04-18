@@ -1,4 +1,4 @@
-function Path = hmmdecode(X,T,hmm,type,residuals,options,markovTrans)
+function [Path,Xi] = hmmdecode(X,T,hmm,type,residuals,options,markovTrans)
 %
 % State time course and Viterbi decoding for hmm
 % The algorithm is run for the whole data set, including those whose class
@@ -24,7 +24,7 @@ if nargin<6, options = []; end
 if nargin<7, markovTrans = []; end
 
 if isfield(hmm.train,'BIGNbatch') && hmm.train.BIGNbatch < length(T);
-    Path = hmmsdecode(X,T,hmm,type,markovTrans);
+    [Path,Xi] = hmmsdecode(X,T,hmm,type,markovTrans);
     return
 end
 
@@ -41,9 +41,10 @@ if iscell(X)
 end
 
 if type==0
-   Path = hsinference(X,T,hmm,residuals,options); 
+   [Path,Xi] = hsinference(X,T,hmm,residuals,options); 
    return
 end
+Xi = [];
 
 if ~isfield(hmm,'train')
     if nargin<5, error('You must specify the field options if hmm.train is missing'); end

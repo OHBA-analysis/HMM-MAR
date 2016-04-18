@@ -45,6 +45,10 @@ else
     [options,data] = checkoptions(options,data,T,0);
 end
 
+% if ~isfield(options,'tmp_folder')
+%     tmp_folder = tempdir;
+% end
+    
 ver = version('-release');
 oldMatlab = ~isempty(strfind(ver,'2010')) || ~isempty(strfind(ver,'2010')) ...
     || ~isempty(strfind(ver,'2011')) || ~isempty(strfind(ver,'2012'));
@@ -65,6 +69,9 @@ if stochastic_learn
     [hmm,info] = hmmsinit(data,T,options);
     [hmm,markovTrans,fehist,feterms,rho] = hmmstrain(data,T,hmm,info,options);
     Gamma = []; Xi = []; vpath = []; GammaInit = []; residuals = [];
+    if options.BIGcomputeGamma
+       [Gamma,Xi] = hmmdecode(data,T,hmm,0,[],[],markovTrans); 
+    end
     
 else
         
@@ -160,5 +167,6 @@ else
     markovTrans = []; feterms = []; rho = [];
     
 end
+
 
 end

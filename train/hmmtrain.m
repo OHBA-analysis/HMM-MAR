@@ -107,8 +107,8 @@ if hmm.train.verbose
     end
 end
 
-if exist('ignore_MEX', 'file')>0
-    delete('ignore_MEX')
-end
+%if exist('ignore_MEX', 'file')>0
+%    delete('ignore_MEX')
+%end
     
 end

@@ -1,4 +1,4 @@
-function Path = hmmsdecode(Xin,T,metahmm,type,markovTrans)
+function [Path,Xi] = hmmsdecode(Xin,T,metahmm,type,markovTrans)
 % 1) Compute the stata time courses or viterbi paths 
 % 2) Compute the entropy,avglifetime,nochanges from it
 %
@@ -22,10 +22,15 @@ end
 N = length(Xin);
 K = length(metahmm.state);
 TT = []; for i=1:N, TT = [TT; T{i}]; end
-tacc = 0; 
+tacc = 0; tacc2 = 0; 
 
 Path = zeros(sum(TT)-length(TT)*metahmm.train.order,K);
-
+if type==0
+    Xi = zeros(sum(TT)-length(TT)*(metahmm.train.order+1),K,K);
+else
+    Xi = [];
+end
+     
 BIGuniqueTrans = metahmm.train.BIGuniqueTrans;
 if ~BIGuniqueTrans
     if isempty(markovTrans)
@@ -46,11 +51,13 @@ for i = 1:N
         metahmm_i = copyhmm(metahmm,P(:,:,i),Pi(:,i)',Dir2d_alpha(:,:,i),Dir_alpha(:,i)');
     end
     t = (1:(sum(T{i})-length(T{i})*metahmm.train.order)) + tacc;
-    tacc = tacc + length(t);
+    t2 = (1:(sum(T{i})-length(T{i})*(metahmm.train.order+1))) + tacc2;
+    tacc = tacc + length(t); tacc2 = tacc2 + length(t2);
     if type==0
         data = struct('X',X,'C',NaN(sum(T{i})-length(T{i})*metahmm.train.order,K));
-        gamma = hsinference(data,T{i},metahmm_i,Y,[],XX_i);
+        [gamma,~,xi] = hsinference(data,T{i},metahmm_i,Y,[],XX_i);
         Path(t,:) = single(gamma);
+        Xi(t2,:,:) = xi;
     else
         vp = hmmdecode(X,T{i},metahmm,type,Y);
         gamma = zeros(numel(vp),K,'single');

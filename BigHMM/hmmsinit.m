@@ -175,6 +175,7 @@ for rep = 1:options.BIGinitrep
             metahmm_init.prior.Dir_alpha = options.BIGprior.Dir_alpha;
         end
         metahmm_init.K = K;
+        metahmm_init.train.BIGNbatch = options.BIGNbatch;
     end
     
     % distribution of sigma and alpha, variances of the MAR coeff distributions
