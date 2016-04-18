@@ -65,16 +65,11 @@ for rep = 1:options.BIGinitrep
             fprintf('Init: repetition %d, subject %d \n',rep,ii);
         end
         if options.BIGuniqueTrans % update transition probabilities
-            Dir_alpha_init(:,i) = 0;
             for trial=1:length(T{i})
                 t = sum(T{i}(1:trial-1)) - options.order*(trial-1) + 1;
                 Dir_alpha_init(:,i) = Dir_alpha_init(:,i) + Gamma(t,:)';
             end
             Dir2d_alpha_init(:,:,i) = squeeze(sum(Xi,1));
-            % one P/Pi for all subjects
-            Dir2d_alpha_init_pre = sum(Dir2d_alpha_init(:,:,I(1:ii)),3) + Dir2d_alpha_prior;
-            Dir_alpha_init_pre = sum(Dir_alpha_init(:,I(1:ii)),2)' + Dir_alpha_prior;
-            [P_init,Pi_init] = computePandPi(Dir_alpha_init_pre,Dir2d_alpha_init_pre);
         else
             P_init(:,:,i) = hmm_i.P; Pi_init(:,i) = hmm_i.Pi';
             Dir2d_alpha_init(:,:,i) = hmm_i.Dir2d_alpha;
@@ -191,72 +186,134 @@ for rep = 1:options.BIGinitrep
         metahmm_init = updateSigma(metahmm_init);
         metahmm_init = updateAlpha(metahmm_init);
     end
+   
+%     % Temporal distribution of Pi and Pi 
+%     if options.BIGuniqueTrans
+%         Dir2d_alpha_init_pre = sum(Dir2d_alpha_init,3) + Dir2d_alpha_prior;
+%         Dir_alpha_init_pre = sum(Dir_alpha_init,2)' + Dir_alpha_prior;
+%         [P_init_pre,Pi_init_pre] = computePandPi(Dir_alpha_init_pre,Dir2d_alpha_init_pre);
+%         metahmm_init = copyhmm(metahmm_init,...
+%             P_init_pre,Pi_init_pre,Dir2d_alpha_init_pre,Dir_alpha_init_pre);
+%         metahmm_init_i = metahmm_init;
+%     end
+    
+    % Compute an unbiased group estimation of the metastate covariance matrices
+%     if strcmp(options.covtype,'uniquefull'), EE = zeros(ndim);    
+%     elseif strcmp(options.covtype,'uniquediag'), EE = zeros(1,ndim);   
+%     end
+%     Tac = 0;
+%     for i = 1:N
+%         [X,XX,Y] = loadfile(Xin{i},T{i},options); % read data
+%         XX_i = cell(1); XX_i{1} = XX;
+%         data = struct('X',X,'C',NaN(sum(T{i})-length(T{i})*options.order,K));
+%         if ~options.BIGuniqueTrans 
+%             metahmm_init_i = copyhmm(metahmm_init,...
+%                 P_init(:,:,i),Pi_init(:,i)',Dir2d_alpha_init(:,:,i),Dir_alpha_init(:,i)');
+%         end
+%         Gamma = hsinference(data,T{i},metahmm_init_i,Y,[],XX_i); % infer Gamma
+%         metahmm_init_i = updateOmega(metahmm,MGamma,sum(MGamma),Y,Tbatch,XX,XXGXX,XW,1);
+%         Mgamma = Mgamma + sum(Gamma);
+%         
+%         for k=1:K % compute errors
+%             if ~isempty(options.orders) || (~options.zeromean)
+%                 E = Y - XX * metahmm_init_i.state(k).W.Mu_W; 
+%             else
+%                 E = X;
+%             end
+%             if strcmp(options.covtype,'full')
+%                 subj_err_init(:,:,i,k) = ((E' .* repmat(Gamma(:,k)',size(E,2),1)) * E);
+%                 subj_time_init(i,k) = sum(Gamma(:,k));
+%             elseif strcmp(options.covtype,'diag')
+%                 subj_err_init(:,i,k) = ( sum( (E.^2) .* repmat(Gamma(:,k),1,size(E,2)) ) )';
+%                 subj_time_init(i,k) = sum(Gamma(:,k));
+%             elseif strcmp(options.covtype,'uniquefull')
+%                 EE = EE + ((E' .* repmat(Gamma(:,k)',size(E,2),1)) * E); 
+%             elseif strcmp(options.covtype,'uniquediag')
+%                 EE = EE + ( sum( (E.^2) .* repmat(Gamma(:,k),1,size(E,2)) ) ); 
+%             end
+%         end
+%         Tac = Tac + size(X,1);
+%     end
+%     if strcmp(options.covtype,'full') % update covariance matrix
+%         for k = 1:K
+%             metahmm_init.state(k).Omega.Gam_rate = sum(subj_err_init(:,:,:,k),3) + ...
+%                 metahmm_init.state(k).prior.Omega.Gam_rate;
+%             metahmm_init.state(k).Omega.Gam_shape = sum(subj_time_init(:,k)) + ...
+%                 metahmm_init.state(k).prior.Omega.Gam_shape;
+%         end
+%     elseif strcmp(options.covtype,'diag')
+%         for k = 1:K
+%             metahmm_init.state(k).Omega.Gam_rate = sum(subj_err_init(:,1:i,k),2)' + ...
+%                 hmm_i.state(k).prior.Omega.Gam_rate;
+%             metahmm_init.state(k).Omega.Gam_shape = sum(subj_time_init(1:i,k)) + ...
+%                 hmm_i.state(k).prior.Omega.Gam_shape;
+%         end
+%     else % 'uniquefull' or 'uniquediag' 
+%         metahmm_init.Omega.Gam_rate = EE + metahmm_init.prior.Omega.Gam_rate;
+%         metahmm_init.Omega.Gam_shape = Tac + metahmm_init.prior.Omega.Gam_shape;
+%     end
 
-    % Compute Gamma to get an
-    % unbiased group estimation of the metastate covariance matrices;
-    % obtaining subject parameters (transition probs)  
-    if options.BIGuniqueTrans
-        Dir2d_alpha_init_pre = sum(Dir2d_alpha_init,3) + Dir2d_alpha_prior;
-        Dir_alpha_init_pre = sum(Dir_alpha_init,2)' + Dir_alpha_prior;
-        [P_init_pre,Pi_init_pre] = computePandPi(Dir_alpha_init_pre,Dir2d_alpha_init_pre);
+%     % Compute init and transition probability matrices
+%     metahmm_init_i = metahmm_init;
+%     for i = 1:N
+%         [X,XX,Y] = loadfile(Xin{i},T{i},options); % read data
+%         XX_i = cell(1); XX_i{1} = XX;
+%         data = struct('X',X,'C',NaN(sum(T{i})-length(T{i})*options.order,K));
+%         if ~options.BIGuniqueTrans 
+%             metahmm_init_i = copyhmm(metahmm_init,...
+%                 P_init(:,:,i),Pi_init(:,i)',Dir2d_alpha_init(:,:,i),Dir_alpha_init(:,i)');
+%         end
+%         [Gamma,~,Xi] = hsinference(data,T{i},metahmm_init_i,Y,[],XX_i); % infer Gamma
+%         if options.BIGuniqueTrans % extract transition probabilities 
+%             Dir_alpha_init(:,i) = zeros(K,1);
+%             for trial=1:length(T{i})
+%                 t = sum(T{i}(1:trial-1)) - options.order*(trial-1) + 1;
+%                 Dir_alpha_init(:,i) = Dir_alpha_init(:,i) + Gamma(t,:)';
+%             end
+%             Dir2d_alpha_init(:,:,i) = squeeze(sum(Xi,1));
+%         else
+%             metahmm_init_ii = hsupdate(Xi,Gamma,T{i},metahmm_init_i); 
+%             P_init(:,:,i) = metahmm_init_ii.P; Pi_init(:,i) = metahmm_init_ii.Pi'; % one per subject, not like pure group HMM
+%             Dir2d_alpha_init(:,:,i) = metahmm_init_ii.Dir2d_alpha; Dir_alpha_init(:,i) = metahmm_init_ii.Dir_alpha';
+%         end
+%         for k=1:K % compute errors
+%             if ~isempty(options.orders) || (~options.zeromean)
+%                 E = Y - XX * metahmm_init_i.state(k).W.Mu_W; 
+%             else
+%                 E = X;
+%             end
+%             if strcmp(options.covtype,'full')
+%                 subj_err_init(:,:,i,k) = ((E' .* repmat(Gamma(:,k)',size(E,2),1)) * E);
+%                 subj_time_init(i,k) = sum(Gamma(:,k));
+%             elseif strcmp(options.covtype,'diag')
+%                 subj_err_init(:,i,k) = ( sum( (E.^2) .* repmat(Gamma(:,k),1,size(E,2)) ) )';
+%                 subj_time_init(i,k) = sum(Gamma(:,k));
+%             elseif strcmp(options.covtype,'uniquefull')
+%                 EE = EE + ((E' .* repmat(Gamma(:,k)',size(E,2),1)) * E); 
+%             elseif strcmp(options.covtype,'uniquediag')
+%                 EE = EE + ( sum( (E.^2) .* repmat(Gamma(:,k),1,size(E,2)) ) ); 
+%             end
+%         end
+%         Tac = Tac + size(X,1);
+%     end
+    if options.BIGuniqueTrans % update transition probabilities 
+        metahmm_init.Dir_alpha = sum(Dir_alpha_init,2)' + Dir_alpha_prior;
+        metahmm_init.Dir2d_alpha = sum(Dir2d_alpha_init,3) + Dir2d_alpha_prior;
+        [metahmm_init.P,metahmm_init.Pi] = ...
+            computePandPi(metahmm_init.Dir_alpha,metahmm_init.Dir2d_alpha);
     end
-    if strcmp(options.covtype,'uniquefull'), EE = zeros(ndim); Tac = 0;
-    elseif strcmp(options.covtype,'uniquediag'), EE = zeros(1,ndim); Tac = 0;
-    end
+    
+    % Compute free energy
+    metahmm_init_i = metahmm_init;
     for i = 1:N
         [X,XX,Y] = loadfile(Xin{i},T{i},options);
-        Tac = Tac + size(X,1);
         XX_i = cell(1); XX_i{1} = XX;
         data = struct('X',X,'C',NaN(sum(T{i})-length(T{i})*options.order,K));
-        if options.BIGuniqueTrans
-            metahmm_init_i = copyhmm(metahmm_init,...
-                P_init_pre,Pi_init_pre,Dir2d_alpha_init_pre,Dir_alpha_init_pre);
-        else
+        if ~options.BIGuniqueTrans
             metahmm_init_i = copyhmm(metahmm_init,...
                 P_init(:,:,i),Pi_init(:,i)',Dir2d_alpha_init(:,:,i),Dir_alpha_init(:,i)');
         end
         [Gamma,~,Xi,l] = hsinference(data,T{i},metahmm_init_i,Y,[],XX_i);
-        metahmm_init_i = hsupdate(Xi,Gamma,T{i},metahmm_init_i);
-        if options.BIGuniqueTrans
-            for trial=1:length(T{i})
-                t = sum(T{i}(1:trial-1)) - options.order*(trial-1) + 1;
-                Dir_alpha_init(:,i) = Dir_alpha_init(:,i) + Gamma(t,:)';
-            end
-            Dir2d_alpha_init(:,:,i) = squeeze(sum(Xi,1));
-        else
-            P_init(:,:,i) = metahmm_init_i.P; Pi_init(:,i) = metahmm_init_i.Pi'; % one per subject, not like pure group HMM
-            Dir2d_alpha_init(:,:,i) = metahmm_init_i.Dir2d_alpha; Dir_alpha_init(:,i) = metahmm_init_i.Dir_alpha';
-        end
-        for k=1:K
-            if ~isempty(options.orders) || (~options.zeromean)
-                E = Y - XX * metahmm_init.state(k).W.Mu_W; % using the current mean estimation
-            else
-                E = X;
-            end
-            if strcmp(options.covtype,'full')
-                subj_err_init(:,:,i,k) = ((E' .* repmat(Gamma(:,k)',size(E,2),1)) * E);
-                metahmm_init.state(k).Omega.Gam_rate = sum(subj_err_init(:,:,I(1:ii),k),3) + ...
-                    hmm_i.state(k).prior.Omega.Gam_rate;
-                subj_time_init(i,k) = sum(Gamma(:,k));
-                metahmm_init.state(k).Omega.Gam_shape = sum(subj_time_init(I(1:ii),k)) + ...
-                    hmm_i.state(k).prior.Omega.Gam_shape;
-            elseif strcmp(options.covtype,'diag')
-                subj_err_init(:,i,k) = ( sum( (E.^2) .* repmat(Gamma(:,k),1,size(E,2)) ) )';
-                metahmm_init.state(k).Omega.Gam_rate = sum(subj_err_init(:,I(1:ii),k),2)' + ...
-                    hmm_i.state(k).prior.Omega.Gam_rate;
-                subj_time_init(i,k) = sum(Gamma(:,k));
-                metahmm_init.state(k).Omega.Gam_shape = sum(subj_time_init(I(1:ii),k)) + ...
-                    hmm_i.state(k).prior.Omega.Gam_shape;
-            elseif strcmp(options.covtype,'uniquefull')
-                EE = EE + ((E' .* repmat(Gamma(:,k)',size(E,2),1)) * E);
-            elseif strcmp(options.covtype,'uniquediag')
-                EE = EE + ( sum( (E.^2) .* repmat(Gamma(:,k),1,size(E,2)) ) );
-            end
-        end
-        if strcmp(options.covtype,'uniquefull') || strcmp(options.covtype,'uniquediag') 
-            metahmm_init.Omega.Gam_rate = EE + metahmm_init.prior.Omega.Gam_rate;
-            metahmm_init.Omega.Gam_shape = Tac + metahmm_init.prior.Omega.Gam_shape;
-        end
         if options.BIGuniqueTrans
             subjfe_init(i,1:2) = evalfreeenergy([],T{i},Gamma,Xi,metahmm_init_i,[],[],[1 0 1 0 0]); % Gamma entropy&LL
         else
@@ -265,11 +322,7 @@ for rep = 1:options.BIGinitrep
         loglik_init(i) = sum(l);
     end
     if options.BIGuniqueTrans
-        metahmm_init.Dir_alpha = sum(Dir_alpha_init,2)' + Dir_alpha_prior;
-        metahmm_init.Dir2d_alpha = sum(Dir2d_alpha_init,3) + Dir2d_alpha_prior;
-        [metahmm_init.P_init,metahmm_init.Pi_init] = ...
-            computePandPi(metahmm_init.Dir_alpha,metahmm_init.Dir2d_alpha);
-        subjfe_init(:,3) = evalfreeenergy([],[],[],[],metahmm_init,[],[],[0 0 0 1 0]) / N; % "share" KL
+        subjfe_init(:,3) = evalfreeenergy([],[],[],[],metahmm_init,[],[],[0 0 0 1 0]) / N; % "share" P and Pi KL
     end
     statekl_init = sum(evalfreeenergy([],[],[],[],metahmm_init,[],[],[0 0 0 0 1])); % state KL
     fe = - sum(loglik_init) + sum(subjfe_init(:)) + statekl_init;
@@ -293,5 +346,7 @@ end
 
 metahmm.prior.Dir_alpha_prior = Dir_alpha_prior;
 metahmm.prior.Dir2d_alpha_prior = Dir2d_alpha_prior;
+
+end
 
 
