@@ -32,6 +32,20 @@ end
 stochastic_learn = isfield(options,'BIGNbatch') && options.BIGNbatch < N;
 
 if stochastic_learn, 
+    if ~iscell(data)
+       dat = cell(N,1); TT = cell(N,1);
+       for i=1:N
+          t = 1:T(i);
+          dat{i} = data(t,:); TT{i} = T(i);
+          try data(t,:) = []; 
+          catch, error('The dimension of data does not correspond to T');
+          end
+       end
+       if ~isempty(data), 
+           error('The dimension of data does not correspond to T');
+       end 
+       data = dat; T = TT; clear dat TT
+    end
     options = checkBIGoptions(options,T);
 else
     if iscell(data)
