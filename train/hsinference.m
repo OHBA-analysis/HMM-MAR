@@ -218,16 +218,18 @@ B(B<realmin) = realmin;
 % pass to mex file?
 if ( (ismac || isunix) && hmm.train.useMEX ==1 && ...
         exist('hidden_state_inference_mx', 'file') == 3 && ...
-        exist('ignore_MEX', 'file') == 0 )
-    finish = 1;
+        (~isfield(hmm.train,'ignore_MEX') || exist(hmm.train.ignore_MEX, 'file') == 0 ))
     try
         [Gamma, Xi, scale] = hidden_state_inference_mx(B, Pi, P, order);
+        return
     catch
-        fprintf('MEX file cannot be used, going on to Matlab code..\n')
-        fclose(fopen('ignore_MEX', 'w'));
-        finish = 0;
+        %if hmm.train.verbose
+        %    fprintf('MEX file cannot be used, going on to Matlab code..\n')
+        %end
+        if isfield(hmm.train,'ignore_MEX')
+            fclose(fopen(hmm.train.ignore_MEX, 'w')); % create file
+        end
     end
-    if finish==1, return; end
 end
 
 scale=zeros(T,1);
