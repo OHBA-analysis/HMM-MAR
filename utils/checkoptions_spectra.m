@@ -1,7 +1,6 @@
 function [options,Gamma] = checkoptions_spectra (options,ndim,T)
 
 % MT and common
-if ~isfield(options,'order'), options.order = 0; end
 if ~isfield(options,'p'), options.p = 0; end
 if ~isfield(options,'removezeros'), options.removezeros = 0; end
 if ~isfield(options,'completelags'), options.completelags = 1; end
