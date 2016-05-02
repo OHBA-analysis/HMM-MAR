@@ -30,6 +30,7 @@ else
 end
 
 stochastic_learn = isfield(options,'BIGNbatch') && options.BIGNbatch < N;
+options = checkspelling(options);
 
 if stochastic_learn, 
     if ~iscell(data)
@@ -76,6 +77,15 @@ if options.useParallel==1
     else
         gcp;
     end
+end
+
+gatherStats = 0;
+if isfield(options,'DirStats')
+    profile on
+    gatherStats = 1; 
+    DirStats = options.DirStats;
+    options = rmfield(options,'DirStats'); 
+    % to avoid recurrent calls to hmmmar to do the same
 end
 
 if stochastic_learn
@@ -182,5 +192,10 @@ else
     
 end
 
-
+if gatherStats==1
+    hmm.train.DirStats = DirStats; 
+    profile off
+    profsave(profile('info'),hmm.train.DirStats)
+end
+    
 end
