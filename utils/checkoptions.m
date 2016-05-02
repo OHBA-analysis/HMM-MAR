@@ -114,6 +114,7 @@ end
 
 
 function options = checkMARparametrization(options,S,ndim)
+
 if ~isfield(options,'order'), error('order was not specified'); end
 if ~isfield(options,'covtype') && ndim==1, options.covtype = 'diag'; 
 elseif ~isfield(options,'covtype') && ndim>1, options.covtype = 'full'; 
@@ -148,9 +149,14 @@ if ~isfield(options,'S'),
     end
 elseif nargin>=2 && ~isempty(S) && any(S(:)~=options.S(:))
     error('S has to be equal across states')
-elseif options.uniqueAR==1 && any(S(:)~=1)
+end
+if options.uniqueAR==1 && any(S(:)~=1)
     warning('S has no effect if uniqueAR=1')
 end
+if (strcmp(options.covtype,'full') || strcmp(options.covtype,'uniquefull')) && any(S(:)~=1)
+   error('Using S with elements different from zero is only implemented for covtype=diag/uniquediag')
+end
+
 orders = formorders(options.order,options.orderoffset,options.timelag,options.exptimelag);
 if ~isfield(options,'prior')
     options.prior = [];
@@ -192,6 +198,7 @@ end
 
 
 function test = issymmetric(A)
+
 B = A';
 test = all(A(:)==B(:)); 
 end

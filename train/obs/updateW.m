@@ -67,15 +67,16 @@ for k=1:K
         end;
         XW(k,:,:) = XX{kk} * hmm.state(k).W.Mu_W;
         
-    else % this only works if all(S(:)==1);  any(S(:)==0) is just not yet implemented 
+    else % this only works if all(S(:)==1);  any(S(:)~=1) is just not yet implemented 
         mlW = (( XXGXX{k} \ XX{kk}') .* repmat(Gamma(:,k)',...
             (~train.zeromean)+ndim*length(orders),1) * residuals)';
         regterm = [];
         if ~train.zeromean, regterm = hmm.state(k).prior.Mean.iS; end
         if ~isempty(orders) 
-            sigmaterm = (hmm.state(k).sigma.Gam_shape(S) ./ hmm.state(k).sigma.Gam_rate(S));
+            sigmaterm = (hmm.state(k).sigma.Gam_shape(:) ./ hmm.state(k).sigma.Gam_rate(:));
             sigmaterm = repmat(sigmaterm, length(orders), 1);
-            alphaterm = repmat( (hmm.state(k).alpha.Gam_shape ./  hmm.state(k).alpha.Gam_rate), sum(S(:)), 1);
+            alphaterm = repmat( (hmm.state(k).alpha.Gam_shape ./ hmm.state(k).alpha.Gam_rate), ...
+                length(hmm.state(k).sigma.Gam_rate(:)), 1);
             alphaterm = alphaterm(:);
             regterm = [regterm; (alphaterm .* sigmaterm)];
         end

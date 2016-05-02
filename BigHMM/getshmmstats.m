@@ -1,4 +1,4 @@
-function stats = getshmmstats(Path,T)
+function stats = getshmmstats(Path,hmm,T)
 % 1) Compute the stata time courses or viterbi paths 
 % 2) Compute the entropy,avglifetime,nochanges from it
 %
@@ -24,17 +24,15 @@ NoChanges = zeros(N,1);
 Entropy = zeros(N,1);
 
 for i = 1:N
-    t = (1:(sum(T{i})-length(T{i})*metahmm.train.order)) + tacc;
+    t = (1:(sum(T{i})-length(T{i})*hmm.train.order)) + tacc;
     tacc = tacc + length(t);
     gamma = Path(t,:);
-    if nargout==2
-        slt=collect_times(gamma,TT);
-        AverageLifeTime(i) = mean(slt);
-        NoChanges(i) = length(slt);
-        gammasum = sum(gamma);
-        gammasum = gammasum + eps;
-        Entropy(i) = sum(log(gammasum) .* gammasum);
-    end
+    slt=collect_times(gamma,TT);
+    AverageLifeTime(i) = mean(slt);
+    NoChanges(i) = length(slt);
+    gammasum = mean(gamma);
+    gammasum = gammasum + eps;
+    Entropy(i) = -sum(log(gammasum) .* gammasum);
 end
 
 stats = struct('AverageLifeTime',AverageLifeTime,...

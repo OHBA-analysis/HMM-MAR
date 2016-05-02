@@ -10,7 +10,7 @@ function [metahmm,info] = hmmsinit(Xin,T,options)
 % options: HMM options for both the subject and the group runs
 %
 % Diego Vidaurre, OHBA, University of Oxford (2016)
-
+ 
 N = length(T); K = options.K;
 X = loadfile(Xin{1},T{1}); ndim = size(X,2);
 subjfe_init = zeros(N,3);
@@ -60,6 +60,8 @@ for rep = 1:options.BIGinitrep
         if ii==1 % get priors
             Dir2d_alpha_prior = hmm_i.prior.Dir2d_alpha;
             Dir_alpha_prior = hmm_i.prior.Dir_alpha;
+            Sind = formindexes(hmm_i.train.orders,hmm_i.train.S)==1;
+            if ~hmm_i.train.zeromean, Sind = [true(1,ndim); Sind]; end
         end
         if options.BIGverbose
             fprintf('Init: repetition %d, subject %d \n',rep,ii);
@@ -90,7 +92,7 @@ for rep = 1:options.BIGinitrep
             dist = Inf(K_i,K);
             for j = 1:K_i
                 for k = 1:K
-                    dist(j,k) = symm_kl_div(hmm_i.state(j), metahmm_init.state(k));
+                    dist(j,k) = symm_kl_div(hmm_i.state(j), metahmm_init.state(k), Sind);
                 end
             end
             assig = munkres(dist); % linear assignment problem
@@ -127,20 +129,20 @@ for rep = 1:options.BIGinitrep
                     sum(subj_err_init(:,:,I(1:ii),k),3) + hmm_i.state(k).prior.Omega.Gam_rate, ...
                     sum(subj_time_init(I(1:ii),k)) + hmm_i.state(k).prior.Omega.Gam_shape, ...
                     sum(subj_gram_init(:,:,I(1:ii),k),3) + 0.01 * eye(size(XX,2)), ...
-                    sum(subj_m_init(:,:,I(1:ii),k),3));
+                    sum(subj_m_init(:,:,I(1:ii),k),3),options.covtype,Sind);
             elseif strcmp(options.covtype,'diag')
                 metahmm_init.state(k) = metastate_new( ...
                     sum(subj_err_init(:,I(1:ii),k),2)' + hmm_i.state(k).prior.Omega.Gam_rate, ...
                     sum(subj_time_init(I(1:ii),k)) + hmm_i.state(k).prior.Omega.Gam_shape, ...
                     sum(subj_gram_init(:,:,I(1:ii),k),3) + 0.01 * eye(size(XX,2)), ...
-                    sum(subj_m_init(:,:,I(1:ii),k),3));
+                    sum(subj_m_init(:,:,I(1:ii),k),3),options.covtype,Sind);
             else
-               metahmm_init.state(k) = metastate_new([],[], ...
+               metahmm_init.state(k) = metastate_new(metahmm_init.Omega.Gam_rate,...
+                    metahmm_init.Omega.Gam_shape,...
                     sum(subj_gram_init(:,:,I(1:ii),k),3) + 0.01 * eye(size(XX,2)),...
-                    sum(subj_m_init(:,:,I(1:ii),k),3));                
+                    sum(subj_m_init(:,:,I(1:ii),k),3),options.covtype,Sind);                
             end
         end
-        metahmm_init = adjSw_in_metastate(metahmm_init); % adjust dimension of S_W
     end
         
     % adjust prior
@@ -176,6 +178,7 @@ for rep = 1:options.BIGinitrep
         end
         metahmm_init.K = K;
         metahmm_init.train.BIGNbatch = options.BIGNbatch;
+        metahmm_init.train.Sind = Sind; 
     end
     
     % distribution of sigma and alpha, variances of the MAR coeff distributions
