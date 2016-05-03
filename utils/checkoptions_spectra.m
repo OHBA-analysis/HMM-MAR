@@ -22,7 +22,6 @@ end
 if ~isfield(options,'loadings'), options.loadings=eye(ndim); end;
 if ~isfield(options,'Nf'),  options.Nf=256; end;
 if ~isfield(options,'MLestimation'), options.MLestimation = 1; end
-if ~isfield(options,'completelags'), options.completelags = 1; end
 if ~isfield(options,'level'), options.level = 'group'; end
 
 if options.MLestimation == 0, 

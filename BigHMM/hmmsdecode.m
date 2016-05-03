@@ -24,10 +24,11 @@ K = length(metahmm.state);
 TT = []; for i=1:N, TT = [TT; T{i}]; end
 tacc = 0; tacc2 = 0; 
 
-Path = zeros(sum(TT)-length(TT)*metahmm.train.order,K);
 if type==0
-    Xi = zeros(sum(TT)-length(TT)*(metahmm.train.order+1),K,K);
+    Path = zeros(sum(TT)-length(TT)*metahmm.train.order,K,'single');
+    Xi = zeros(sum(TT)-length(TT)*(metahmm.train.order+1),K,K,'single');
 else
+    Path = zeros(sum(TT)-length(TT)*metahmm.train.order,1,'single');
     Xi = [];
 end
      
@@ -59,11 +60,10 @@ for i = 1:N
         Path(t,:) = single(gamma);
         Xi(t2,:,:) = xi;
     else
-        vp = hmmdecode(X,T{i},metahmm,type,Y);
-        gamma = zeros(numel(vp),K,'single');
-        vp = vp(:);
-        for k=1:K, gamma(vp==k,k) = 1; end
-        Path(t,:) = gamma;
+        BIGNbatch = metahmm.train.BIGNbatch;
+        metahmm.train = rmfield(metahmm.train,'BIGNbatch');
+        Path(t,:) = hmmdecode(X,T{i},metahmm,type,Y);
+        metahmm.train.BIGNbatch = BIGNbatch; 
     end
 
 end

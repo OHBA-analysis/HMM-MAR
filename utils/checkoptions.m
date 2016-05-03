@@ -56,9 +56,7 @@ if ~isfield(options,'updateGamma'), options.updateGamma = 1; end
 if ~isfield(options,'decodeGamma'), options.decodeGamma = 1; end
 if ~isfield(options,'keepS_W'), options.keepS_W = 1; end
 if ~isfield(options,'useParallel'), 
-    if length(T)>1, options.useParallel = 1; 
-    else options.useParallel = 0;
-    end
+    options.useParallel = (length(T)>1);
 end
 if ~isfield(options,'useMEX'), options.useMEX = 1; end
 

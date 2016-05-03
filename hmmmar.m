@@ -93,8 +93,11 @@ if stochastic_learn
     [hmm,info] = hmmsinit(data,T,options);
     [hmm,markovTrans,fehist,feterms,rho] = hmmstrain(data,T,hmm,info,options);
     Gamma = []; Xi = []; vpath = []; GammaInit = []; residuals = [];
-    if options.BIGcomputeGamma
+    if options.BIGcomputeGamma && nargout >= 2
        [Gamma,Xi] = hmmdecode(data,T,hmm,0,[],[],markovTrans); 
+    end
+    if options.BIGdecodeGamma && nargout >= 4
+       vpath = hmmdecode(data.X,T,hmm,1,[],[],markovTrans); 
     end
     
 else

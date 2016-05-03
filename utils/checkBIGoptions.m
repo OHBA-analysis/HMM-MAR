@@ -16,6 +16,7 @@ if ~isfield(options,'BIGforgetrate'), options.BIGforgetrate = 0.9; end
 if ~isfield(options,'BIGdelay'), options.BIGdelay = 1; end
 if ~isfield(options,'BIGbase_weights'), options.BIGbase_weights = 0.95; end % < 1 will promote democracy
 if ~isfield(options,'BIGcomputeGamma'), options.BIGcomputeGamma = 1; end
+if ~isfield(options,'BIGdecodeGamma'), options.BIGdecodeGamma = 0; end
 if ~isfield(options,'BIGverbose'), options.BIGverbose = 1; end  
 options.BIGbase_weights = options.BIGbase_weights * ones(1,N);
 
