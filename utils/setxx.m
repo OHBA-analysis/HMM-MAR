@@ -8,13 +8,13 @@ if ~isfield(hmm.train,'multipleConf') || ~hmm.train.multipleConf
         orders = formorders(hmm.train.order,hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag);
         if exist('data','var')
             if numel(data.X)*length(orders)>10000000
-                XX{1} = single(formautoregr(data.X,T,orders,hmm.train.maxorder,hmm.train.zeromean));
+                XX{1} = formautoregr(data.X,T,orders,hmm.train.maxorder,hmm.train.zeromean,1);
             else
                 XX{1} = formautoregr(data.X,T,orders,hmm.train.maxorder,hmm.train.zeromean);
             end
         else
             if numel(X)*length(orders)>10000000
-                XX{1} = single(formautoregr(X,T,orders,hmm.train.maxorder,hmm.train.zeromean));
+                XX{1} = formautoregr(X,T,orders,hmm.train.maxorder,hmm.train.zeromean,1);
             else
                 XX{1} = formautoregr(X,T,orders,hmm.train.maxorder,hmm.train.zeromean);
             end

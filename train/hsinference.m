@@ -19,7 +19,6 @@ function [Gamma,Gammasum,Xi,LL,scale,B] = hsinference(data,T,hmm,residuals,optio
 %
 % Author: Diego Vidaurre, OHBA, University of Oxford
 
-
 N = length(T);
 K = length(hmm.state);
 
@@ -31,7 +30,10 @@ if ~isfield(hmm,'train')
 end
 order = hmm.train.maxorder;
 
-if ~isstruct(data), 
+if iscell(data)
+    data = cell2mat(data);
+end
+if ~isstruct(data),
     data = struct('X',data); 
     data.C = NaN(size(data.X,1)-order*length(T),K);
 end
@@ -64,7 +66,7 @@ B = cell(N,1);
 
 n_argout = nargout;
 
-if hmm.train.useParallel==1 
+if hmm.train.useParallel==1 && N>1
             
     % to duplicate this code is really ugly but there doesn't seem to be
     % any other way - more Matlab's fault than mine 
@@ -214,18 +216,20 @@ B = obslike([],hmm,residuals,XX);
 B(B<realmin) = realmin;
 
 % pass to mex file?
-if ( (ismac || isunix) && ...
+if ( (ismac || isunix) && hmm.train.useMEX ==1 && ...
         exist('hidden_state_inference_mx', 'file') == 3 && ...
-        exist('ignore_MEX', 'file') == 0 )
-    finish = 1;
+        (~isfield(hmm.train,'ignore_MEX') || exist(hmm.train.ignore_MEX, 'file') == 0 ))
     try
         [Gamma, Xi, scale] = hidden_state_inference_mx(B, Pi, P, order);
+        return
     catch
-        fprintf('MEX file cannot be used, going on to Matlab code..\n')
-        fclose(fopen('ignore_MEX', 'w'));
-        finish = 0;
+        %if hmm.train.verbose
+        %    fprintf('MEX file cannot be used, going on to Matlab code..\n')
+        %end
+        if isfield(hmm.train,'ignore_MEX')
+            fclose(fopen(hmm.train.ignore_MEX, 'w')); % create file
+        end
     end
-    if finish==1, return; end
 end
 
 scale=zeros(T,1);

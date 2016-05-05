@@ -96,4 +96,6 @@ for k=1:K,
     else
         responseY = responseR + XX{kk} * Wgl;
     end
-end;
+end
+
+end

@@ -24,7 +24,7 @@ hmm=initpost(data.X,T,hmm,residuals,Gamma);
 end
 
 
-function [hmm] = initpriors(X,T,hmm,residuals)
+function hmm = initpriors(X,T,hmm,residuals)
 % define priors
 
 ndim = size(X,2);
@@ -109,7 +109,7 @@ end
 end
 
 
-function [hmm] = initpost(X,T,hmm,residuals,Gamma)
+function hmm = initpost(X,T,hmm,residuals,Gamma)
 % Initialising the posteriors
 
 Tres = sum(T) - length(T)*hmm.train.maxorder;
@@ -157,7 +157,7 @@ for k=1:K
                     (~train.zeromean)+ndim_n*length(orders),1) ) * ...
                     XX{kk}(:,Sind(:,n))) + 0.01*eye((~train.zeromean) + ndim_n*length(orders)) ;
                 hmm.state(k).W.S_W(n,Sind(:,n),Sind(:,n)) = inv(permute(hmm.state(k).W.iS_W(n,Sind(:,n),Sind(:,n)),[2 3 1]));
-                hmm.state(k).W.Mu_W(Sind(:,n),n) = (( permute(hmm.state(k).W.S_W(1,Sind(:,n),Sind(:,n)),[2 3 1])...
+                hmm.state(k).W.Mu_W(Sind(:,n),n) = (( permute(hmm.state(k).W.S_W(n,Sind(:,n),Sind(:,n)),[2 3 1])...
                     * XX{kk}(:,Sind(:,n))') .* repmat(Gamma(:,k)',(~train.zeromean)+ndim_n*length(orders),1)) ...
                     * residuals(:,n);
             end;

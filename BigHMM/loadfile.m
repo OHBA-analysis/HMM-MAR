@@ -15,7 +15,7 @@ if nargout==3
     Y = zeros(sum(T)-length(T)*options.order,size(X,2)); 
     for in=1:length(T)
         t0 = sum(T(1:in-1));
-        t = sum(T(1:in-1)) - length(T)*options.order;
+        t = sum(T(1:in-1)) - (in-1)*options.order;
         Y(t+1:t+T(in)-options.order,:) = X(t0+options.order+1:t0+T(in),:);
     end
 end

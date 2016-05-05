@@ -1,7 +1,6 @@
 function [options,Gamma] = checkoptions_spectra (options,ndim,T)
 
 % MT and common
-if ~isfield(options,'order'), options.order = 0; end
 if ~isfield(options,'p'), options.p = 0; end
 if ~isfield(options,'removezeros'), options.removezeros = 0; end
 if ~isfield(options,'completelags'), options.completelags = 0; end
@@ -24,6 +23,7 @@ if ~isfield(options,'loadings'), options.loadings=eye(ndim); end;
 if ~isfield(options,'Nf'),  options.Nf=256; end;
 if ~isfield(options,'MLestimation'), options.MLestimation = 1; end
 if ~isfield(options,'completelags'), options.completelags = 0; end
+
 if ~isfield(options,'level'), options.level = 'group'; end
 
 if options.MLestimation == 0, 

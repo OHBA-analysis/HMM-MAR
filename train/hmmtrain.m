@@ -32,6 +32,8 @@ end
 cyc_to_go = 0;
 setxx;
 
+hmm.train.ignore_MEX = tempname;
+
 for cycle=1:hmm.train.cyc
     
     if hmm.train.updateGamma
@@ -91,8 +93,8 @@ for cycle=1:hmm.train.cyc
 end
 
 if hmm.train.verbose
-    fprintf('Model: %d kernels, %d dimension(s), %d data samples, covariance: %s \n', ...
-        K,ndim,sum(T),hmm.train.covtype);
+    fprintf('Model: %d states, %d data samples, covariance: %s \n', ...
+        K,sum(T),hmm.train.covtype);
     if hmm.train.exptimelag>1,
         fprintf('Exponential lapse: %g, order %g, offset %g \n', ...
             hmm.train.exptimelag,hmm.train.order,hmm.train.orderoffset)
@@ -100,15 +102,16 @@ if hmm.train.verbose
         fprintf('Lapse: %d, order %g, offset %g \n', ...
             hmm.train.timelag,hmm.train.order,hmm.train.orderoffset)
     end
-    if exist('ignore_MEX', 'file')>0
+    if exist(hmm.train.ignore_MEX, 'file')>0
         fprintf('MEX file was not used, maybe due to some problem \n')
     else
         fprintf('MEX file was used for acceleration \n')
     end
 end
 
-if exist('ignore_MEX', 'file')>0
-    delete('ignore_MEX')
+if exist(hmm.train.ignore_MEX,'file')>0
+    delete(hmm.train.ignore_MEX)
 end
+hmm.train = rmfield(hmm.train,'ignore_MEX');
     
 end

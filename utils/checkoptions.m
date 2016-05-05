@@ -56,10 +56,10 @@ if ~isfield(options,'updateGamma'), options.updateGamma = 1; end
 if ~isfield(options,'decodeGamma'), options.decodeGamma = 1; end
 if ~isfield(options,'keepS_W'), options.keepS_W = 1; end
 if ~isfield(options,'useParallel'), 
-    if length(T)>1, options.useParallel = 1; 
-    else options.useParallel = 0;
-    end
+    options.useParallel = (length(T)>1);
 end
+if ~isfield(options,'useMEX'), options.useMEX = 1; end
+
 if ~isfield(options,'verbose'), options.verbose = 1; end
 
 if options.maxorder+1 >= min(T)
@@ -112,6 +112,7 @@ end
 
 
 function options = checkMARparametrization(options,S,ndim)
+
 if ~isfield(options,'order'), error('order was not specified'); end
 if ~isfield(options,'covtype') && ndim==1, options.covtype = 'diag'; 
 elseif ~isfield(options,'covtype') && ndim>1, options.covtype = 'full'; 
@@ -146,9 +147,14 @@ if ~isfield(options,'S'),
     end
 elseif nargin>=2 && ~isempty(S) && any(S(:)~=options.S(:))
     error('S has to be equal across states')
-elseif options.uniqueAR==1 && any(S(:)~=1)
+end
+if options.uniqueAR==1 && any(S(:)~=1)
     warning('S has no effect if uniqueAR=1')
 end
+if (strcmp(options.covtype,'full') || strcmp(options.covtype,'uniquefull')) && any(S(:)~=1)
+   error('Using S with elements different from zero is only implemented for covtype=diag/uniquediag')
+end
+
 orders = formorders(options.order,options.orderoffset,options.timelag,options.exptimelag);
 if ~isfield(options,'prior')
     options.prior = [];
@@ -179,12 +185,18 @@ end
 if options.uniqueAR && ~options.zeromean
     error('When unique==1, modelling the mean is not yet supported')
 end
+if (strcmp(options.covtype,'uniquediag') || strcmp(options.covtype,'uniquefull')) && ...
+        options.order == 0 && options.zeromean == 1
+   error('Unique covariance matrix, order=0 and no mean modelling: there is nothing left to drive the states..') 
+end
+
 options.Sind = formindexes(orders,options.S);
 if ~options.zeromean, options.Sind = [true(1,ndim); options.Sind]; end
 end
 
 
 function test = issymmetric(A)
+
 B = A';
 test = all(A(:)==B(:)); 
 end

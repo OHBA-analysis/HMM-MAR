@@ -1,8 +1,5 @@
-function [metahmm,markovTrans,fehist,feterms,rho] = trainBigHMM(Xin,T,options)
-% 1) Initialize BigHMM by estimating a separate HMM on each file,
-%    and then using an adapted version of kmeans to clusterize the states
-%    (see initBigHMM)
-% 2) Run the BigHMM algorithm
+function [metahmm,markovTrans,fehist,feterms,rho] = hmmstrain(Xin,T,metahmm,info,options)
+% Stochastic HMM variational inference
 %
 % INPUTS
 % Xin: cell with strings referring to the files containing each subject's data, 
@@ -14,49 +11,41 @@ function [metahmm,markovTrans,fehist,feterms,rho] = trainBigHMM(Xin,T,options)
 %
 % Diego Vidaurre, OHBA, University of Oxford (2016)
 
-N = length(Xin);
-
-% Check parameters
-checkBigHMMparameters;
+N = length(Xin); K = length(metahmm.state);
 X = loadfile(Xin{1},T{1}); ndim = size(X,2); XW = [];
-subjfe = zeros(N,3); % Gamma entropy, Gamma loglik and KL-divergences of transition prob. mat.
-loglik = zeros(N,1); % data log likelihood
-statekl = 0; % state KL-divergences
-Dir2d_alpha = zeros(K,K,N); Dir_alpha = zeros(K,N);
-fehist = 0; rho = 0;
+subjfe = info.subjfe;
+loglik = info.loglik;
+statekl = info.statekl;
+Dir2d_alpha = info.Dir2d_alpha;
+Dir_alpha = info.Dir_alpha;
+fehist = info.fehist; 
+metahmm_best = metahmm;
+Dir2d_alpha_best = Dir2d_alpha; 
+Dir_alpha_best = Dir_alpha;
+cyc_best = 1;
 
-% Initialization
-initBigHMM;
+clear info;
 
-% init stuff for stochastic learning
+% init stochastic learning stuff
 nUsed = zeros(1,N); 
-BIGbase_weights = BIGbase_weights * ones(1,N);
-sampling_weights = BIGbase_weights;
-undertol = 0;
+sampling_weights = options.BIGbase_weights;
+undertol = 0; count = 0;
 orders = formorders(options.order,options.orderoffset,options.timelag,options.exptimelag);
 
-% load('/tmp/debugBigHMM.mat'); gramm = [];
-% fprintf('Init run %d, FE=%g (best=%g) \n',cycle,fe,best_fe);
-% % load('/tmp/options_bighmm'); BIGNbatch = options_bighmm.BIGNbatch; 
-% BIGcyc = 25; BIGNbatch = N ; % N = 1; 
-
-Tfactor = N/BIGNbatch; 
-
-%[ sum(loglik(:,1)) squeeze(sum(subjfe(:,1,1),1)) squeeze(sum(subjfe(:,2,1),1)) squeeze(sum(subjfe(:,3,1),1))]
+Tfactor = N/options.BIGNbatch; 
 
 % Stochastic learning
-for cycle = 2:BIGcyc
+for cycle = 2:options.BIGcyc
     
     % sampling batch
-    I = datasample(1:N,BIGNbatch,'Replace',false,'Weights',sampling_weights);
-    %I = 1:BIGNbatch; %I = 1:N;
+    I = datasample(1:N,options.BIGNbatch,'Replace',false,'Weights',sampling_weights);
     nUsed(I) = nUsed(I) + 1;
     nUsed = nUsed - min(nUsed) + 1;
-    sampling_weights = BIGbase_weights.^nUsed;
+    sampling_weights = options.BIGbase_weights.^nUsed;
         
     % read data for this batch
     Tbatch = [];
-    for ii = 1:length(I), i = I(ii); Tbatch = [Tbatch T{i}]; end
+    for ii = 1:length(I), i = I(ii); Tbatch = [Tbatch; T{i}]; end
     X = zeros(sum(Tbatch),ndim);
     XX = cell(1); 
     XX{1} = zeros(sum(Tbatch)-length(Tbatch)*options.order,length(orders)*ndim+(~options.zeromean));
@@ -69,9 +58,10 @@ for cycle = 2:BIGcyc
         tacc = tacc + sum(T{i}); t2acc = t2acc + sum(T{i}) - length(T{i})*options.order;
     end
     
-    % local parameters (Gamma, Xi, P, Pi, Dir2d_alpha and Dir_alpha)
+    % local parameters (Gamma, Xi, P, Pi, Dir2d_alpha and Dir_alpha),
+    % and free energy relative these local parameters
     tacc = 0; t2acc = 0;
-    Gamma = cell(BIGNbatch,1); Xi = cell(BIGNbatch,1);
+    Gamma = cell(options.BIGNbatch,1); Xi = cell(options.BIGNbatch,1);
     XXGXX = cell(K,1);  
     for k=1:K, XXGXX{k} = zeros(size(XX{1},2)); end
     for ii = 1:length(I)
@@ -80,39 +70,42 @@ for cycle = 2:BIGcyc
         tacc = tacc + sum(T{i}); t2acc = t2acc + sum(T{i}) - length(T{i})*options.order;
         data = struct('X',X(t,:),'C',NaN(sum(T{i})-length(T{i})*options.order,K));
         XX_i = cell(1); XX_i{1} = XX{1}(t2,:); Y_i = Y(t2,:);
-        if BIGuniqueTrans
+        if options.BIGuniqueTrans
             metahmm_i = metahmm;
         else
             metahmm_i = copyhmm(metahmm,P(:,:,i),Pi(:,i)',Dir2d_alpha(:,:,i),Dir_alpha(:,i)');
         end
-        [Gamma{ii},~,Xi{ii}] = hsinference(data,T{i},metahmm_i,Y_i,[],XX_i);
+        [Gamma{ii},~,Xi{ii}] = hsinference(data,T{i},metahmm_i,Y_i,[],XX_i); % state time courses
         for k=1:K
             XXGXX{k} = XXGXX{k} + (XX_i{1}' .* repmat(Gamma{ii}(:,k)',size(XX_i{1},2),1)) * XX_i{1};
         end
-        metahmm_i = hsupdate(Xi{ii},Gamma{ii},T{i},metahmm_i);
-        if BIGuniqueTrans
+        if options.BIGuniqueTrans % update transition probabilities
             Dir_alpha(:,i) = 0;
             for trial=1:length(T{i})
                 t3 = sum(T{i}(1:trial-1)) - options.order*(trial-1) + 1;
                 Dir_alpha(:,i) = Dir_alpha(:,i) + Gamma{ii}(t3,:)';
             end
             Dir2d_alpha(:,:,i) = squeeze(sum(Xi{ii},1));
-            subjfe(i,1:2,cycle) = evalfreeenergy([],T{i},Gamma{ii},Xi{ii},metahmm_i,[],[],[1 0 1 0 0]); % Gamma entropy&LL
         else
+            metahmm_i = hsupdate(Xi{ii},Gamma{ii},T{i},metahmm_i);
             P(:,:,i) = metahmm_i.P; Pi(:,i) = metahmm_i.Pi'; % one per subject, not like pure group HMM
             Dir2d_alpha(:,:,i) = metahmm_i.Dir2d_alpha; Dir_alpha(:,i) = metahmm_i.Dir_alpha';
-            subjfe(i,:,cycle) = evalfreeenergy([],T{i},Gamma{ii},Xi{ii},metahmm_i,[],[],[1 0 1 1 0]); % + transitions LL
+            subjfe(i,:,cycle) = evalfreeenergy([],T{i},Gamma{ii},Xi{ii},metahmm_i,[],[],[1 0 1 1 0]); 
         end
     end
-    if BIGuniqueTrans
-        metahmm.Dir_alpha = sum(Dir_alpha,2)' + Dir_alpha_prior;
-        metahmm.Dir2d_alpha = sum(Dir2d_alpha,3) + Dir2d_alpha_prior;
+    if options.BIGuniqueTrans
+        metahmm.Dir_alpha = sum(Dir_alpha,2)' + metahmm.prior.Dir_alpha_prior;
+        metahmm.Dir2d_alpha = sum(Dir2d_alpha,3) + metahmm.prior.Dir2d_alpha_prior;
         [metahmm.P,metahmm.Pi] = computePandPi(metahmm.Dir_alpha,metahmm.Dir2d_alpha);
-        subjfe(:,3,cycle) = evalfreeenergy([],[],[],[],metahmm,[],[],[0 0 0 1 0]) / N; % "shared" KL
+        subjfe(:,3,cycle) = evalfreeenergy([],[],[],[],metahmm,[],[],[0 0 0 1 0]) / N; % "shared" P/Pi KL
+        for ii = 1:length(I)
+            i = I(ii); % Gamma entropy&LL
+            subjfe(i,1:2,cycle) = evalfreeenergy([],T{i},Gamma{ii},Xi{ii},metahmm,[],[],[1 0 1 0 0]); 
+        end
     end
         
     % global parameters (metahmm), and collect metastate free energy
-    rho(cycle) = (cycle + BIGdelay)^(-BIGforgetrate); 
+    rho(cycle) = (cycle + options.BIGdelay)^(-options.BIGforgetrate); 
     MGamma = cell2mat(Gamma);
     % W
     if isfield(metahmm.state(1),'W') && ~isempty(metahmm.state(1).W.Mu_W)
@@ -148,39 +141,58 @@ for cycle = 2:BIGcyc
     % bring from last iteration whatever was not updated
     for i = setdiff(1:N,I)
         loglik(i,cycle) = loglik(i,cycle-1);
-        if ~BIGuniqueTrans
+        if ~options.BIGuniqueTrans
             subjfe(i,:,cycle) = subjfe(i,:,cycle-1);
         end
     end
-        
-    %[ sum(loglik(:,cycle)) squeeze(sum(subjfe(:,1,cycle),1)) squeeze(sum(subjfe(:,2,cycle),1)) squeeze(sum(subjfe(:,3,cycle),1))]
-
+          
     fehist(cycle) = (-sum(loglik(:,cycle)) + statekl(1,cycle) + sum(sum(subjfe(:,:,cycle))));
     ch = (fehist(end)-fehist(end-1)) / abs(fehist(end)-fehist(1));
-    if BIGverbose
-        fprintf('Cycle %d, free energy: %g (relative change %g), rho: %g \n',cycle,fehist(end),ch,rho(cycle));
+    if min(fehist)==fehist(cycle)
+        metahmm_best = metahmm; 
+        cyc_best = cycle;
+        if ~options.BIGuniqueTrans, P_best = P; Pi_best = Pi; end
+        Dir2d_alpha_best = Dir2d_alpha; Dir_alpha_best = Dir_alpha;
+        count = 0;
+    else
+        count = count + 1; 
+    end
+    if options.BIGverbose
+        fprintf('Cycle %d, free energy: %g (relative change %g), rho: %g \n', ...
+            cycle,fehist(end),ch,rho(cycle));
     end
 
-    if cycle>5 && abs(ch) < BIGtol && cycle>BIGmincyc, 
+    if cycle>5 && abs(ch) < options.BIGtol 
         undertol = undertol + 1; 
     else
         undertol = 0;
     end
-    if undertol > BIGundertol_tostop, break; end
+    if cycle>options.BIGmincyc
+        if undertol > options.BIGundertol_tostop, break; end
+        if count >= options.BIGcycnobetter_tostop, break; end
+    end
     
 end
 
+metahmm = metahmm_best;
 markovTrans = struct();
-markovTrans.P = P;
-markovTrans.Pi = Pi;
-markovTrans.Dir2d_alpha = Dir2d_alpha;
-markovTrans.Dir_alpha = Dir_alpha;
+if ~options.BIGuniqueTrans
+    markovTrans.P = P_best;
+    markovTrans.Pi = Pi_best;
+end
+markovTrans.Dir2d_alpha = Dir2d_alpha_best;
+markovTrans.Dir_alpha = Dir_alpha_best;
 markovTrans.prior.Dir2d_alpha = metahmm.prior.Dir2d_alpha;
 markovTrans.prior.Dir_alpha = metahmm.prior.Dir_alpha;
+fehist = fehist(1:cyc_best);
+loglik = loglik(:,1:cyc_best);
+subjfe = subjfe(:,:,1:cyc_best);
+statekl = statekl(1:cyc_best);
+rho = rho(1:cyc_best);
 
-if ~BIGuniqueTrans
-    metahmm.Dir_alpha = sum(Dir_alpha,2)' + Dir_alpha_prior;
-    metahmm.Dir2d_alpha = sum(Dir2d_alpha,3) + Dir2d_alpha_prior;
+if ~options.BIGuniqueTrans
+    metahmm.Dir_alpha = sum(markovTrans.Dir_alpha,2)' + metahmm.prior.Dir_alpha_prior;
+    metahmm.Dir2d_alpha = sum(markovTrans.Dir2d_alpha,3) + metahmm.prior.Dir2d_alpha_prior;
     [metahmm.P,metahmm.Pi] = computePandPi(metahmm.Dir_alpha,metahmm.Dir2d_alpha);
 end
 
@@ -188,6 +200,18 @@ feterms = struct();
 feterms.loglik = loglik;
 feterms.subjfe = subjfe;
 feterms.statekl = statekl;
+ 
+if metahmm.train.BIGverbose
+    fprintf('Model: %d states, %d subjects, batch size %d, covariance: %s \n', ...
+        K,length(T),options.BIGNbatch,metahmm.train.covtype);
+    if metahmm.train.exptimelag>1,
+        fprintf('Exponential lapse: %g, order %g, offset %g \n', ...
+            metahmm.train.exptimelag,metahmm.train.order,metahmm.train.orderoffset)
+    else
+        fprintf('Lapse: %d, order %g, offset %g \n', ...
+            metahmm.train.timelag,metahmm.train.order,metahmm.train.orderoffset)
+    end
+end
 
 end
 

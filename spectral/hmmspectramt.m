@@ -45,7 +45,7 @@ function fit = hmmspectramt(X,T,options)
 % Author: Diego Vidaurre, OHBA, University of Oxford (2014)
 %  the code uses some parts from Chronux
 
-ndim = size(X,2);
+ndim = size(X,2); T = double(T); 
 [options,Gamma] = checkoptions_spectra(options,ndim,T);
 
 % remove the exceeding part of X (with no attached Gamma)

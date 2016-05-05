@@ -27,7 +27,7 @@ function [flips,scorepath,covmats_unflipped] = findflip(X,T,options)
 
 N = length(T); ndim = size(X,2);
 
-if ~isfield(options,'maxlag'), options.maxlag = 4; end
+if ~isfield(options,'maxlag'), options.maxlag = 2; end
 if ~isfield(options,'noruns'), options.noruns = 50; end
 if ~isfield(options,'maxcyc'), options.maxcyc = 100*N*ndim; end
 if ~isfield(options,'mincyc'), options.mincyc = 10; end
@@ -47,7 +47,11 @@ else
         for in = 1:N
             ind = (1:T(in)) + sum(T(1:in-1));
             X(ind,:) = X(ind,:) - repmat(mean(X(ind,:)),T(in),1);
-            X(ind,:) = X(ind,:) ./ repmat(std(X(ind,:)),T(in),1);
+            sd = std(X(ind,:));
+            if any(sd==0), 
+                error('At least one channel in at least one trial has variance equal to 0')
+            end
+            X(ind,:) = X(ind,:) ./ repmat(sd,T(in),1);
         end
     end
     covmats_unflipped = getCovMats(X,T,options.maxlag);
