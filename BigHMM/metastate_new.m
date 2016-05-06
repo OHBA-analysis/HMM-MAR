@@ -28,9 +28,12 @@ else
 end
 
 if fullcovmat
-    metastate.W.iS_W = kron(gram,prec) + eps*eye(ndim*npred);
+    mlW = gram \ m; 
+    Gram = kron(gram,prec);
+    metastate.W.iS_W = Gram + eps*eye(ndim*npred);
     metastate.W.S_W = inv(metastate.W.iS_W);
-    metastate.W.Mu_W = metastate.W.S_W * m;
+    muW = metastate.W.S_W * Gram * mlW(:);
+    metastate.W.Mu_W = reshape(muW,ndim,numel(muW)/ndim)';
 else
     metastate.W.iS_W = zeros(ndim,npred,npred);
     metastate.W.S_W = zeros(ndim,npred,npred);

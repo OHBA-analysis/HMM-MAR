@@ -54,12 +54,16 @@ for rep = 1:options.BIGinitrep
             end
         end
         % Running the individual HMM
-        options_copy = options; options_copy = rmfield(options_copy,'BIGNbatch');
+        options_copy = options; 
+        options_copy = rmfield(options_copy,'BIGNbatch');
+        options_copy = rmfield(options_copy,'orders');
         if length(T{i})==1, options_copy.useParallel = 0; end 
         [hmm_i,Gamma,Xi] = hmmmar(X,T{i},options_copy);
         if ii==1 % get priors
             Dir2d_alpha_prior = hmm_i.prior.Dir2d_alpha;
             Dir_alpha_prior = hmm_i.prior.Dir_alpha;
+            hmm_i.train.orders = formorders(hmm_i.train.order,hmm_i.train.orderoffset,...
+                hmm_i.train.timelag,hmm_i.train.exptimelag);
             Sind = formindexes(hmm_i.train.orders,hmm_i.train.S)==1;
             if ~hmm_i.train.zeromean, Sind = [true(1,ndim); Sind]; end
         end
