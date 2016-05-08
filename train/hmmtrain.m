@@ -51,6 +51,7 @@ for cycle=1:hmm.train.cyc
                 end
                 if sum(hmm.train.active)==1
                     fprintf('cycle %i: All the points collapsed in one state \n',cycle)
+                    fehist(end+1) = sum(evalfreeenergy(data.X,T,Gamma,Xi,hmm,residuals,XX));
                     K = 1; break
                 end
             end
