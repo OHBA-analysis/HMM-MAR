@@ -78,7 +78,8 @@ for k=1:K
         hmm.state(k).W.Mu_W = XGX \ XY;
         predk = XX{kk} * repmat(hmm.state(k).W.Mu_W,1,ndim);
     elseif all(S(:)==1)
-        hmm.state(k).W.Mu_W = pinv(XX{kk} .* repmat(sqrt(Gamma(:,k)),1,size(XX{kk},2))) * residuals;
+        hmm.state(k).W.Mu_W = pinv(XX{kk} .* repmat(sqrt(Gamma(:,k)),1,size(XX{kk},2))) ...
+            * ( sqrt(Gamma(:,k)) .* residuals);
         predk = XX{kk} * hmm.state(k).W.Mu_W;
     else
         hmm.state(k).W.Mu_W = zeros(size(XX{kk},1),ndim);
