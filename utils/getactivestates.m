@@ -8,11 +8,11 @@ if isfield(hmm.state(1),'Omega'),
 else
     ndim = size(hmm.state(1).W.Mu_W,2);
 end
-Gammasum = sum(Gamma);
+Gammasum = mean(Gamma); % Fractional occupancy
 
 actstates = ones(1,K); % length = to the last no. of states (=the original K if dropstates==0)
 for k=1:K
-    if Gammasum(:,k) <= max(length(orders)*ndim+1,10)
+    if Gammasum(:,k) <= 0.01 % If state is present less than 0.01 of the time
         if ~hmm.train.dropstates && hmm.train.active(k)==1
             fprintf('State %d has been switched off with %f points\n',k,Gammasum(k))
             hmm.train.active(k) = 0;
@@ -39,7 +39,9 @@ if hmm.train.dropstates==1
         K = K - 1;
         hmm.state(k) = [];
         actstates2(k) = [];
-        fprintf('State %d has been knocked out with %f points - there are %d left\n',k0,Gammasum(k),K)
+        if hmm.train.verbose
+            fprintf('State %d has been knocked out with %f points - there are %d left\n',k0,Gammasum(k),K)
+        end
         Gammasum(k) = [];
         k0 = k0 + 1;
     end
