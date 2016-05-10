@@ -20,7 +20,7 @@ if order > 0,
             sep = sep + 1; 
         end
     else
-        orders = orderoffset + (1:timelag:(order-orderoffset)) % quicker
+        orders = orderoffset + (1:timelag:(order-orderoffset)); % quicker
         % drop = find(orders>order); 
         % if ~isempty(drop)
         %     drop = drop(1);
