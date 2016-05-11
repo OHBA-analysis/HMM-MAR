@@ -44,23 +44,40 @@ function fit = hmmspectramar(X,T,hmm,Gamma,options)
 
 sT = sum(T);
 ndim = size(X,2);
-if isfield(hmm.train,'S') && size(hmm.train.S,1)~=ndim
-    hmm.train.S = ones(ndim);
-end
-
-if ~isempty(hmm), K = length(hmm.state); 
-else K = size(Gamma,2);
-end
-
-if isfield(options,'order') && ~isempty(hmm) % a new order? 
-    for k=1:K, 
-        hmm.state(k).order = options.order; 
-        if isfield(hmm.state(k),'train'), hmm.state(k).train.order = options.order; end
+if ~isempty(hmm)
+    if isfield(hmm.train,'S') && size(hmm.train.S,1)~=ndim
+        hmm.train.S = ones(ndim);
     end
-    hmm.train.order = options.order;
+    K = length(hmm.state); 
+    if isfield(options,'order') % a new order?
+        for k=1:K,
+            hmm.state(k).order = options.order;
+            if isfield(hmm.state(k),'train'), hmm.state(k).train.order = options.order; end
+        end
+        hmm.train.order = options.order;
+        hmm.train.maxorder = options.order;
+    else
+        options.order = hmm.train.maxorder;
+    end       
+else
+    hmm = struct('train',struct()); hmm.train.S = ones(ndim);
+    K = size(Gamma,2);   
+    if ~isfield(options,'order')
+        options.order = (size(X,1) - size(Gamma,1) ) / length(T);
+    end
+    hmm.train.order = options.order; hmm.train.maxorder = options.order; 
+    hmm.train.multipleConf = 0;
+    hmm.train.uniqueAR = 0;
+    hmm.train.covtype = 'diag';
+    if isfield(options,'zeromean'), 
+        hmm.train.zeromean = options.zeromean; 
+    else
+        hmm.train.zeromean = 1; 
+    end
+    for k=1:K, hmm.state(k) = struct('W',struct('Mu_W',[])); end
 end
 
-if isfield(options,'order') && options.order~=hmm.train.maxorder % trim Gamma
+if options.order~=hmm.train.maxorder % trim Gamma
    if options.order<hmm.train.maxorder
        error('If you specify a new MAR order, has to be higher than hmm.train.maxorder')
    end
