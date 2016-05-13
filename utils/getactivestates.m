@@ -27,34 +27,27 @@ for k=1:K
 end
 
 if hmm.train.dropstates==1
-    Gamma = Gamma(:,actstates==1);
+    is_active = logical(actstates);
+    Gamma = Gamma(:,is_active);
     Gamma = bsxfun(@rdivide,Gamma,sum(Gamma,2));
-    actstates2 = actstates;
-    k = 1;
-    k0 = 1;
-    while k<=K
-        if actstates2(k)
-            k = k + 1; k0 = k0 + 1;
-            continue
+    hmm.state = hmm.state(is_active);
+
+    if hmm.train.verbose
+        knockout = find(~is_active);
+        for j = 1:length(knockout)
+            fprintf('State %d has been knocked out with %f points - there are %d left\n',knockout(j),Gammasum(knockout(j)),K)
         end
-        K = K - 1;
-        hmm.state(k) = [];
-        actstates2(k) = [];
-        if hmm.train.verbose
-            fprintf('State %d has been knocked out with %f points - there are %d left\n',k0,Gammasum(k),K)
-        end
-        Gammasum(k) = [];
-        k0 = k0 + 1;
     end
-    hmm.K = K;
-    hmm.Dir2d_alpha = hmm.Dir2d_alpha(actstates==1,actstates==1);
-    hmm.Dir_alpha = hmm.Dir_alpha(actstates==1);
-    hmm.prior.Dir2d_alpha = hmm.prior.Dir2d_alpha(actstates==1,actstates==1);
-    hmm.prior.Dir_alpha = hmm.prior.Dir_alpha(actstates==1);
-    hmm.P = hmm.P(actstates==1,actstates==1);
-    hmm.Pi = hmm.Pi(actstates==1);
-    Xi = Xi(:,actstates==1,actstates==1);
-    hmm.train.active = ones(1,sum(actstates));
+
+    hmm.K = sum(is_active);
+    hmm.Dir2d_alpha = hmm.Dir2d_alpha(is_active,is_active);
+    hmm.Dir_alpha = hmm.Dir_alpha(is_active);
+    hmm.prior.Dir2d_alpha = hmm.prior.Dir2d_alpha(is_active,is_active);
+    hmm.prior.Dir_alpha = hmm.prior.Dir_alpha(is_active);
+    hmm.P = hmm.P(is_active,is_active);
+    hmm.Pi = hmm.Pi(is_active);
+    Xi = Xi(:,is_active,is_active);
+    hmm.train.active = ones(1,sum(is_active));
 end
 
 end
