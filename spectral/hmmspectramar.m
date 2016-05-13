@@ -4,7 +4,7 @@ function fit = hmmspectramar(X,T,hmm,Gamma,options)
 % INPUT
 % X             time series 
 % T             Number of time points for each time series
-% hmm           An hmm-mar structure 
+% hmm           An hmm-mar structure (optional)
 % Gamma         State time course (not used if options.MLestimation=0)
 % options 
 

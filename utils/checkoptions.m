@@ -2,6 +2,9 @@ function [options,data] = checkoptions (options,data,T,cv)
 
 if ~isfield(options,'K'), error('K was not specified'); end
 if ~isstruct(data), data = struct('X',data); end
+if size(data.X,1)~=sum(T), 
+    error('Total time specified in T does not match the size of the data')
+end
 
 options = checkMARparametrization(options,[],size(data.X,2));
 options.multipleConf = isfield(options,'state');

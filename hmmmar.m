@@ -29,7 +29,8 @@ else
     N = length(T);
 end
 
-stochastic_learn = isfield(options,'BIGNbatch') && options.BIGNbatch < N;
+stochastic_learn = isfield(options,'BIGNbatch') && ...
+    (options.BIGNbatch < N && options.BIGNbatch > 0);
 options = checkspelling(options);
 
 if stochastic_learn, 
