@@ -37,7 +37,7 @@ end
 
 if nargout==2
     if ~isfield(options,'Gamma'),
-        Gamma = ones(sum(T)-length(T)*options.order,1);
+        Gamma = ones(sum(T),1);
     else
         Gamma = options.Gamma;
     end

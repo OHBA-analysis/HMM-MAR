@@ -50,17 +50,15 @@ ndim = size(X,2); T = double(T);
 
 % remove the exceeding part of X (with no attached Gamma)
 order = (size(X,1) - size(Gamma,1)) / length(T);
-X2 = zeros(sum(T)-length(T)*order,ndim); 
-for in = 1:length(T),
-    t0 = sum(T(1:in-1)); t00 = sum(T(1:in-1)) - (in-1)*order;
-    X2(t00+1:t00+T(in)-order,:) = X(t0+1+order:t0+T(in),:);
+if order>0
+    X2 = zeros(sum(T)-length(T)*order,ndim);
+    for in = 1:length(T),
+        t0 = sum(T(1:in-1)); t00 = sum(T(1:in-1)) - (in-1)*order;
+        X2(t00+1:t00+T(in)-order,:) = X(t0+1+order:t0+T(in),:);
+    end
+    T = T - order;
+    X = X2; clear X2;
 end
-T = T - order;
-X = X2; clear X2;
-
-%for in=1:length(T)    
-    
-%end
     
 Gamma = sqrt(Gamma) .* repmat( sqrt(size(Gamma,1) ./ sum(Gamma)), size(Gamma,1), 1);
 

@@ -1,7 +1,5 @@
-function [X,T,Gamma,statepath] = simhmmmar(T,hmm,Gamma,trim,X0,sim_state_tcs_only)
-
-% [X,T,Gamma,statepath]=simhmmmar(T,hmm,Gamma,trim,X0,sim_state_tcs_only)
-% 
+function [X,T,Gamma,statepath] = simhmmmar(T,hmm,Gamma,nrep,trim,X0,sim_state_tcs_only)
+%
 % Simulate data from the HMM-MAR
 %
 % INPUTS:
@@ -9,6 +7,7 @@ function [X,T,Gamma,statepath] = simhmmmar(T,hmm,Gamma,trim,X0,sim_state_tcs_onl
 % T                     Number of time points for each time series
 % hmm                   hmm structure with options specified in hmm.train
 % Gamma                 State courses - leave these empty to simulate these too
+% nrep                  no. repetitions of Gamma(t), from which we take the average
 % trim                  how many time points to remove from the beginning of each trial
 % X0                    A starting point for the time series ( no. time points x ndim x length(T) )
 %                       - if not provided, it is set to Gaussian noise
@@ -19,6 +18,7 @@ function [X,T,Gamma,statepath] = simhmmmar(T,hmm,Gamma,trim,X0,sim_state_tcs_onl
 % X             simulated observations  
 % T             Number of time points for each time series
 % Gamma         simulated  p(state | data)
+% statepath     Viterbi path 
 %
 % Author: Diego Vidaurre, OHBA, University of Oxford
 
@@ -27,27 +27,14 @@ ndim = size(hmm.state(1).W.Mu_W,2);
 span = .1;  
 
 if nargin<3, Gamma = []; end
-if nargin<4, trim = 0; end
-if nargin<5, X0 = []; end
-if nargin<6, sim_state_tcs_only=0; end
+if nargin<4, nrep = 10; end
+if nargin<5, trim = 0; end
+if nargin<6, X0 = []; end
+if nargin<7, sim_state_tcs_only=0; end
 
 statepath=[];
 if isempty(Gamma), % Gamma is not provided, so we simulate it too
-    for in=1:N
-        Gammai = zeros(T(in),K);
-        statepath=zeros(T(in),1);       
-        
-        Gammai(1,:) = mnrnd(1,hmm.Pi);
-        for t=2:T(in)
-            Gammai(t,:) = mnrnd(1,hmm.P(Gammai(t-1,:)==1,:));
-            statepath(t)= find(Gammai(t,:)==1);
-        end
-        
-        for k=1:K, 
-            Gammai(:,k) = smooth(Gammai(:,k),'lowess',span); 
-        end
-        Gamma = [ Gamma;  Gammai ./ repmat(sum(Gammai,2),1,K) ];
-    end
+    [Gamma,statepath] = simgamma(T,hmm.P,hmm.Pi,nrep);
 end
 
 X = [];

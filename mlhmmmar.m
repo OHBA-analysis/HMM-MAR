@@ -27,10 +27,6 @@ ndim = size(X,2);
 K = size(Gamma,2);
 hmm.K = K; N = length(T);
 
-orders = formorders(hmm.train.order,hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag);
-Sind = formindexes(orders,hmm.train.S); hmm.train.Sind = Sind;  
-S = hmm.train.S==1; regressed = sum(S,1)>0;
-if ~hmm.train.zeromean, Sind = [true(1,size(X,2)); Sind]; end
 if completelags
     maxorder0 = hmm.train.maxorder;
     hmm.train.orderoffset=0; hmm.train.timelag=1; hmm.train.exptimelag=0;
@@ -58,6 +54,12 @@ if completelags
         end
     end
 end
+
+orders = formorders(hmm.train.order,hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag);
+S = hmm.train.S==1; regressed = sum(S,1)>0;
+Sind = formindexes(orders,hmm.train.S); hmm.train.Sind = Sind;
+if ~hmm.train.zeromean, Sind = [true(1,size(X,2)); Sind]; end
+
 residuals =  getresiduals(X,T,Sind,hmm.train.maxorder,hmm.train.order,hmm.train.orderoffset,...
     hmm.train.timelag,hmm.train.exptimelag,hmm.train.zeromean);
 pred = zeros(size(residuals));
@@ -79,7 +81,7 @@ for k=1:K
         predk = XX{kk} * repmat(hmm.state(k).W.Mu_W,1,ndim);
     elseif all(S(:)==1)
         hmm.state(k).W.Mu_W = pinv(XX{kk} .* repmat(sqrt(Gamma(:,k)),1,size(XX{kk},2))) ...
-            * ( sqrt(Gamma(:,k)) .* residuals);
+            * ( repmat(sqrt(Gamma(:,k)),1,size(residuals,2)) .* residuals);
         predk = XX{kk} * hmm.state(k).W.Mu_W;
     else
         hmm.state(k).W.Mu_W = zeros(size(XX{kk},1),ndim);
