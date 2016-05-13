@@ -1,11 +1,4 @@
-function [Gamma,K_selected] = initGamma_random(T,K,D)
-
-% Randomly select a smaller K with small probability - set threshold to -1 to return to original behaviour
-if rand(1) < 0.5
-	K_selected = ceil(K*rand(1));
-else
-	K_selected = K;
-end
+function Gamma = initGamma_random(T,K,D)
 
 Gamma = zeros(sum(T),K);
 P = ones(K,K); 
@@ -25,6 +18,6 @@ for tr=1:length(T)
 end
 
 
-Gamma = Gamma + 0.2; % Allow the states to mix a little initially - set to 0 to return to original behaviour
-Gamma(:,K_selected+1:end) = 0; % Knock out the skipped states 
-Gamma = bsxfun(@rdivide,Gamma,sum(Gamma,2)); % Renormalize
+% Gamma = Gamma + 0; % Allow the states to mix a little initially - set to 0 to return to original behaviour
+% Gamma(:,K_selected+1:end) = 0; % Knock out the skipped states 
+% Gamma = bsxfun(@rdivide,Gamma,sum(Gamma,2)); % Renormalize
