@@ -28,6 +28,7 @@ end
 
 if hmm.train.dropstates==1
     Gamma = Gamma(:,actstates==1);
+    Gamma = bsxfun(@rdivide,Gamma,sum(Gamma,2));
     actstates2 = actstates;
     k = 1;
     k0 = 1;
