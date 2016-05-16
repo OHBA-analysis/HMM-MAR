@@ -19,20 +19,21 @@ else
     order = options.order;
 end
 
-fehist = inf(options.initrep,1);
-Gamma = cell(options.initrep,1);
+% Run two initializations for each K less than requested K, plus options.initrep K
+init_k = [repmat(1:(options.K-1),1,2) options.K*ones(1,options.initrep)];
 
-parfor it=1:options.initrep
+fehist = inf(length(init_k),1);
+Gamma = cell(length(init_k),1);
+
+parfor it=1:length(init_k)
 
     opt_worker = options;
-
-    if rand(1) < -1
-        opt_worker.K = ceil(options.K*rand(1));
-    else
-        opt_worker.K = options.K;
-    end
+    opt_worker.K = init_k(it);
+    data2 = data;
+    data2.C = data2.C(:,1:opt_worker.K);
 
     opt_worker.Gamma = initGamma_random(T-opt_worker.maxorder,opt_worker.K,opt_worker.DirichletDiag);
+
     hmm0=struct('train',struct());
     hmm0.K = opt_worker.K;
     hmm0.train = options; 
@@ -40,8 +41,8 @@ parfor it=1:options.initrep
     hmm0.train.cyc = hmm0.train.initcyc;
     hmm0.train.verbose = 0;
     hmm0 = hmmhsinit(hmm0);
-    [hmm0,residuals0]=obsinit(data,T,hmm0,opt_worker.Gamma);
-    [~,Gamma{it},~,fehist0] = hmmtrain(data,T,hmm0,opt_worker.Gamma,residuals0);
+    [hmm0,residuals0]=obsinit(data2,T,hmm0,opt_worker.Gamma);
+    [~,Gamma{it},~,fehist0] = hmmtrain(data2,T,hmm0,opt_worker.Gamma,residuals0);
     fehist(it) = fehist0(end);
 
     if opt_worker.verbose,
@@ -50,7 +51,7 @@ parfor it=1:options.initrep
 
     if size(Gamma{it},2)<options.K % If states were knocked out, add them back
         Gamma{it} = [Gamma{it} 0.0001*rand(size(Gamma{it},1),options.K-size(Gamma{it},2))];
-        Gamma{it} = Gamma{it} ./ repmat(sum(Gamma{it},2),1,options.K);
+        Gamma{it} = bsxfun(@rdivide,Gamma{it},sum(Gamma{it},2));
     end
 
 end
