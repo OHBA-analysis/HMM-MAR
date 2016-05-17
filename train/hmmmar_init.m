@@ -21,6 +21,7 @@ end
 
 % Run two initializations for each K less than requested K, plus options.initrep K
 init_k = [repmat(1:(options.K-1),1,2) options.K*ones(1,options.initrep)];
+init_k = init_k(end:-1:1);
 
 fehist = inf(length(init_k),1);
 Gamma = cell(length(init_k),1);
