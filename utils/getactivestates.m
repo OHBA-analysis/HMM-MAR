@@ -48,6 +48,11 @@ if hmm.train.dropstates==1
     hmm.Pi = hmm.Pi(is_active);
     Xi = Xi(:,is_active,is_active);
     hmm.train.active = ones(1,sum(is_active));
+
+    % These should be renormalized to keep them in a valid state
+    hmm.P = bsxfun(@rdivide,hmm.P,sum(hmm.P,2));
+    hmm.Pi = hmm.Pi ./ sum(hmm.Pi);
+
 end
 
 end
