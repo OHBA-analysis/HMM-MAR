@@ -48,6 +48,7 @@ for cycle=1:hmm.train.cyc
                 if any(as==0)
                     cyc_to_go = hmm.train.cycstogoafterevent;
                     data.C = data.C(:,as==1);
+                    [Gamma,~,Xi] = hsinference(data,T,hmm,residuals,[],XX);
                 end
                 if sum(hmm.train.active)==1
                     fehist(end+1) = sum(evalfreeenergy(data.X,T,Gamma,Xi,hmm,residuals,XX));
