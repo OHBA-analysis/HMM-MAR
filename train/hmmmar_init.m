@@ -22,6 +22,8 @@ end
 % Run two initializations for each K less than requested K, plus options.initrep K
 init_k = [repmat(1:(options.K-1),1,2) options.K*ones(1,options.initrep)];
 init_k = init_k(end:-1:1);
+p = options.DirichletDiag/(options.DirichletDiag + options.K - 1); % Probability of remaining in same state
+step_lifetime =  (1 + -(p-1)*p/((log(p)^2))); % Expected number of steps for this Dirichletdiag and k
 
 fehist = inf(length(init_k),1);
 Gamma = cell(length(init_k),1);
@@ -30,6 +32,10 @@ parfor it=1:length(init_k)
 
     opt_worker = options;
     opt_worker.K = init_k(it);
+    opt_worker.DirichletDiag = compute_dirichletdiag(step_lifetime/options.Fs,options.Fs,opt_worker.K);
+    % fprintf('Changed DD from %d to %d for K=%d\n',options.DirichletDiag,opt_worker.DirichletDiag,opt_worker.K)
+
+
     data2 = data;
     data2.C = data2.C(:,1:opt_worker.K);
 
