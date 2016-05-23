@@ -1,7 +1,12 @@
-function d = getdirichletdiag(t,fs,K,dotest)
+function d = compute_dirichletdiag(t,fs,K,dotest)
 	% Get dirichletdiag corresponding to the mean state lifetime given a sampling rate
 	% and a particular number of states
 	% How many steps does t correspond to?
+	% ARGUMENTS
+	% t - Mean state lifetime (s)
+	% fs - Data sampling rate
+	% K - number of states
+
 	if nargin < 4 || isempty(dotest) 
 		dotest = false;
 	end
