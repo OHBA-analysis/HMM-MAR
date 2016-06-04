@@ -1,4 +1,4 @@
-function d = compute_dirichletdiag(t,fs,K,dotest)
+function [d,tested_lifetime,analytic_lifetime] = compute_dirichletdiag(t,fs,K,dotest)
 	% Get dirichletdiag corresponding to the mean state lifetime given a sampling rate
 	% and a particular number of states
 	% How many steps does t correspond to?
@@ -15,9 +15,13 @@ function d = compute_dirichletdiag(t,fs,K,dotest)
 	ts = max(1,ts); % Must be at least 1 step
 
 	% Given transition probability, calculate state lifetime and minimize the difference
-	f = @(p) ts - (1 + -(p-1)*p/((log(p)^2)));
+	syms k_step p;
+	assume(p>0);
+	f =(k_step+1)*p^k_step*(1-p); % (probability that the state lasts k *more* steps, multiplied by lifetime which is k+1 (already in the state))
+	fa = int(f,k_step,0,inf);
+	f = @(x) ts - double(subs(fa,p,x));
 
-	[p,~,flag] = fzero(f,[eps 1-eps]);
+	[p,~,flag] = fzero(f,[1e-3 1-1e-3]); % Compute the transition probability that yields the required lifetime
 	if flag ~= 1
 		error('fzero failed')
 	end
@@ -32,13 +36,14 @@ function d = compute_dirichletdiag(t,fs,K,dotest)
 
 	fprintf('Testing calculated dirichletdiag...\n')
 	parfor j = 1:500
-		[observed_lifetime(j),analytic_lifetime] = hammer_utils.test_lifetime(100000,K,d);
+		[observed_lifetime(j)] = test_lifetime(100000,K,d);
 	end
+	tested_lifetime = mean(observed_lifetime);
 	fprintf('Requested lifetime: %.2f s = %d steps\n',t,ts);
 	fprintf('Corresponding dirichletdiag=%d\n',d);
-	fprintf('Tested lifetime: %.2f steps = %.2f s\n',mean(observed_lifetime),mean(observed_lifetime)/fs);
+	fprintf('Tested lifetime: %.2f steps = %.2f s\n',tested_lifetime,mean(observed_lifetime)/fs);
 
-function [observed_lifetime,analytic_lifetime] = test_lifetime(T,K,D)
+function [observed_lifetime] = test_lifetime(T,K,D)
 
 	use_hmmgenerate = 1; % Should give same result, but about 100x faster
 
@@ -83,6 +88,4 @@ function [observed_lifetime,analytic_lifetime] = test_lifetime(T,K,D)
 	    
 	end
 	observed_lifetime = mean(l);
-	p = P(1,1);
-	analytic_lifetime = 1 + -(p-1)*p/((log(p)^2));
 
