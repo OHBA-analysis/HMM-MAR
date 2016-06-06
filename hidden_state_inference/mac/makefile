@@ -13,7 +13,7 @@
 #  make tidy - remove object files
 
 # USER NOTES: CHANGE THE LINES BELOW TO REFLECT YOUR MATLAB INSTALLATION
-MATLAB_DIR    = /Applications/MATLAB_R2015b.app/#
+MATLAB_DIR    = /Applications/MATLAB_R2016a.app/#
 MATLAB_ARCH   = maci64# e.g. $(MATLAB_DIR)/bin/$(MATLAB_ARCH)/
 MACOS_VERSION = 10.11
 
