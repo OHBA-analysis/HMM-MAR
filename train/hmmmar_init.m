@@ -39,7 +39,7 @@ parfor it=1:length(init_k)
     data2 = data;
     data2.C = data2.C(:,1:opt_worker.K);
 
-    opt_worker.Gamma = initGamma_random(T-opt_worker.maxorder,opt_worker.K,opt_worker.DirichletDiag);
+    opt_worker.Gamma = initGamma_random(T-opt_worker.maxorder,opt_worker.K,1);
 
     hmm0=struct('train',struct());
     hmm0.K = opt_worker.K;
