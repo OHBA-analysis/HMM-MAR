@@ -1,5 +1,6 @@
-classdef dirichletdiags
+classdef (Abstract) dirichletdiags
 	% Utilities to compute and test values for dirichletdiags
+	%
 	% COMMON TASKS
 	%
 	% 1. Given an expected state lifetime, what dirichletdiags should I use?
@@ -12,6 +13,9 @@ classdef dirichletdiags
 	%
 	%
 	% Use dotest=true to do a numerical simulation
+	%
+	% NB. classdef is just to create a namespace for dirichletdiags so these functions can all 
+	%     stay in one file
 
 	methods(Static)
 
@@ -28,20 +32,27 @@ classdef dirichletdiags
 				dotest = false;
 			end
 			
-			ts = round(fs*t);
-			ts = max(1,ts); % Desired lifetime in steps
+			ts = fs*t; 
 
 			f_prob = dirichletdiags.mean_lifetime(); % Function that returns the lifetime in steps given the probability
-			f = @(x) ts - f_prob(x); % Function with a minimum when the probability x returns a lifetime the same as requested
-			[p,~,flag] = fzero(f,[1e-3 1-1e-3]); % Solve this equation numerically to find the right probability
+			% First, test if requested t is too small
+			min_lifetime = f_prob(1/K)/fs;
+			if t < min_lifetime || ts == 1
+				fprintf('Smallest possible lifetime for dirichletdiag=1 -> %.2fs\n',min_lifetime)
+				d = 1;
+			else
+				f = @(x) ts - f_prob(x); % Function with a minimum when the probability x returns a lifetime the same as requested
 
-			if flag ~= 1
-				error('fzero failed')
+				[p,~,flag] = fzero(f,[1e-5 1-1e-5]); % Solve this equation numerically to find the right probability
+
+				if flag ~= 1
+					error('fzero failed')
+				end
+
+				% And convert the probability to a dirichletdiags value
+				q = (1-p)/(K-1); % Off-diagonal entries
+				d = p/q;
 			end
-
-			% And convert the probability to a dirichletdiags value
-			q = (1-p)/(K-1); % Off-diagonal entries
-			d = max(1,round(p/q));
 
 			if ~dotest
 				return
@@ -49,9 +60,9 @@ classdef dirichletdiags
 
 			fprintf('Testing calculated dirichletdiag...\n')
 			tested_lifetime = dirichletdiags.test_lifetime(500,100000,K,d);
-			fprintf('Requested lifetime: %.2f s = %d steps\n',t,ts);
-			fprintf('Corresponding dirichletdiag=%d\n',d);
-			fprintf('Tested lifetime: %.2f steps = %.2f s\n',tested_lifetime,tested_lifetime/fs);
+			fprintf('Requested lifetime: %.3f s = %.3f steps\n',t,ts);
+			fprintf('Corresponding dirichletdiag=%.2f\n',d);
+			fprintf('Tested lifetime: %.2f steps = %.3f s\n',tested_lifetime,tested_lifetime/fs);
 		end
 
 		function expected_lifetime = lifetime(dirichletdiag,fs,K,dotest)
@@ -72,8 +83,8 @@ classdef dirichletdiags
 
 			fprintf('Testing calculated dirichletdiag...\n')
 			tested_lifetime = dirichletdiags.test_lifetime(500,100000,K,dirichletdiag);
-			fprintf('Dirichletdiag %d = %.2f steps = %.2fs\n',dirichletdiag,expected_lifetime*fs,expected_lifetime);
-			fprintf('Tested lifetime: %.2f steps = %.2f s\n',tested_lifetime,tested_lifetime/fs);
+			fprintf('Dirichletdiag %.2f = %.2f steps = %.3fs\n',dirichletdiag,expected_lifetime*fs,expected_lifetime);
+			fprintf('Tested lifetime: %.2f steps = %.3f s\n',tested_lifetime,tested_lifetime/fs);
 
 		end
 
@@ -83,8 +94,8 @@ classdef dirichletdiags
 			% returns a numeric result
 			syms k_step p;
 			assume(p>0);
-			f =(k_step+1)*p^k_step*(1-p); % (probability that the state lasts k *more* steps, multiplied by lifetime which is k+1 (already in the state))
-			fa = int(f,k_step,0,inf);
+			f =(k_step)*p^k_step*(1-p); % (probability that the state lasts k *more* steps, multiplied by lifetime which is k)
+			fa = 1+int(f,k_step,0,inf); % Add 1 to the lifetime because all states last at least 1 sample
 			f = @(x) double(subs(fa,p,x));
 		end
 
