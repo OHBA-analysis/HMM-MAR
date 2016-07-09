@@ -1,4 +1,4 @@
-function [X,XX,Y] = loadfile(file,T,options)
+function [X,XX,Y,T] = loadfile(file,T,options)
 if ischar(file)
     if ~isempty(strfind(file,'.mat')), load(file,'X');
     else X = dlmread(file);
@@ -8,6 +8,9 @@ else
 end
 X = X - repmat(mean(X),size(X,1),1);
 X = X ./ repmat(std(X),size(X,1),1);
+if length(options.embeddedlags)>1
+    [X,T] = embeddata(X,T,options.embeddedlags);
+end
 if nargout>=2
     XX = formautoregr(X,T,options.orders,options.order,options.zeromean);
 end
