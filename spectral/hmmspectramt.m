@@ -214,7 +214,11 @@ function [tapers,eigs]=dpsschk(tapers,N,Fs)
 if nargin < 3; error('Need all arguments'); end
 sz=size(tapers);
 if sz(1)==1 && sz(2)==2;
-    [tapers,eigs]=dpss(N,tapers(1),tapers(2));
+    try
+        [tapers,eigs]=dpss(N,tapers(1),tapers(2));
+    catch 
+        error('Problem with dpss - do you have fieldtrip in your path? if so, remove it')
+    end
     tapers = tapers*sqrt(Fs);
 elseif N~=sz(1);
     error('error in your dpss calculation? the number of time points is different from the length of the tapers');

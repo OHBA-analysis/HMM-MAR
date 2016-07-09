@@ -1,4 +1,4 @@
-function [X,T,Gamma,statepath] = simhmmmar(T,hmm,Gamma,nrep,trim,X0,sim_state_tcs_only)
+function [X,T,Gamma] = simhmmmar(T,hmm,Gamma,nrep,trim,X0,sim_state_tcs_only)
 %
 % Simulate data from the HMM-MAR
 %
@@ -18,7 +18,6 @@ function [X,T,Gamma,statepath] = simhmmmar(T,hmm,Gamma,nrep,trim,X0,sim_state_tc
 % X             simulated observations  
 % T             Number of time points for each time series
 % Gamma         simulated  p(state | data)
-% statepath     Viterbi path 
 %
 % Author: Diego Vidaurre, OHBA, University of Oxford
 
@@ -32,9 +31,8 @@ if nargin<5, trim = 0; end
 if nargin<6, X0 = []; end
 if nargin<7, sim_state_tcs_only=0; end
 
-statepath=[];
 if isempty(Gamma), % Gamma is not provided, so we simulate it too
-    [Gamma,statepath] = simgamma(T,hmm.P,hmm.Pi,nrep);
+    Gamma = simgamma(T,hmm.P,hmm.Pi,nrep);
 end
 
 X = [];
@@ -72,11 +70,10 @@ if ~sim_state_tcs_only
 end
 
 if trim>0,
-    Gamma0 = []; X0 = []; statepath0=[];
+    Gamma0 = []; X0 = [];  
     for in=1:N
         t0 = sum(T(1:in-1)) + 1; t1 = sum(T(1:in));
         Gamma0 = [Gamma0; Gamma(t0+trim:t1,:)];
-        statepath0 = [statepath0; statepath(t0+trim:t1)];
         if ~sim_state_tcs_only
             X0 = [X0; X(t0+trim:t1,:)];
         end
@@ -84,7 +81,6 @@ if trim>0,
         T(in) = T(in) - trim;
     end
     Gamma = Gamma0; 
-    statepath = statepath0; 
     
     if ~sim_state_tcs_only
         X = X0;
@@ -93,34 +89,4 @@ end
 
 
 end
-
-
-function X = simgauss(T,hmm,Gamma)
-
-ndim = size(hmm.state(1).W.Mu_W,2); K = size(Gamma,2);
-X = zeros(T,ndim);
-mu = zeros(T,ndim);
-
-switch hmm.train.covtype
-    case 'uniquediag'
-        Cov = hmm.Omega.Gam_rate / hmm.Omega.Gam_shape;
-        X = repmat(Cov,T,1) .* randn(T,ndim);
-    case 'diag'
-        for k=1:K
-            Cov = hmm.state(k).Omega.Gam_rate / hmm.state(k).Omega.Gam_shape;
-            X = X + repmat(Gamma(:,k),1,ndim) .* repmat(Cov,T,1) .* randn(T,ndim);
-        end
-    case 'uniquefull'
-        Cov = hmm.Omega.Gam_rate / hmm.Omega.Gam_shape;
-        X = mvnrnd(mu,Cov);
-    case 'full'
-        for k=1:K
-            Cov = hmm.state(k).Omega.Gam_rate / hmm.state(k).Omega.Gam_shape;
-            X = X + repmat(Gamma(:,k),1,ndim) .* mvnrnd(mu,Cov);
-        end        
-end
-
-end
-
-
 
