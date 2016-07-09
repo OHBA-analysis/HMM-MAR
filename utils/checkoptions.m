@@ -6,13 +6,23 @@ if size(data.X,1)~=sum(T),
     error('Total time specified in T does not match the size of the data')
 end
 
-options = checkMARparametrization(options,[],size(data.X,2));
+% data options
+if ~isfield(options,'embeddedlags'), options.embeddedlags = 0; end
+if ~isfield(options,'pca'), options.pca = 0; end
+if ~isfield(options,'standardise'), options.standardise = (options.pca>0); end
+
+if options.pca == 0, ndim = length(options.embeddedlags) * size(data.X,2);
+else ndim = options.pca;
+end
+if ~isfield(options,'S'), options.S = ones(ndim); end
+
+options = checkMARparametrization(options,[],ndim);
 options.multipleConf = isfield(options,'state');
 if options.multipleConf
     options.maxorder = 0;
     for k = 1:options.K
         if ~isempty(options.state(k).train)
-            options.state(k).train = checkMARparametrization(options.state(k).train,options.S,size(data.X,2));
+            options.state(k).train = checkMARparametrization(options.state(k).train,options.S,ndim);
             train =  options.state(k).train;
             [~,order] = formorders(train.order,train.orderoffset,train.timelag,train.exptimelag);
             options.maxorder = max(options.maxorder,order);
@@ -36,7 +46,7 @@ elseif size(data.C,1)==sum(T) && options.maxorder>0 % we need to trim C
     %fprintf('C has more rows than it should; the first rows of each trial will be discarded\n')
 end
 
-options.ndim = size(data.X,2);
+% training options
 if ~isfield(options,'Fs'), options.Fs = 1; end
 if ~isfield(options,'cyc'), options.cyc = 1000; end
 if ~isfield(options,'tol'), options.tol = 1e-5; end
@@ -130,7 +140,6 @@ if ~isfield(options,'zeromean'),
     else options.zeromean = 0;
     end
 end
-if ~isfield(options,'embeddedlags'), options.embeddedlags = 0; end
 if ~isfield(options,'timelag'), options.timelag = 1; end
 if ~isfield(options,'exptimelag'), options.exptimelag = 1; end
 if ~isfield(options,'orderoffset'), options.orderoffset = 0; end
@@ -142,11 +151,16 @@ end
 if (options.order>0 && options.timelag<1 && options.exptimelag<=1)
     error('if order>0 then you should specify either timelag>=1 or exptimelag>=1')
 end
-if ~isfield(options,'S'), 
+if ~isfield(options,'S'), % 
     if nargin>=2 && ~isempty(S)
-        options.S = S;
+        if options.pca==0 || all(S(:))==1
+            options.S = S;
+        else
+            warning('S cannot have elements different from 1 if options.pca>1')
+            options.S = ones(size(S));
+        end
     else
-        options.S = ones(length(options.embeddedlags)*ndim,length(options.embeddedlags)*ndim); 
+        options.S = ones(ndim);
     end
 elseif nargin>=2 && ~isempty(S) && any(S(:)~=options.S(:))
     error('S has to be equal across states')

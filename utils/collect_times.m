@@ -2,6 +2,7 @@ function [tt, classes]=collect_times(Gamma,T,orderstates)
 % tt is the number of time points that the system stays in this state
 % classes refers to as which state tt corresponds to
 
+if nargin<2, T = size(Gamma,1); end
 if nargin<3, orderstates = 1; end
 
 tt = [];

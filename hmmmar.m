@@ -33,7 +33,7 @@ stochastic_learn = isfield(options,'BIGNbatch') && ...
     (options.BIGNbatch < N && options.BIGNbatch > 0);
 options = checkspelling(options);
 
-if stochastic_learn, 
+if stochastic_learn, % data is a cell, either with strings or with matrices
     if ~iscell(data)
        dat = cell(N,1); TT = cell(N,1);
        for i=1:N
@@ -49,7 +49,7 @@ if stochastic_learn,
        data = dat; T = TT; clear dat TT
     end
     options = checkBIGoptions(options,T);
-else
+else % data is a struct, with a matrix .X  
     if iscell(data)
         if size(data,1)==1, data = data'; end
         data = cell2mat(data);
@@ -59,11 +59,15 @@ else
         T = cell2mat(T);
     end
     [options,data] = checkoptions(options,data,T,0);
+    if options.standardise == 1
+        for i = 1:N
+            t = (1:T(i)) + sum(T(1:i-1));
+            data.X(t,:) = data.X(t,:) - repmat(mean(data.X(t,:)),length(t),1);
+            data.X(t,:) = data.X(t,:) ./ repmat(std(data.X(t,:)),length(t),1);
+        end
+    end
 end
 
-% if ~isfield(options,'tmp_folder')
-%     tmp_folder = tempdir;
-% end
     
 ver = version('-release');
 oldMatlab = ~isempty(strfind(ver,'2010')) || ~isempty(strfind(ver,'2010')) ...
@@ -89,7 +93,16 @@ if isfield(options,'DirStats')
     % to avoid recurrent calls to hmmmar to do the same
 end
 
+
 if stochastic_learn
+    
+    % get PCA loadings 
+    if options.pca > 0 
+        options.A = highdim_pca(data,T,options.pca,options.embeddedlags,options.standardise);
+        options.ndim = options.pca;
+%     else
+%         options.ndim = size(data.X,2);
+    end
     
     [hmm,info] = hmmsinit(data,T,options);
     [hmm,markovTrans,fehist,feterms,rho] = hmmstrain(data,T,hmm,info,options);
@@ -102,26 +115,17 @@ if stochastic_learn
     end
     
 else
-        
-    if length(options.embeddedlags)>1
-        X = []; C = [];
-        for in=1:length(T)
-            [x, ind] = embedx(data.X(sum(T(1:in-1))+1:sum(T(1:in)),:),options.embeddedlags); X = [X; x ];
-            c = data.C( sum(T(1:in-1))+1: sum(T(1:in)) , : ); c = c(ind,:); C = [C; c];
-            T(in) = size(c,1);
-        end
-        data.X = X; data.C = C;
+    
+    % embed data?
+    if length(options.embeddedlags) > 1  
+        [data,T] = embeddata(data,T,options.embeddedlags);
     end
-    
-    % if options.whitening>0
-    %     mu = mean(data.X);
-    %     data.X = bsxfun(@minus, data.X, mu);
-    %     [V,D] = svd(data.X'*data.X);
-    %     A = sqrt(size(data.X,1)-1)*V*sqrtm(inv(D + eye(size(D))*0.00001))*V';
-    %     data.X = data.X*A;
-    %     iA = pinv(A);
-    % end
-    
+    % pca
+    if options.pca > 0
+        [options.A,data.X] = highdim_pca(data.X,T,options.pca,0,0);
+    end
+    options.ndim = size(data.X,2);
+
     if isempty(options.Gamma) && isempty(options.hmm)
         if options.K > 1
             Sind = options.Sind;
@@ -200,6 +204,10 @@ if gatherStats==1
     hmm.train.DirStats = DirStats; 
     profile off
     profsave(profile('info'),hmm.train.DirStats)
+end
+
+if options.pca > 0
+    hmm.train.A = options.A; 
 end
     
 end

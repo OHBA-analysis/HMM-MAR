@@ -1,6 +1,14 @@
 function options = checkBIGoptions (options,T)
 
+% Right now the option S is not implemented for stochastic learning
+
 N = length(T);
+
+% data options
+if ~isfield(options,'embeddedlags'), options.embeddedlags = 0; end
+if ~isfield(options,'pca'), options.pca = 0; end
+if ~isfield(options,'standardise'), options.standardise = (options.pca>0); end
+
 if ~isfield(options,'K'), error('K was not specified'); end
 % Specific BigHMM options
 if ~isfield(options,'BIGNbatch'), options.BIGNbatch = min(10,N); end

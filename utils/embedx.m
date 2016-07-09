@@ -39,9 +39,3 @@ valid(end-lags(end)+1:end) = 0;
 valid(1:abs(lags(1))) = 0;
 
 Xe = Xe(valid,:);
-
-% eX = [];
-% T = size(X,1);
-% for j=1:L
-%     eX = [eX X(j:T-L+j,:)];
-% end

@@ -44,25 +44,25 @@ if ~BIGuniqueTrans
 end
 
 for i = 1:N
-    [X,XX,Y] = loadfile(Xin{i},T{i},metahmm.train);    
+    [X,XX,Y,Ti] = loadfile(Xin{i},T{i},metahmm.train);    
     XX_i = cell(1); XX_i{1} = XX;
     if BIGuniqueTrans
         metahmm_i = metahmm;
     else
         metahmm_i = copyhmm(metahmm,P(:,:,i),Pi(:,i)',Dir2d_alpha(:,:,i),Dir_alpha(:,i)');
     end
-    t = (1:(sum(T{i})-length(T{i})*metahmm.train.order)) + tacc;
-    t2 = (1:(sum(T{i})-length(T{i})*(metahmm.train.order+1))) + tacc2;
+    t = (1:(sum(Ti)-length(Ti)*metahmm.train.order)) + tacc;
+    t2 = (1:(sum(Ti)-length(Ti)*(metahmm.train.order+1))) + tacc2;
     tacc = tacc + length(t); tacc2 = tacc2 + length(t2);
     if type==0
-        data = struct('X',X,'C',NaN(sum(T{i})-length(T{i})*metahmm.train.order,K));
-        [gamma,~,xi] = hsinference(data,T{i},metahmm_i,Y,[],XX_i);
+        data = struct('X',X,'C',NaN(sum(Ti)-length(Ti)*metahmm.train.order,K));
+        [gamma,~,xi] = hsinference(data,Ti,metahmm_i,Y,[],XX_i);
         Path(t,:) = single(gamma);
         Xi(t2,:,:) = xi;
     else
         BIGNbatch = metahmm.train.BIGNbatch;
         metahmm.train = rmfield(metahmm.train,'BIGNbatch');
-        Path(t,:) = hmmdecode(X,T{i},metahmm,type,Y);
+        Path(t,:) = hmmdecode(X,Ti,metahmm,type,Y);
         metahmm.train.BIGNbatch = BIGNbatch; 
     end
 

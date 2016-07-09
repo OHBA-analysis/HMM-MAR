@@ -12,8 +12,7 @@ function [metahmm,info] = hmmsinit(Xin,T,options)
 % Diego Vidaurre, OHBA, University of Oxford (2016)
  
 N = length(T); K = options.K;
-X = loadfile(Xin{1},T{1}); 
-ndim = size(X,2)*length(options.embeddedlags);
+X = loadfile(Xin{1},T{1},options); ndim = size(X,2);
 subjfe_init = zeros(N,3);
 loglik_init = zeros(N,1);
 npred = length(options.orders)*ndim + (~options.zeromean);
@@ -58,6 +57,8 @@ for rep = 1:options.BIGinitrep
         options_copy = options; 
         options_copy = rmfield(options_copy,'BIGNbatch');
         options_copy = rmfield(options_copy,'orders');
+        options_copy.pca = 0; % this has been done in loadfile.m
+        options_copy.embeddedlags = 0; % this has been done in loadfile.m
         if length(Ti)==1, options_copy.useParallel = 0; end 
         [hmm_i,Gamma,Xi] = hmmmar(X,Ti,options_copy);
         if ii==1 % get priors
@@ -207,9 +208,9 @@ for rep = 1:options.BIGinitrep
     % Compute free energy
     metahmm_init_i = metahmm_init;
     for i = 1:N
-        [X,XX,Y] = loadfile(Xin{i},Ti,options);
+        [X,XX,Y,Ti] = loadfile(Xin{i},T{i},options);
         XX_i = cell(1); XX_i{1} = XX;
-        data = struct('X',X,'C',NaN(sum(Ti)-length(Ti)*options.order,K));
+        data = struct('X',X,'C',NaN(size(XX,1),K));
         if ~options.BIGuniqueTrans
             metahmm_init_i = copyhmm(metahmm_init,...
                 P_init(:,:,i),Pi_init(:,i)',Dir2d_alpha_init(:,:,i),Dir_alpha_init(:,i)');
