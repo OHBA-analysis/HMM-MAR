@@ -27,6 +27,12 @@ classdef (Abstract) dirichletdiags
 			% t - Mean state lifetime (s)
 			% fs - Data sampling rate
 			% K - number of states
+			if K == 1
+				d = 1; % If only one state, transition matrix is 1x1 with 1 on the diagonal
+				tested_lifetime = NaN;
+				analytic_lifetime = NaN;
+				return
+			end
 
 			if nargin < 4 || isempty(dotest) 
 				dotest = false;

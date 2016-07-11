@@ -32,7 +32,7 @@ parfor it=1:length(init_k)
 
     opt_worker = options;
     opt_worker.K = init_k(it);
-    opt_worker.DirichletDiag = compute_dirichletdiag(step_lifetime/options.Fs,options.Fs,opt_worker.K);
+    opt_worker.DirichletDiag = dirichletdiags.get(step_lifetime/options.Fs,options.Fs,opt_worker.K);
     % fprintf('Changed DD from %d to %d for K=%d\n',options.DirichletDiag,opt_worker.DirichletDiag,opt_worker.K)
 
 
