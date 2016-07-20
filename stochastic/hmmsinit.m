@@ -12,7 +12,8 @@ function [metahmm,info] = hmmsinit(Xin,T,options)
 % Diego Vidaurre, OHBA, University of Oxford (2016)
  
 N = length(T); K = options.K;
-X = loadfile(Xin{1},T{1}); ndim = size(X,2);
+X = loadfile(Xin{1},T{1}); 
+ndim = size(X,2)*length(options.embeddedlags);
 subjfe_init = zeros(N,3);
 loglik_init = zeros(N,1);
 npred = length(options.orders)*ndim + (~options.zeromean);
@@ -45,7 +46,7 @@ for rep = 1:options.BIGinitrep
     for ii = 1:length(I)
         % read data
         i = I(ii);
-        [X,XX,Y] = loadfile(Xin{i},T{i},options);
+        [X,XX,Y,Ti] = loadfile(Xin{i},T{i},options);
         if rep==1
             if ii==1
                 range_data = range(X);
@@ -57,8 +58,8 @@ for rep = 1:options.BIGinitrep
         options_copy = options; 
         options_copy = rmfield(options_copy,'BIGNbatch');
         options_copy = rmfield(options_copy,'orders');
-        if length(T{i})==1, options_copy.useParallel = 0; end 
-        [hmm_i,Gamma,Xi] = hmmmar(X,T{i},options_copy);
+        if length(Ti)==1, options_copy.useParallel = 0; end 
+        [hmm_i,Gamma,Xi] = hmmmar(X,Ti,options_copy);
         if ii==1 % get priors
             Dir2d_alpha_prior = hmm_i.prior.Dir2d_alpha;
             Dir_alpha_prior = hmm_i.prior.Dir_alpha;
@@ -71,8 +72,8 @@ for rep = 1:options.BIGinitrep
             fprintf('Init: repetition %d, subject %d \n',rep,ii);
         end
         if options.BIGuniqueTrans % update transition probabilities
-            for trial=1:length(T{i})
-                t = sum(T{i}(1:trial-1)) - options.order*(trial-1) + 1;
+            for trial=1:length(Ti)
+                t = sum(Ti(1:trial-1)) - options.order*(trial-1) + 1;
                 Dir_alpha_init(:,i) = Dir_alpha_init(:,i) + Gamma(t,:)';
             end
             Dir2d_alpha_init(:,:,i) = squeeze(sum(Xi,1));
@@ -206,18 +207,18 @@ for rep = 1:options.BIGinitrep
     % Compute free energy
     metahmm_init_i = metahmm_init;
     for i = 1:N
-        [X,XX,Y] = loadfile(Xin{i},T{i},options);
+        [X,XX,Y] = loadfile(Xin{i},Ti,options);
         XX_i = cell(1); XX_i{1} = XX;
-        data = struct('X',X,'C',NaN(sum(T{i})-length(T{i})*options.order,K));
+        data = struct('X',X,'C',NaN(sum(Ti)-length(Ti)*options.order,K));
         if ~options.BIGuniqueTrans
             metahmm_init_i = copyhmm(metahmm_init,...
                 P_init(:,:,i),Pi_init(:,i)',Dir2d_alpha_init(:,:,i),Dir_alpha_init(:,i)');
         end
-        [Gamma,~,Xi,l] = hsinference(data,T{i},metahmm_init_i,Y,[],XX_i);
+        [Gamma,~,Xi,l] = hsinference(data,Ti,metahmm_init_i,Y,[],XX_i);
         if options.BIGuniqueTrans
-            subjfe_init(i,1:2) = evalfreeenergy([],T{i},Gamma,Xi,metahmm_init_i,[],[],[1 0 1 0 0]); % Gamma entropy&LL
+            subjfe_init(i,1:2) = evalfreeenergy([],Ti,Gamma,Xi,metahmm_init_i,[],[],[1 0 1 0 0]); % Gamma entropy&LL
         else
-            subjfe_init(i,:) = evalfreeenergy([],T{i},Gamma,Xi,metahmm_init_i,[],[],[1 0 1 1 0]); 
+            subjfe_init(i,:) = evalfreeenergy([],Ti,Gamma,Xi,metahmm_init_i,[],[],[1 0 1 1 0]); 
         end
         loglik_init(i) = sum(l);
     end
