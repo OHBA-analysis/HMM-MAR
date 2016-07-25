@@ -44,7 +44,7 @@ classdef (Abstract) dirichletdiags
 			% First, test if requested t is too small
 			min_lifetime = f_prob(1/K)/fs;
 			if t < min_lifetime || ts == 1
-				fprintf('Smallest possible lifetime for dirichletdiag=1 -> %.2fs\n',min_lifetime)
+				fprintf('Requested %.2fs, but smallest possible lifetime is %.2fs with dirichletdiag=1\n',t,min_lifetime);
 				d = 1;
 			else
 				f = @(x) ts - f_prob(x); % Function with a minimum when the probability x returns a lifetime the same as requested
