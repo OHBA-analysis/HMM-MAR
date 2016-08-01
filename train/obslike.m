@@ -1,4 +1,4 @@
-function B = obslike (X,hmm,residuals,XX)
+function L = obslike (X,hmm,residuals,XX)
 %
 % Evaluate likelihood of data given observation model, for one continuous trial
 %
@@ -36,7 +36,7 @@ end
 Tres = T-hmm.train.maxorder;
 S = hmm.train.S==1; regressed = sum(S,1)>0;
 ltpi = sum(regressed)/2 * log(2*pi);
-B = zeros(T,K);  
+L = zeros(T,K);  
 
 switch hmm.train.covtype,
     case 'uniquediag'
@@ -142,8 +142,7 @@ for k=1:K
                 end
         end
     end
-    
-    B(hmm.train.maxorder+1:T,k)= - ltpi - ldetWishB + PsiWish_alphasum + dist - NormWishtrace; 
+    L(hmm.train.maxorder+1:T,k)= - ltpi - ldetWishB + PsiWish_alphasum + dist - NormWishtrace; 
 end
-B=exp(B);
+L=exp(L);
 end

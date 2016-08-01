@@ -31,6 +31,8 @@ if isfield(hmm.state(1),'W')
 else
     ndim = size(hmm.state(1).Omega.Gam_rate,2);
 end
+if isfield(hmm.train,'B'), Q = size(hmm.train.B,2);
+else Q = ndim; end
 
 Tres = sum(T) - length(T)*hmm.train.maxorder;
 S = hmm.train.S==1;
@@ -77,7 +79,8 @@ if todo(5)==1
         end
         KLdiv = [KLdiv OmegaKL];
     elseif strcmp(hmm.train.covtype,'uniquefull')
-        OmegaKL = wishart_kl(hmm.Omega.Gam_rate(regressed,regressed),hmm.prior.Omega.Gam_rate(regressed,regressed), ...
+        OmegaKL = wishart_kl(hmm.Omega.Gam_rate(regressed,regressed),...
+            hmm.prior.Omega.Gam_rate(regressed,regressed), ...
             hmm.Omega.Gam_shape,hmm.prior.Omega.Gam_shape);
         KLdiv = [KLdiv OmegaKL];
     end
@@ -131,15 +134,15 @@ if todo(5)==1
                     prior_prec = hs.prior.Mean.iS;
                 end
                 if ~isempty(orders)
-                    sigmaterm = (hs.sigma.Gam_shape(S==1) ./ hs.sigma.Gam_rate(S==1) );
+                    sigmaterm = (hs.sigma.Gam_shape(:) ./ hs.sigma.Gam_rate(:) );
                     sigmaterm = repmat(sigmaterm, length(orders), 1);
-                    alphaterm = repmat( (hs.alpha.Gam_shape ./  hs.alpha.Gam_rate), sum(S(:)), 1);
+                    alphaterm = repmat( (hs.alpha.Gam_shape ./  hs.alpha.Gam_rate), ndim*Q, 1);
                     alphaterm = alphaterm(:);
                     prior_prec = [prior_prec; alphaterm .* sigmaterm];
                 end
                 prior_var = diag(1 ./ prior_prec);
                 mu_w = hs.W.Mu_W';
-                mu_w = mu_w(Sind);
+                mu_w = mu_w(:);
                 WKL = gauss_kl(mu_w,zeros(length(mu_w),1), hs.W.S_W, prior_var);
             end
         end
@@ -154,13 +157,14 @@ if todo(5)==1
                         hs.Omega.Gam_rate(n),hs.prior.Omega.Gam_rate(n));
                 end
             case 'full'
-                OmegaKL = wishart_kl(hs.Omega.Gam_rate(regressed,regressed),hs.prior.Omega.Gam_rate(regressed,regressed), ...
+                OmegaKL = wishart_kl(hs.Omega.Gam_rate(regressed,regressed),...
+                    hs.prior.Omega.Gam_rate(regressed,regressed), ...
                     hs.Omega.Gam_shape,hs.prior.Omega.Gam_shape);
         end
         
         sigmaKL = 0;
         if isempty(train.prior) && ~isempty(orders) && ~train.uniqueAR && ndim>1
-            for n1=1:ndim
+            for n1=1:Q
                 for n2=1:ndim
                     if (train.symmetricprior && n2<n1) || S(n1,n2)==0, continue; end
                     sigmaKL = sigmaKL + gamma_kl(hs.sigma.Gam_shape(n1,n2),pr.sigma.Gam_shape(n1,n2), ...
@@ -204,7 +208,6 @@ if todo(2)==1
     end
     for k=1:K,
         hs=hmm.state(k);
-        pr=hmm.state(k).prior;
         setstateoptions;
         if strcmp(train.covtype,'diag')
             ldetWishB=0;
@@ -269,7 +272,7 @@ if todo(2)==1
                     if isempty(orders)
                         NormWishtrace = 0.5 * sum(sum(C .* hs.W.S_W));
                     else
-                        I = (0:length(orders)*ndim+(~train.zeromean)-1) * ndim;
+                        I = (0:(length(orders)*Q+(~train.zeromean)-1)) * ndim;
                         for n1=1:ndim
                             if ~regressed(n1), continue; end
                             index1 = I + n1; index1 = index1(Sind(:,n1));

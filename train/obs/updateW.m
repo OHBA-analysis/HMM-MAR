@@ -3,6 +3,8 @@ function [hmm,XW] = updateW(hmm,Gamma,residuals,XX,XXGXX,Tfactor)
 K = length(hmm.state); ndim = hmm.train.ndim;
 XW = zeros(K,size(XX{1},1),ndim);
 if nargin<6, Tfactor = 1; end
+if isfield(hmm.train,'B'), Q = size(hmm.train.B,2);
+else Q = ndim; end
 
 for k=1:K
     if ~hmm.train.active(k), continue; end
@@ -69,7 +71,7 @@ for k=1:K
         
     else % this only works if all(S(:)==1);  any(S(:)~=1) is just not yet implemented 
         mlW = (( XXGXX{k} \ XX{kk}') .* repmat(Gamma(:,k)',...
-            (~train.zeromean)+ndim*length(orders),1) * residuals)';
+            (~train.zeromean)+Q*length(orders),1) * residuals)';
         regterm = [];
         if ~train.zeromean, regterm = hmm.state(k).prior.Mean.iS; end
         if ~isempty(orders) 
@@ -87,7 +89,7 @@ for k=1:K
         hmm.state(k).W.iS_W = regterm + Tfactor * gram;
         hmm.state(k).W.S_W = inv(hmm.state(k).W.iS_W);
         muW = Tfactor * hmm.state(k).W.S_W * gram * mlW(:);
-        hmm.state(k).W.Mu_W = reshape(muW,ndim,~train.zeromean+ndim*length(orders))';
+        hmm.state(k).W.Mu_W = reshape(muW,ndim,~train.zeromean+Q*length(orders))';
         XW(k,:,:) = XX{kk} * hmm.state(k).W.Mu_W;
     end
     

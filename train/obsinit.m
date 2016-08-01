@@ -29,6 +29,8 @@ function hmm = initpriors(X,T,hmm,residuals)
 
 ndim = size(X,2);
 rangresiduals2 = (range(residuals)/2).^2;
+if isfield(hmm.train,'B'), Q = size(hmm.train.B,2); 
+else Q = ndim; end
 
 for k=1:hmm.K,
     if isfield(hmm.train,'state') && isfield(hmm.train.state(k),'train') && ~isempty(hmm.train.state(k).train)
@@ -44,8 +46,8 @@ for k=1:hmm.K,
     end
     if ~train.uniqueAR && isempty(train.prior)
         defstateprior(k).sigma = struct('Gam_shape',[],'Gam_rate',[]);
-        defstateprior(k).sigma.Gam_shape = 0.1*ones(ndim,ndim); %+ 0.05*eye(ndim);
-        defstateprior(k).sigma.Gam_rate = 0.1*ones(ndim,ndim);%  + 0.05*eye(ndim);
+        defstateprior(k).sigma.Gam_shape = 0.1*ones(Q,ndim); %+ 0.05*eye(ndim);
+        defstateprior(k).sigma.Gam_rate = 0.1*ones(Q,ndim);%  + 0.05*eye(ndim);
     end
     if ~isempty(orders) && isempty(train.prior)
         defstateprior(k).alpha = struct('Gam_shape',[],'Gam_rate',[]);
@@ -117,6 +119,8 @@ ndim = size(X,2);
 K = hmm.K;
 S = hmm.train.S==1; regressed = sum(S,1)>0;
 hmm.train.active = ones(1,K);
+if isfield(hmm.train,'B'), B = hmm.train.B; Q = size(B,2);
+else Q = ndim; end
 
 % initial random values for the states - multinomial
 Gammasum = sum(Gamma);
@@ -145,11 +149,9 @@ for k=1:K
             end
             
         elseif strcmp(train.covtype,'uniquediag') || strcmp(train.covtype,'diag')
-            hmm.state(k).W.Mu_W = zeros((~train.zeromean)+ndim*length(orders),ndim);
-            hmm.state(k).W.iS_W = zeros(ndim,(~train.zeromean)+ndim*length(orders),...
-                (~train.zeromean)+ndim*length(orders));
-            hmm.state(k).W.S_W = zeros(ndim,(~train.zeromean)+ndim*length(orders),...
-                (~train.zeromean)+ndim*length(orders));
+            hmm.state(k).W.Mu_W = zeros((~train.zeromean)+Q*length(orders),ndim);
+            hmm.state(k).W.iS_W = zeros(ndim,(~train.zeromean)+Q*length(orders),(~train.zeromean)+Q*length(orders));
+            hmm.state(k).W.S_W = zeros(ndim,(~train.zeromean)+Q*length(orders),(~train.zeromean)+Q*length(orders));
             for n=1:ndim
                 ndim_n = sum(S(:,n));
                 if ndim_n==0, continue; end
@@ -166,7 +168,7 @@ for k=1:K
             hmm.state(k).W.iS_W = gram + 0.01*eye(size(gram,1));
             hmm.state(k).W.S_W = inv( hmm.state(k).W.iS_W );
             hmm.state(k).W.Mu_W = (( XXGXX{k} \ XX{kk}' ) .* repmat(Gamma(:,k)',...
-                (~train.zeromean)+ndim*length(orders),1)) * residuals;
+                (~train.zeromean)+Q*length(orders),1)) * residuals;
         end
     end
 end;

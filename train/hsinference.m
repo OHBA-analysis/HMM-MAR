@@ -204,7 +204,7 @@ B  = cell2mat(B);
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [Gamma,Xi,B,scale] = nodecluster(XX,K,hmm,residuals)
+function [Gamma,Xi,L,scale] = nodecluster(XX,K,hmm,residuals)
 % inference using normal foward backward propagation
 
 order = hmm.train.maxorder;
@@ -212,15 +212,15 @@ T = size(residuals,1) + order;
 P = hmm.P;
 Pi = hmm.Pi;
 
-B = obslike([],hmm,residuals,XX);
-B(B<realmin) = realmin;
+L = obslike([],hmm,residuals,XX);
+L(L<realmin) = realmin;
 
 % pass to mex file?
 if ( (ismac || isunix) && hmm.train.useMEX ==1 && ...
         exist('hidden_state_inference_mx', 'file') == 3 && ...
         (~isfield(hmm.train,'ignore_MEX') || exist(hmm.train.ignore_MEX, 'file') == 0 ))
     try
-        [Gamma, Xi, scale] = hidden_state_inference_mx(B, Pi, P, order);
+        [Gamma, Xi, scale] = hidden_state_inference_mx(L, Pi, P, order);
         return
     catch
         %if hmm.train.verbose
@@ -236,11 +236,11 @@ scale=zeros(T,1);
 alpha=zeros(T,K);
 beta=zeros(T,K);
 
-alpha(1+order,:)=Pi.*B(1+order,:);
+alpha(1+order,:)=Pi.*L(1+order,:);
 scale(1+order)=sum(alpha(1+order,:));
 alpha(1+order,:)=alpha(1+order,:)/scale(1+order);
 for i=2+order:T
-    alpha(i,:)=(alpha(i-1,:)*P).*B(i,:);
+    alpha(i,:)=(alpha(i-1,:)*P).*L(i,:);
     scale(i)=sum(alpha(i,:));		% P(X_i | X_1 ... X_{i-1})
     alpha(i,:)=alpha(i,:)/scale(i);
 end;
@@ -249,7 +249,7 @@ scale(scale<realmin) = realmin;
 
 beta(T,:)=ones(1,K)/scale(T);
 for i=T-1:-1:1+order
-    beta(i,:)=(beta(i+1,:).*B(i+1,:))*(P')/scale(i);
+    beta(i,:)=(beta(i+1,:).*L(i+1,:))*(P')/scale(i);
     beta(i,beta(i,:)>realmax) = realmax;
 end;
 Gamma=(alpha.*beta);
@@ -258,7 +258,7 @@ Gamma=rdiv(Gamma,rsum(Gamma));
  
 Xi=zeros(T-1-order,K*K);
 for i=1+order:T-1
-    t=P.*( alpha(i,:)' * (beta(i+1,:).*B(i+1,:)));
+    t=P.*( alpha(i,:)' * (beta(i+1,:).*L(i+1,:)));
     Xi(i-order,:)=t(:)'/sum(t(:));
 end
 end

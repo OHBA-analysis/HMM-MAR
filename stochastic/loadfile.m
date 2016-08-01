@@ -21,8 +21,10 @@ if options.pca > 0 && isfield(options,'A')
     X = X - repmat(mean(X),size(X,1),1); % must center
     X = X * options.A;
 end
+if isfield(options,'B'), B = options.B;
+else B = []; end
 if nargout>=2
-    XX = formautoregr(X,T,options.orders,options.order,options.zeromean);
+    XX = formautoregr(X,T,options.orders,options.order,options.zeromean,0,B);
 end
 if nargout>=3
     Y = zeros(sum(T)-length(T)*options.order,size(X,2));

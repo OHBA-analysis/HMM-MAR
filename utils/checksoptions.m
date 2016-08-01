@@ -1,4 +1,4 @@
-function options = checkBIGoptions (options,T)
+function options = checksoptions (options,T)
 
 % Right now the option S is not implemented for stochastic learning
 
@@ -7,6 +7,7 @@ N = length(T);
 % data options
 if ~isfield(options,'embeddedlags'), options.embeddedlags = 0; end
 if ~isfield(options,'pca'), options.pca = 0; end
+if ~isfield(options,'pcamar'), options.pcamar = 0; end
 if ~isfield(options,'standardise'), options.standardise = (options.pca>0); end
 
 if ~isfield(options,'K'), error('K was not specified'); end
@@ -24,8 +25,9 @@ if ~isfield(options,'BIGforgetrate'), options.BIGforgetrate = 0.9; end
 if ~isfield(options,'BIGdelay'), options.BIGdelay = 1; end
 if ~isfield(options,'BIGbase_weights'), options.BIGbase_weights = 0.95; end % < 1 will promote democracy
 if ~isfield(options,'BIGcomputeGamma'), options.BIGcomputeGamma = 1; end
-if ~isfield(options,'BIGdecodeGamma'), options.BIGdecodeGamma = 0; end
+if ~isfield(options,'BIGdecodeGamma'), options.BIGdecodeGamma = 1; end
 if ~isfield(options,'BIGverbose'), options.BIGverbose = 1; end  
+if ~isfield(options,'initial_hmm'), options.initial_hmm = []; end
 options.BIGbase_weights = options.BIGbase_weights * ones(1,N);
 
 % HMM-MAR options

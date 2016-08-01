@@ -48,7 +48,7 @@ if stochastic_learn, % data is a cell, either with strings or with matrices
        end 
        data = dat; T = TT; clear dat TT
     end
-    options = checkBIGoptions(options,T);
+    options = checksoptions(options,T);
 else % data is a struct, with a matrix .X  
     if iscell(data)
         if size(data,1)==1, data = data'; end
@@ -98,10 +98,13 @@ if stochastic_learn
     
     % get PCA loadings 
     if options.pca > 0 
-        options.A = highdim_pca(data,T,options.pca,options.embeddedlags,options.standardise);
+        if ~isfield(options,'A')
+            options.A = highdim_pca(data,T,options.pca,options.embeddedlags,options.standardise);
+        end
         options.ndim = options.pca;
-%     else
-%         options.ndim = size(data.X,2);
+    end
+    if options.pcamar > 0 && ~isfield(options,'B')
+        options.B = pcamar_decomp(data,T,options);
     end
     
     [hmm,info] = hmmsinit(data,T,options);
@@ -111,7 +114,7 @@ if stochastic_learn
        [Gamma,Xi] = hmmdecode(data,T,hmm,0,[],[],markovTrans); 
     end
     if options.BIGdecodeGamma && nargout >= 4
-       vpath = hmmdecode(data.X,T,hmm,1,[],[],markovTrans); 
+       vpath = hmmdecode(data,T,hmm,1,[],[],markovTrans); 
     end
     
 else
@@ -122,7 +125,14 @@ else
     end
     % pca
     if options.pca > 0
-        [options.A,data.X] = highdim_pca(data.X,T,options.pca,0,0);
+        if isfield(options,'A')
+            data.X = data.X * options.A; 
+        else
+            [options.A,data.X] = highdim_pca(data.X,T,options.pca,0,0);
+        end
+    end
+    if options.pcamar > 0 && ~isfield(options,'B')
+        options.B = pcamar_decomp(data,T,options);
     end
     options.ndim = size(data.X,2);
 
