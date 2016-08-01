@@ -98,7 +98,7 @@ for k=1:K
     end
     d = residuals(:,regressed) - meand;    
     if strcmp(train.covtype,'diag') || strcmp(train.covtype,'uniquediag')
-        Cd = repmat(C(regressed)',1,Tres) .* d';
+        Cd = bsxfun(@times,C(regressed),d.');
     else
         Cd = C(regressed,regressed) * d';
     end
