@@ -59,7 +59,6 @@ switch hmm.train.covtype,
 end;
 
 for k=1:K
-    % hs=hmm.state(k);
 
     % setstateoptions;
     train = hmm.cache.train{k};
@@ -75,27 +74,27 @@ for k=1:K
             PsiWish_alphasum=0;
             for n=1:ndim,
                 if ~regressed(n), continue; end
-                ldetWishB=ldetWishB+0.5*log(hs.Omega.Gam_rate(n));
-                PsiWish_alphasum=PsiWish_alphasum+0.5*psi(hs.Omega.Gam_shape);
+                ldetWishB=ldetWishB+0.5*log(hmm.state(k).Omega.Gam_rate(n));
+                PsiWish_alphasum=PsiWish_alphasum+0.5*psi(hmm.state(k).Omega.Gam_shape);
             end;
-            C = hs.Omega.Gam_shape ./ hs.Omega.Gam_rate;
+            C = hmm.state(k).Omega.Gam_shape ./ hmm.state(k).Omega.Gam_rate;
         case 'full'
-            ldetWishB=0.5*logdet(hs.Omega.Gam_rate(regressed,regressed));
+            ldetWishB=0.5*logdet(hmm.state(k).Omega.Gam_rate(regressed,regressed));
             PsiWish_alphasum=0;
             for n=1:sum(regressed),
-                PsiWish_alphasum=PsiWish_alphasum+0.5*psi(hs.Omega.Gam_shape/2+0.5-n/2);  
+                PsiWish_alphasum=PsiWish_alphasum+0.5*psi(hmm.state(k).Omega.Gam_shape/2+0.5-n/2);  
             end;
-            C = hs.Omega.Gam_shape * hs.Omega.Gam_irate;
+            C = hmm.state(k).Omega.Gam_shape * hmm.state(k).Omega.Gam_irate;
     end;
     
     meand = zeros(size(XX{kk},1),sum(regressed));
     if train.uniqueAR
         for n=1:ndim
             ind = n:ndim:size(XX{kk},2);
-            meand(:,n) = XX{kk}(:,ind) * hs.W.Mu_W;
+            meand(:,n) = XX{kk}(:,ind) * hmm.state(k).W.Mu_W;
         end
-    elseif ~isempty(hs.W.Mu_W) 
-        meand = XX{kk} * hs.W.Mu_W(:,regressed);
+    elseif ~isempty(hmm.state(k).W.Mu_W) 
+        meand = XX{kk} * hmm.state(k).W.Mu_W(:,regressed);
     end
     d = residuals(:,regressed) - meand;    
     if strcmp(train.covtype,'diag') || strcmp(train.covtype,'uniquediag')
@@ -110,7 +109,7 @@ for k=1:K
     end
     
     NormWishtrace=zeros(Tres,1);
-    if ~isempty(hs.W.Mu_W)
+    if ~isempty(hmm.state(k).W.Mu_W)
         switch train.covtype,
             case {'diag','uniquediag'}
                 for n=1:ndim,
@@ -118,27 +117,27 @@ for k=1:K
                     if train.uniqueAR
                         ind = n:ndim:size(XX{kk},2);
                         NormWishtrace = NormWishtrace + 0.5 * C(n) * ...
-                            sum( (XX{kk}(:,ind) * hs.W.S_W) .* XX{kk}(:,ind), 2);
+                            sum( (XX{kk}(:,ind) * hmm.state(k).W.S_W) .* XX{kk}(:,ind), 2);
                     elseif ndim==1
                         NormWishtrace = NormWishtrace + 0.5 * C(n) * ...
-                            sum( (XX{kk}(:,Sind(:,n)) * hs.W.S_W) ...
+                            sum( (XX{kk}(:,Sind(:,n)) * hmm.state(k).W.S_W) ...
                             .* XX{kk}(:,Sind(:,n)), 2);
                     else
                         NormWishtrace = NormWishtrace + 0.5 * C(n) * ...
-                            sum( (XX{kk}(:,Sind(:,n)) * permute(hs.W.S_W(n,Sind(:,n),Sind(:,n)),[2 3 1])) ...
+                            sum( (XX{kk}(:,Sind(:,n)) * permute(hmm.state(k).W.S_W(n,Sind(:,n),Sind(:,n)),[2 3 1])) ...
                             .* XX{kk}(:,Sind(:,n)), 2);
                     end
                 end;
                 
             case {'full','uniquefull'}
                 if isempty(orders) 
-                    NormWishtrace = 0.5 * sum(sum(C .* hs.W.S_W));
+                    NormWishtrace = 0.5 * sum(sum(C .* hmm.state(k).W.S_W));
                 else
                     I = (0:length(orders)*ndim+(~train.zeromean)-1) * ndim;
                     for n1=1:ndim
                         if ~regressed(n1), continue; end
                         index1 = I + n1; index1 = index1(Sind(:,n1)); 
-                        tmp = (XX{kk}(:,Sind(:,n1)) * hs.W.S_W(index1,:));
+                        tmp = (XX{kk}(:,Sind(:,n1)) * hmm.state(k).W.S_W(index1,:));
                         for n2=1:ndim
                             if ~regressed(n2), continue; end
                             index2 = I + n2; index2 = index2(Sind(:,n2));
