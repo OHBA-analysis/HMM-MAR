@@ -34,18 +34,7 @@ setxx;
 
 hmm.train.ignore_MEX = tempname;
 
-% CACHE FREQUENTLY ACCESSED THINGS
-hmm.cache.statewise_train = logical(zeros(1,K));
-for k = 1:K
-    setstateoptions;
-    hmm.cache.train{k} = train;
-    hmm.cache.order{k} = order;
-    hmm.cache.orders{k} = orders;
-    hmm.cache.Sind{k} = Sind;
-    hmm.cache.S{k} = S;
-    hmm.cache.kk{k} = kk;
-end
-
+% Cache test for useMEX
 if ( (ismac || isunix) && hmm.train.useMEX ==1 && exist('hidden_state_inference_mx', 'file') == 3 && (~isfield(hmm.train,'ignore_MEX') || exist(hmm.train.ignore_MEX, 'file') == 0 ))
     hmm.cache.useMEX = true;
 else
@@ -54,8 +43,6 @@ else
         fclose(fopen(hmm.train.ignore_MEX, 'w')); % create file
     end
 end
-
-
 
 for cycle=1:hmm.train.cyc
     

@@ -69,8 +69,19 @@ n_argout = nargout;
 ndim = size(residuals,2);
 S = hmm.train.S==1; 
 regressed = sum(S,1)>0;
-for k = 1:hmm.train.K
-    switch hmm.cache.train{k}.covtype,
+
+% Cache shared results for use in obslike
+for k = 1:K
+
+    setstateoptions;
+    hmm.cache.train{k} = train;
+    hmm.cache.order{k} = order;
+    hmm.cache.orders{k} = orders;
+    hmm.cache.Sind{k} = Sind;
+    hmm.cache.S{k} = S;
+    hmm.cache.kk{k} = kk;
+
+    switch train.covtype,
 
         case 'diag'
             ldetWishB=0;
@@ -89,10 +100,12 @@ for k = 1:hmm.train.K
             end;
             C = hmm.state(k).Omega.Gam_shape * hmm.state(k).Omega.Gam_irate;
     end
+
     hmm.cache.ldetWishB{k} = ldetWishB;
     hmm.cache.PsiWish_alphasum{k} = PsiWish_alphasum;
     hmm.cache.C{k} = C;
     hmm.cache.do_normwishtrace(k) = ~isempty(hmm.state(k).W.Mu_W);
+    
 end
 
 
