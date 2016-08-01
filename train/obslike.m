@@ -59,8 +59,15 @@ switch hmm.train.covtype,
 end;
 
 for k=1:K
-    hs=hmm.state(k);
-    setstateoptions;
+    % hs=hmm.state(k);
+
+    % setstateoptions;
+    train = hmm.cache.train{k};
+    order = hmm.cache.order{k};
+    orders = hmm.cache.orders{k};
+    Sind = hmm.cache.Sind{k};
+    S = hmm.cache.S{k};
+    kk = hmm.cache.kk{k};
     
     switch train.covtype,
         case 'diag'
