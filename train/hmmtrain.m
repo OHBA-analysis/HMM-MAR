@@ -34,6 +34,17 @@ setxx;
 
 hmm.train.ignore_MEX = tempname;
 
+hmm.cache.statewise_train = logical(zeros(1,K));
+for k = 1:K
+    setstateoptions;
+    hmm.cache.train{k} = train;
+    hmm.cache.order{k} = order;
+    hmm.cache.orders{k} = orders;
+    hmm.cache.Sind{k} = Sind;
+    hmm.cache.S{k} = S;
+    hmm.cache.kk{k} = kk;
+end
+
 for cycle=1:hmm.train.cyc
     
     if hmm.train.updateGamma
