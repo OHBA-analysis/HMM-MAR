@@ -118,24 +118,7 @@ classdef (Abstract) dirichletdiags
 			% Simulate T steps with K states and dirichletdiags D
 			% Return the observed lifetime, averaged over the K states
 
-			use_hmmgenerate = 1; % Should give same result, but about 100x faster
-
-			if use_hmmgenerate
-			    P = (D-1)*eye(K)+ones(K);
-			    P = bsxfun(@rdivide,P,sum(P,2));
-			    [~,states] = hmmgenerate(T,P,eye(K));
-			    Gamma = 0.0001*ones(T,K);
-			    Gamma(sub2ind(size(Gamma),1:T,states)) = 1;
-			    Gamma = bsxfun(@rdivide,Gamma,sum(Gamma,2)); % Renormalize
-			else
-			    P = ones(K,K); 
-			    P = P - diag(diag(P)) + D*eye(K);
-			    for k=1:K
-			        P(k,:)=P(k,:)./sum(P(k,:),2);
-			    end
-			    % Copied from initGamma_random
-			    Gamma = initGamma_random(T,K,D);
-			end
+			Gamma = initGamma_random(T,K,D);
 
 			for j = 1:K
 			    G = round(Gamma(:,j));
