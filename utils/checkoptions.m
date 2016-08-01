@@ -142,7 +142,7 @@ end
 if (options.order>0 && options.timelag<1 && options.exptimelag<=1)
     error('if order>0 then you should specify either timelag>=1 or exptimelag>=1')
 end
-if ~isfield(options,'S'), 
+if ~isfield(options,'S') || isempty(options.S)
     if nargin>=2 && ~isempty(S)
         options.S = S;
     else
