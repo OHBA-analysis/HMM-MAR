@@ -29,6 +29,12 @@ if ~isfield(options,'BIGdecodeGamma'), options.BIGdecodeGamma = 1; end
 if ~isfield(options,'BIGverbose'), options.BIGverbose = 1; end  
 if ~isfield(options,'initial_hmm'), options.initial_hmm = []; end
 options.BIGbase_weights = options.BIGbase_weights * ones(1,N);
+if ~isfield(options,'Gamma'), options.Gamma = []; end
+if ~isfield(options,'hmm'), options.hmm = []; end
+if options.BIGuniqueTrans==0 && ~isempty(options.Gamma), 
+    error('BIGuniqueTrans needs to be 1 if Gamma is supplied'); 
+end
+
 
 % HMM-MAR options
 if ~isfield(options,'zeromean'), options.zeromean = 0; end
@@ -41,10 +47,18 @@ if ~isfield(options,'cyc'), options.cyc = 15; end
 if ~isfield(options,'initcyc'), options.initcyc = 5; end
 if ~isfield(options,'initrep'), options.initrep = 3; end
 if ~isfield(options,'useParallel'), options.useParallel = 1; end
+if ~isfield(options,'uniqueAR'), options.uniqueAR = 0; end
+
+if isfield(options,'S') && ~all(options.S(:)==1)
+    error('S(i,j)<1 is not yet implemented for stochastic inference')
+end
+
 options.dropstates = 0; 
 options.verbose = 0; % shut up the individual hmmmar output
 if options.order>0
     [options.orders,options.order] = formorders(options.order,options.orderoffset,options.timelag,options.exptimelag);
 else
     options.orders = [];
+end
+
 end

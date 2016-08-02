@@ -69,7 +69,7 @@ for k=1:hmm.K,
         defstateprior(k).Omega.Gam_shape = 0.5 * (ndim+0.1-1);
     end
     
-end;
+end
 
 if strcmp(hmm.train.covtype,'uniquefull')
     hmm.prior.Omega.Gam_shape = ndim+0.1-1;
@@ -218,8 +218,7 @@ elseif strcmp(hmm.train.covtype,'uniquefull')
         hmm.Omega.Gam_rate(regressed,regressed) = hmm.Omega.Gam_rate(regressed,regressed) +  ...
             (e' .* repmat(Gamma(:,k)',sum(regressed),1)) * e;
     end
-    hmm.Omega.Gam_irate(regressed,regressed) = inv(hmm.Omega.Gam_rate(regressed,regressed));
-    
+    hmm.Omega.Gam_irate(regressed,regressed) = inv(hmm.Omega.Gam_rate(regressed,regressed));   
     
 else % state dependent
     for k=1:K

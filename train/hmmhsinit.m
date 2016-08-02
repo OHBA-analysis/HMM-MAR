@@ -1,5 +1,4 @@
 function hmm = hmmhsinit (hmm)
-%
 % Initialise variables related to the Markov chain
 %
 % hmm		hmm data structure
@@ -18,7 +17,7 @@ for k=1:hmm.K,
   hmm.Dir2d_alpha(k,:)=ones(1,hmm.K);
   hmm.Dir2d_alpha(k,k)=hmm.train.DirichletDiag; 
   hmm.P(k,:)=hmm.Dir2d_alpha(k,:)./sum(hmm.Dir2d_alpha(k,:),2);
-end;
+end
 
 % define P-priors
 defhmmprior=struct('Dir2d_alpha',[],'Dir_alpha',[]);
@@ -27,7 +26,7 @@ defhmmprior.Dir_alpha=ones(1,hmm.K);
 defhmmprior.Dir2d_alpha=ones(hmm.K);
 for k=1:hmm.K,
     defhmmprior.Dir2d_alpha(k,k) = hmm.train.DirichletDiag;
-end;
+end
 
 % assigning default priors for hidden states
 if ~isfield(hmm,'prior'),
@@ -40,7 +39,7 @@ else
   for i=1:length(misfldname),
     priorval=getfield(defhmmprior,hmmpriorlist{i});
     hmm.prior=setfield(hmm.prior,hmmpriorlist{i},priorval);
-  end;
-end;
+  end
+end
 
-
+end

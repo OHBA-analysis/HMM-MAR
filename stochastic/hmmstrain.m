@@ -105,8 +105,8 @@ for cycle = 2:options.BIGcyc
         end
     end
     if options.BIGuniqueTrans
-        hmm.Dir_alpha = sum(Dir_alpha,2)' + hmm.prior.Dir_alpha_prior;
-        hmm.Dir2d_alpha = sum(Dir2d_alpha,3) + hmm.prior.Dir2d_alpha_prior;
+        hmm.Dir_alpha = sum(Dir_alpha,2)' + hmm.prior.Dir_alpha;
+        hmm.Dir2d_alpha = sum(Dir2d_alpha,3) + hmm.prior.Dir2d_alpha;
         [hmm.P,hmm.Pi] = computePandPi(hmm.Dir_alpha,hmm.Dir2d_alpha);
         subjfe(:,3,cycle) = evalfreeenergy([],[],[],[],hmm,[],[],[0 0 0 1 0]) / N; % "shared" P/Pi KL
         for ii = 1:length(I)

@@ -23,17 +23,14 @@ end
 info = struct();
 
 % init sufficient statistics
-
 subj_m_init = zeros(npred,ndim,N,K);
 subj_gram_init = zeros(npred,npred,N,K);
 if strcmp(options.covtype,'diag')
-    subj_err_init = zeros(ndim,N,K); gram_init = [];
+    subj_err_init = zeros(ndim,N,K); 
 elseif strcmp(options.covtype,'full')
-    subj_err_init = zeros(ndim,ndim,N,K); gram_init = [];
-elseif strcmp(options.covtype,'uniquediag')
-    gram_init = zeros(1,ndim); subj_err_init = [];
-else % uniquefull
-    gram_init = zeros(ndim,ndim); subj_err_init = [];
+    subj_err_init = zeros(ndim,ndim,N,K);  
+else
+    subj_err_init = [];
 end
 subj_time_init = zeros(N,K);
 
@@ -50,17 +47,18 @@ for rep = 1:options.BIGinitrep
         % read data
         i = I(ii);
         [X,XX,Y,Ti] = loadfile(Xin{i},T{i},options);
+        XX_i = cell(1); XX_i{1} = XX;
         if rep==1
             if ii==1
-                range_data = range(X);
+                range_data = range(Y);
             else
-                range_data = max(range_data,range(X));
+                range_data = max(range_data,range(Y));
             end
         end
         % Running the individual HMM
-        if isfield(options,'initial_hmm')
+        if isfield(options,'initial_hmm') && ~isempty(options.initial_hmm)
             hmm_i = options.initial_hmm{i};
-            [Gamma,~,Xi] = hsinference(X,Ti,hmm_i,[],options);
+            [Gamma,~,Xi] = hsinference(X,Ti,hmm_i,Y,options,XX_i);
         else
             options_copy = options;
             options_copy = rmfield(options_copy,'BIGNbatch');
@@ -85,7 +83,7 @@ for rep = 1:options.BIGinitrep
         end
         if options.BIGuniqueTrans % update transition probabilities
             for trial=1:length(Ti)
-                t = sum(Ti(1:trial-1)) - options.order*(trial-1) + 1;
+                t = sum(Ti(1:trial-1)) - hmm_i.train.maxorder*(trial-1) + 1;
                 Dir_alpha_init(:,i) = Dir_alpha_init(:,i) + Gamma(t,:)';
             end
             Dir2d_alpha_init(:,:,i) = squeeze(sum(Xi,1));
@@ -116,7 +114,7 @@ for rep = 1:options.BIGinitrep
         end
         % update sufficient statistics
         for k=1:K_i,
-            XG = XX' .* repmat(Gamma(:,k)',size(XX,2),1);
+            XG = XX' .* repmat(Gamma(:,k)',npred,1);
             subj_m_init(:,:,i,assig(k)) = XG * Y;
             subj_gram_init(:,:,i,assig(k)) = XG * XX;
             if strcmp(options.covtype,'full')
@@ -145,18 +143,18 @@ for rep = 1:options.BIGinitrep
                 hmm_init.state(k) = metastate_new( ...
                     sum(subj_err_init(:,:,I(1:ii),k),3) + hmm_i.state(k).prior.Omega.Gam_rate, ...
                     sum(subj_time_init(I(1:ii),k)) + hmm_i.state(k).prior.Omega.Gam_shape, ...
-                    sum(subj_gram_init(:,:,I(1:ii),k),3) + 0.01 * eye(size(XX,2)), ...
+                    sum(subj_gram_init(:,:,I(1:ii),k),3) + 0.01 * eye(npred), ...
                     sum(subj_m_init(:,:,I(1:ii),k),3),options.covtype,Sind);
             elseif strcmp(options.covtype,'diag')
                 hmm_init.state(k) = metastate_new( ...
                     sum(subj_err_init(:,I(1:ii),k),2)' + hmm_i.state(k).prior.Omega.Gam_rate, ...
                     sum(subj_time_init(I(1:ii),k)) + hmm_i.state(k).prior.Omega.Gam_shape, ...
-                    sum(subj_gram_init(:,:,I(1:ii),k),3) + 0.01 * eye(size(XX,2)), ...
+                    sum(subj_gram_init(:,:,I(1:ii),k),3) + 0.01 * eye(npred), ...
                     sum(subj_m_init(:,:,I(1:ii),k),3),options.covtype,Sind);
             else
                hmm_init.state(k) = metastate_new(hmm_init.Omega.Gam_rate,...
                     hmm_init.Omega.Gam_shape,...
-                    sum(subj_gram_init(:,:,I(1:ii),k),3) + 0.01 * eye(size(XX,2)),...
+                    sum(subj_gram_init(:,:,I(1:ii),k),3) + 0.01 * eye(npred),...
                     sum(subj_m_init(:,:,I(1:ii),k),3),options.covtype,Sind);                
             end
         end
@@ -212,8 +210,7 @@ for rep = 1:options.BIGinitrep
     if options.BIGuniqueTrans 
         hmm_init.Dir_alpha = sum(Dir_alpha_init,2)' + Dir_alpha_prior;
         hmm_init.Dir2d_alpha = sum(Dir2d_alpha_init,3) + Dir2d_alpha_prior;
-        [hmm_init.P,hmm_init.Pi] = ...
-            computePandPi(hmm_init.Dir_alpha,hmm_init.Dir2d_alpha);
+        [hmm_init.P,hmm_init.Pi] =  computePandPi(hmm_init.Dir_alpha,hmm_init.Dir2d_alpha);
     end
     
     % Compute free energy
@@ -243,7 +240,6 @@ for rep = 1:options.BIGinitrep
     if fe<best_fe
         best_fe = fe;
         hmm = hmm_init;
-        info.P = P_init; info.Pi = Pi_init;
         info.Dir2d_alpha = Dir2d_alpha_init; info.Dir_alpha = Dir_alpha_init;
         info.subjfe = subjfe_init;
         info.loglik = loglik_init;

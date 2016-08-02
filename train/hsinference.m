@@ -50,7 +50,7 @@ if nargin<4 || isempty(residuals)
 end
 
 if ~isfield(hmm,'P')
-    hmm = hmmhsinit (hmm);
+    hmm = hmmhsinit(hmm);
 end
 
 if nargin<6 || isempty(XX)
