@@ -5,7 +5,7 @@ function [Path,Xi] = hmmsdecode(Xin,T,hmm,type,markovTrans)
 % INPUTS
 % Xin: cell with strings referring to the subject files
 % T: cell of vectors, where each element has the length of each trial per
-% hmm: the metastates computed from trainBigHMM
+% hmm: the stochastic HMM structure
 % type: 0, state time courses; 1, viterbi path
 % markovTrans.P and Pi: transition prob table and initial prob
 % NOTE: computations of stats now done in getshmmstats.m

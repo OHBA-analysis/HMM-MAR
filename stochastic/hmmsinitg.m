@@ -27,7 +27,7 @@ info = struct();
 subj_m_init = zeros(npred,ndim,K);
 subj_gram_init = zeros(npred,npred,K);
 if strcmp(options.covtype,'diag')
-    subj_err_init = zeros(ndim,K); subj_time_init = zeros(K,1);
+    subj_err_init = zeros(1,ndim,K); subj_time_init = zeros(K,1);
 elseif strcmp(options.covtype,'full')
     subj_err_init = zeros(ndim,ndim,K); subj_time_init = zeros(K,1);
 elseif strcmp(options.covtype,'uniquediag')
@@ -50,6 +50,8 @@ for i = 1:N
         if isfield(options,'useParallel'), useParallel = options.useParallel; end
         options.useParallel = 0;
         options = checkoptions(options,X,Ti,0);
+        Sind = formindexes(options.orders,options.S)==1;
+        if ~options.zeromean, Sind = [true(1,ndim); Sind]; end
         options.useParallel = useParallel;
     end
     % get the range of the data to set the prior later
@@ -76,6 +78,7 @@ hmm = initspriors(hmm,range_data);
 hmm.train = options;
 hmm.train.ndim = ndim;
 hmm.train.active = ones(1,K);
+hmm.train.Sind = Sind; 
 
 % Compute W
 for k = 1:K
@@ -104,7 +107,7 @@ for i = 1:N
             else
                 e = Y.^2;
             end
-            subj_err_init(:,k) = subj_err_init(:,k) + sum( repmat(Gamma(:,k),1,ndim) .* e ) / 2;
+            subj_err_init(1,:,k) = subj_err_init(1,:,k) + sum( repmat(Gamma(:,k),1,ndim) .* e ) / 2;
             subj_time_init(k) = subj_time_init(k) + sum(Gamma(:,k)) / 2;
         elseif strcmp(options.covtype,'full')
             if ~isempty(hmm.state(k).W.Mu_W)
@@ -141,22 +144,22 @@ end
 % create the states
 for k = 1:K
     if strcmp(options.covtype,'full')
-        state = metastate_new( ...
+        state = state_snew( ...
             sum(subj_err_init(:,:,k),3) + hmm.state(k).prior.Omega.Gam_rate, ...
             sum(subj_time_init(k)) + hmm.state(k).prior.Omega.Gam_shape, ...
             sum(subj_gram_init(:,:,k),3) + 0.01 * eye(npred), ...
-            sum(subj_m_init(:,:,k),3),options.covtype);
+            sum(subj_m_init(:,:,k),3),options.covtype,Sind);
     elseif strcmp(options.covtype,'diag')
-        state = metastate_new( ...
+        state = state_snew( ...
             sum(subj_err_init(:,k),2)' + hmm.state(k).prior.Omega.Gam_rate, ...
             sum(subj_time_init(k)) + hmm.state(k).prior.Omega.Gam_shape, ...
             sum(subj_gram_init(:,:,k),3) + 0.01 * eye(npred), ...
-            sum(subj_m_init(:,:,k),3),options.covtype);
+            sum(subj_m_init(:,:,k),3),options.covtype,Sind);
     else
-        state = metastate_new(hmm.Omega.Gam_rate,...
+        state = state_snew(hmm.Omega.Gam_rate,...
             hmm.Omega.Gam_shape,...
             sum(subj_gram_init(:,:,k),3) + 0.01 * eye(npred),...
-            sum(subj_m_init(:,:,k),3),options.covtype);
+            sum(subj_m_init(:,:,k),3),options.covtype,Sind);
     end
     hmm.state(k).W = state.W;
     hmm.state(k).Omega = state.Omega;
@@ -175,24 +178,22 @@ end
 % compute Xi, P, Pi, ...
 tsum = 0; 
 for i = 1:N
-    Gamma = GammaInit((1:size(Y,1))+tsum,:); tsum = tsum + size(Y,1);
-    Xi = zeros(size(Gamma,1),K^2);
+    Ti = T{i} - hmm.train.order;
     if length(options.embeddedlags)>1, 
-        Ti = T{i} - (max(options.embeddedlags) + max(-options.embeddedlags));
-    else
-        Ti = T{i};
+        Ti = Ti - (max(options.embeddedlags) + max(-options.embeddedlags));
     end
-    for j=1:Ti-1-hmm.train.order, 
+    Gamma = GammaInit((1:Ti)+tsum,:); tsum = tsum + Ti;
+    Xi = zeros(size(Gamma,1),K^2);
+    for j=1:Ti-1
         t = Gamma(j,:)' * Gamma(j+1,:); 
         Xi(j,:)=t(:)'/sum(t(:)); 
         Xi = reshape(Xi,size(Xi,1),K,K);
     end
     for trial=1:length(Ti)
-        t = sum(Ti(1:trial-1)) - hmm.train.order*(trial-1) + 1;
+        t = sum(Ti(1:trial-1)) + 1;
         Dir_alpha_init(:,i) = Dir_alpha_init(:,i) + Gamma(t,:)';
     end
     Dir2d_alpha_init(:,:,i) = squeeze(sum(Xi,1));
-    
 end
 hmm.Dir_alpha = sum(Dir_alpha_init,2)' + hmm.prior.Dir_alpha;
 hmm.Dir2d_alpha = sum(Dir2d_alpha_init,3) + hmm.prior.Dir2d_alpha;
@@ -211,14 +212,6 @@ for i = 1:N
         Xi(j,:)=t(:)'/sum(t(:));
         Xi = reshape(Xi,size(Xi,1),K,K);
     end
-    %for trial=1:length(Ti)
-    %   t = sum(Ti(1:trial-1)) - hmm.train.order*(trial-1) + (1:Ti(trial)-hmm.train.order);
-    %   XX_trial = cell(1); XX_trial{1} = XX(t,:);
-    %   Y_trial = Y(t,:);
-    %   l = obslike([],hmm,Y_trial,XX_trial);
-    %   l = l(1+hmm.train.order:end,:);
-    %   loglik_init(i) = loglik_init(i) + sum(sum(log(l) .* Gamma(t,:),2));
-    %end
     loglik_init(i) = -evalfreeenergy([],Ti,Gamma,[],hmm,Y,XX_i,[0 1 0 0 0]); % data LL
     subjfe_init(i,1:2) = evalfreeenergy([],Ti,Gamma,Xi,hmm,[],[],[1 0 1 0 0]); % Gamma entropy&LL
 end

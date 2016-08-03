@@ -115,28 +115,28 @@ for cycle = 2:options.BIGcyc
         end
     end
         
-    % global parameters (hmm), and collect metastate free energy
+    % global parameters (hmm), and collect state free energy
     rho(cycle) = (cycle + options.BIGdelay)^(-options.BIGforgetrate); 
     MGamma = cell2mat(Gamma);
     % W
     if isfield(hmm.state(1),'W') && ~isempty(hmm.state(1).W.Mu_W)
         [hmm_noisy,XW] = updateW(hmm,MGamma,Y,XX,XXGXX,Tfactor);
-        hmm = metastates_update(hmm,hmm_noisy,rho(cycle),1);
+        hmm = states_supdate(hmm,hmm_noisy,rho(cycle),1);
     end
     % Omega 
     if isfield(hmm.state(1),'Omega') || isfield(hmm,'Omega')  
         hmm_noisy = updateOmega(hmm,MGamma,sum(MGamma),Y,Tbatch,XX,XXGXX,XW,Tfactor);
-        hmm = metastates_update(hmm,hmm_noisy,rho(cycle),2);
+        hmm = states_supdate(hmm,hmm_noisy,rho(cycle),2);
     end    
     % sigma
     if ~isempty(orders)
         hmm_noisy = updateSigma(hmm);
-        hmm = metastates_update(hmm,hmm_noisy,rho(cycle),3);
+        hmm = states_supdate(hmm,hmm_noisy,rho(cycle),3);
     end
     % alpha
     if ~isempty(orders)
         hmm_noisy = updateAlpha(hmm);
-        hmm = metastates_update(hmm,hmm_noisy,rho(cycle),4);
+        hmm = states_supdate(hmm,hmm_noisy,rho(cycle),4);
     end       
    
     % rest of the free energy (states' KL and data loglikelihood)
