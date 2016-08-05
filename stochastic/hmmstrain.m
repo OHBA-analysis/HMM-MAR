@@ -29,6 +29,7 @@ cyc_best = 1;
 tp_less = max(options.embeddedlags) + max(-options.embeddedlags);
 
 clear info;
+hmm.train.ignore_MEX = tempname;
 
 % init stochastic learning stuff
 nUsed = zeros(1,N); 
@@ -228,8 +229,18 @@ if options.BIGverbose
         fprintf('Lapse: %d, order %g, offset %g \n', ...
             hmm.train.timelag,hmm.train.order,hmm.train.orderoffset)
     end
+    if exist(hmm.train.ignore_MEX, 'file')>0
+        fprintf('MEX file was not used, maybe due to some problem \n')
+    else
+        fprintf('MEX file was used for acceleration \n')
+    end
 end
 
+if exist(hmm.train.ignore_MEX,'file')>0
+    delete(hmm.train.ignore_MEX)
+end
+hmm.train = rmfield(hmm.train,'ignore_MEX');
+ 
 end
 
 
