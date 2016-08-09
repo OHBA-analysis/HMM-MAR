@@ -56,11 +56,6 @@ parfor it=1:length(init_k)
         fprintf('Init run %d, %d->%d states, Free Energy = %f \n',it,opt_worker.K,size(Gamma{it},2),fehist(it));
     end
 
-    if size(Gamma{it},2)<options.K % If states were knocked out, add them back
-        Gamma{it} = [Gamma{it} 0.0001*rand(size(Gamma{it},1),options.K-size(Gamma{it},2))];
-        Gamma{it} = bsxfun(@rdivide,Gamma{it},sum(Gamma{it},2));
-    end
-
 end
 
 [fmin,s] = min(fehist);
