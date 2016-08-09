@@ -1,4 +1,4 @@
-function [metahmm,info] = hmmsinit(Xin,T,options)
+function [hmm,info] = hmmsinit(Xin,T,options)
 % Initialisation before stochastic HMM variational inference
 %
 % INPUTS
@@ -10,27 +10,30 @@ function [metahmm,info] = hmmsinit(Xin,T,options)
 % options: HMM options for both the subject and the group runs
 %
 % Diego Vidaurre, OHBA, University of Oxford (2016)
- 
+
 N = length(T); K = options.K;
-X = loadfile(Xin{1},T{1}); 
-ndim = size(X,2)*length(options.embeddedlags);
+X = loadfile(Xin{1},T{1},options); ndim = size(X,2);
 subjfe_init = zeros(N,3);
 loglik_init = zeros(N,1);
-npred = length(options.orders)*ndim + (~options.zeromean);
+pcaprec = options.pcapred>0;
+if isfield(options,'B') && ~isempty(options.B)
+    npred = length(options.orders)*size(options.B,2) + (~options.zeromean);
+elseif pcaprec
+    npred = options.pcapred + (~options.zeromean);
+else
+    npred = length(options.orders)*ndim + (~options.zeromean);
+end
 info = struct();
 
 % init sufficient statistics
-
 subj_m_init = zeros(npred,ndim,N,K);
 subj_gram_init = zeros(npred,npred,N,K);
 if strcmp(options.covtype,'diag')
-    subj_err_init = zeros(ndim,N,K); gram_init = [];
+    subj_err_init = zeros(ndim,N,K); 
 elseif strcmp(options.covtype,'full')
-    subj_err_init = zeros(ndim,ndim,N,K); gram_init = [];
-elseif strcmp(options.covtype,'uniquediag')
-    gram_init = zeros(1,ndim); subj_err_init = [];
-else % uniquefull
-    gram_init = zeros(ndim,ndim); subj_err_init = [];
+    subj_err_init = zeros(ndim,ndim,N,K);  
+else
+    subj_err_init = [];
 end
 subj_time_init = zeros(N,K);
 
@@ -47,25 +50,39 @@ for rep = 1:options.BIGinitrep
         % read data
         i = I(ii);
         [X,XX,Y,Ti] = loadfile(Xin{i},T{i},options);
+        XX_i = cell(1); XX_i{1} = XX;
         if rep==1
             if ii==1
-                range_data = range(X);
+                range_data = range(Y);
             else
-                range_data = max(range_data,range(X));
+                range_data = max(range_data,range(Y));
             end
         end
         % Running the individual HMM
-        options_copy = options; 
-        options_copy = rmfield(options_copy,'BIGNbatch');
-        options_copy = rmfield(options_copy,'orders');
-        if length(Ti)==1, options_copy.useParallel = 0; end 
-        [hmm_i,Gamma,Xi] = hmmmar(X,Ti,options_copy);
+        if isfield(options,'initial_hmm') && ~isempty(options.initial_hmm)
+            hmm_i = options.initial_hmm{i};
+            [Gamma,~,Xi] = hsinference(X,Ti,hmm_i,Y,options,XX_i);
+        else
+            options_copy = options;
+            options_copy = rmfield(options_copy,'BIGNbatch');
+            options_copy = rmfield(options_copy,'orders');
+            options_copy.pca = 0; % this has been done in loadfile.m
+            options_copy.embeddedlags = 0; % this has been done in loadfile.m
+            if length(Ti)==1, options_copy.useParallel = 0; end
+            [hmm_i,Gamma,Xi] = hmmmar(X,Ti,options_copy);
+            hmm_i.train.pca = options.pca; hmm_i.train.embeddedlags = options.embeddedlags;
+            hmm_i.train.useParallel = options.useParallel;
+        end
         if ii==1 % get priors
             Dir2d_alpha_prior = hmm_i.prior.Dir2d_alpha;
             Dir_alpha_prior = hmm_i.prior.Dir_alpha;
             hmm_i.train.orders = formorders(hmm_i.train.order,hmm_i.train.orderoffset,...
                 hmm_i.train.timelag,hmm_i.train.exptimelag);
-            Sind = formindexes(hmm_i.train.orders,hmm_i.train.S)==1;
+            if options.pcapred>0
+                Sind = true(options.pcapred,ndim);
+            else
+                Sind = formindexes(hmm_i.train.orders,hmm_i.train.S)==1;
+            end
             if ~hmm_i.train.zeromean, Sind = [true(1,ndim); Sind]; end
         end
         if options.BIGverbose
@@ -73,7 +90,7 @@ for rep = 1:options.BIGinitrep
         end
         if options.BIGuniqueTrans % update transition probabilities
             for trial=1:length(Ti)
-                t = sum(Ti(1:trial-1)) - options.order*(trial-1) + 1;
+                t = sum(Ti(1:trial-1)) - hmm_i.train.maxorder*(trial-1) + 1;
                 Dir_alpha_init(:,i) = Dir_alpha_init(:,i) + Gamma(t,:)';
             end
             Dir2d_alpha_init(:,:,i) = squeeze(sum(Xi,1));
@@ -83,28 +100,29 @@ for rep = 1:options.BIGinitrep
             Dir_alpha_init(:,i) = hmm_i.Dir_alpha';
         end
         K_i = length(hmm_i.state);
-        % Reassigning ordering of the states according the closest metahmm
+        % Reassigning ordering of the states according the closest hmm
         if ii==1
             assig = 1:K_i;
             if K_i<K,
                 warning('The first HMM run needs to return K states, you might want to start again..\n')
             end
-            metahmm_init = struct('train',hmm_i.train);
+            hmm_init = struct('train',hmm_i.train);
+            hmm_init.train.active = ones(1,K);
             if strcmp(options.covtype,'uniquefull') || strcmp(options.covtype,'uniquediag')
-                metahmm_init.Omega = hmm_i.Omega; 
+                hmm_init.Omega = hmm_i.Omega; 
             end
         else
             dist = Inf(K_i,K);
             for j = 1:K_i
                 for k = 1:K
-                    dist(j,k) = symm_kl_div(hmm_i.state(j), metahmm_init.state(k), Sind);
+                    dist(j,k) = symm_kl_div(hmm_i.state(j), hmm_init.state(k), Sind);
                 end
             end
             assig = munkres(dist); % linear assignment problem
         end
         % update sufficient statistics
         for k=1:K_i,
-            XG = XX' .* repmat(Gamma(:,k)',size(XX,2),1);
+            XG = XX' .* repmat(Gamma(:,k)',npred,1);
             subj_m_init(:,:,i,assig(k)) = XG * Y;
             subj_gram_init(:,:,i,assig(k)) = XG * XX;
             if strcmp(options.covtype,'full')
@@ -122,29 +140,29 @@ for rep = 1:options.BIGinitrep
             % hence, an underestimation of the group ones
         end
         if ii>1 && (strcmp(options.covtype,'uniquefull') || strcmp(options.covtype,'uniquediag'))
-            metahmm_init.Omega.Gam_shape = metahmm_init.Omega.Gam_shape + ...
+            hmm_init.Omega.Gam_shape = hmm_init.Omega.Gam_shape + ...
                 hmm_i.Omega.Gam_shape - hmm_i.prior.Omega.Gam_shape;
-            metahmm_init.Omega.Gam_rate = metahmm_init.Omega.Gam_rate + ...
+            hmm_init.Omega.Gam_rate = hmm_init.Omega.Gam_rate + ...
                 hmm_i.Omega.Gam_rate - hmm_i.prior.Omega.Gam_rate;
         end
-        % updating the metahmm
+        % updating the hmm
         for k = 1:K_i
             if strcmp(options.covtype,'full')
-                metahmm_init.state(k) = metastate_new( ...
+                hmm_init.state(k) = state_snew( ...
                     sum(subj_err_init(:,:,I(1:ii),k),3) + hmm_i.state(k).prior.Omega.Gam_rate, ...
                     sum(subj_time_init(I(1:ii),k)) + hmm_i.state(k).prior.Omega.Gam_shape, ...
-                    sum(subj_gram_init(:,:,I(1:ii),k),3) + 0.01 * eye(size(XX,2)), ...
+                    sum(subj_gram_init(:,:,I(1:ii),k),3) + 0.01 * eye(npred), ...
                     sum(subj_m_init(:,:,I(1:ii),k),3),options.covtype,Sind);
             elseif strcmp(options.covtype,'diag')
-                metahmm_init.state(k) = metastate_new( ...
+                hmm_init.state(k) = state_snew( ...
                     sum(subj_err_init(:,I(1:ii),k),2)' + hmm_i.state(k).prior.Omega.Gam_rate, ...
                     sum(subj_time_init(I(1:ii),k)) + hmm_i.state(k).prior.Omega.Gam_shape, ...
-                    sum(subj_gram_init(:,:,I(1:ii),k),3) + 0.01 * eye(size(XX,2)), ...
+                    sum(subj_gram_init(:,:,I(1:ii),k),3) + 0.01 * eye(npred), ...
                     sum(subj_m_init(:,:,I(1:ii),k),3),options.covtype,Sind);
             else
-               metahmm_init.state(k) = metastate_new(metahmm_init.Omega.Gam_rate,...
-                    metahmm_init.Omega.Gam_shape,...
-                    sum(subj_gram_init(:,:,I(1:ii),k),3) + 0.01 * eye(size(XX,2)),...
+               hmm_init.state(k) = state_snew(hmm_init.Omega.Gam_rate,...
+                    hmm_init.Omega.Gam_shape,...
+                    sum(subj_gram_init(:,:,I(1:ii),k),3) + 0.01 * eye(npred),...
                     sum(subj_m_init(:,:,I(1:ii),k),3),options.covtype,Sind);                
             end
         end
@@ -154,84 +172,86 @@ for rep = 1:options.BIGinitrep
     if rep==1
         if isempty(options.BIGprior)
             for k = 1:K
-                metahmm_init.state(k).prior = hmm_i.state(k).prior;
-                if isfield(metahmm_init.state(k).prior,'Omega')
+                hmm_init.state(k).prior = hmm_i.state(k).prior;
+                if isfield(hmm_init.state(k).prior,'Omega')
                     if strcmp(options.covtype,'diag')
-                        metahmm_init.state(k).prior.Omega.Gam_rate = 0.5 * range_data;
+                        hmm_init.state(k).prior.Omega.Gam_rate = 0.5 * range_data;
                     elseif strcmp(options.covtype,'full')
-                        metahmm_init.state(k).prior.Omega.Gam_rate = diag(range_data);
+                        hmm_init.state(k).prior.Omega.Gam_rate = diag(range_data);
                     end
                 end
-                if isfield(metahmm_init.state(k).prior,'Mean')
-                    metahmm_init.state(k).prior.Mean.Mu = zeros(ndim,1);
-                    metahmm_init.state(k).prior.Mean.S = ((range_data/2).^2)';
-                    metahmm_init.state(k).prior.Mean.iS = 1 ./ metahmm_init.state(k).prior.Mean.S;
+                if isfield(hmm_init.state(k).prior,'Mean')
+                    hmm_init.state(k).prior.Mean.Mu = zeros(ndim,1);
+                    hmm_init.state(k).prior.Mean.S = ((range_data/2).^2)';
+                    hmm_init.state(k).prior.Mean.iS = 1 ./ hmm_init.state(k).prior.Mean.S;
                 end
             end
-            metahmm_init.prior = hmm_i.prior;
+            hmm_init.prior = hmm_i.prior;
             if strcmp(options.covtype,'uniquediag')
-                metahmm_init.prior.Omega.Gam_rate = 0.5 * range_data;
+                hmm_init.prior.Omega.Gam_rate = 0.5 * range_data;
             elseif strcmp(options.covtype,'uniquefull')
-                metahmm_init.prior.Omega.Gam_rate = diag(range_data);
+                hmm_init.prior.Omega.Gam_rate = diag(range_data);
             end
         else
             for k = 1:K
-                metahmm_init.state(k).prior = options.BIGprior.state(k).prior;
+                hmm_init.state(k).prior = options.BIGprior.state(k).prior;
             end
-            metahmm_init.prior.Dir2d_alpha = options.BIGprior.Dir2d_alpha;
-            metahmm_init.prior.Dir_alpha = options.BIGprior.Dir_alpha;
+            hmm_init.prior.Dir2d_alpha = options.BIGprior.Dir2d_alpha;
+            hmm_init.prior.Dir_alpha = options.BIGprior.Dir_alpha;
         end
-        metahmm_init.K = K;
-        metahmm_init.train.BIGNbatch = options.BIGNbatch;
-        metahmm_init.train.Sind = Sind; 
+        hmm_init.K = K;
+        hmm_init.train.BIGNbatch = options.BIGNbatch;
+        hmm_init.train.Sind = Sind; 
     end
     
     % distribution of sigma and alpha, variances of the MAR coeff distributions
     if ~isempty(options.orders)
-        for k=1:K,
-            metahmm_init.state(k).alpha.Gam_shape = metahmm_init.state(k).prior.alpha.Gam_shape;
-            metahmm_init.state(k).alpha.Gam_rate = metahmm_init.state(k).prior.alpha.Gam_rate;
+        if pcaprec
+            hmm_init = updateBeta(hmm_init);
+        else
+            for k=1:K,
+                hmm_init.state(k).alpha.Gam_shape = hmm_init.state(k).prior.alpha.Gam_shape;
+                hmm_init.state(k).alpha.Gam_rate = hmm_init.state(k).prior.alpha.Gam_rate;
+            end
+            hmm_init = updateSigma(hmm_init);
+            hmm_init = updateAlpha(hmm_init);
         end
-        metahmm_init = updateSigma(metahmm_init);
-        metahmm_init = updateAlpha(metahmm_init);
     end
 
     % update transition probabilities 
     if options.BIGuniqueTrans 
-        metahmm_init.Dir_alpha = sum(Dir_alpha_init,2)' + Dir_alpha_prior;
-        metahmm_init.Dir2d_alpha = sum(Dir2d_alpha_init,3) + Dir2d_alpha_prior;
-        [metahmm_init.P,metahmm_init.Pi] = ...
-            computePandPi(metahmm_init.Dir_alpha,metahmm_init.Dir2d_alpha);
+        hmm_init.Dir_alpha = sum(Dir_alpha_init,2)' + Dir_alpha_prior;
+        hmm_init.Dir2d_alpha = sum(Dir2d_alpha_init,3) + Dir2d_alpha_prior;
+        [hmm_init.P,hmm_init.Pi] =  computePandPi(hmm_init.Dir_alpha,hmm_init.Dir2d_alpha);
     end
     
     % Compute free energy
-    metahmm_init_i = metahmm_init;
+    hmm_init_i = hmm_init;
     for i = 1:N
-        [X,XX,Y] = loadfile(Xin{i},Ti,options);
+        [X,XX,Y,Ti] = loadfile(Xin{i},T{i},options);
         XX_i = cell(1); XX_i{1} = XX;
-        data = struct('X',X,'C',NaN(sum(Ti)-length(Ti)*options.order,K));
+        data = struct('X',X,'C',NaN(size(XX,1),K));
         if ~options.BIGuniqueTrans
-            metahmm_init_i = copyhmm(metahmm_init,...
+            hmm_init_i = copyhmm(hmm_init,...
                 P_init(:,:,i),Pi_init(:,i)',Dir2d_alpha_init(:,:,i),Dir_alpha_init(:,i)');
         end
-        [Gamma,~,Xi,l] = hsinference(data,Ti,metahmm_init_i,Y,[],XX_i);
+        [Gamma,~,Xi,l] = hsinference(data,Ti,hmm_init_i,Y,[],XX_i);
         if options.BIGuniqueTrans
-            subjfe_init(i,1:2) = evalfreeenergy([],Ti,Gamma,Xi,metahmm_init_i,[],[],[1 0 1 0 0]); % Gamma entropy&LL
+            subjfe_init(i,1:2) = evalfreeenergy([],Ti,Gamma,Xi,hmm_init_i,[],[],[1 0 1 0 0]); % Gamma entropy&LL
         else
-            subjfe_init(i,:) = evalfreeenergy([],Ti,Gamma,Xi,metahmm_init_i,[],[],[1 0 1 1 0]); 
+            subjfe_init(i,:) = evalfreeenergy([],Ti,Gamma,Xi,hmm_init_i,[],[],[1 0 1 1 0]); 
         end
         loglik_init(i) = sum(l);
     end
     if options.BIGuniqueTrans
-        subjfe_init(:,3) = evalfreeenergy([],[],[],[],metahmm_init,[],[],[0 0 0 1 0]) / N; % "share" P and Pi KL
+        subjfe_init(:,3) = evalfreeenergy([],[],[],[],hmm_init,[],[],[0 0 0 1 0]) / N; % "share" P and Pi KL
     end
-    statekl_init = sum(evalfreeenergy([],[],[],[],metahmm_init,[],[],[0 0 0 0 1])); % state KL
+    statekl_init = sum(evalfreeenergy([],[],[],[],hmm_init,[],[],[0 0 0 0 1])); % state KL
     fe = - sum(loglik_init) + sum(subjfe_init(:)) + statekl_init;
     
     if fe<best_fe
         best_fe = fe;
-        metahmm = metahmm_init;
-        info.P = P_init; info.Pi = Pi_init;
+        hmm = hmm_init;
         info.Dir2d_alpha = Dir2d_alpha_init; info.Dir_alpha = Dir_alpha_init;
         info.subjfe = subjfe_init;
         info.loglik = loglik_init;
@@ -245,8 +265,8 @@ for rep = 1:options.BIGinitrep
     
 end
 
-metahmm.prior.Dir_alpha_prior = Dir_alpha_prior;
-metahmm.prior.Dir2d_alpha_prior = Dir2d_alpha_prior;
+hmm.prior.Dir_alpha_prior = Dir_alpha_prior;
+hmm.prior.Dir2d_alpha_prior = Dir2d_alpha_prior;
 
 end
 

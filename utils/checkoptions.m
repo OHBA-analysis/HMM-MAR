@@ -6,13 +6,41 @@ if size(data.X,1)~=sum(T),
     error('Total time specified in T does not match the size of the data')
 end
 
-options = checkMARparametrization(options,[],size(data.X,2));
+% data options
+if ~isfield(options,'embeddedlags'), options.embeddedlags = 0; end
+if ~isfield(options,'pca'), options.pca = 0; end
+if ~isfield(options,'pcamar'), options.pcamar = 0; end
+if ~isfield(options,'pcapred'), options.pcapred = 0; end
+if ~isfield(options,'standardise'), options.standardise = (options.pca>0); end
+
+if options.pca == 0, ndim = length(options.embeddedlags) * size(data.X,2);
+else ndim = options.pca;
+end
+if ~isfield(options,'S'), 
+    if options.pcamar>0, options.S = ones(options.pcamar,ndim);
+    else options.S = ones(ndim); end
+end
+
+options = checkMARparametrization(options,[],ndim);
 options.multipleConf = isfield(options,'state');
+if options.multipleConf && options.pcamar>0
+    error('Multiple configurations are not compatible with pcamar>0');
+end
+if options.multipleConf && options.pcapred>0
+    error('Multiple configurations are not compatible with pcapred>0');
+end
+if options.multipleConf && length(options.embeddedlags)>1 
+    error('Multiple configurations are not compatible with embeddedlags');
+end
+if options.pcamar>0 && options.pcapred>0
+    error('Options pcamar and pcapred are not compatible')
+end
+
 if options.multipleConf
     options.maxorder = 0;
     for k = 1:options.K
         if ~isempty(options.state(k).train)
-            options.state(k).train = checkMARparametrization(options.state(k).train,options.S,size(data.X,2));
+            options.state(k).train = checkMARparametrization(options.state(k).train,options.S,ndim);
             train =  options.state(k).train;
             [~,order] = formorders(train.order,train.orderoffset,train.timelag,train.exptimelag);
             options.maxorder = max(options.maxorder,order);
@@ -36,7 +64,7 @@ elseif size(data.C,1)==sum(T) && options.maxorder>0 % we need to trim C
     %fprintf('C has more rows than it should; the first rows of each trial will be discarded\n')
 end
 
-options.ndim = size(data.X,2);
+% training options
 if ~isfield(options,'Fs'), options.Fs = 1; end
 if ~isfield(options,'cyc'), options.cyc = 1000; end
 if ~isfield(options,'tol'), options.tol = 1e-5; end
@@ -117,6 +145,23 @@ end
 function options = checkMARparametrization(options,S,ndim)
 
 if ~isfield(options,'order'), error('order was not specified'); end
+if isfield(options,'embeddedlags') && length(options.embeddedlags)>1 && options.order>0 
+    error('Order needs to be zero for multiple embedded lags')
+end
+if isfield(options,'pcamar') && options.pcamar>0 
+    if options.order==0, error('Option pcamar>0 must be used with some order>0'); end
+    if isfield(options,'S') && any(options.S(:)~=1), error('S must have all elements equal to 1 if pcamar>0'); end 
+    if isfield(options,'symmetricprior') && options.symmetricprior==1, error('Priors must be symmetric if pcamar>0'); end
+    if isfield(options,'uniqueAR') && options.uniqueAR==1, error('pcamar cannot be >0 if uniqueAR is set to 0'); end
+end
+if isfield(options,'pcapred') && options.pcapred>0 
+    if options.order==0, error('Option pcapred>0 must be used with some order>0'); end
+    if isfield(options,'S') && any(options.S(:)~=1), error('S must have all elements equal to 1 if pcapred>0'); end 
+    if isfield(options,'symmetricprior') && options.symmetricprior==1, 
+        error('Option symmetricprior makes no sense if pcamar>0'); 
+    end
+    if isfield(options,'uniqueAR') && options.uniqueAR==1, error('pcapred cannot be >0 if uniqueAR is set to 0'); end
+end
 if ~isfield(options,'covtype') && ndim==1, options.covtype = 'diag'; 
 elseif ~isfield(options,'covtype') && ndim>1, options.covtype = 'full'; 
 elseif (strcmp(options.covtype,'full') || strcmp(options.covtype,'uniquefull')) && ndim==1
@@ -130,23 +175,27 @@ if ~isfield(options,'zeromean'),
     else options.zeromean = 0;
     end
 end
-if ~isfield(options,'embeddedlags'), options.embeddedlags = 0; end
 if ~isfield(options,'timelag'), options.timelag = 1; end
 if ~isfield(options,'exptimelag'), options.exptimelag = 1; end
 if ~isfield(options,'orderoffset'), options.orderoffset = 0; end
-if ~isfield(options,'symmetricprior'), options.symmetricprior = 1; end
+if ~isfield(options,'symmetricprior'),  options.symmetricprior = 0; end
 if ~isfield(options,'uniqueAR'), options.uniqueAR = 0; end
 if (options.order>0) && (options.order <= options.orderoffset)
     error('order has to be either zero or higher than orderoffset')
 end
-if (options.order>0 && options.timelag<1 && options.exptimelag<=1)
+if (options.order>0) && (options.timelag<1) && (options.exptimelag<=1)
     error('if order>0 then you should specify either timelag>=1 or exptimelag>=1')
 end
-if ~isfield(options,'S') || isempty(options.S)
+if ~isfield(options,'S'), % 
     if nargin>=2 && ~isempty(S)
-        options.S = S;
+        if options.pca==0 || all(S(:))==1
+            options.S = S;
+        else
+            warning('S cannot have elements different from 1 if options.pca>1')
+            options.S = ones(size(S));
+        end
     else
-        options.S = ones(length(options.embeddedlags)*ndim,length(options.embeddedlags)*ndim); 
+        options.S = ones(ndim);
     end
 elseif nargin>=2 && ~isempty(S) && any(S(:)~=options.S(:))
     error('S has to be equal across states')
@@ -193,7 +242,11 @@ if (strcmp(options.covtype,'uniquediag') || strcmp(options.covtype,'uniquefull')
    error('Unique covariance matrix, order=0 and no mean modelling: there is nothing left to drive the states..') 
 end
 
-options.Sind = formindexes(orders,options.S);
+if options.pcapred>0
+    options.Sind = ones(options.pcapred,ndim);
+else
+    options.Sind = formindexes(orders,options.S);
+end
 if ~options.zeromean, options.Sind = [true(1,ndim); options.Sind]; end
 end
 

@@ -23,9 +23,6 @@ function [hmm,Gamma,Xi,fehist] = hmmtrain(data,T,hmm,Gamma,residuals,fehist)
 %
 % Author: Diego Vidaurre, OHBA, University of Oxford
 
-N = length(T); K = hmm.train.K;
-ndim = size(data.X,2);
-
 if nargin<6, fehist=[];
 elseif ~isempty(fehist), fprintf('Restarting at cycle %d \n',length(fehist)+1);
 end

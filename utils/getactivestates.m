@@ -8,7 +8,10 @@ if isfield(hmm.state(1),'Omega'),
 else
     ndim = size(hmm.state(1).W.Mu_W,2);
 end
-Gammasum = mean(Gamma); % Fractional occupancy
+
+Gammasum = sum(Gamma);
+if isfield(hmm.train,'B'), Q = size(hmm.train.B,2);
+else Q = ndim; end
 
 actstates = ones(1,K); % length = to the last no. of states (=the original K if dropstates==0)
 for k=1:K

@@ -4,6 +4,8 @@ K = length(hmm.state); ndim = hmm.train.ndim;
 S = hmm.train.S==1; regressed = sum(S,1)>0;
 if nargin<9, Tfactor = 1; end
 Tres = sum(T) - length(T)*hmm.train.maxorder;
+if isfield(hmm.train,'B'), Q = size(hmm.train.B,2);
+else Q = ndim; end
 
 if strcmp(hmm.train.covtype,'uniquediag') && hmm.train.uniqueAR 
     % all are AR and there's a single covariance matrix
@@ -60,9 +62,14 @@ elseif strcmp(hmm.train.covtype,'uniquefull')
             for n1=find(regressed)
                 for n2=find(regressed)
                     if n2<n1, continue, end;
-                    index1 = (0:length(orders)*ndim+(~hmm.train.zeromean)-1) * ndim + n1;
-                    index2 = (0:length(orders)*ndim+(~hmm.train.zeromean)-1) * ndim + n2;
-                    index1 = index1(Sind(:,n1)); index2 = index2(Sind(:,n2));
+                    if hmm.train.pcapred>0
+                        index1 = (0:hmm.train.pcapred+(~train.zeromean)-1) * ndim + n1;
+                        index2 = (0:hmm.train.pcapred+(~train.zeromean)-1) * ndim + n2;
+                    else
+                        index1 = (0:length(orders)*Q+(~hmm.train.zeromean)-1) * ndim + n1;
+                        index2 = (0:length(orders)*Q+(~hmm.train.zeromean)-1) * ndim + n2;
+                        index1 = index1(Sind(:,n1)); index2 = index2(Sind(:,n2));
+                    end
                     swx2(n1,n2) = sum(sum(hmm.state(k).W.S_W(index1,index2) .* XXGXX{k}(Sind(:,n1),Sind(:,n2))));
                     swx2(n2,n1) = swx2(n1,n2);
                 end
@@ -122,9 +129,14 @@ else % state dependent
                     for n1=find(regressed)
                         for n2=find(regressed)
                             if n2<n1, continue, end;
-                            index1 = (0:length(orders)*ndim+(~train.zeromean)-1) * ndim + n1;
-                            index2 = (0:length(orders)*ndim+(~train.zeromean)-1) * ndim + n2;
-                            index1 = index1(Sind(:,n1)); index2 = index2(Sind(:,n2));
+                            if hmm.train.pcapred>0
+                                index1 = (0:hmm.train.pcapred+(~train.zeromean)-1) * ndim + n1;
+                                index2 = (0:hmm.train.pcapred+(~train.zeromean)-1) * ndim + n2;
+                            else
+                                index1 = (0:length(orders)*Q+(~train.zeromean)-1) * ndim + n1;
+                                index2 = (0:length(orders)*Q+(~train.zeromean)-1) * ndim + n2;
+                                index1 = index1(Sind(:,n1)); index2 = index2(Sind(:,n2));
+                            end
                             swx2(n1,n2) = sum(sum(hmm.state(k).W.S_W(index1,index2) .* XXGXX{k}(Sind(:,n1),Sind(:,n2))));
                             swx2(n2,n1) = swx2(n1,n2);
                         end

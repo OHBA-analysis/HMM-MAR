@@ -13,7 +13,7 @@ function [flips,scorepath,covmats_unflipped] = findflip(X,T,options)
 %  maxlag        max lag to consider 
 %  nbatch        no. of channels to evaluate at each iteration
 %  noruns        how many random initialisations will be carried out
-%  standardize   if 1, standardize the data
+%  standardise   if 1, standardise the data
 %  maxcyc        for each initialization, maximum number of cycles of the greedy algorithm
 %  mincyc        for each initialization, minimum number of cycles of the greedy algorithm
 %
@@ -33,7 +33,7 @@ if ~isfield(options,'maxcyc'), options.maxcyc = 100*N*ndim; end
 if ~isfield(options,'mincyc'), options.mincyc = 10; end
 if ~isfield(options,'probinitflip'), options.probinitflip = 0.25; end
 if ~isfield(options,'nbatch'), options.nbatch = ndim; end
-if ~isfield(options,'standardize'), options.standardize = 1; end
+if ~isfield(options,'standardise'), options.standardise = 1; end
 if ~isfield(options,'verbose'), options.verbose = 1; end
 
 if options.maxcyc<options.mincyc
@@ -43,7 +43,7 @@ end
 if length(size(X))==4 % it is an array of autocorrelation matrices already
     covmats_unflipped = X; clear X
 else
-    if options.standardize
+    if options.standardise
         for in = 1:N
             ind = (1:T(in)) + sum(T(1:in-1));
             X(ind,:) = X(ind,:) - repmat(mean(X(ind,:)),T(in),1);

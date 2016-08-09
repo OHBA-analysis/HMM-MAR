@@ -1,6 +1,16 @@
-function options = checkBIGoptions (options,T)
+function options = checksoptions (options,T)
+
+% Right now the option S is not implemented for stochastic learning
 
 N = length(T);
+
+% data options
+if ~isfield(options,'embeddedlags'), options.embeddedlags = 0; end
+if ~isfield(options,'pca'), options.pca = 0; end
+if ~isfield(options,'pcamar'), options.pcamar = 0; end
+if ~isfield(options,'pcapred'), options.pcapred = 0; end
+if ~isfield(options,'standardise'), options.standardise = (options.pca>0); end
+
 if ~isfield(options,'K'), error('K was not specified'); end
 % Specific BigHMM options
 if ~isfield(options,'BIGNbatch'), options.BIGNbatch = min(10,N); end
@@ -16,9 +26,16 @@ if ~isfield(options,'BIGforgetrate'), options.BIGforgetrate = 0.9; end
 if ~isfield(options,'BIGdelay'), options.BIGdelay = 1; end
 if ~isfield(options,'BIGbase_weights'), options.BIGbase_weights = 0.95; end % < 1 will promote democracy
 if ~isfield(options,'BIGcomputeGamma'), options.BIGcomputeGamma = 1; end
-if ~isfield(options,'BIGdecodeGamma'), options.BIGdecodeGamma = 0; end
+if ~isfield(options,'BIGdecodeGamma'), options.BIGdecodeGamma = 1; end
 if ~isfield(options,'BIGverbose'), options.BIGverbose = 1; end  
+if ~isfield(options,'initial_hmm'), options.initial_hmm = []; end
 options.BIGbase_weights = options.BIGbase_weights * ones(1,N);
+if ~isfield(options,'Gamma'), options.Gamma = []; end
+if ~isfield(options,'hmm'), options.hmm = []; end
+if options.BIGuniqueTrans==0 && ~isempty(options.Gamma), 
+    error('BIGuniqueTrans needs to be 1 if Gamma is supplied'); 
+end
+
 
 % HMM-MAR options
 if ~isfield(options,'zeromean'), options.zeromean = 0; end
@@ -31,10 +48,18 @@ if ~isfield(options,'cyc'), options.cyc = 15; end
 if ~isfield(options,'initcyc'), options.initcyc = 5; end
 if ~isfield(options,'initrep'), options.initrep = 3; end
 if ~isfield(options,'useParallel'), options.useParallel = 1; end
+if ~isfield(options,'uniqueAR'), options.uniqueAR = 0; end
+
+if isfield(options,'S') && ~all(options.S(:)==1)
+    error('S(i,j)<1 is not yet implemented for stochastic inference')
+end
+
 options.dropstates = 0; 
 options.verbose = 0; % shut up the individual hmmmar output
 if options.order>0
     [options.orders,options.order] = formorders(options.order,options.orderoffset,options.timelag,options.exptimelag);
 else
     options.orders = [];
+end
+
 end
