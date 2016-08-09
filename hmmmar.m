@@ -151,15 +151,27 @@ else
         options = rmfield(options,'Gamma');
     end
 
-    if size(GammaInit,2) < options.K && any(isfinite(data.C(:)))
+    % Code below will start the iterations with reduced K, but this also has strange effects
+    % with DirichletDiag
+    % ----
+    % if size(GammaInit,2) < options.K && any(isfinite(data.C(:)))
+    %     % States were knocked out, but semisupervised in use, so put them back
+    %     GammaInit = [GammaInit 0.0001*rand(size(GammaInit,1),options.K-size(GammaInit,2))];
+    %     GammaInit = bsxfun(@rdivide,GammaInit,sum(GammaInit,2));
+    % end
+    % options.K = size(GammaInit,2);
+    % data.C = data.C(:,1:options.K);
+    % -----
+
+    % Code below reproduces default usage
+    % -----
+    if size(GammaInit,2) < options.K 
         % States were knocked out, but semisupervised in use, so put them back
         GammaInit = [GammaInit 0.0001*rand(size(GammaInit,1),options.K-size(GammaInit,2))];
         GammaInit = bsxfun(@rdivide,GammaInit,sum(GammaInit,2));
     end
 
-    options.K = size(GammaInit,2);
-    data.C = data.C(:,1:options.K);
-    
+    % -----
     fehist = Inf;
     if isempty(options.hmm) % Initialisation of the hmm
         hmm_wr = struct('train',struct());

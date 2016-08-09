@@ -127,5 +127,20 @@ if exist(hmm.train.ignore_MEX,'file')>0
     delete(hmm.train.ignore_MEX)
 end
 hmm.train = rmfield(hmm.train,'ignore_MEX');
-    
+
+% Problem was that the free energy is lower if states are knocked out
+% That is, collapsing from 10 to 1 has a lower free energy than collapsing from 5 to 1
+% Because of the change in dirichletdiag
+%
+% if size(Gamma,2) == 1
+%     disp('----')
+%     disp('----')
+%     disp('OUTPUT')
+%     sum(evalfreeenergy(data.X,T,Gamma,Xi,hmm,residuals,XX))
+%     evalfreeenergy(data.X,T,Gamma,Xi,hmm,residuals,XX)
+%     size(Gamma)
+%     sum(Gamma)
+%     sum(Xi)
+% end
+
 end
