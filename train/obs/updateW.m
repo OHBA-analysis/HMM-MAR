@@ -5,6 +5,8 @@ XW = zeros(K,size(XX{1},1),ndim);
 if nargin<6, Tfactor = 1; end
 if isfield(hmm.train,'B'), Q = size(hmm.train.B,2);
 else Q = ndim; end
+pcapred = hmm.train.pcapred>0;
+if pcapred, M = hmm.train.pcapred; end
 
 for k=1:K
     if ~hmm.train.active(k), continue; end
@@ -14,8 +16,11 @@ for k=1:K
     else omega = hmm.Omega;
     end
     if train.uniqueAR || ndim==1 % it is assumed that order>0 and cov matrix is diagonal
-        XY = zeros(length(orders)+(~train.zeromean),1);
-        XGX = zeros(length(orders)+(~train.zeromean));
+        if hmm.train.pcapred>0, npred = hmm.train.pcapred;
+        else npred = length(orders);
+        end
+        XY = zeros(npred+(~train.zeromean),1);
+        XGX = zeros(npred+(~train.zeromean));
         for n=1:ndim
             ind = n:ndim:size(XX{kk},2);
             iomegan = omega.Gam_shape / omega.Gam_rate(n);
@@ -26,7 +31,12 @@ for k=1:K
             hmm.state(k).W.S_W = inv(train.prior.iS + XGX);
             hmm.state(k).W.Mu_W = hmm.state(k).W.S_W * (XY + train.prior.iSMu); % order by 1
         else
-            if train.zeromean==0 && ~isempty(orders)
+            if train.zeromean==0 && pcapred
+                regterm = diag([hmm.state(k).prior.Mean.iS; (hmm.state(k).beta.Gam_shape ./ ...
+                    hmm.state(k).beta.Gam_rate) ]);  
+            elseif pcapred
+                regterm = diag((hmm.state(k).beta.Gam_shape ./  hmm.state(k).beta.Gam_rate));
+            elseif train.zeromean==0 && ~isempty(orders)
                 regterm = diag([hmm.state(k).prior.Mean.iS (hmm.state(k).alpha.Gam_shape ./ ...
                     hmm.state(k).alpha.Gam_rate) ]);
             elseif train.zeromean==0
@@ -49,12 +59,16 @@ for k=1:K
             regterm = [];
             if ~train.zeromean, regterm = hmm.state(k).prior.Mean.iS(n); end
             if ~isempty(orders)
-                alphaterm = repmat( (hmm.state(k).alpha.Gam_shape ./  hmm.state(k).alpha.Gam_rate), ndim_n, 1);
-                if ndim>1
-                    regterm = [regterm; repmat(hmm.state(k).sigma.Gam_shape(S(:,n),n) ./ ...
-                        hmm.state(k).sigma.Gam_rate(S(:,n),n), length(orders), 1).*alphaterm(:) ];
+                if pcapred
+                    regterm = [regterm; hmm.state(k).beta.Gam_shape(:,n) ./ hmm.state(k).beta.Gam_rate(:,n)];
                 else
-                    regterm = [regterm; alphaterm(:)];
+                    alphaterm = repmat( (hmm.state(k).alpha.Gam_shape ./  hmm.state(k).alpha.Gam_rate), ndim_n, 1);
+                    if ndim>1
+                        regterm = [regterm; repmat(hmm.state(k).sigma.Gam_shape(S(:,n),n) ./ ...
+                            hmm.state(k).sigma.Gam_rate(S(:,n),n), length(orders), 1).*alphaterm(:) ];
+                    else
+                        regterm = [regterm; alphaterm(:)];
+                    end
                 end
             end
             if isempty(regterm), regterm = 0; end
@@ -70,17 +84,27 @@ for k=1:K
         XW(k,:,:) = XX{kk} * hmm.state(k).W.Mu_W;
         
     else % this only works if all(S(:)==1);  any(S(:)~=1) is just not yet implemented 
-        mlW = (( XXGXX{k} \ XX{kk}') .* repmat(Gamma(:,k)',...
-            (~train.zeromean)+Q*length(orders),1) * residuals)';
+        if pcapred
+            mlW = (( XXGXX{k} \ XX{kk}') .* repmat(Gamma(:,k)',(~train.zeromean)+M,1) * residuals)';
+        else
+            mlW = (( XXGXX{k} \ XX{kk}') .* repmat(Gamma(:,k)',...
+                (~train.zeromean)+Q*length(orders),1) * residuals)';
+        end
         regterm = [];
         if ~train.zeromean, regterm = hmm.state(k).prior.Mean.iS; end
         if ~isempty(orders) 
-            sigmaterm = (hmm.state(k).sigma.Gam_shape(:) ./ hmm.state(k).sigma.Gam_rate(:));
-            sigmaterm = repmat(sigmaterm, length(orders), 1);
-            alphaterm = repmat( (hmm.state(k).alpha.Gam_shape ./ hmm.state(k).alpha.Gam_rate), ...
-                length(hmm.state(k).sigma.Gam_rate(:)), 1);
-            alphaterm = alphaterm(:);
-            regterm = [regterm; (alphaterm .* sigmaterm)];
+            if pcapred
+                betaterm = (hmm.state(k).beta.Gam_shape ./ hmm.state(k).beta.Gam_rate)';
+                regterm = [regterm; betaterm(:)];
+            else
+                sigmaterm = (hmm.state(k).sigma.Gam_shape ./ hmm.state(k).sigma.Gam_rate)';
+                sigmaterm = sigmaterm(:);
+                sigmaterm = repmat(sigmaterm, length(orders), 1);
+                alphaterm = repmat( (hmm.state(k).alpha.Gam_shape ./ hmm.state(k).alpha.Gam_rate), ...
+                    length(hmm.state(k).sigma.Gam_rate(:)), 1);
+                alphaterm = alphaterm(:);
+                regterm = [regterm; (alphaterm .* sigmaterm)];
+            end
         end
         if isempty(regterm), regterm = 0; end
         regterm = diag(regterm);
@@ -89,7 +113,11 @@ for k=1:K
         hmm.state(k).W.iS_W = regterm + Tfactor * gram;
         hmm.state(k).W.S_W = inv(hmm.state(k).W.iS_W);
         muW = Tfactor * hmm.state(k).W.S_W * gram * mlW(:);
-        hmm.state(k).W.Mu_W = reshape(muW,ndim,~train.zeromean+Q*length(orders))';
+        if pcapred
+            hmm.state(k).W.Mu_W = reshape(muW,ndim,(~train.zeromean)+M)';
+        else
+            hmm.state(k).W.Mu_W = reshape(muW,ndim,~train.zeromean+Q*length(orders))';
+        end
         XW(k,:,:) = XX{kk} * hmm.state(k).W.Mu_W;
     end
     

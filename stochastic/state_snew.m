@@ -47,6 +47,10 @@ else
         state.W.Mu_W(Sind(:,n),n) = ...
             permute(state.W.S_W(n,Sind(:,n),Sind(:,n)),[2 3 1]) * m(Sind(:,n),n);
     end
+    if ndim==1, 
+        state.W.iS_W = permute(state.W.iS_W,[2 3 1]);
+        state.W.S_W = permute(state.W.S_W,[2 3 1]);
+    end
 end
 
 end

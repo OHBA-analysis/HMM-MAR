@@ -31,6 +31,8 @@ ndim = size(X,2);
 rangresiduals2 = (range(residuals)/2).^2;
 if isfield(hmm.train,'B'), Q = size(hmm.train.B,2); 
 else Q = ndim; end
+pcapred = hmm.train.pcapred>0;
+if pcapred, M = hmm.train.pcapred; end
 
 for k=1:hmm.K,
     if isfield(hmm.train,'state') && isfield(hmm.train.state(k),'train') && ~isempty(hmm.train.state(k).train)
@@ -39,20 +41,31 @@ for k=1:hmm.K,
         train = hmm.train;
     end
     orders = formorders(train.order,train.orderoffset,train.timelag,train.exptimelag);
-    if strcmp(train.covtype,'diag') || strcmp(train.covtype,'full')
+    if (strcmp(train.covtype,'diag') || strcmp(train.covtype,'full')) && pcapred
+        defstateprior(k)=struct('beta',[],'Omega',[],'Mean',[]);
+    elseif (strcmp(train.covtype,'diag') || strcmp(train.covtype,'full')) && ~pcapred
         defstateprior(k)=struct('sigma',[],'alpha',[],'Omega',[],'Mean',[]);
+    elseif (strcmp(train.covtype,'uniquediag') || strcmp(train.covtype,'uniquefull')) && pcapred
+        defstateprior(k)=struct('beta',[],'Mean',[]);
     else
         defstateprior(k)=struct('sigma',[],'alpha',[],'Mean',[]);
     end
-    if ~train.uniqueAR && isempty(train.prior)
-        defstateprior(k).sigma = struct('Gam_shape',[],'Gam_rate',[]);
-        defstateprior(k).sigma.Gam_shape = 0.1*ones(Q,ndim); %+ 0.05*eye(ndim);
-        defstateprior(k).sigma.Gam_rate = 0.1*ones(Q,ndim);%  + 0.05*eye(ndim);
-    end
-    if ~isempty(orders) && isempty(train.prior)
-        defstateprior(k).alpha = struct('Gam_shape',[],'Gam_rate',[]);
-        defstateprior(k).alpha.Gam_shape = 0.1;
-        defstateprior(k).alpha.Gam_rate = 0.1*ones(1,length(orders));
+    
+    if pcapred
+        defstateprior(k).beta = struct('Gam_shape',[],'Gam_rate',[]);
+        defstateprior(k).beta.Gam_shape = 0.1*ones(M,ndim); %+ 0.05*eye(ndim);
+        defstateprior(k).beta.Gam_rate = 0.1*ones(M,ndim);%  + 0.05*eye(ndim);
+    else
+        if ~train.uniqueAR && isempty(train.prior)
+            defstateprior(k).sigma = struct('Gam_shape',[],'Gam_rate',[]);
+            defstateprior(k).sigma.Gam_shape = 0.1*ones(Q,ndim); %+ 0.05*eye(ndim);
+            defstateprior(k).sigma.Gam_rate = 0.1*ones(Q,ndim);%  + 0.05*eye(ndim);
+        end
+        if ~isempty(orders) && isempty(train.prior)
+            defstateprior(k).alpha = struct('Gam_shape',[],'Gam_rate',[]);
+            defstateprior(k).alpha.Gam_shape = 0.1;
+            defstateprior(k).alpha.Gam_rate = 0.1*ones(1,length(orders));
+        end
     end
     if ~train.zeromean,
         defstateprior(k).Mean = struct('Mu',[],'iS',[]);
@@ -121,6 +134,7 @@ S = hmm.train.S==1; regressed = sum(S,1)>0;
 hmm.train.active = ones(1,K);
 if isfield(hmm.train,'B'), B = hmm.train.B; Q = size(B,2);
 else Q = ndim; end
+pcapred = hmm.train.pcapred>0;
 
 % initial random values for the states - multinomial
 Gammasum = sum(Gamma);
@@ -129,11 +143,14 @@ setxx; % build XX and get orders
 % W
 for k=1:K
     setstateoptions;
+    if pcapred, npred = hmm.train.pcapred;
+    else npred = Q*length(orders);
+    end
     hmm.state(k).W = struct('Mu_W',[],'S_W',[]);
     if order>0 || ~train.zeromean
         if train.uniqueAR || ndim==1 % it is assumed that order>0 and cov matrix is diagonal
-            XY = zeros(length(orders)+(~train.zeromean),1);
-            XGX = zeros(length(orders)+(~train.zeromean));
+            XY = zeros(npred+(~train.zeromean),1);
+            XGX = zeros(npred+(~train.zeromean));
             for n=1:ndim
                 ind = n:ndim:size(XX{kk},2);
                 XGX = XGX + XXGXX{k}(ind,ind);
@@ -144,31 +161,27 @@ for k=1:K
                 hmm.state(k).W.Mu_W = hmm.state(k).W.S_W * (XY + train.prior.iSMu); % order by 1
             else
                 %hmm.state(k).W.S_W = inv(0.1 * mean(trace(XGX)) * eye(length(orders)) + XGX);
-                hmm.state(k).W.S_W = inv(0.01 * eye(length(orders)+(~train.zeromean)) + XGX);
+                hmm.state(k).W.S_W = inv(0.01 * eye(npred+(~train.zeromean)) + XGX);
                 hmm.state(k).W.Mu_W = hmm.state(k).W.S_W * XY; % order by 1
             end
             
         elseif strcmp(train.covtype,'uniquediag') || strcmp(train.covtype,'diag')
-            hmm.state(k).W.Mu_W = zeros((~train.zeromean)+Q*length(orders),ndim);
-            hmm.state(k).W.iS_W = zeros(ndim,(~train.zeromean)+Q*length(orders),(~train.zeromean)+Q*length(orders));
-            hmm.state(k).W.S_W = zeros(ndim,(~train.zeromean)+Q*length(orders),(~train.zeromean)+Q*length(orders));
+            hmm.state(k).W.Mu_W = zeros((~train.zeromean)+npred,ndim);
+            hmm.state(k).W.iS_W = zeros(ndim,(~train.zeromean)+npred,(~train.zeromean)+npred);
+            hmm.state(k).W.S_W = zeros(ndim,(~train.zeromean)+npred,(~train.zeromean)+npred);
             for n=1:ndim
                 ndim_n = sum(S(:,n));
                 if ndim_n==0, continue; end
-                hmm.state(k).W.iS_W(n,Sind(:,n),Sind(:,n)) = ((XX{kk}(:,Sind(:,n))' .* repmat(Gamma(:,k)',...
-                    (~train.zeromean)+ndim_n*length(orders),1) ) * ...
-                    XX{kk}(:,Sind(:,n))) + 0.01*eye((~train.zeromean) + ndim_n*length(orders)) ;
+                hmm.state(k).W.iS_W(n,Sind(:,n),Sind(:,n)) = XXGXX{k}(Sind(:,n),Sind(:,n)) + 0.01*eye(sum(Sind(:,n))) ;
                 hmm.state(k).W.S_W(n,Sind(:,n),Sind(:,n)) = inv(permute(hmm.state(k).W.iS_W(n,Sind(:,n),Sind(:,n)),[2 3 1]));
                 hmm.state(k).W.Mu_W(Sind(:,n),n) = (( permute(hmm.state(k).W.S_W(n,Sind(:,n),Sind(:,n)),[2 3 1])...
-                    * XX{kk}(:,Sind(:,n))') .* repmat(Gamma(:,k)',(~train.zeromean)+ndim_n*length(orders),1)) ...
-                    * residuals(:,n);
+                    * XX{kk}(:,Sind(:,n))') .* repmat(Gamma(:,k)',sum(Sind(:,n)),1)) * residuals(:,n);
             end;
         else
             gram = kron(XXGXX{k},eye(ndim));
             hmm.state(k).W.iS_W = gram + 0.01*eye(size(gram,1));
             hmm.state(k).W.S_W = inv( hmm.state(k).W.iS_W );
-            hmm.state(k).W.Mu_W = (( XXGXX{k} \ XX{kk}' ) .* repmat(Gamma(:,k)',...
-                (~train.zeromean)+Q*length(orders),1)) * residuals;
+            hmm.state(k).W.Mu_W = (( XXGXX{k} \ XX{kk}' ) .* repmat(Gamma(:,k)',(~train.zeromean)+npred,1)) * residuals;
         end
     end
 end;
@@ -262,21 +275,24 @@ else % state dependent
     
 end
 
-for k=1:K,
-    if isfield(hmm.state(k),'train') && ~isempty(hmm.state(k).train), train = hmm.state(k).train;
-    else train = hmm.train;
+%%% Priors
+if ~pcapred
+    for k=1:K,
+        if isfield(hmm.state(k),'train') && ~isempty(hmm.state(k).train), train = hmm.state(k).train;
+        else train = hmm.train;
+        end
+        if train.order>0 && isempty(train.prior)
+            hmm.state(k).alpha.Gam_shape = hmm.state(k).prior.alpha.Gam_shape;
+            hmm.state(k).alpha.Gam_rate = hmm.state(k).prior.alpha.Gam_rate;
+        end
     end
-    if train.order>0 && isempty(train.prior)
-        hmm.state(k).alpha.Gam_shape = hmm.state(k).prior.alpha.Gam_shape;
-        hmm.state(k).alpha.Gam_rate = hmm.state(k).prior.alpha.Gam_rate;
-    end
+    %%% sigma - channel x channel coefficients
+    hmm = updateSigma(hmm);
+    %%% alpha - one per order
+    hmm = updateAlpha(hmm);
+else
+    hmm = updateBeta(hmm);
 end
-
-%%% sigma - channel x channel coefficients
-hmm = updateSigma(hmm);
-
-%%% alpha - one per order
-hmm = updateAlpha(hmm);
 
 end
 

@@ -1,4 +1,4 @@
-function [XX,Y] = formautoregr(X,T,orders,maxorder,zeromean,single_format,B)
+function [XX,Y] = formautoregr(X,T,orders,maxorder,zeromean,single_format,B,V)
 %
 % form regressor and response for the autoregression;
 % residuals are assumed to have size T(in)-order in each trial 
@@ -8,13 +8,23 @@ function [XX,Y] = formautoregr(X,T,orders,maxorder,zeromean,single_format,B)
 N = length(T); ndim = size(X,2);
 if nargin<5, zeromean = 1; end
 if nargin<6, single_format = 0; end
-if nargin<7, B = []; Q = ndim; 
+if nargin<7 || isempty(B), B = []; Q = ndim; 
 else Q = size(B,2); end
+if nargin<8 || isempty(V), V = []; M = 0;
+else M = size(V,2); end
 
-if single_format
-    XX = zeros(sum(T)-length(T)*maxorder,length(orders)*Q+(~zeromean),'single');
+if M==0
+    if single_format
+        XX = zeros(sum(T)-length(T)*maxorder,length(orders)*Q+(~zeromean),'single');
+    else
+        XX = zeros(sum(T)-length(T)*maxorder,length(orders)*Q+(~zeromean));
+    end
 else
-    XX = zeros(sum(T)-length(T)*maxorder,length(orders)*Q+(~zeromean));
+    if single_format
+        XX = zeros(sum(T)-length(T)*maxorder,M+(~zeromean),'single');
+    else
+        XX = zeros(sum(T)-length(T)*maxorder,M+(~zeromean));
+    end
 end
 if nargout==2
     Y = zeros(sum(T)-length(T)*maxorder,ndim);
@@ -23,6 +33,13 @@ for in=1:N
     t0 = sum(T(1:in-1)); s0 = sum(T(1:in-1)) - maxorder*(in-1);
     if nargout==2
         Y(s0+1:s0+T(in)-maxorder,:) = X(t0+maxorder+1:t0+T(in),:);
+    end
+    if ~isempty(V)
+        if single_format
+            XX_i = zeros(T(in)-maxorder,length(orders)*Q,'single'); 
+        else
+            XX_i = zeros(T(in)-maxorder,length(orders)*Q); 
+        end
     end
     for i=1:length(orders)
         o = orders(i);
@@ -34,6 +51,12 @@ for in=1:N
                 XX(s0+1:s0+T(in)-maxorder,(1:Q)+(i-1)*Q+(~zeromean)) = ...
                     X(t0+maxorder-o+1:t0+T(in)-o,:) * B(:,:,i); 
             end
+        elseif ~isempty(V)
+            if single_format
+                XX_i(:,(1:Q)+(i-1)*Q) = single(X(t0+maxorder-o+1:t0+T(in)-o,:));
+            else
+                XX_i(:,(1:Q)+(i-1)*Q) = X(t0+maxorder-o+1:t0+T(in)-o,:);
+            end
         else
             if single_format
                 XX(s0+1:s0+T(in)-maxorder,(1:ndim)+(i-1)*ndim+(~zeromean)) = ...
@@ -42,6 +65,13 @@ for in=1:N
                 XX(s0+1:s0+T(in)-maxorder,(1:ndim)+(i-1)*ndim+(~zeromean)) = ...
                     X(t0+maxorder-o+1:t0+T(in)-o,:);
             end
+        end
+    end
+    if ~isempty(V) 
+        if single_format
+            XX(s0+1:s0+T(in)-maxorder,(1:M)+(~zeromean)) = XX_i * single(V);
+        else
+            XX(s0+1:s0+T(in)-maxorder,(1:M)+(~zeromean)) = XX_i * V;
         end
     end
 end

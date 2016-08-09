@@ -23,8 +23,10 @@ if options.pca > 0 && isfield(options,'A')
 end
 if isfield(options,'B'), B = options.B;
 else B = []; end
+if isfield(options,'V'), V = options.V;
+else V = []; end
 if nargout>=2
-    XX = formautoregr(X,T,options.orders,options.order,options.zeromean,0,B);
+    XX = formautoregr(X,T,options.orders,options.order,options.zeromean,0,B,V);
 end
 if nargout>=3
     Y = zeros(sum(T)-length(T)*options.order,size(X,2));

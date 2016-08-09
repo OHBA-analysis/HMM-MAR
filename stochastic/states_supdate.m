@@ -10,7 +10,7 @@ for k = 1:K
             rho * hmm_noisy.state(k).W.Mu_W;
         hmm.state(k).W.iS_W = (1-rho) * hmm.state(k).W.iS_W + ...
             rho * hmm_noisy.state(k).W.iS_W;
-        if strcmp(hmm_noisy.train.covtype,'full') || strcmp(hmm_noisy.train.covtype,'uniquefull')
+        if length(size(hmm.state(k).W.S_W))==2
             hmm.state(k).W.S_W = inv(hmm.state(k).W.iS_W);
         else
             for n = 1:size(hmm.state(k).W.S_W,1)
@@ -39,6 +39,11 @@ for k = 1:K
             rho * hmm_noisy.state(k).alpha.Gam_rate;
         hmm.state(k).alpha.Gam_shape = (1-rho) * hmm.state(k).alpha.Gam_shape + ...
             rho * hmm_noisy.state(k).alpha.Gam_shape;
+    elseif update==5 && isfield(hmm_noisy.state(1),'beta')
+        hmm.state(k).beta.Gam_rate = (1-rho) * hmm.state(k).beta.Gam_rate + ...
+            rho * hmm_noisy.state(k).beta.Gam_rate;
+        hmm.state(k).beta.Gam_shape = (1-rho) * hmm.state(k).beta.Gam_shape + ...
+            rho * hmm_noisy.state(k).beta.Gam_shape;        
     end
 end
 end

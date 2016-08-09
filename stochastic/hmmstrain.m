@@ -13,8 +13,15 @@ function [hmm,markovTrans,fehist,feterms,rho] = hmmstrain(Xin,T,hmm,info,options
 
 N = length(Xin); K = length(hmm.state);
 X = loadfile(Xin{1},T{1},options); ndim = size(X,2); XW = [];
-if isfield(hmm.train,'B') && ~isempty(hmm.train.B), Q = size(hmm.train.B,2); 
-else Q = ndim;
+orders = formorders(hmm.train.order,hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag);
+pcapred = hmm.train.pcapred>0;
+if pcapred
+    npred = hmm.train.pcapred;
+else
+    if isfield(hmm.train,'B') && ~isempty(hmm.train.B), Q = size(hmm.train.B,2);
+    else Q = ndim;
+    end
+    npred = length(orders)*Q;
 end
 subjfe = info.subjfe;
 loglik = info.loglik;
@@ -26,7 +33,7 @@ hmm_best = hmm;
 Dir2d_alpha_best = Dir2d_alpha; 
 Dir_alpha_best = Dir_alpha;
 cyc_best = 1;
-tp_less = max(options.embeddedlags) + max(-options.embeddedlags);
+tp_less = max(hmm.train.embeddedlags) + max(-hmm.train.embeddedlags);
 
 clear info;
 hmm.train.ignore_MEX = tempname;
@@ -35,7 +42,6 @@ hmm.train.ignore_MEX = tempname;
 nUsed = zeros(1,N); 
 sampling_weights = options.BIGbase_weights;
 undertol = 0; count = 0;
-orders = formorders(options.order,options.orderoffset,options.timelag,options.exptimelag);
 Tfactor = N/options.BIGNbatch; 
 
 % Stochastic learning
@@ -56,7 +62,7 @@ for cycle = 2:options.BIGcyc
     end
     X = zeros(sum(Tbatch),ndim);
     XX = cell(1); 
-    XX{1} = zeros(sum(Tbatch)-length(Tbatch)*options.order,length(orders)*Q+(~options.zeromean));
+    XX{1} = zeros(sum(Tbatch)-length(Tbatch)*options.order,npred+(~options.zeromean));
     Y = zeros(sum(Tbatch)-length(Tbatch)*options.order,ndim);
     tacc = 0; t2acc = 0;
     for ii = 1:length(I)
@@ -129,16 +135,23 @@ for cycle = 2:options.BIGcyc
         hmm_noisy = updateOmega(hmm,MGamma,sum(MGamma),Y,Tbatch,XX,XXGXX,XW,Tfactor);
         hmm = states_supdate(hmm,hmm_noisy,rho(cycle),2);
     end    
-    % sigma
-    if ~isempty(orders)
-        hmm_noisy = updateSigma(hmm);
-        hmm = states_supdate(hmm,hmm_noisy,rho(cycle),3);
+    % Priors
+    if pcapred
+        % beta
+        hmm_noisy = updateBeta(hmm);
+        hmm = states_supdate(hmm,hmm_noisy,rho(cycle),5);
+    else
+        % sigma
+        if ~isempty(orders)
+            hmm_noisy = updateSigma(hmm);
+            hmm = states_supdate(hmm,hmm_noisy,rho(cycle),3);
+        end
+        % alpha
+        if ~isempty(orders)
+            hmm_noisy = updateAlpha(hmm);
+            hmm = states_supdate(hmm,hmm_noisy,rho(cycle),4);
+        end
     end
-    % alpha
-    if ~isempty(orders)
-        hmm_noisy = updateAlpha(hmm);
-        hmm = states_supdate(hmm,hmm_noisy,rho(cycle),4);
-    end       
    
     % rest of the free energy (states' KL and data loglikelihood)
     [fe,ll] = evalfreeenergy(X,Tbatch,MGamma,cell2mat(Xi),hmm,Y,XX,[0 1 0 0 1]); % state KL

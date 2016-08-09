@@ -2,7 +2,7 @@ function [hmm,info] = hmmsinitg(Xin,T,options,GammaInit)
 % Initialisation before stochastic HMM variational inference
 %
 % INPUTS
-% Xin: cell with strings referring to the files containing each subject's data, 
+% Xin: cell with strings referring to the files containing each subject's data,
 %       or cell with with matrices (time points x channels) with each
 %       subject's data
 % T: cell of vectors, where each element has the length of each trial per
@@ -15,12 +15,17 @@ N = length(T); K = size(GammaInit,2);
 X = loadfile(Xin{1},T{1},options); ndim = size(X,2);
 subjfe_init = zeros(N,3);
 loglik_init = zeros(N,1);
-if isfield(options,'B') && ~isempty(options.B)
-    Q = size(options.B,2);
+pcaprec = options.pcapred>0;
+if pcaprec
+    npred = options.pcapred;
 else
-    Q = ndim; 
+    if isfield(options,'B') && ~isempty(options.B)
+        Q = size(options.B,2);
+    else
+        Q = ndim;
+    end
+    npred = length(options.orders)*Q + (~options.zeromean);
 end
-npred = length(options.orders)*Q + (~options.zeromean);
 info = struct();
 
 % init sufficient statistics
@@ -167,12 +172,16 @@ end
 
 % distribution of sigma and alpha, variances of the MAR coeff distributions
 if ~isempty(options.orders)
-    for k=1:K,
-        hmm.state(k).alpha.Gam_shape = hmm.state(k).prior.alpha.Gam_shape;
-        hmm.state(k).alpha.Gam_rate = hmm.state(k).prior.alpha.Gam_rate;
+    if pcaprec
+        hmm = updateBeta(hmm);
+    else
+        for k=1:K,
+            hmm.state(k).alpha.Gam_shape = hmm.state(k).prior.alpha.Gam_shape;
+            hmm.state(k).alpha.Gam_rate = hmm.state(k).prior.alpha.Gam_rate;
+        end
+        hmm = updateSigma(hmm);
+        hmm = updateAlpha(hmm);
     end
-    hmm = updateSigma(hmm);
-    hmm = updateAlpha(hmm);
 end
 
 % compute Xi, P, Pi, ...
@@ -238,6 +247,11 @@ function hmm = initspriors(hmm,r)
 
 ndim = length(r);
 rangresiduals2 = (r/2).^2;
+pcaprec = isfield(hmm.train,'V') && ~isempty(hmm.train.V);
+if pcaprec
+    npred = size(options.V,2);
+else
+
 if isfield(hmm.train,'B'), Q = size(hmm.train.B,2);
 else Q = ndim; end
 

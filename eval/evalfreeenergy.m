@@ -33,6 +33,9 @@ else
 end
 if isfield(hmm.train,'B'), Q = size(hmm.train.B,2);
 else Q = ndim; end
+pcapred = hmm.train.pcapred>0;
+if pcapred, M = hmm.train.pcapred; end
+
 
 Tres = sum(T) - length(T)*hmm.train.maxorder;
 S = hmm.train.S==1;
@@ -97,13 +100,20 @@ if todo(5)==1
                 else
                     prior_prec = [];
                     if train.zeromean==0
-                        prior_prec = hs.prior.Mean.iS(n);
+                        prior_prec = hs.prior.Mean.iS;
                     end
                     if ~isempty(orders)
-                        prior_prec = [prior_prec (hs.alpha.Gam_shape ./  hs.alpha.Gam_rate)];
+                        if pcapred
+                            prior_prec = [prior_prec; (hs.beta.Gam_shape ./ hs.beta.Gam_rate)];
+                            prior_mu = zeros(M + ~train.zeromean,1);
+                        else
+                            prior_prec = [prior_prec (hs.alpha.Gam_shape ./  hs.alpha.Gam_rate)];
+                            prior_mu = zeros(length(orders) + ~train.zeromean,1);
+                        end
+                    else
+                        prior_mu = 0;
                     end
                     prior_var = diag(1 ./ prior_prec);
-                    prior_mu = zeros(length(orders) + ~train.zeromean,1);
                 end
                 if train.uniqueAR || ndim==1
                     WKL = gauss_kl(hs.W.Mu_W, prior_mu, hs.W.S_W, prior_var);
@@ -119,10 +129,14 @@ if todo(5)==1
                         prior_prec = hs.prior.Mean.iS(n);
                     end
                     if ~isempty(orders)
-                        ndim_n = sum(S(:,n));
-                        alphamat = repmat( (hs.alpha.Gam_shape ./  hs.alpha.Gam_rate), ndim_n, 1);
-                        prior_prec = [prior_prec; repmat(hs.sigma.Gam_shape(S(:,n)==1,n) ./ ...
-                            hs.sigma.Gam_rate(S(:,n)==1,n), length(orders), 1) .* alphamat(:)] ;
+                        if pcapred
+                            prior_prec = [prior_prec; (hs.beta.Gam_shape(:,n) ./ hs.beta.Gam_rate(:,n))];  
+                        else
+                            ndim_n = sum(S(:,n));
+                            alphamat = repmat( (hs.alpha.Gam_shape ./  hs.alpha.Gam_rate), ndim_n, 1);
+                            prior_prec = [prior_prec; repmat(hs.sigma.Gam_shape(S(:,n)==1,n) ./ ...
+                                hs.sigma.Gam_rate(S(:,n)==1,n), length(orders), 1) .* alphamat(:)] ;
+                        end
                     end
                     prior_var = diag(1 ./ prior_prec);
                     WKL = WKL + gauss_kl(hs.W.Mu_W(Sind(:,n),n),zeros(sum(Sind(:,n)),1), ...
@@ -134,11 +148,16 @@ if todo(5)==1
                     prior_prec = hs.prior.Mean.iS;
                 end
                 if ~isempty(orders)
-                    sigmaterm = (hs.sigma.Gam_shape(:) ./ hs.sigma.Gam_rate(:) );
-                    sigmaterm = repmat(sigmaterm, length(orders), 1);
-                    alphaterm = repmat( (hs.alpha.Gam_shape ./  hs.alpha.Gam_rate), ndim*Q, 1);
-                    alphaterm = alphaterm(:);
-                    prior_prec = [prior_prec; alphaterm .* sigmaterm];
+                    if pcapred
+                        betaterm = (hs.beta.Gam_shape ./ hs.beta.Gam_rate)';
+                        prior_prec = [prior_prec; betaterm(:)];
+                    else
+                        sigmaterm = (hs.sigma.Gam_shape ./ hs.sigma.Gam_rate)';
+                        sigmaterm = repmat(sigmaterm(:), length(orders), 1);
+                        alphaterm = repmat( (hs.alpha.Gam_shape ./  hs.alpha.Gam_rate), ndim*Q, 1);
+                        alphaterm = alphaterm(:);
+                        prior_prec = [prior_prec; alphaterm .* sigmaterm];
+                    end
                 end
                 prior_var = diag(1 ./ prior_prec);
                 mu_w = hs.W.Mu_W';
@@ -162,24 +181,35 @@ if todo(5)==1
                     hs.Omega.Gam_shape,hs.prior.Omega.Gam_shape);
         end
         
-        sigmaKL = 0;
-        if isempty(train.prior) && ~isempty(orders) && ~train.uniqueAR && ndim>1
-            for n1=1:Q
+        if pcapred
+            betaKL = 0; 
+            for n1=1:M
                 for n2=1:ndim
-                    if (train.symmetricprior && n2<n1) || S(n1,n2)==0, continue; end
-                    sigmaKL = sigmaKL + gamma_kl(hs.sigma.Gam_shape(n1,n2),pr.sigma.Gam_shape(n1,n2), ...
-                        hs.sigma.Gam_rate(n1,n2),pr.sigma.Gam_rate(n1,n2));
+                    betaKL = betaKL + gamma_kl(hs.beta.Gam_shape(n1,n2),pr.beta.Gam_shape(n1,n2), ...
+                        hs.beta.Gam_rate(n1,n2),pr.beta.Gam_rate(n1,n2));
                 end
             end
-        end
-        alphaKL = 0;
-        if isempty(train.prior) &&  ~isempty(orders)
-            for i=1:length(orders)
-                alphaKL = alphaKL + gamma_kl(hs.alpha.Gam_shape,pr.alpha.Gam_shape, ...
-                    hs.alpha.Gam_rate(i),pr.alpha.Gam_rate(i));
+            KLdiv = [KLdiv OmegaKL betaKL WKL];
+        else
+            sigmaKL = 0;
+            if isempty(train.prior) && ~isempty(orders) && ~train.uniqueAR && ndim>1
+                for n1=1:Q
+                    for n2=1:ndim
+                        if (train.symmetricprior && n2<n1) || S(n1,n2)==0, continue; end
+                        sigmaKL = sigmaKL + gamma_kl(hs.sigma.Gam_shape(n1,n2),pr.sigma.Gam_shape(n1,n2), ...
+                            hs.sigma.Gam_rate(n1,n2),pr.sigma.Gam_rate(n1,n2));
+                    end
+                end
             end
+            alphaKL = 0;
+            if isempty(train.prior) &&  ~isempty(orders)
+                for i=1:length(orders)
+                    alphaKL = alphaKL + gamma_kl(hs.alpha.Gam_shape,pr.alpha.Gam_shape, ...
+                        hs.alpha.Gam_rate(i),pr.alpha.Gam_rate(i));
+                end
+            end
+            KLdiv = [KLdiv OmegaKL sigmaKL alphaKL WKL];
         end
-        KLdiv = [KLdiv OmegaKL sigmaKL alphaKL WKL];
     end
 end
 
@@ -272,7 +302,11 @@ if todo(2)==1
                     if isempty(orders)
                         NormWishtrace = 0.5 * sum(sum(C .* hs.W.S_W));
                     else
-                        I = (0:(length(orders)*Q+(~train.zeromean)-1)) * ndim;
+                        if hmm.train.pcapred>0
+                            I = (0:hmm.train.pcapred+(~train.zeromean)-1) * ndim;
+                        else
+                            I = (0:length(orders)*Q+(~train.zeromean)-1) * ndim;
+                        end
                         for n1=1:ndim
                             if ~regressed(n1), continue; end
                             index1 = I + n1; index1 = index1(Sind(:,n1));

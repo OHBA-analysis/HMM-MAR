@@ -21,12 +21,18 @@ else
     [T,ndim] = size(residuals);
     T = T + hmm.train.maxorder;
 end
+if isfield(hmm.train,'B'), Q = size(hmm.train.B,2);
+else Q = ndim; end
 
 if nargin<3 || isempty(residuals)
     ndim = size(X,2);
     if ~isfield(hmm.train,'Sind'),
-        orders = formorders(hmm.train.order,hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag);
-        hmm.train.Sind = formindexes(orders,hmm.train.S);
+        if hmm.train.pcapred==0
+            orders = formorders(hmm.train.order,hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag);
+            hmm.train.Sind = formindexes(orders,hmm.train.S);
+        else
+           hmm.train.Sind = ones(hmm.train.pcapred,ndim); 
+        end
     end
     if ~hmm.train.zeromean, hmm.train.Sind = [true(1,ndim); hmm.train.Sind]; end
     residuals =  getresiduals(X,T,hmm.train.Sind,hmm.train.maxorder,hmm.train.order,...
@@ -127,7 +133,11 @@ for k=1:K
                 if isempty(orders) 
                     NormWishtrace = 0.5 * sum(sum(C .* hs.W.S_W));
                 else
-                    I = (0:length(orders)*ndim+(~train.zeromean)-1) * ndim;
+                    if hmm.train.pcapred>0
+                        I = (0:hmm.train.pcapred+(~train.zeromean)-1) * ndim;
+                    else
+                        I = (0:length(orders)*Q+(~train.zeromean)-1) * ndim;
+                    end
                     for n1=1:ndim
                         if ~regressed(n1), continue; end
                         index1 = I + n1; index1 = index1(Sind(:,n1)); 

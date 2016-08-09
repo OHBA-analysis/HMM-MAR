@@ -106,6 +106,9 @@ if stochastic_learn
     if options.pcamar > 0 && ~isfield(options,'B')
         options.B = pcamar_decomp(data,T,options);
     end
+    if options.pcapred > 0 && ~isfield(options,'V')
+        options.V = pcapred_decomp(data,T,options);
+    end
     
     if isempty(options.Gamma) && isempty(options.hmm)
         [hmm,info] = hmmsinit(data,T,options);
@@ -117,7 +120,11 @@ if stochastic_learn
         options = rmfield(options,'Gamma');
         [hmm,info] = hmmsinitg(data,T,options,GammaInit);
     end
-    [hmm,markovTrans,fehist,feterms,rho] = hmmstrain(data,T,hmm,info,options);
+    if options.BIGcyc>1
+        [hmm,markovTrans,fehist,feterms,rho] = hmmstrain(data,T,hmm,info,options);
+    else
+        markovTrans = []; fehist = []; feterms = []; rho = [];
+    end
     Gamma = []; Xi = []; vpath = []; residuals = [];
     if options.BIGcomputeGamma && nargout >= 2
        [Gamma,Xi] = hmmdecode(data,T,hmm,0,[],[],markovTrans); 
@@ -143,6 +150,9 @@ else
     if options.pcamar > 0 && ~isfield(options,'B')
         options.B = pcamar_decomp(data,T,options);
     end
+    if options.pcapred > 0 && ~isfield(options,'V')
+        options.V = pcapred_decomp(data,T,options);
+    end    
     options.ndim = size(data.X,2);
 
     if isempty(options.Gamma) && isempty(options.hmm)

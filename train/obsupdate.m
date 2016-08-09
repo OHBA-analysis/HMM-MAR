@@ -36,11 +36,16 @@ while mean_change>obs_tol && obs_it<=obs_maxit,
     %%% Omega
     hmm = updateOmega(hmm,Gamma,Gammasum,residuals,T,XX,XXGXX,XW,Tfactor);
     
-    %%% sigma - channel x channel coefficients
-    hmm = updateSigma(hmm);
-    
-    %%% alpha - one per order
-    hmm = updateAlpha(hmm);
+    %%% autoregression coefficient priors
+    if isfield(hmm.train,'V') && ~isempty(hmm.train.V)
+        %%% beta - one per autoregression coefficient
+        hmm = updateBeta(hmm);
+    else
+        %%% sigma - channel x channel coefficients
+        hmm = updateSigma(hmm);    
+        %%% alpha - one per order
+        hmm = updateAlpha(hmm);
+    end
     
     %%% termination conditions
     obs_it = obs_it + 1;

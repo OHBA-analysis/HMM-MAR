@@ -36,6 +36,7 @@ end
 
 % minimal option checking
 if ~isfield(options,'order'), error('order was not specified'); end
+if ~isfield(options,'pcapred'), options.pcapred = 0; end
 if ~isfield(options,'pcamar'), options.pcamar = 0; end
 if ~isfield(options,'pca'), options.pca = 0; end
 if ~isfield(options,'timelag'), options.timelag = 1; end
@@ -55,6 +56,10 @@ end
 if options.pcamar > 0 && ~isfield(options,'B')
     options.B = pcamar_decomp(data,T,options);
 end
+if options.pcamar > 0 && ~isfield(options,'V')
+    options.V = pcapred_decomp(data,T,options);
+end
+
 
 options = rmfield(options,'orders');
 
@@ -69,7 +74,7 @@ parfor j = 1:N
         X = data{j};
     end
     hmm{j} = hmmmar(X,T{j},options);
-    fprintf('Subject %d\n',j)
+    fprintf('Subject %d: %d states active \n',j,sum(hmm{j}.train.active) )
 end
 
 end

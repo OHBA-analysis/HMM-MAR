@@ -15,8 +15,11 @@ N = length(T); K = options.K;
 X = loadfile(Xin{1},T{1},options); ndim = size(X,2);
 subjfe_init = zeros(N,3);
 loglik_init = zeros(N,1);
+pcaprec = options.pcapred>0;
 if isfield(options,'B') && ~isempty(options.B)
     npred = length(options.orders)*size(options.B,2) + (~options.zeromean);
+elseif pcaprec
+    npred = options.pcapred + (~options.zeromean);
 else
     npred = length(options.orders)*ndim + (~options.zeromean);
 end
@@ -75,7 +78,11 @@ for rep = 1:options.BIGinitrep
             Dir_alpha_prior = hmm_i.prior.Dir_alpha;
             hmm_i.train.orders = formorders(hmm_i.train.order,hmm_i.train.orderoffset,...
                 hmm_i.train.timelag,hmm_i.train.exptimelag);
-            Sind = formindexes(hmm_i.train.orders,hmm_i.train.S)==1;
+            if options.pcapred>0
+                Sind = true(options.pcapred,ndim);
+            else
+                Sind = formindexes(hmm_i.train.orders,hmm_i.train.S)==1;
+            end
             if ~hmm_i.train.zeromean, Sind = [true(1,ndim); Sind]; end
         end
         if options.BIGverbose
@@ -100,6 +107,7 @@ for rep = 1:options.BIGinitrep
                 warning('The first HMM run needs to return K states, you might want to start again..\n')
             end
             hmm_init = struct('train',hmm_i.train);
+            hmm_init.train.active = ones(1,K);
             if strcmp(options.covtype,'uniquefull') || strcmp(options.covtype,'uniquediag')
                 hmm_init.Omega = hmm_i.Omega; 
             end
@@ -198,12 +206,16 @@ for rep = 1:options.BIGinitrep
     
     % distribution of sigma and alpha, variances of the MAR coeff distributions
     if ~isempty(options.orders)
-        for k=1:K,
-            hmm_init.state(k).alpha.Gam_shape = hmm_init.state(k).prior.alpha.Gam_shape;
-            hmm_init.state(k).alpha.Gam_rate = hmm_init.state(k).prior.alpha.Gam_rate;
+        if pcaprec
+            hmm_init = updateBeta(hmm_init);
+        else
+            for k=1:K,
+                hmm_init.state(k).alpha.Gam_shape = hmm_init.state(k).prior.alpha.Gam_shape;
+                hmm_init.state(k).alpha.Gam_rate = hmm_init.state(k).prior.alpha.Gam_rate;
+            end
+            hmm_init = updateSigma(hmm_init);
+            hmm_init = updateAlpha(hmm_init);
         end
-        hmm_init = updateSigma(hmm_init);
-        hmm_init = updateAlpha(hmm_init);
     end
 
     % update transition probabilities 
