@@ -115,7 +115,7 @@ for rep = 1:options.BIGinitrep
             dist = Inf(K_i,K);
             for j = 1:K_i
                 for k = 1:K
-                    dist(j,k) = symm_kl_div(hmm_i.state(j), hmm_init.state(k), Sind);
+                    dist(j,k) = symm_kl_div(hmm_i.state(j), hmm_init.state(k), Sind, hmm_i.train.covtype);
                 end
             end
             assig = munkres(dist); % linear assignment problem

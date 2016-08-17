@@ -51,6 +51,6 @@ else
         state.W.iS_W = permute(state.W.iS_W,[2 3 1]);
         state.W.S_W = permute(state.W.S_W,[2 3 1]);
     end
-end
+    end
 
 end

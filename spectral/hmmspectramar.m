@@ -2,7 +2,7 @@ function fit = hmmspectramar(X,T,hmm,Gamma,options)
 % Get ML spectral estimates from MAR model
 %
 % INPUT
-% X             time series 
+% X             time series (can be [] if options.MLestimation = 0)
 % T             Number of time points for each time series
 % hmm           An hmm-mar structure (optional)
 % Gamma         State time course (not used if options.MLestimation=0)
@@ -42,9 +42,12 @@ function fit = hmmspectramar(X,T,hmm,Gamma,options)
 %
 % Author: Diego Vidaurre, OHBA, University of Oxford (2014)
 
-sT = sum(T);
-ndim = size(X,2);
+if options.MLestimation && isempty(Gamma)
+    error('If MLestimation=1, you need to supply Gamma')
+end
+
 if ~isempty(hmm)
+    ndim = size(hmm.state(1).W.Mu_W,2);
     if isfield(hmm.train,'S') && size(hmm.train.S,1)~=ndim
         hmm.train.S = ones(ndim);
     end
@@ -60,6 +63,7 @@ if ~isempty(hmm)
         options.order = hmm.train.maxorder;
     end       
 else
+    ndim = size(X,2);
     hmm = struct('train',struct()); hmm.train.S = ones(ndim);
     K = size(Gamma,2);   
     if ~isfield(options,'order')
@@ -77,11 +81,14 @@ else
     for k=1:K, hmm.state(k) = struct('W',struct('Mu_W',[])); end
 end
 
-if options.order~=hmm.train.maxorder % trim Gamma
+options = checkoptions_spectra(options,ndim,T);
+
+
+if options.MLestimation && options.order~=hmm.train.maxorder % trim Gamma
    if options.order<hmm.train.maxorder
        error('If you specify a new MAR order, has to be higher than hmm.train.maxorder')
    end
-   Gamma2 = zeros(sT-length(T)*options.order,K);
+   Gamma2 = zeros(sum(T)-length(T)*options.order,K);
    for in = 1:length(T),
        t0 = sum(T(1:in-1)) - (in-1)*hmm.train.order;
        t00 = sum(T(1:in-1)) - (in-1)*options.order;
@@ -92,13 +99,12 @@ if options.order~=hmm.train.maxorder % trim Gamma
    hmm.train.maxorder = options.order; 
 end
 
-options = checkoptions_spectra(options,ndim,T);
 
 if hmm.train.maxorder==0
     error('MAR spectra cannot be estimated for MAR order equal to 0')
 end
 
-if length(T)<5 && options.p>0,  
+if options.p>0 && length(T)<5  
     error('You need at least 5 trials to compute error bars for MAR spectra'); 
 end
 
@@ -131,28 +137,35 @@ else % necessarily, options.level is 'group'
     NN = N;
 end
 
-if size(T,1)==1, T=T'; end
-hmm0 = hmm;
+if options.MLestimation
+    if size(T,1)==1, T=T'; end
+    hmm0 = hmm;
+    if isfield(hmm0.train,'B'), 
+        hmm0.train = rmfield(hmm0.train,'B'); 
+    end
+    if isfield(hmm0.train,'V'), 
+        hmm0.train = rmfield(hmm0.train,'V'); 
+    end    
+end
 
 for j=1:NN
     
-    if options.p==0 && strcmp(options.level,'group')
-        Gammaj = Gamma; Xj = X; Tj = T;
-    elseif options.p>0 && strcmp(options.level,'group')
-        t0 = sum(T(1:j-1)); jj = [1:t0 (sum(T(1:j))+1):sT]; 
-        Xj = X(jj,:); Tj = [T(1:j-1); T(j+1:end) ]; 
-        t0 = sum(T(1:j-1)) - (j-1)*hmm.train.maxorder; 
-        jj = [1:t0 (sum(T(1:j))-j*hmm.train.maxorder+1):(sT-length(T)*hmm.train.maxorder)]; 
-        Gammaj = Gamma(jj,:);
-    else % subject level estimation
-        t0 = sum(T(1:j-1));
-        Xj = X(t0+1:t0+T(j),:); Tj = T(j);
-        t0 = sum(T(1:j-1)) - (j-1)*hmm.train.maxorder; 
-        Gammaj = Gamma(t0+1:t0+T(j)-hmm.train.maxorder,:);
-        Gammasum(j,:) = sum(Gammaj);
-    end
-    
     if options.MLestimation
+        if options.p==0 && strcmp(options.level,'group')
+            Gammaj = Gamma; Xj = X; Tj = T;
+        elseif options.p>0 && strcmp(options.level,'group')
+            t0 = sum(T(1:j-1)); jj = [1:t0 (sum(T(1:j))+1):sum(T)];
+            Xj = X(jj,:); Tj = [T(1:j-1); T(j+1:end) ];
+            t0 = sum(T(1:j-1)) - (j-1)*hmm.train.maxorder;
+            jj = [1:t0 (sum(T(1:j))-j*hmm.train.maxorder+1):(sum(T)-length(T)*hmm.train.maxorder)];
+            Gammaj = Gamma(jj,:);
+        else % subject level estimation
+            t0 = sum(T(1:j-1));
+            Xj = X(t0+1:t0+T(j),:); Tj = T(j);
+            t0 = sum(T(1:j-1)) - (j-1)*hmm.train.maxorder;
+            Gammaj = Gamma(t0+1:t0+T(j)-hmm.train.maxorder,:);
+            Gammasum(j,:) = sum(Gammaj);
+        end
         %hmm0.train.zeromean = 0 ;
         hmm = mlhmmmar(Xj,Tj,hmm0,Gammaj,options.completelags);
     end
@@ -209,7 +222,6 @@ for j=1:NN
                 end
             end
         end
-        %if j==8 && k==2, keyboard; end
         
         if strcmp(options.level,'subject') && options.to_do(1)==1
             for n=1:ndim,
