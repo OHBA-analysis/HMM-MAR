@@ -1,4 +1,4 @@
-function [hmm,gcovm] = mlhmmmar (data,T,hmm0,Gamma,completelags)
+function hmm = mlhmmmar (X,T,hmm0,Gamma,completelags)
 % Given the state time courses estimation, does a last estimation of each MAR using (local) ML
 %
 % INPUT
@@ -15,7 +15,7 @@ function [hmm,gcovm] = mlhmmmar (data,T,hmm0,Gamma,completelags)
 % gcovm         covariance matrix of the error for the entire model
 %
 % Author: Diego Vidaurre, OHBA, University of Oxford
-
+ 
 hmm = hmm0;
 
 if hmm.train.uniqueAR
@@ -49,7 +49,7 @@ if completelags
         end
     end
     maxorderd = hmm.train.maxorder - maxorder0;
-    if maxorderd>0 % adjust Gamma if maxorder has changed
+    if maxorderd>0 % trim Gamma if maxorder has changed
         Gamma0 = Gamma;
         Gamma = zeros(sum(T)-hmm.train.maxorder*length(T),K);
         for j = 1:N
@@ -64,17 +64,13 @@ end
 
 [hmm.train.orders,order] = formorders(hmm.train.order,hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag);
 
-% if isfield(hmm.train,'B'), B = hmm.train.B;
-% else B = [];
-% end
-% if isfield(hmm.train,'V'), V = hmm.train.V;
-% else V = [];
-% end
+if isfield(hmm.train,'B'), hmm.train.B = []; end
+if isfield(hmm.train,'V'), hmm.train.V = []; end
 
-if iscell(data)
+if iscell(X)
     c = 0;
     for i = 1:N
-        [~,XX,Y] = loadfile(data{i},T{i},hmm.train);
+        [~,XX,Y] = loadfile(X{i},T{i},hmm.train);
         ind = (1:sum(T{i})-length(T{i})*order) + c;
         c = c + length(ind);
         %else
@@ -93,12 +89,15 @@ if iscell(data)
         end
     end
     for k=1:K
-        hmm.state(k).W.Mu_W = XX2(:,:,k) \ XXY(:,:,k);
+        hmm.state(k).W.Mu_W = (XX2(:,:,k) + 1e-6 * eye(size(XX2,2))) \ XXY(:,:,k);
+        %hmm.state(k).W.Mu_W = XX2(:,:,k) \ XXY(:,:,k);
+        if isfield(hmm.state(k).W,'S_W'), hmm.state(k).W = rmfield(hmm.state(k).W,'S_W'); end
+        if isfield(hmm.state(k).W,'iS_W'), hmm.state(k).W = rmfield(hmm.state(k).W,'iS_W'); end
     end
     %sumT = 0; ge = zeros(ndim);
     c = 0;
     for i = 1:N
-        [~,XX,Y] = loadfile(data{i},T{i},hmm.train);
+        [~,XX,Y] = loadfile(X{i},T{i},hmm.train);
         ind = (1:sum(T{i})-length(T{i})*order) + c;
         c = c + length(ind);
         %sumT = sumT + size(Y,1); 
@@ -116,7 +115,7 @@ if iscell(data)
                 end
             else % full
                 for k=1:K
-                    hmm.state(k).Omega.Gam_rate = zeros(dim);
+                    hmm.state(k).Omega.Gam_rate = zeros(ndim);
                     hmm.state(k).Omega.Gam_shape = 0;
                 end
             end
@@ -147,8 +146,8 @@ else
     
     S = hmm.train.S==1; regressed = sum(S,1)>0;
     Sind = formindexes(hmm.train.orders,hmm.train.S); hmm.train.Sind = Sind;
-    if ~hmm.train.zeromean, Sind = [true(1,size(data,2)); Sind]; end
-    Y =  getresiduals(data,T,Sind,hmm.train.maxorder,hmm.train.order,hmm.train.orderoffset,...
+    if ~hmm.train.zeromean, Sind = [true(1,size(X,2)); Sind]; end
+    Y =  getresiduals(X,T,Sind,hmm.train.maxorder,hmm.train.order,hmm.train.orderoffset,...
         hmm.train.timelag,hmm.train.exptimelag,hmm.train.zeromean);
     pred = zeros(size(Y));
     setxx; % build XX

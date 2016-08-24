@@ -30,6 +30,6 @@ else
 end
 
 [V,~,~] = svd( XX2 / (N-1) );
-V = V(:,1:options.pcapred);
+V = V(:,(1:options.pcapred) + (options.vcomp-1) );
 
 end

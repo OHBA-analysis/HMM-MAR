@@ -1,4 +1,4 @@
-function fit = hmmspectramt(X,T,options)
+function fit = hmmspectramt(data,T,options)
 %
 % Computes nonparametric (multitaper) power, coherence, phase and PDC, with intervals of
 % confidence. Also obtains mean and standard deviation of the phases.
@@ -45,21 +45,36 @@ function fit = hmmspectramt(X,T,options)
 % Author: Diego Vidaurre, OHBA, University of Oxford (2014)
 %  the code uses some parts from Chronux
 
-ndim = size(X,2); T = double(T); 
-[options,Gamma] = checkoptions_spectra(options,ndim,T);
-
-% remove the exceeding part of X (with no attached Gamma)
-order = (size(X,1) - size(Gamma,1)) / length(T);
-if order>0
-    X2 = zeros(sum(T)-length(T)*order,ndim);
-    for in = 1:length(T),
-        t0 = sum(T(1:in-1)); t00 = sum(T(1:in-1)) - (in-1)*order;
-        X2(t00+1:t00+T(in)-order,:) = X(t0+1+order:t0+T(in),:);
+if iscell(data)
+    if ~isfield(options,'standardise'), options.standardise = 0; end
+    X = loadfile_mt(data{1},T{1},options);
+    ndim = size(X,2);
+    TT = [];
+    for j=1:length(data)
+        t = double(T{j}); if size(t,1)==1, t = t'; end
+        X = loadfile_mt(data{1},T{1},options);
+        TT = [TT; t];
     end
-    T = T - order;
-    X = X2; clear X2;
+    [options,Gamma] = checkoptions_spectra(options,ndim,TT);
+    order = (sum(TT) - size(Gamma,1)) / length(T);
+    TT = TT - order;
+else
+    ndim = size(data,2); T = double(T); 
+    [options,Gamma] = checkoptions_spectra(options,ndim,T);
+    order = (sum(T) - size(Gamma,1)) / length(T);
+    % remove the exceeding part of X (with no attached Gamma)
+    if order>0
+        data2 = zeros(sum(T)-length(T)*order,ndim);
+        for in = 1:length(T),
+            t0 = sum(T(1:in-1)); t00 = sum(T(1:in-1)) - (in-1)*order;
+            data2(t00+1:t00+T(in)-order,:) = data(t0+1+order:t0+T(in),:);
+        end
+        T = T - order;
+        data = data2; clear data2;
+    end
+    TT = T;
 end
-    
+
 Gamma = sqrt(Gamma) .* repmat( sqrt(size(Gamma,1) ./ sum(Gamma)), size(Gamma,1), 1);
 
 K = size(Gamma,2);
@@ -76,43 +91,75 @@ ntapers = options.tapers(2);
 
 
 for k=1:K
-    
-    Xk = X .* repmat(Gamma(:,k),1,ndim);
-       
+           
     % Multitaper Cross-frequency matrix calculation
-    psdc = zeros(Nf,ndim,ndim,length(T)*ntapers);
+    psdc = zeros(Nf,ndim,ndim,length(TT)*ntapers);
+    sumgamma = zeros(length(TT)*ntapers,1);
+    c = 1;  
+    t00 = 0; 
     for in=1:length(T)
-        Nwins=round(T(in)/options.win); 
-        % that means that a piece of data is going to be included as a window only if it's long enough
-        t0 = sum(T(1:in-1));
-        Xki = Xk(t0+1:t0+T(in),:);
-        for iwin=1:Nwins,
-            ranget = (iwin-1)*options.win+1:iwin*options.win;
-            if ranget(end)>T(in),
-                nzeros = ranget(end) - T(in);
-                nzeros2 = floor(double(nzeros)/2) * ones(2,1);
-                if sum(nzeros2)<nzeros, nzeros2(1) = nzeros2(1)+1; end
-                ranget = ranget(1):T(in);
-                Xwin=[zeros(nzeros2(1),ndim); Xki(ranget,:); zeros(nzeros2(2),ndim)]; % padding with zeroes
-            else
-                Xwin=Xki(ranget,:);
+        if iscell(data)
+            X = loadfile_mt(data{in},T{in},options);
+            if order>0
+                X2 = zeros(sum(T{in})-length(T{in})*order,ndim);
+                for inn = 1:length(T{in}),
+                    t0_star = sum(T{in}(1:inn-1)); t00_star = sum(T{in}(1:inn-1)) - (inn-1)*order;
+                    X2(t00_star+1:t00_star+T{in}(inn)-order,:) = X(t0_star+1+order:t0_star+T{in}(inn),:);
+                end
+                X = X2; clear X2;
             end
-            J=mtfftc(Xwin,tapers,nfft,Fs); % use detrend on X?
-            for tp=1:ntapers,
-                Jik=J(findx,tp,:);
-                for j=1:ndim
-                    %for l=1:ndim
-                    %    psdc(:,j,l,(in-1)*ntapers+tp) = psdc(:,j,l,(in-1)*ntapers+tp) + ...
-                    %        conj(Jik(:,1,j)).*Jik(:,1,l)  / double(Nwins);
-                    %end
-                    for l=j:ndim,
-                        psdc(:,j,l,(in-1)*ntapers+tp) = psdc(:,j,l,(in-1)*ntapers+tp) + ...
-                            conj(Jik(:,1,j)).*Jik(:,1,l) / double(Nwins);
-                        if l~=j
-                            psdc(:,l,j,(in-1)*ntapers+tp) = conj(psdc(:,j,l,(in-1)*ntapers+tp));
+            LT = length(T{in});
+        else
+            X = data((1:TT(in)) + sum(TT(1:in-1)) , : ); 
+            LT= 1;
+        end
+        t0 = 0;
+        for inn=1:LT
+            ind_gamma = (1:TT(c)) + t00;
+            ind_X = (1:TT(c)) + t0;
+            t00 = t00 + TT(c); t0 = t0 + TT(c);
+            if sum(Gamma(ind_gamma,k))<1, c = c + 1; continue; end
+            Xki = X(ind_X,:) .* repmat(Gamma(ind_gamma,k),1,ndim);
+            Nwins=round(TT(c)/options.win); % pieces are going to be included as windows only if long enough
+            for iwin=1:Nwins,
+                ranget = (iwin-1)*options.win+1:iwin*options.win;
+                if ranget(end)>TT(c),
+                    nzeros = ranget(end) - TT(c);
+                    nzeros2 = floor(double(nzeros)/2) * ones(2,1);
+                    if sum(nzeros2)<nzeros, nzeros2(1) = nzeros2(1)+1; end
+                    ranget = ranget(1):TT(c);
+                    Xwin=[zeros(nzeros2(1),ndim); Xki(ranget,:); zeros(nzeros2(2),ndim)]; % padding with zeroes
+                    
+                else
+                    Xwin=Xki(ranget,:);
+                end
+                J=mtfftc(Xwin,tapers,nfft,Fs); % use detrend on X?
+                sumgamma((c-1)*ntapers+(1:ntapers)) = sumgamma((c-1)*ntapers+(1:ntapers)) + sum(Gamma(ind_gamma(ranget),k)); 
+                for tp=1:ntapers,
+                    Jik=J(findx,tp,:);
+                    for j=1:ndim
+                        %for l=1:ndim
+                        %    psdc(:,j,l,(in-1)*ntapers+tp) = psdc(:,j,l,(in-1)*ntapers+tp) + ...
+                        %        conj(Jik(:,1,j)).*Jik(:,1,l)  / double(Nwins);
+                        %end
+                        for l=j:ndim,
+                            psdc(:,j,l,(c-1)*ntapers+tp) = psdc(:,j,l,(c-1)*ntapers+tp) + ...
+                                conj(Jik(:,1,j)).*Jik(:,1,l) / double(Nwins);
+                            if l~=j
+                                psdc(:,l,j,(c-1)*ntapers+tp) = conj(psdc(:,j,l,(c-1)*ntapers+tp));
+                            end
                         end
                     end
                 end
+            end
+            c = c + 1;
+        end
+    end
+    sumgamma = sumgamma / sum(sumgamma);
+    for iNf = 1:Nf
+        for indim=1:ndim
+            for indim2=1:ndim
+                psdc(iNf,indim,indim2,:) = permute(psdc(iNf,indim,indim2,:),[4 1 2 3]) .* sumgamma;
             end
         end
     end
@@ -121,7 +168,7 @@ for k=1:K
     
     % coherence
     coh = []; pcoh = []; phase = []; pdc = [];
-    if (options.to_do(1)==1)
+    if (options.to_do(1)==1) && ndim>1
         coh = zeros(Nf,ndim,ndim); phase = zeros(Nf,ndim,ndim);
         for j=1:ndim,
             for l=1:ndim,
@@ -134,7 +181,7 @@ for k=1:K
         end
     end
     
-    if (options.to_do(2)==1)
+    if (options.to_do(2)==1) && ndim>1
         [pdc, dtf] = subrutpdc(psd,options.numIterations,options.tol);
     end
     
@@ -176,23 +223,23 @@ for k=1:K
     fit.state(k).f = f;
     fit.state(k).psd = psd;
     fit.state(k).ipsd = ipsd;
-    if (options.to_do(1)==1),
+    if (options.to_do(1)==1) && ndim>1
         fit.state(k).coh = coh;
         fit.state(k).pcoh = pcoh;
         fit.state(k).phase = phase;
     end
-    if (options.to_do(2)==1),
+    if (options.to_do(2)==1) && ndim>1
         fit.state(k).pdc = pdc;
         fit.state(k).dtf = dtf;
     end
     if options.p>0
         fit.state(k).psderr = psderr;
-        if (options.to_do(1)==1),
+        if (options.to_do(1)==1) && ndim>1
             fit.state(k).coherr = coherr;
             fit.state(k).pcoherr = pcoherr;
             fit.state(k).sdphase = sdphase;
         end
-        if (options.to_do(2)==1),
+        if (options.to_do(2)==1) && ndim>1
             fit.state(k).pdcerr = pdcerr;
         end
     end
@@ -200,7 +247,7 @@ end
 
 end
 
-%-------------------------------------------------------------------
+
 
 function [tapers,eigs]=dpsschk(tapers,N,Fs)
 % calculates tapers and, if precalculated tapers are supplied,
@@ -245,7 +292,6 @@ end;
 f=f(findx);
 end
 
-%-------------------------------------------------------------------
 
 function J=mtfftc(data,tapers,nfft,Fs)
 % Multi-taper fourier transform - continuous data
@@ -288,4 +334,19 @@ data_proj=data.*tapers; % product of data with tapers
 J=fft(data_proj,nfft)/Fs;   % fft of projected data
 end
 
-%-------------------------------------------------------------------
+function X = loadfile_mt(f,T,options)
+if ischar(f)
+    if ~isempty(strfind(f,'.mat')), load(f,'X');
+    else X = dlmread(f);
+    end
+else
+    X = f;
+end
+if options.standardise == 1
+    for i=1:length(T)
+        t = (1:T(i)) + sum(T(1:i-1));
+        X(t,:) = X(t,:) - repmat(mean(X(t,:)),length(t),1);
+        X(t,:) = X(t,:) ./ repmat(std(X(t,:)),length(t),1);
+    end
+end
+end

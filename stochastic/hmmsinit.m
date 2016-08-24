@@ -24,6 +24,12 @@ else
     npred = length(options.orders)*ndim + (~options.zeromean);
 end
 info = struct();
+if isfield(options,'initial_hmm') 
+    initial_hmm = options.initial_hmm; 
+    options = rmfield(options,'initial_hmm');
+else 
+    initial_hmm = [];
+end
 
 % init sufficient statistics
 subj_m_init = zeros(npred,ndim,N,K);
@@ -59,8 +65,8 @@ for rep = 1:options.BIGinitrep
             end
         end
         % Running the individual HMM
-        if isfield(options,'initial_hmm') && ~isempty(options.initial_hmm)
-            hmm_i = options.initial_hmm{i};
+        if ~isempty(initial_hmm)
+            hmm_i = initial_hmm{i};
             [Gamma,~,Xi] = hsinference(X,Ti,hmm_i,Y,options,XX_i);
         else
             options_copy = options;

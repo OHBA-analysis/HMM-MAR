@@ -123,13 +123,17 @@ if options.p==0
         NN = 1; 
     else
         NN = N;
-        cohc = zeros(options.Nf,ndim,ndim,NN,K);
-        pcohc = zeros(options.Nf,ndim,ndim,NN,K);
-        phasec = zeros(options.Nf,ndim,ndim,NN,K);
+        if ndim>1
+            cohc = zeros(options.Nf,ndim,ndim,NN,K);
+            pcohc = zeros(options.Nf,ndim,ndim,NN,K);
+            phasec = zeros(options.Nf,ndim,ndim,NN,K);
+        end
     end
     psdc = zeros(options.Nf,ndim,ndim,NN,K);
-    pdcc = zeros(options.Nf,ndim,ndim,NN,K);
-    ipsdc = zeros(options.Nf,ndim,ndim,NN,K);
+    if ndim>1
+        pdcc = zeros(options.Nf,ndim,ndim,NN,K);
+        ipsdc = zeros(options.Nf,ndim,ndim,NN,K);
+    end
 else % necessarily, options.level is 'group'
     psdc = zeros(options.Nf,ndim,ndim,1,K);
     pdcc = zeros(options.Nf,ndim,ndim,1,K);
@@ -213,7 +217,7 @@ for j=1:NN
             ipsdc(ff,:,:,j,k) = af_tmp * preck * af_tmp';
                          
             % Get PDC
-            if options.to_do(2)==1
+            if options.to_do(2)==1 && ndim>1
                 for n=1:ndim,
                     for l=1:ndim,
                         pdcc(ff,n,l,j,k) = sqrt(preckd(n)) * abs(af_tmp(n,l)) / ...
@@ -223,7 +227,7 @@ for j=1:NN
             end
         end
         
-        if strcmp(options.level,'subject') && options.to_do(1)==1
+        if strcmp(options.level,'subject') && options.to_do(1)==1 && ndim>1
             for n=1:ndim,
                 for l=1:ndim,
                     rkj=psdc(:,n,l,j,k)./(sqrt(psdc(:,n,n,j,k)).*sqrt(psdc(:,l,l,j,k)));
@@ -246,14 +250,14 @@ for k=1:K
     fit.state(k).pdc = []; fit.state(k).coh = []; fit.state(k).pcoh = []; fit.state(k).phase = [];
     if strcmp(options.level,'group')
         fit.state(k).psd = mean(psdc(:,:,:,:,k),4);
-        if options.to_do(2)==1,
+        if options.to_do(2)==1  && ndim>1
             fit.state(k).pdc = mean(pdcc(:,:,:,:,k),4);
         end
     else
         fit.state(k).psdc = psdc(:,:,:,:,k);
         pGammasum = repmat(Gammasum(:,k),[1 ndim ndim options.Nf]);
         fit.state(k).psd = sum(psdc(:,:,:,:,k) .* permute(pGammasum,[4 2 3 1]),4) / sum(Gammasum(:,k));
-        if options.to_do(2)==1,
+        if options.to_do(2)==1  && ndim>1
             fit.state(k).pdc = sum(pdcc(:,:,:,:,k) .* permute(pGammasum,[4 2 3 1]),4) / sum(Gammasum(:,k));
         end
     end
@@ -264,9 +268,9 @@ for k=1:K
     fit.state(k).f = freqs;
     
     % Get Coherence and Phase
-    if options.to_do(1)==1
-        for n=1:ndim,
-            for l=1:ndim,
+    if options.to_do(1)==1 && ndim>1
+        for n=1:ndim
+            for l=1:ndim
                 rkj=fit.state(k).psd(:,n,l)./(sqrt(fit.state(k).psd(:,n,n)).*sqrt(fit.state(k).psd(:,l,l)));
                 fit.state(k).coh(:,n,l)=abs(rkj);
                 fit.state(k).pcoh(:,n,l)=-fit.state(k).ipsd(:,n,l)./...
@@ -281,7 +285,7 @@ for k=1:K
         end
     end
     
-    if strcmp(options.level,'subject') && options.to_do(2)==1
+    if strcmp(options.level,'subject') && options.to_do(2)==1 && ndim>1
         fit.state(k).pdcc = pdcc(:,:,:,:,k);
     end
     
@@ -290,12 +294,12 @@ for k=1:K
             spectrerr(psdc(:,:,:,:,k),pdcc(:,:,:,:,k),fit.state(k).coh, ...
             fit.state(k).pcoh,fit.state(k).pdc,options,1);
         fit.state(k).psderr = psderr;
-        if options.to_do(1)==1
+        if options.to_do(1)==1 && ndim>1
             fit.state(k).coherr = coherr;
             fit.state(k).pcoherr = pcoherr;
             fit.state(k).sdphase = sdphase;
         end
-        if options.to_do(2)==1
+        if options.to_do(2)==1 && ndim>1
             fit.state(k).pdcerr = pdcerr;
         end
     end
