@@ -125,7 +125,7 @@ if ~isempty(options.Gamma)
     end
 end
 
-if length(T) == 1 && options.useParallel == 1
+if (length(T) == 1 && options.initrep==1) && options.useParallel == 1
     warning('Only one trial, no use for parallel computing')
     options.useParallel = 0;
 end
@@ -227,7 +227,7 @@ else
     options.prior.iS = inv(options.prior.S);
     options.prior.iSMu = options.prior.iS * options.prior.Mu;
 end
-if ~issymmetric(options.S) && options.symmetricprior==0,
+if ~issymmetric(options.S) && options.symmetricprior==1,
    error('In order to use a symmetric prior, you need S to be symmetric as well') 
 end
 if (strcmp(options.covtype,'full') || strcmp(options.covtype,'uniquefull')) &&  ~all(options.S(:)==1),

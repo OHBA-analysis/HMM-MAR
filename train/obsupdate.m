@@ -1,4 +1,4 @@
-function [hmm] = obsupdate (T,Gamma,hmm,residuals,XX,XXGXX,Tfactor)
+function hmm = obsupdate (T,Gamma,hmm,residuals,XX,XXGXX,Tfactor)
 %
 % Update observation model
 %

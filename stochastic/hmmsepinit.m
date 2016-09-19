@@ -44,6 +44,7 @@ if ~isfield(options,'timelag'), options.timelag = 1; end
 if ~isfield(options,'exptimelag'), options.exptimelag = 1; end
 if ~isfield(options,'orderoffset'), options.orderoffset = 0; end
 if ~isfield(options,'standardise'), options.standardise = (options.pca>0); end
+if ~isfield(options,'embeddedlags'), options.embeddedlags = 0; end
 options.orders = formorders(options.order,options.orderoffset,options.timelag,options.exptimelag);
 options.dropstates = 0;
 
