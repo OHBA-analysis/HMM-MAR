@@ -1,4 +1,4 @@
-function hmm = subject_hmm(data,T,hmm,Gamma,Xi) %,residuals,XX,XXGXX,Tfactor)
+function hmm = subject_hmm(data,T,hmm,Gamma,Xi)  
 % Get subject-specific states
 % If option Xi is specified, it will also update the transition probability
 % matrix
@@ -24,10 +24,10 @@ if hmm.train.standardise == 1
         data.X(t,:) = data.X(t,:) ./ repmat(std(data.X(t,:)),length(t),1);
     end
 end
-[hmm.train.orders,order] = formorders(hmm.train.order,hmm.train.orderoffset,...
+hmm.train.orders = formorders(hmm.train.order,hmm.train.orderoffset,...
     hmm.train.timelag,hmm.train.exptimelag);
-S = hmm.train.S==1; regressed = sum(S,1)>0;
-Sind = formindexes(hmm.train.orders,hmm.train.S); hmm.train.Sind = Sind;
+hmm.train.Sind = formindexes(hmm.train.orders,hmm.train.S); 
+if ~hmm.train.zeromean, hmm.train.Sind = [true(1,size(hmm.train.Sind,2)); hmm.train.Sind]; end
 residuals = getresiduals(data.X,T,hmm.train.Sind,hmm.train.maxorder,hmm.train.order,...
     hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag,hmm.train.zeromean);
 setxx;
