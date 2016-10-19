@@ -8,9 +8,9 @@ function [Path,Xi] = hmmdecode(X,T,hmm,type,residuals,options,markovTrans)
 % X             Observations
 % T             length of series
 % hmm           hmm data structure
+% type          0, state time courses; 1, viterbi path
 % residuals     in case we train on residuals, the value of those (optional)
 % options       the hmm options, that will be used if hmm.train is missing
-% type: 0, state time courses; 1, viterbi path
 %
 % OUTPUT
 % vpath         (T x 1) maximum likelihood state sequence (type=0 OR

@@ -39,6 +39,9 @@ for cycle=1:hmm.train.cyc
         if hmm.K>1 || cycle==1
             % state inference
             [Gamma,~,Xi] = hsinference(data,T,hmm,residuals,[],XX);
+            if any(isnan(Gamma(:))), 
+                error('Gamma has NaN, probably due to problems of precision')
+            end
             % any state to remove?
             [as,hmm,Gamma,Xi] = getactivestates(hmm,Gamma,Xi);
             if hmm.train.dropstates
