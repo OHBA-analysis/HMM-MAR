@@ -7,7 +7,8 @@ function [hmm, Gamma, Xi, vpath, GammaInit, residuals, fehist, feterms, markovTr
 % data          observations, either a struct with X (time series) and C (classes, optional)
 %                             or just a matrix containing the time series
 % T             length of series
-% options       structure with the training options - see documentation
+% options       structure with the training options - see documentation in 
+%                       https://github.com/OHBA-analysis/HMM-MAR/wiki
 %
 % OUTPUT
 % hmm           estimated HMMMAR model
