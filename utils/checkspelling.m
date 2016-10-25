@@ -11,7 +11,7 @@ potential_options = ...  % stndard options
     'BIGundertol_tostop','BIGcycnobetter_tostop','BIGtol','BIGinitrep','BIGdecodeGamma',...
     'BIGforgetrate','BIGdelay','BIGbase_weights','BIGcomputeGamma','BIGverbose',...
     'p','removezeros','completelags','rlowess','numIterations','tol',... % spectra
-    'pad','Fs','fpass','tapers','win','to_do','loadings','Nf','MLestimation','level'};
+    'pad','Fs','fpass','tapers','win','to_do','loadings','Nf','MLestimation','level','PriorWeighting'};
 
 current_options = fieldnames(options);
 options_checked = options;
