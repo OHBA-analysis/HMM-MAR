@@ -82,6 +82,7 @@ if ~isfield(options,'Gamma'), options.Gamma = []; end
 if ~isfield(options,'hmm'), options.hmm = []; end
 if ~isfield(options,'fehist'), options.fehist = []; end
 if ~isfield(options,'DirichletDiag'), options.DirichletDiag = 2; end
+if ~isfield(options,'PriorWeighting'), options.PriorWeighting = 1; end
 if ~isfield(options,'dropstates'), options.dropstates = 1; end
 %if ~isfield(options,'whitening'), options.whitening = 0; end
 if ~isfield(options,'repetitions'), options.repetitions = 1; end

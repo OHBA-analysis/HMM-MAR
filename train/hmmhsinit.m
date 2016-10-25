@@ -16,6 +16,7 @@ for k=1:hmm.K,
   % State transitions
   hmm.Dir2d_alpha(k,:)=ones(1,hmm.K);
   hmm.Dir2d_alpha(k,k)=hmm.train.DirichletDiag; 
+  hmm.Dir2d_alpha(k,:) = hmm.train.PriorWeighting.*hmm.Dir2d_alpha(k,:);
   hmm.P(k,:)=hmm.Dir2d_alpha(k,:)./sum(hmm.Dir2d_alpha(k,:),2);
 end
 
@@ -27,7 +28,7 @@ defhmmprior.Dir2d_alpha=ones(hmm.K);
 for k=1:hmm.K,
     defhmmprior.Dir2d_alpha(k,k) = hmm.train.DirichletDiag;
 end
-
+defhmmprior.Dir2d_alpha=hmm.train.PriorWeighting.*defhmmprior.Dir2d_alpha;
 % assigning default priors for hidden states
 if ~isfield(hmm,'prior'),
   hmm.prior=defhmmprior;
