@@ -17,7 +17,7 @@ subjfe_init = zeros(N,3);
 loglik_init = zeros(N,1);
 pcaprec = options.pcapred>0;
 if pcaprec
-    npred = options.pcapred;
+    npred = options.pcapred + (~options.zeromean);
 else
     if isfield(options,'B') && ~isempty(options.B)
         Q = size(options.B,2);
@@ -55,7 +55,11 @@ for i = 1:N
         if isfield(options,'useParallel'), useParallel = options.useParallel; end
         options.useParallel = 0;
         options = checkoptions(options,X,Ti,0);
-        Sind = formindexes(options.orders,options.S)==1;
+        if options.pcapred>0
+            Sind = true(options.pcapred,ndim);
+        else
+            Sind = formindexes(options.orders,options.S)==1;
+        end        
         if ~options.zeromean, Sind = [true(1,ndim); Sind]; end
         options.useParallel = useParallel;
     end
@@ -247,13 +251,10 @@ function hmm = initspriors(hmm,r)
 
 ndim = length(r);
 rangresiduals2 = (r/2).^2;
-pcaprec = isfield(hmm.train,'V') && ~isempty(hmm.train.V);
-if pcaprec
-    npred = size(options.V,2);
-else
-
+pcapred = hmm.train.pcapred>0;
 if isfield(hmm.train,'B'), Q = size(hmm.train.B,2);
 else Q = ndim; end
+if pcapred, M = size(hmm.train.V,2); end
 
 for k=1:hmm.K,
     if isfield(hmm.train,'state') && isfield(hmm.train.state(k),'train') && ~isempty(hmm.train.state(k).train)
@@ -262,20 +263,31 @@ for k=1:hmm.K,
         train = hmm.train;
     end
     orders = formorders(train.order,train.orderoffset,train.timelag,train.exptimelag);
-    if strcmp(train.covtype,'diag') || strcmp(train.covtype,'full')
+    
+    if (strcmp(train.covtype,'diag') || strcmp(train.covtype,'full')) && pcapred
+        defstateprior(k)=struct('beta',[],'Omega',[],'Mean',[]);
+    elseif (strcmp(train.covtype,'diag') || strcmp(train.covtype,'full')) && ~pcapred
         defstateprior(k)=struct('sigma',[],'alpha',[],'Omega',[],'Mean',[]);
+    elseif (strcmp(train.covtype,'uniquediag') || strcmp(train.covtype,'uniquefull')) && pcapred
+        defstateprior(k)=struct('beta',[],'Mean',[]);
     else
         defstateprior(k)=struct('sigma',[],'alpha',[],'Mean',[]);
     end
-    if (~isfield(train,'uniqueAR') || ~train.uniqueAR) 
-        defstateprior(k).sigma = struct('Gam_shape',[],'Gam_rate',[]);
-        defstateprior(k).sigma.Gam_shape = 0.1*ones(Q,ndim); %+ 0.05*eye(ndim);
-        defstateprior(k).sigma.Gam_rate = 0.1*ones(Q,ndim);%  + 0.05*eye(ndim);
-    end
-    if ~isempty(orders)  
-        defstateprior(k).alpha = struct('Gam_shape',[],'Gam_rate',[]);
-        defstateprior(k).alpha.Gam_shape = 0.1;
-        defstateprior(k).alpha.Gam_rate = 0.1*ones(1,length(orders));
+    if pcapred
+        defstateprior(k).beta = struct('Gam_shape',[],'Gam_rate',[]);
+        defstateprior(k).beta.Gam_shape = 0.1*ones(M,ndim); %+ 0.05*eye(ndim);
+        defstateprior(k).beta.Gam_rate = 0.1*ones(M,ndim);%  + 0.05*eye(ndim);
+    else
+        if (~isfield(train,'uniqueAR') || ~train.uniqueAR)
+            defstateprior(k).sigma = struct('Gam_shape',[],'Gam_rate',[]);
+            defstateprior(k).sigma.Gam_shape = 0.1*ones(Q,ndim); %+ 0.05*eye(ndim);
+            defstateprior(k).sigma.Gam_rate = 0.1*ones(Q,ndim);%  + 0.05*eye(ndim);
+        end
+        if ~isempty(orders)
+            defstateprior(k).alpha = struct('Gam_shape',[],'Gam_rate',[]);
+            defstateprior(k).alpha.Gam_shape = 0.1;
+            defstateprior(k).alpha.Gam_rate = 0.1*ones(1,length(orders));
+        end
     end
     if ~train.zeromean,
         defstateprior(k).Mean = struct('Mu',[],'iS',[]);

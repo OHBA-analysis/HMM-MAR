@@ -9,6 +9,7 @@ if ~isfield(options,'embeddedlags'), options.embeddedlags = 0; end
 if ~isfield(options,'pca'), options.pca = 0; end
 if ~isfield(options,'pcamar'), options.pcamar = 0; end
 if ~isfield(options,'pcapred'), options.pcapred = 0; end
+if ~isfield(options,'vcomp') && options.pcapred>0, options.vcomp = 1; end
 if ~isfield(options,'standardise'), options.standardise = (options.pca>0); end
 
 if ~isfield(options,'K'), error('K was not specified'); end

@@ -37,12 +37,14 @@ end
 % minimal option checking
 if ~isfield(options,'order'), error('order was not specified'); end
 if ~isfield(options,'pcapred'), options.pcapred = 0; end
+if ~isfield(options,'vcomp') && options.pcapred>0, options.vcomp = 1; end
 if ~isfield(options,'pcamar'), options.pcamar = 0; end
 if ~isfield(options,'pca'), options.pca = 0; end
 if ~isfield(options,'timelag'), options.timelag = 1; end
 if ~isfield(options,'exptimelag'), options.exptimelag = 1; end
 if ~isfield(options,'orderoffset'), options.orderoffset = 0; end
 if ~isfield(options,'standardise'), options.standardise = (options.pca>0); end
+if ~isfield(options,'embeddedlags'), options.embeddedlags = 0; end
 options.orders = formorders(options.order,options.orderoffset,options.timelag,options.exptimelag);
 options.dropstates = 0;
 
@@ -56,7 +58,7 @@ end
 if options.pcamar > 0 && ~isfield(options,'B')
     options.B = pcamar_decomp(data,T,options);
 end
-if options.pcamar > 0 && ~isfield(options,'V')
+if options.pcapred > 0 && ~isfield(options,'V')
     options.V = pcapred_decomp(data,T,options);
 end
 
