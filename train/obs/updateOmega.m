@@ -84,8 +84,10 @@ else % state dependent
     for k=1:K
         if ~hmm.train.active, continue; end
         setstateoptions;
-        if ~isempty(XW), XWk = permute(XW(k,:,:),[2 3 1]);
-        else XWk = zeros(size(residuals));
+        if ~isempty(XW)
+            XWk = XW(:,:,k);
+        else 
+            XWk = zeros(size(residuals));
         end
         if train.uniqueAR
             e = (residuals - XWk).^2;
