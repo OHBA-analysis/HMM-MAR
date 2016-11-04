@@ -1,5 +1,7 @@
 function hmm = updateOmega(hmm,Gamma,Gammasum,residuals,T,XX,XXGXX,XW,Tfactor)
 
+is_gaussian = hmm.train.order == 0; % true if Gaussian observation model is being used
+
 K = length(hmm.state); ndim = hmm.train.ndim;
 S = hmm.train.S==1; regressed = sum(S,1)>0;
 if nargin<9, Tfactor = 1; end
@@ -120,8 +122,16 @@ else % state dependent
             hmm.state(k).Omega.Gam_shape = hmm.state(k).prior.Omega.Gam_shape + 0.5 * Tfactor * Gammasum(k);
             
         else % full
-            e = (residuals(:,regressed) - XWk(:,regressed));
-            e = (e' .* repmat(Gamma(:,k)',sum(regressed),1)) * e;
+            if is_gaussian
+                if hmm.train.zeromean % If zeromean == 1 for Gaussian model, then XWk is zero and we don't need to subtract at all
+                    e = residuals(:,regressed);
+                else % If zeromean == 0 for Gaussian model, then XWk has all the same rows, and bsxfun() is a fair bit faster
+                    e = bsxfun(@minus,residuals(:,regressed),XWk(1,regressed));
+                end
+            else
+                e = (residuals(:,regressed) - XWk(:,regressed));
+            end
+            e = (bsxfun(@times,e,Gamma(:,k)))' * e;
             swx2 =  zeros(ndim,ndim);
             if ~isempty(hmm.state(k).W.Mu_W)  
                 orders = formorders(train.order,train.orderoffset,train.timelag,train.exptimelag);
