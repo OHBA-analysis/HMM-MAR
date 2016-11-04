@@ -15,7 +15,7 @@ else Q = ndim; end
 
 actstates = ones(1,K); % length = to the last no. of states (=the original K if dropstates==0)
 for k=1:K
-    if Gammasum(:,k) <= 0.01 % If state is present less than 0.01 of the time
+    if Gammasum(:,k) <= max(4*length(orders)*Q+5,10)
         if ~hmm.train.dropstates && hmm.train.active(k)==1
             fprintf('State %d has been switched off with %f points\n',k,Gammasum(k))
             hmm.train.active(k) = 0;
