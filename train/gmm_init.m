@@ -25,7 +25,9 @@ end
 order = options.maxorder;
 
 LL = -Inf;
-for n=1:options.initrep
+ll = nan(1,options.initrep);
+gamma = cell(1,options.initrep);
+parfor n=1:options.initrep
     mix = gmm(ndim,options.K,options.covtype);
     netlaboptions = foptions;
     netlaboptions(14) = 5; % Just use 5 iterations of k-means initialisation
@@ -37,17 +39,17 @@ for n=1:options.initrep
     netlaboptions(14) = options.initcyc;              % Max. Number of iterations.
     % Reset cov matrix if singular values become too small
     netlaboptions(5) = 1;
-    [~, netlaboutput, ~, gamma] = wgmmem(mix, data.X, ones(sum(T),1), netlaboptions);
-    ll = -netlaboutput(8);     % Log likelihood of gmm model
+    [~, netlaboutput, ~, gamma{n}] = wgmmem(mix, data.X, ones(sum(T),1), netlaboptions);
+    ll(n) = -netlaboutput(8);     % Log likelihood of gmm model
     if options.verbose
-        fprintf('Init run %d, LL %f \n',n,ll);
+        fprintf('Init run %d, LL %f \n',n,ll(n));
     end
-    if ll>LL
-        LL = ll;
-        Gammaplus = gamma;
-        s = n;
-    end
+  
 end
+
+[~,s] = max(ll);
+Gammaplus = gamma{s};
+LL = ll(s);
 
 Gamma = zeros(sum(T)-length(T)*order,options.K);
 for in=1:length(T)
