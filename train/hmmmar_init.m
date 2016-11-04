@@ -19,9 +19,12 @@ else
     order = options.order;
 end
 
-% Run two initializations for each K less than requested K, plus options.initrep K
-init_k = [repmat(1:(options.K-1),1,2) options.K*ones(1,options.initrep)];
-init_k = init_k(end:-1:1);
+if options.initTestSmallerK % Run two initializations for each K less than requested K, plus options.initrep K
+    init_k = [repmat(1:(options.K-1),1,2) options.K*ones(1,options.initrep)];
+    init_k = init_k(end:-1:1);
+else % Standard behaviour, test specified K options.initrep times
+    init_k = options.K*ones(1,options.initrep);
+end
 p = options.DirichletDiag/(options.DirichletDiag + options.K - 1); % Probability of remaining in same state
 f_prob = dirichletdiags.mean_lifetime(); % Function that returns the lifetime in steps given the probability
 expected_lifetime =  f_prob(p)/options.Fs; % Expected number of steps given the probability
@@ -34,10 +37,10 @@ parfor it=1:length(init_k)
     opt_worker = options;
     opt_worker.K = init_k(it);
     opt_worker.DirichletDiag = dirichletdiags.get(expected_lifetime,options.Fs,opt_worker.K);
+
     if opt_worker.K == options.K && abs(opt_worker.DirichletDiag-options.DirichletDiag)>1e-3
         warning(sprintf('Calculated DirichletDiag for k=%d was %.2f, but user specified %.2f',opt_worker.K,opt_worker.DirichletDiag,options.DirichletDiag))
     end
-    % fprintf('Changed DD from %d to %d for K=%d\n',options.DirichletDiag,opt_worker.DirichletDiag,opt_worker.K)
 
     data2 = data;
     data2.C = data2.C(:,1:opt_worker.K);
