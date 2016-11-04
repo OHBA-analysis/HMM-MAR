@@ -113,7 +113,7 @@ if hmm.train.useParallel==1 && N>1
             
     % to duplicate this code is really ugly but there doesn't seem to be
     % any other way - more Matlab's fault than mine 
-    for in=1:N 
+    parfor in=1:N 
         Bt = []; sc = [];
         t0 = sum(T(1:in-1)); s0 = t0 - order*(in-1);
         if order>0
