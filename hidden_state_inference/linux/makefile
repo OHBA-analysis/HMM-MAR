@@ -15,7 +15,7 @@
 # Be aware: Armadillo suggests that linking to blas and lapack should be done STATICALLY
 ARMADILLO_LIB = libarmadillo.so
 
-MATLAB_DIR = /opt/fmrib/MATLAB/R2015b/
+MATLAB_DIR = /net/aton/data/OHBA/MATLAB/R2012b/
 ARCH       = glnxa64#
 
 # Variables for mex file
@@ -27,25 +27,25 @@ CC       = g++ $(OPT) -march=native
 DEBUG    = -DARMA_NO_DEBUG -DNDEBUG # this speeds things up but makes debugging hard. Use -g to help debugging
 CFLAGS   = -Wall -c $(DEBUG) 
 LFLAGS   = -Wall -larmadillo $(DEBUG) 
-INCLUDE  = -I/home/fs0/samh/include -I$(PWD) -I$(PWD)/test -I/usr/include/openblas # armadillo header files are in /usr/include, and armadillo libraries in /usr/lib64
+INCLUDE  = -I$(PWD) -I$(PWD)/test -I/usr/include/openblas # armadillo header files are in /usr/include, and armadillo libraries in /usr/lib64
 LFLAGS_STATIC = -Wall -framework Accelerate $(DEBUG)
 
-BLAS_LIB     = /home/fs0/samh/lib/libopenblas.so
+BLAS_LIB     = /usr/lib64/libopenblas.so
 LAPACK_LIB   = /usr/lib64/liblapack.so
-ARPACK_LIB   = /usr/lib64/libarpack.so.2
+ARPACK_LIB   = /usr/lib64/libarpack.so
 MWBLAS_LIB   = $(MATLAB_DIR)/bin/$(ARCH)/libmwblas.so
 MWLAPACK_LIB = $(MATLAB_DIR)/bin/$(ARCH)/libmwlapack.so
 
 MEX         = $(MATLAB_DIR)/bin/mex
 MEX_FLAGS   = -v -largeArrayDims
-MEX_INCLUDE = -I/home/fs0/samh/include -I./ -I/usr/include -I/usr/include/openblas
+MEX_INCLUDE = -I./ -I/usr/include -I/usr/include/openblas
 MEX_LFLAGS  = -Wall $(DEBUG) $(ARMADILLO_LIB)
 MEX_CXXOPT  = CXXOPTIMFLAGS="$(OPT) $(DEBUG)"
 
 ARMA_STATIC = -DARMA_DONT_USE_WRAPPER # to force linking to lapack and blas, with simple inclusion of header files
 ARMA_FLAGS  = -DARMA_BLAS_LONG_LONG -DARMA_64BIT_WORD # These flags are important to allow armadillo to sync with Matlab #-DARMA_USE_CXX11 
 
-MEX_LFLAGS_STATIC = $(DEBUG) CXXLIBS='-Wl,-rpath-link,$(MATLAB_DIR)/bin/$(ARCH) -L$(MATLAB_DIR)/bin/$(ARCH)/ -lmx -lmex -lmat -lm -L/usr/lib66 -L/home/fs0/samh/lib -lopenblas -llapack $(BLAS_LIB) $(LAPACK_LIB) $(ARPACK_LIB)' 
+MEX_LFLAGS_STATIC = $(DEBUG) CXXLIBS='-Wl,-rpath-link,$(MATLAB_DIR)/bin/$(ARCH) -L$(MATLAB_DIR)/bin/$(ARCH)/ -lmx -lmex -lmat -lm -L/usr/lib64 -lopenblas -llapack -larpack' #$(BLAS_LIB) $(LAPACK_LIB) $(ARPACK_LIB)' 
 MEX_CXXFLAG       = 
 
 
