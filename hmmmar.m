@@ -75,7 +75,7 @@ oldMatlab = ~isempty(strfind(ver,'2010')) || ~isempty(strfind(ver,'2010')) ...
     || ~isempty(strfind(ver,'2011')) || ~isempty(strfind(ver,'2012'));
 
 % set the matlab parallel computing environment
-if options.useParallel==1
+if options.useParallel==1 && usejava('jvm')
     if oldMatlab
         if matlabpool('size')==0
             matlabpool
@@ -184,7 +184,15 @@ else
         GammaInit = options.Gamma;
         options = rmfield(options,'Gamma');
     end
-    
+
+    % If initialization Gamma has fewer states than options.K, put those states back in
+    % and renormalize
+    if size(GammaInit,2) < options.K 
+        % States were knocked out, but semisupervised in use, so put them back
+        GammaInit = [GammaInit 0.0001*rand(size(GammaInit,1),options.K-size(GammaInit,2))];
+        GammaInit = bsxfun(@rdivide,GammaInit,sum(GammaInit,2));
+    end
+
     fehist = Inf;
     if isempty(options.hmm) % Initialisation of the hmm
         hmm_wr = struct('train',struct());

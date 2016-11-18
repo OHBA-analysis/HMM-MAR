@@ -72,6 +72,7 @@ if ~isfield(options,'cyc'), options.cyc = 1000; end
 if ~isfield(options,'tol'), options.tol = 1e-5; end
 if ~isfield(options,'meancycstop'), options.meancycstop = 1; end
 if ~isfield(options,'cycstogoafterevent'), options.cycstogoafterevent = 20; end
+if ~isfield(options,'initTestSmallerK'), options.initTestSmallerK = false; end % For hmmmar init type, if initTestSmallerK is true, initializations with smaller K will be tested up to specified K. See hmmmar_init.m
 if ~isfield(options,'initcyc'), options.initcyc = 100; end
 if ~isfield(options,'initrep'), options.initrep = 5; end
 if ~isfield(options,'inittype'), 

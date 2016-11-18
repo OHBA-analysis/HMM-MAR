@@ -29,8 +29,12 @@ end
 if nargout==2
     Y = zeros(sum(T)-length(T)*maxorder,ndim);
 end
+
+t_cumulative = cumsum([0;T(:)]);
 for in=1:N
-    t0 = sum(T(1:in-1)); s0 = sum(T(1:in-1)) - maxorder*(in-1);
+    t0 = t_cumulative(in); 
+    s0 = t0 - maxorder*(in-1);
+
     if nargout==2
         Y(s0+1:s0+T(in)-maxorder,:) = X(t0+maxorder+1:t0+T(in),:);
     end

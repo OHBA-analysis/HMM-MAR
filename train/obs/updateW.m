@@ -1,7 +1,7 @@
 function [hmm,XW] = updateW(hmm,Gamma,residuals,XX,XXGXX,Tfactor)
 
 K = length(hmm.state); ndim = hmm.train.ndim;
-XW = zeros(K,size(XX{1},1),ndim);
+XW = zeros(size(XX{1},1),ndim,K);
 if nargin<6, Tfactor = 1; end
 if isfield(hmm.train,'B'), Q = size(hmm.train.B,2);
 else Q = ndim; end
@@ -49,7 +49,7 @@ for k=1:K
         end        
         for n=1:ndim
             ind = n:ndim:size(XX{kk},2);
-            XW(k,:,n) = XX{kk}(:,ind) * hmm.state(k).W.Mu_W;
+            XW(:,n,k) = XX{kk}(:,ind) * hmm.state(k).W.Mu_W;
         end
         
     elseif strcmp(train.covtype,'diag') || strcmp(train.covtype,'uniquediag')
@@ -81,7 +81,7 @@ for k=1:K
                 Tfactor * (omega.Gam_shape / omega.Gam_rate(n)) * XX{kk}(:,Sind(:,n))') .* ...
                 repmat(Gamma(:,k)',sum(Sind(:,n)),1)) * residuals(:,n);
         end;
-        XW(k,:,:) = XX{kk} * hmm.state(k).W.Mu_W;
+        XW(:,:,k) = XX{kk} * hmm.state(k).W.Mu_W;
         
     else % this only works if all(S(:)==1);  any(S(:)~=1) is just not yet implemented 
         if pcapred
@@ -118,7 +118,7 @@ for k=1:K
         else
             hmm.state(k).W.Mu_W = reshape(muW,ndim,~train.zeromean+Q*length(orders))';
         end
-        XW(k,:,:) = XX{kk} * hmm.state(k).W.Mu_W;
+        XW(:,:,k) = XX{kk} * hmm.state(k).W.Mu_W;
     end
     
 end

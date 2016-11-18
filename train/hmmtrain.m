@@ -31,6 +31,16 @@ setxx;
 
 hmm.train.ignore_MEX = tempname;
 
+% Cache test for useMEX
+if ( (ismac || isunix) && hmm.train.useMEX ==1 && exist('hidden_state_inference_mx', 'file') == 3 && (~isfield(hmm.train,'ignore_MEX') || exist(hmm.train.ignore_MEX, 'file') == 0 ))
+    hmm.cache.useMEX = true;
+else
+    hmm.cache.useMEX = false;
+    if isfield(hmm.train,'ignore_MEX')
+        fclose(fopen(hmm.train.ignore_MEX, 'w')); % create file
+    end
+end
+
 for cycle=1:hmm.train.cyc
     
     if hmm.train.updateGamma
@@ -48,10 +58,13 @@ for cycle=1:hmm.train.cyc
                 if any(as==0)
                     cyc_to_go = hmm.train.cycstogoafterevent;
                     data.C = data.C(:,as==1);
+                    [Gamma,~,Xi] = hsinference(data,T,hmm,residuals,[],XX);
                 end
                 if sum(hmm.train.active)==1
-                    fprintf('cycle %i: All the points collapsed in one state \n',cycle)
                     fehist(end+1) = sum(evalfreeenergy(data.X,T,Gamma,Xi,hmm,residuals,XX));
+                    if hmm.train.verbose
+                        fprintf('cycle %i: All the points collapsed in one state, free energy = %g \n',cycle,fehist(end));
+                    end
                     K = 1; break
                 end
             end
@@ -114,5 +127,20 @@ if exist(hmm.train.ignore_MEX,'file')>0
     delete(hmm.train.ignore_MEX)
 end
 hmm.train = rmfield(hmm.train,'ignore_MEX');
-    
+
+% Problem was that the free energy is lower if states are knocked out
+% That is, collapsing from 10 to 1 has a lower free energy than collapsing from 5 to 1
+% Because of the change in dirichletdiag
+%
+% if size(Gamma,2) == 1
+%     disp('----')
+%     disp('----')
+%     disp('OUTPUT')
+%     sum(evalfreeenergy(data.X,T,Gamma,Xi,hmm,residuals,XX))
+%     evalfreeenergy(data.X,T,Gamma,Xi,hmm,residuals,XX)
+%     size(Gamma)
+%     sum(Gamma)
+%     sum(Xi)
+% end
+
 end

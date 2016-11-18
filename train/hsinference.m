@@ -66,6 +66,49 @@ B = cell(N,1);
 
 n_argout = nargout;
 
+ndim = size(residuals,2);
+S = hmm.train.S==1; 
+regressed = sum(S,1)>0;
+
+% Cache shared results for use in obslike
+for k = 1:K
+
+    setstateoptions;
+    hmm.cache.train{k} = train;
+    hmm.cache.order{k} = order;
+    hmm.cache.orders{k} = orders;
+    hmm.cache.Sind{k} = Sind;
+    hmm.cache.S{k} = S;
+    hmm.cache.kk{k} = kk;
+
+    switch train.covtype,
+
+        case 'diag'
+            ldetWishB=0;
+            PsiWish_alphasum=0;
+            for n=1:ndim,
+                if ~regressed(n), continue; end
+                ldetWishB=ldetWishB+0.5*log(hmm.state(k).Omega.Gam_rate(n));
+                PsiWish_alphasum=PsiWish_alphasum+0.5*psi(hmm.state(k).Omega.Gam_shape);
+            end;
+            C = hmm.state(k).Omega.Gam_shape ./ hmm.state(k).Omega.Gam_rate;
+        case 'full'
+            ldetWishB=0.5*logdet(hmm.state(k).Omega.Gam_rate(regressed,regressed));
+            PsiWish_alphasum=0;
+            for n=1:sum(regressed),
+                PsiWish_alphasum=PsiWish_alphasum+0.5*psi(hmm.state(k).Omega.Gam_shape/2+0.5-n/2);  
+            end;
+            C = hmm.state(k).Omega.Gam_shape * hmm.state(k).Omega.Gam_irate;
+    end
+
+    hmm.cache.ldetWishB{k} = ldetWishB;
+    hmm.cache.PsiWish_alphasum{k} = PsiWish_alphasum;
+    hmm.cache.C{k} = C;
+    hmm.cache.do_normwishtrace(k) = ~isempty(hmm.state(k).W.Mu_W);
+    
+end
+
+
 if hmm.train.useParallel==1 && N>1
             
     % to duplicate this code is really ugly but there doesn't seem to be
@@ -215,21 +258,9 @@ Pi = hmm.Pi;
 L = obslike([],hmm,residuals,XX);
 L(L<realmin) = realmin;
 
-% pass to mex file?
-if ( (ismac || isunix) && hmm.train.useMEX ==1 && ...
-        exist('hidden_state_inference_mx', 'file') == 3 && ...
-        (~isfield(hmm.train,'ignore_MEX') || exist(hmm.train.ignore_MEX, 'file') == 0 ))
-    try
-        [Gamma, Xi, scale] = hidden_state_inference_mx(L, Pi, P, order);
-        return
-    catch
-        %if hmm.train.verbose
-        %    fprintf('MEX file cannot be used, going on to Matlab code..\n')
-        %end
-        if isfield(hmm.train,'ignore_MEX')
-            fclose(fopen(hmm.train.ignore_MEX, 'w')); % create file
-        end
-    end
+if hmm.cache.useMEX
+    [Gamma, Xi, scale] = hidden_state_inference_mx(L, Pi, P, order);
+    return
 end
 
 scale=zeros(T,1);

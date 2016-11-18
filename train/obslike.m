@@ -1,4 +1,4 @@
-function L = obslike (X,hmm,residuals,XX)
+function L = obslike (X,hmm,residuals,XX,cache)
 %
 % Evaluate likelihood of data given observation model, for one continuous trial
 %
@@ -12,7 +12,13 @@ function L = obslike (X,hmm,residuals,XX)
 % B          Likelihood of N data points
 %
 % Author: Diego Vidaurre, OHBA, University of Oxford
- 
+
+if nargin < 5 || isempty(cache) 
+    use_cache = false;
+else
+    use_cache = true;
+end
+
 K=hmm.K;
 if nargin<4 || isempty(XX)
     [T,ndim]=size(X);
@@ -40,7 +46,8 @@ if nargin<3 || isempty(residuals)
 end
 
 Tres = T-hmm.train.maxorder;
-S = hmm.train.S==1; regressed = sum(S,1)>0;
+S = hmm.train.S==1; 
+regressed = sum(S,1)>0;
 ltpi = sum(regressed)/2 * log(2*pi);
 L = zeros(T,K);  
 
@@ -65,40 +72,55 @@ switch hmm.train.covtype,
 end;
 
 for k=1:K
-    hs=hmm.state(k);
-    setstateoptions;
+
+    if use_cache
+        train = cache.train{k};
+        order = cache.order{k};
+        orders = cache.orders{k};
+        Sind = cache.Sind{k};
+        S = cache.S{k};
+        kk = cache.kk{k};
+
+        ldetWishB = cache.ldetWishB{k};
+        PsiWish_alphasum  = cache.PsiWish_alphasum{k};
+        C = cache.C{k};
+        do_normwishtrace = cache.do_normwishtrace;
+    else
+        setstateoptions;
+        do_normwishtrace = ~isempty(hmm.state(k).W.Mu_W);
     
-    switch train.covtype,
-        case 'diag'
-            ldetWishB=0;
-            PsiWish_alphasum=0;
-            for n=1:ndim,
-                if ~regressed(n), continue; end
-                ldetWishB=ldetWishB+0.5*log(hs.Omega.Gam_rate(n));
-                PsiWish_alphasum=PsiWish_alphasum+0.5*psi(hs.Omega.Gam_shape);
-            end;
-            C = hs.Omega.Gam_shape ./ hs.Omega.Gam_rate;
-        case 'full'
-            ldetWishB=0.5*logdet(hs.Omega.Gam_rate(regressed,regressed));
-            PsiWish_alphasum=0;
-            for n=1:sum(regressed),
-                PsiWish_alphasum=PsiWish_alphasum+0.5*psi(hs.Omega.Gam_shape/2+0.5-n/2);  
-            end;
-            C = hs.Omega.Gam_shape * hs.Omega.Gam_irate;
-    end;
-    
+        switch train.covtype,
+            case 'diag'
+                ldetWishB=0;
+                PsiWish_alphasum=0;
+                for n=1:ndim,
+                    if ~regressed(n), continue; end
+                    ldetWishB=ldetWishB+0.5*log(hmm.state(k).Omega.Gam_rate(n));
+                    PsiWish_alphasum=PsiWish_alphasum+0.5*psi(hmm.state(k).Omega.Gam_shape);
+                end;
+                C = hmm.state(k).Omega.Gam_shape ./ hmm.state(k).Omega.Gam_rate;
+            case 'full'
+                ldetWishB=0.5*logdet(hmm.state(k).Omega.Gam_rate(regressed,regressed));
+                PsiWish_alphasum=0;
+                for n=1:sum(regressed),
+                    PsiWish_alphasum=PsiWish_alphasum+0.5*psi(hmm.state(k).Omega.Gam_shape/2+0.5-n/2);  
+                end;
+                C = hmm.state(k).Omega.Gam_shape * hmm.state(k).Omega.Gam_irate;
+        end;
+    end
+        
     meand = zeros(size(XX{kk},1),sum(regressed));
     if train.uniqueAR
         for n=1:ndim
             ind = n:ndim:size(XX{kk},2);
-            meand(:,n) = XX{kk}(:,ind) * hs.W.Mu_W;
+            meand(:,n) = XX{kk}(:,ind) * hmm.state(k).W.Mu_W;
         end
-    elseif ~isempty(hs.W.Mu_W) 
-        meand = XX{kk} * hs.W.Mu_W(:,regressed);
+    elseif do_normwishtrace
+        meand = XX{kk} * hmm.state(k).W.Mu_W(:,regressed);
     end
     d = residuals(:,regressed) - meand;    
     if strcmp(train.covtype,'diag') || strcmp(train.covtype,'uniquediag')
-        Cd = repmat(C(regressed)',1,Tres) .* d';
+        Cd = bsxfun(@times,C(regressed).',d.');
     else
         Cd = C(regressed,regressed) * d';
     end
@@ -109,7 +131,7 @@ for k=1:K
     end
     
     NormWishtrace=zeros(Tres,1);
-    if ~isempty(hs.W.Mu_W)
+    if do_normwishtrace
         switch train.covtype,
             case {'diag','uniquediag'}
                 for n=1:ndim,
@@ -117,21 +139,21 @@ for k=1:K
                     if train.uniqueAR
                         ind = n:ndim:size(XX{kk},2);
                         NormWishtrace = NormWishtrace + 0.5 * C(n) * ...
-                            sum( (XX{kk}(:,ind) * hs.W.S_W) .* XX{kk}(:,ind), 2);
+                            sum( (XX{kk}(:,ind) * hmm.state(k).W.S_W) .* XX{kk}(:,ind), 2);
                     elseif ndim==1
                         NormWishtrace = NormWishtrace + 0.5 * C(n) * ...
-                            sum( (XX{kk}(:,Sind(:,n)) * hs.W.S_W) ...
+                            sum( (XX{kk}(:,Sind(:,n)) * hmm.state(k).W.S_W) ...
                             .* XX{kk}(:,Sind(:,n)), 2);
                     else
                         NormWishtrace = NormWishtrace + 0.5 * C(n) * ...
-                            sum( (XX{kk}(:,Sind(:,n)) * permute(hs.W.S_W(n,Sind(:,n),Sind(:,n)),[2 3 1])) ...
+                            sum( (XX{kk}(:,Sind(:,n)) * permute(hmm.state(k).W.S_W(n,Sind(:,n),Sind(:,n)),[2 3 1])) ...
                             .* XX{kk}(:,Sind(:,n)), 2);
                     end
                 end;
                 
             case {'full','uniquefull'}
                 if isempty(orders) 
-                    NormWishtrace = 0.5 * sum(sum(C .* hs.W.S_W));
+                    NormWishtrace = 0.5 * sum(sum(C .* hmm.state(k).W.S_W));
                 else
                     if hmm.train.pcapred>0
                         I = (0:hmm.train.pcapred+(~train.zeromean)-1) * ndim;
@@ -141,7 +163,7 @@ for k=1:K
                     for n1=1:ndim
                         if ~regressed(n1), continue; end
                         index1 = I + n1; index1 = index1(Sind(:,n1)); 
-                        tmp = (XX{kk}(:,Sind(:,n1)) * hs.W.S_W(index1,:));
+                        tmp = (XX{kk}(:,Sind(:,n1)) * hmm.state(k).W.S_W(index1,:));
                         for n2=1:ndim
                             if ~regressed(n2), continue; end
                             index2 = I + n2; index2 = index2(Sind(:,n2));

@@ -1,7 +1,12 @@
-if isfield(hmm.state(k),'train') && ~isempty(hmm.state(k).train), train = hmm.state(k).train;
-else train = hmm.train;
-end
-[orders,order] = formorders(train.order,train.orderoffset,train.timelag,train.exptimelag);
+% if isfield(hmm.state(k),'train') && ~isempty(hmm.state(k).train)
+	train = hmm.state(k).train;
+% else 
+	% train = hmm.train;
+% end
+% [orders,order] = formorders(train.order,train.orderoffset,train.timelag,train.exptimelag);
+orders = train.cache.orders;
+order = train.cache.order;
+
 if ~isfield(train,'Sind'), 
     if isfield(hmm.train,'V') && ~isempty(hmm.train.V)
         train.Sind = ones(size(hmm.train.V,2),hmm.train.ndim);
