@@ -152,7 +152,7 @@ if hmm.train.useParallel==1 && N>1
                     xitr = gammat(i-1,:)' * gammat(i,:) ;
                     xit(i-1,:) = xitr(:)';
                 end
-                if n_argout>=4, Bt = obslike([],hmm,R(slicer,:),XXt); end
+                if n_argout>=4, Bt = obslike([],hmm,R(slicer,:),XXt,hmm.cache); end
                 if n_argout==5, sc = ones(length(slicer),1); end
             end
             if t>order+1,
@@ -215,7 +215,7 @@ else
                     xitr = gammat(i-1,:)' * gammat(i,:) ;
                     xit(i-1,:) = xitr(:)';
                 end
-                if nargout>=4, Bt = obslike([],hmm,R(slicer,:),XXt); end
+                if nargout>=4, Bt = obslike([],hmm,R(slicer,:),XXt,hmm.cache); end
                 if nargout==5, sc = ones(length(slicer),1); end
             end
             if t>order+1,
@@ -255,7 +255,7 @@ T = size(residuals,1) + order;
 P = hmm.P;
 Pi = hmm.Pi;
 
-L = obslike([],hmm,residuals,XX);
+L = obslike([],hmm,residuals,XX,hmm.cache);
 L(L<realmin) = realmin;
 
 if hmm.cache.useMEX
