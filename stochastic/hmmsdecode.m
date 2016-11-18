@@ -1,6 +1,5 @@
 function [Path,Xi] = hmmsdecode(Xin,T,hmm,type,markovTrans)
-% 1) Compute the stata time courses or viterbi paths 
-% 2) Compute the entropy,avglifetime,nochanges from it
+% Computes the state time courses or viterbi paths 
 %
 % INPUTS
 % Xin: cell with strings referring to the subject files

@@ -212,7 +212,7 @@ if (strcmp(options.covtype,'full') || strcmp(options.covtype,'uniquefull')) && a
 end
 
 orders = formorders(options.order,options.orderoffset,options.timelag,options.exptimelag);
-if ~isfield(options,'prior')
+if ~isfield(options,'prior') || isempty(options.prior)
     options.prior = [];
 elseif ~options.uniqueAR && ndim>1
     error('Fixed priors are only implemented for uniqueAR==1 (or just one channel)')

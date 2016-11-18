@@ -152,7 +152,7 @@ if hmm.train.useParallel==1 && N>1
                     xitr = gammat(i-1,:)' * gammat(i,:) ;
                     xit(i-1,:) = xitr(:)';
                 end
-                if n_argout>=4, Bt = obslike([],hmm,R(slicer,:),XXt); end
+                if n_argout>=4, Bt = obslike([],hmm,R(slicer,:),XXt,hmm.cache); end
                 if n_argout==5, sc = ones(length(slicer),1); end
             end
             if t>order+1,
@@ -215,7 +215,7 @@ else
                     xitr = gammat(i-1,:)' * gammat(i,:) ;
                     xit(i-1,:) = xitr(:)';
                 end
-                if nargout>=4, Bt = obslike([],hmm,R(slicer,:),XXt); end
+                if nargout>=4, Bt = obslike([],hmm,R(slicer,:),XXt,hmm.cache); end
                 if nargout==5, sc = ones(length(slicer),1); end
             end
             if t>order+1,
@@ -255,7 +255,7 @@ T = size(residuals,1) + order;
 P = hmm.P;
 Pi = hmm.Pi;
 
-L = obslike([],hmm,residuals,XX);
+L = obslike([],hmm,residuals,XX,hmm.cache);
 L(L<realmin) = realmin;
 
 if hmm.cache.useMEX
@@ -274,7 +274,7 @@ for i=2+order:T
     alpha(i,:)=(alpha(i-1,:)*P).*L(i,:);
     scale(i)=sum(alpha(i,:));		% P(X_i | X_1 ... X_{i-1})
     alpha(i,:)=alpha(i,:)/scale(i);
-end;
+end
 
 scale(scale<realmin) = realmin;
 
@@ -282,7 +282,7 @@ beta(T,:)=ones(1,K)/scale(T);
 for i=T-1:-1:1+order
     beta(i,:)=(beta(i+1,:).*L(i+1,:))*(P')/scale(i);
     beta(i,beta(i,:)>realmax) = realmax;
-end;
+end
 Gamma=(alpha.*beta);
 Gamma=Gamma(1+order:T,:);
 Gamma=rdiv(Gamma,rsum(Gamma));
