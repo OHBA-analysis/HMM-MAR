@@ -274,7 +274,7 @@ for i=2+order:T
     alpha(i,:)=(alpha(i-1,:)*P).*L(i,:);
     scale(i)=sum(alpha(i,:));		% P(X_i | X_1 ... X_{i-1})
     alpha(i,:)=alpha(i,:)/scale(i);
-end;
+end
 
 scale(scale<realmin) = realmin;
 
@@ -282,7 +282,7 @@ beta(T,:)=ones(1,K)/scale(T);
 for i=T-1:-1:1+order
     beta(i,:)=(beta(i+1,:).*L(i+1,:))*(P')/scale(i);
     beta(i,beta(i,:)>realmax) = realmax;
-end;
+end
 Gamma=(alpha.*beta);
 Gamma=Gamma(1+order:T,:);
 Gamma=rdiv(Gamma,rsum(Gamma));

@@ -104,6 +104,7 @@ if hmm.train.useParallel==1 && N>1
         
         q_star = ones(T(tr)-order,1);
         
+        scale=zeros(T(tr),1);
         alpha=zeros(T(tr),K);
         beta=zeros(T(tr),K);
         
@@ -118,52 +119,54 @@ if hmm.train.useParallel==1 && N>1
         B = obslike(X(t0+1:t0+T(tr),:),hmm,residuals(s0+1:s0+T(tr)-order,:));
         B(B<realmin) = realmin;
         
-        scale=zeros(T(tr),1);
         % Scaling for delta
         dscale=zeros(T(tr),1);
         
         alpha(1+order,:)=Pi(:)'.*B(1+order,:);
         scale(1+order)=sum(alpha(1+order,:));
-        alpha(1+order,:)=alpha(1+order,:)/(scale(1+order)+realmin);
+        alpha(1+order,:)=alpha(1+order,:)/(scale(1+order));
         
         delta(1+order,:) = alpha(1+order,:);    % Eq. 32(a) Rabiner (1989)
         % Eq. 32(b) Psi already zero
         for i=2+order:T(tr)
             alpha(i,:)=(alpha(i-1,:)*P).*B(i,:);
             scale(i)=sum(alpha(i,:));
-            alpha(i,:)=alpha(i,:)/(scale(i)+realmin);
+            if scale(i)<realmin, scale(i) = realmin; end
+            alpha(i,:)=alpha(i,:)/(scale(i));
             
             for k=1:K,
                 v=delta(i-1,:).*P(:,k)';
                 mv=max(v);
                 delta(i,k)=mv*B(i,k);  % Eq 33a Rabiner (1989)
-                if length(find(v==mv)) > 1
+                fmv = find(v==mv);
+                if length(fmv) > 1
                     % no unique maximum - so pick one at random
-                    tmp1=find(v==mv);
+                    tmp1=fmv;
                     tmp2=rand(length(tmp1),1);
                     [~,tmp4]=max(tmp2);
                     psi(i,k)=tmp4;
                 else
-                    psi(i,k)=find(v==mv);  % ARGMAX; Eq 33b Rabiner (1989)
+                    psi(i,k)=fmv;  % ARGMAX; Eq 33b Rabiner (1989)
                 end
             end;
             
             % SCALING FOR DELTA ????
             dscale(i)=sum(delta(i,:));
-            delta(i,:)=delta(i,:)/(dscale(i)+realmin);
-        end;
+            if dscale(i)<realmin, dscale(i) = realmin; end
+            delta(i,:)=delta(i,:)/(dscale(i));
+        end
         
         % Get beta values for single state decoding
         beta(T(tr),:)=ones(1,K)/scale(T(tr));
         for i=T(tr)-1:-1:1+order
             beta(i,:)=(beta(i+1,:).*B(i+1,:))*(P')/scale(i);
-        end;
+        end
         
         xi=zeros(T(tr)-1-order,K*K);
         for i=1+order:T(tr)-1
             t=P.*( alpha(i,:)' * (beta(i+1,:).*B(i+1,:)));
             xi(i-order,:)=t(:)'/sum(t(:));
-        end;
+        end
         
         delta=delta(1+order:T(tr),:);
         psi=psi(1+order:T(tr),:);
@@ -210,6 +213,7 @@ else
         
         alpha(1+order,:)=Pi(:)'.*B(1+order,:);
         scale(1+order)=sum(alpha(1+order,:));
+        
         alpha(1+order,:)=alpha(1+order,:)/(scale(1+order)+realmin);
         
         delta(1+order,:) = alpha(1+order,:);    % Eq. 32(a) Rabiner (1989)
@@ -232,24 +236,24 @@ else
                 else
                     psi(i,k)=find(v==mv);  % ARGMAX; Eq 33b Rabiner (1989)
                 end
-            end;
+            end
             
             % SCALING FOR DELTA ????
             dscale(i)=sum(delta(i,:));
             delta(i,:)=delta(i,:)/(dscale(i)+realmin);
-        end;
+        end
         
         % Get beta values for single state decoding
         beta(T(tr),:)=ones(1,K)/scale(T(tr));
         for i=T(tr)-1:-1:1+order
             beta(i,:)=(beta(i+1,:).*B(i+1,:))*(P')/scale(i);
-        end;
+        end
         
         xi=zeros(T(tr)-1-order,K*K);
         for i=1+order:T(tr)-1
             t=P.*( alpha(i,:)' * (beta(i+1,:).*B(i+1,:)));
             xi(i-order,:)=t(:)'/sum(t(:));
-        end;
+        end
         
         delta=delta(1+order:T(tr),:);
         psi=psi(1+order:T(tr),:);
