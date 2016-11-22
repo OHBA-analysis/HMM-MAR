@@ -32,7 +32,8 @@ setxx;
 hmm.train.ignore_MEX = tempname;
 
 % Cache test for useMEX
-if ( (ismac || isunix) && hmm.train.useMEX ==1 && exist('hidden_state_inference_mx', 'file') == 3 && (~isfield(hmm.train,'ignore_MEX') || exist(hmm.train.ignore_MEX, 'file') == 0 ))
+if ( (ismac || isunix) && hmm.train.useMEX ==1 && exist('hidden_state_inference_mx', 'file') == 3 ...
+        && (~isfield(hmm.train,'ignore_MEX') || exist(hmm.train.ignore_MEX, 'file') == 0 ))
     hmm.cache.useMEX = true;
 else
     hmm.cache.useMEX = false;
@@ -63,7 +64,8 @@ for cycle=1:hmm.train.cyc
                 if sum(hmm.train.active)==1
                     fehist(end+1) = sum(evalfreeenergy(data.X,T,Gamma,Xi,hmm,residuals,XX));
                     if hmm.train.verbose
-                        fprintf('cycle %i: All the points collapsed in one state, free energy = %g \n',cycle,fehist(end));
+                        fprintf('cycle %i: All the points collapsed in one state, free energy = %g \n',...
+                            cycle,fehist(end));
                     end
                     K = 1; break
                 end
@@ -116,7 +118,9 @@ if hmm.train.verbose
         fprintf('Lapse: %d, order %g, offset %g \n', ...
             hmm.train.timelag,hmm.train.order,hmm.train.orderoffset)
     end
-    if exist(hmm.train.ignore_MEX, 'file')>0
+    if exist('hidden_state_inference_mx', 'file')~=3
+        fprintf('MEX file was not used, the binary file hidden_state_inference_mx is missing \n')
+    elseif exist(hmm.train.ignore_MEX, 'file')>0
         fprintf('MEX file was not used, maybe due to some problem \n')
     else
         fprintf('MEX file was used for acceleration \n')
