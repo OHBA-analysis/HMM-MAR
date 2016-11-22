@@ -274,6 +274,7 @@ end
 hmm.prior.Dir_alpha_prior = Dir_alpha_prior;
 hmm.prior.Dir2d_alpha_prior = Dir2d_alpha_prior;
 
+
 end
 
 

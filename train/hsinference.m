@@ -258,7 +258,7 @@ Pi = hmm.Pi;
 L = obslike([],hmm,residuals,XX,hmm.cache);
 L(L<realmin) = realmin;
 
-if hmm.cache.useMEX
+if hmm.train.useMEX
     [Gamma, Xi, scale] = hidden_state_inference_mx(L, Pi, P, order);
     return
 end

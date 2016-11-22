@@ -99,7 +99,10 @@ if ~isfield(options,'keepS_W'), options.keepS_W = 1; end
 if ~isfield(options,'useParallel'), 
     options.useParallel = (length(T)>1);
 end
-if ~isfield(options,'useMEX'), options.useMEX = 1; end
+
+if ~isfield(options,'useMEX') || options.useMEX==1, 
+    options.useMEX = verifyMEX(); 
+end
 
 if ~isfield(options,'verbose'), options.verbose = 1; end
 
@@ -268,3 +271,15 @@ B = A';
 test = all(A(:)==B(:)); 
 end
 
+function isfine = verifyMEX()
+X = randn(1000,2);
+directory = which('checkoptions');
+load([directory(1:end-14) 'examples/example_hmm.mat'])
+isfine = 1;
+try
+    hsinference(X,[500 500],hmm);
+catch
+    isfine = 0;
+end
+
+end
