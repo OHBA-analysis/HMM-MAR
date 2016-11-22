@@ -98,11 +98,14 @@ end
 if stochastic_learn
     
     % get PCA loadings 
-    if options.pca > 0 
+    if length(options.pca) > 1 || options.pca > 0 
         if ~isfield(options,'A')
             options.A = highdim_pca(data,T,options.pca,options.embeddedlags,options.standardise);
         end
-        options.ndim = options.pca;
+        options.ndim = size(options.A,2);
+        options.S = ones(options.ndim);
+        orders = formorders(options.order,options.orderoffset,options.timelag,options.exptimelag); 
+        options.Sind = formindexes(orders,options.S);
     end
     if options.pcamar > 0 && ~isfield(options,'B')
         options.B = pcamar_decomp(data,T,options);
@@ -141,12 +144,16 @@ else
         [data,T] = embeddata(data,T,options.embeddedlags);
     end
     % pca
-    if options.pca > 0
+    if length(options.pca) > 1 || options.pca > 0  
         if isfield(options,'A')
             data.X = data.X * options.A; 
         else
             [options.A,data.X] = highdim_pca(data.X,T,options.pca,0,0);
         end
+        options.ndim = size(options.A,2);
+        options.S = ones(options.ndim);
+        orders = formorders(options.order,options.orderoffset,options.timelag,options.exptimelag);
+        options.Sind = formindexes(orders,options.S);
     end
     if options.pcamar > 0 && ~isfield(options,'B')
         options.B = pcamar_decomp(data,T,options);

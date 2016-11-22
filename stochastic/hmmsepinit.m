@@ -43,17 +43,19 @@ if ~isfield(options,'pca'), options.pca = 0; end
 if ~isfield(options,'timelag'), options.timelag = 1; end
 if ~isfield(options,'exptimelag'), options.exptimelag = 1; end
 if ~isfield(options,'orderoffset'), options.orderoffset = 0; end
-if ~isfield(options,'standardise'), options.standardise = (options.pca>0); end
+if ~isfield(options,'standardise'), 
+    options.standardise = (length(options.pca)>1) || (options.pca>0); 
+end
 if ~isfield(options,'embeddedlags'), options.embeddedlags = 0; end
 options.orders = formorders(options.order,options.orderoffset,options.timelag,options.exptimelag);
 options.dropstates = 0;
 
 % get PCA loadings
-if options.pca > 0
+if length(options.pca) > 1 || options.pca > 0
     if ~isfield(options,'A')
         options.A = highdim_pca(data,T,options.pca,options.embeddedlags,options.standardise);
     end
-    options.ndim = options.pca;
+    options.ndim = size(options.A,2);
 end
 if options.pcamar > 0 && ~isfield(options,'B')
     options.B = pcamar_decomp(data,T,options);
