@@ -116,9 +116,11 @@ if stochastic_learn
     
     if isempty(options.Gamma) && isempty(options.hmm)
         [hmm,info] = hmmsinit(data,T,options);
-        GammaInit = [];
+        GammaInit = []; 
     elseif isempty(options.Gamma) && ~isempty(options.hmm)
+        hmm = options.hmm;
         GammaInit = [];
+        [hmm,info] = hmmsinith(data,T,options,hmm);
     else % ~isempty(options.Gamma)
         GammaInit = options.Gamma;
         options = rmfield(options,'Gamma');

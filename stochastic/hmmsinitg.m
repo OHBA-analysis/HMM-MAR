@@ -1,5 +1,6 @@
 function [hmm,info] = hmmsinitg(Xin,T,options,GammaInit)
-% Initialisation before stochastic HMM variational inference
+% Initialisation before stochastic HMM variational inference, when Gamma
+% is provided
 %
 % INPUTS
 % Xin: cell with strings referring to the files containing each subject's data,
@@ -8,6 +9,7 @@ function [hmm,info] = hmmsinitg(Xin,T,options,GammaInit)
 % T: cell of vectors, where each element has the length of each trial per
 %       subject. Dimension of T{n} has to be (1 x nTrials)
 % options: HMM options for both the subject and the group runs
+% GammaInit: the initial state time courses
 %
 % Diego Vidaurre, OHBA, University of Oxford (2016)
 

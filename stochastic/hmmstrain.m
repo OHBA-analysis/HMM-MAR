@@ -28,7 +28,8 @@ loglik = info.loglik;
 statekl = info.statekl;
 Dir2d_alpha = info.Dir2d_alpha;
 Dir_alpha = info.Dir_alpha;
-fehist = info.fehist; 
+fehist = info.fehist;
+
 hmm_best = hmm;
 Dir2d_alpha_best = Dir2d_alpha; 
 Dir_alpha_best = Dir_alpha;
@@ -154,7 +155,7 @@ for cycle = 2:options.BIGcyc
    
     % rest of the free energy (states' KL and data loglikelihood)
     [fe,ll] = evalfreeenergy(X,Tbatch,MGamma,cell2mat(Xi),hmm,Y,XX,[0 1 0 0 1]); % state KL
-    statekl(1,cycle) = sum(fe(2:end));
+    statekl(cycle) = sum(fe(2:end));
     tacc = 0;
     for ii = 1:length(I)
         i = I(ii); 
@@ -170,7 +171,7 @@ for cycle = 2:options.BIGcyc
         end
     end
           
-    fehist(cycle) = (-sum(loglik(:,cycle)) + statekl(1,cycle) + sum(sum(subjfe(:,:,cycle))));
+    fehist(cycle) = (-sum(loglik(:,cycle)) + statekl(cycle) + sum(sum(subjfe(:,:,cycle))));
     ch = (fehist(end)-fehist(end-1)) / abs(fehist(end)-fehist(1));
     if min(fehist)==fehist(cycle)
         hmm_best = hmm; 
