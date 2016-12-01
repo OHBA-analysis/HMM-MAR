@@ -52,7 +52,13 @@ for n=1:options.initrep
     mix = gmm(ndim,options.K,options.covtype);
     netlaboptions = foptions;
     netlaboptions(14) = 5; % Just use 5 iterations of k-means initialisation
-    mix = gmminit(mix, data.X, netlaboptions);
+    try
+        mix = gmminit(mix, data.X, netlaboptions);
+    catch excp,
+        disp('Probably, part of your time series has no information and can be removed.')
+        disp('For example, check if there are segments such that data(during_segment,:) == 0')
+        error('Error computing the inverse of the covariance matrix.')
+    end
     netlaboptions = zeros(1, 18);
     netlaboptions(1)  = 0;                % Prints out error values.
     % Termination criteria
