@@ -70,6 +70,28 @@ ndim = size(residuals,2);
 S = hmm.train.S==1; 
 regressed = sum(S,1)>0;
 
+if ~isfield(hmm.state,'train') || ~(isfield(hmm.state.train,'cache'))
+    % Cache some outputs to ma ke setstateoptions more efficient
+    for k = 1:K
+        
+        if isfield(hmm.train,'state') && isfield(hmm.train.state(k),'train') && ~isempty(hmm.train.state(k).train)
+            train = hmm.train.state(k).train;
+        else
+            train = hmm.train;
+        end
+        
+        
+        hmm.state(k).train = train;
+        [orders,order] = formorders(train.order,train.orderoffset,train.timelag,train.exptimelag);
+        hmm.state(k).train.cache.order = order;
+        hmm.state(k).train.cache.orders = orders;
+        
+        
+        
+        
+    end
+end
+
 % Cache shared results for use in obslike
 for k = 1:K
 
