@@ -17,7 +17,7 @@ end
 if length(options.embeddedlags)>1
     [X,T] = embeddata(X,T,options.embeddedlags);
 end
-if options.pca > 0 && isfield(options,'A')
+if isfield(options,'A')
     X = X - repmat(mean(X),size(X,1),1); % must center
     X = X * options.A;
 end

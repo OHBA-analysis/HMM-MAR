@@ -173,7 +173,12 @@ for rep = 1:options.BIGinitrep
             end
         end
     end
-        
+    
+    % state options
+    for k=1:K
+        hmm_init.state(k).train = hmm_i.state(k).train;
+    end
+    
     % adjust prior
     if rep==1
         if isempty(options.BIGprior)
@@ -273,6 +278,7 @@ end
 
 hmm.prior.Dir_alpha_prior = Dir_alpha_prior;
 hmm.prior.Dir2d_alpha_prior = Dir2d_alpha_prior;
+
 
 end
 
