@@ -108,7 +108,7 @@ classdef (Abstract) dirichletdiags
 
 		function tested_lifetime = test_lifetime(n_trials,steps_per_trial,K,dirichletdiag)
 			% Run simulate_lifetimes for n_trials times, and return the average lifetime
-			parfor j = 1:500
+			for j = 1:500
 				[observed_lifetime(j)] = dirichletdiags.simulate_lifetimes(steps_per_trial,K,dirichletdiag);
 			end
 			tested_lifetime = mean(observed_lifetime);
