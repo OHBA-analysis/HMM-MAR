@@ -27,7 +27,7 @@ if ~isfield(options,'S'),
     else options.S = ones(ndim); end
 end
 
-options = checkMARparametrization(options,[],ndim);
+options = checkMARparametrization(options,[],ndim); copyopt = options;
 options.multipleConf = isfield(options,'state');
 if options.multipleConf && options.pcamar>0
     error('Multiple configurations are not compatible with pcamar>0');
@@ -44,16 +44,26 @@ end
 
 if options.multipleConf
     options.maxorder = 0;
-    for k = 1:options.K
-        if ~isempty(options.state(k).train)
-            options.state(k).train = checkMARparametrization(options.state(k).train,options.S,ndim);
-            train =  options.state(k).train;
-            [~,order] = formorders(train.order,train.orderoffset,train.timelag,train.exptimelag);
-            options.maxorder = max(options.maxorder,order);
-        end
-    end
 else
-    [~,options.maxorder] = formorders(options.order,options.orderoffset,options.timelag,options.exptimelag);
+    [options.orders,options.maxorder] = ...
+        formorders(options.order,options.orderoffset,options.timelag,options.exptimelag);
+end
+
+if ~isfield(options,'state') || isempty(options.state)
+    for k = 1:options.K
+        options.state(k) = struct();
+    end
+end
+for k = 1:options.K
+    if isfield(options.state(k),'train') && ~isempty(options.state(k).train)
+        options.state(k).train = checkMARparametrization(options.state(k).train,options.S,ndim);
+    else
+        options.state(k).train = copyopt;
+    end
+    train =  options.state(k).train;
+    [options.state(k).train.orders,order] = ...
+        formorders(train.order,train.orderoffset,train.timelag,train.exptimelag);
+    options.maxorder = max(options.maxorder,order);
 end
 
 if ~isfield(data,'C'), 

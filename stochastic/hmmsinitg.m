@@ -86,7 +86,6 @@ hmm.K = K;
 hmm.train = options;
 hmm = hmmhsinit(hmm);
 hmm = initspriors(hmm,range_data);
-hmm.train = options;
 hmm.train.ndim = ndim;
 hmm.train.active = ones(1,K);
 hmm.train.Sind = Sind; 
@@ -258,9 +257,9 @@ if isfield(hmm.train,'B'), Q = size(hmm.train.B,2);
 else Q = ndim; end
 if pcapred, M = size(hmm.train.V,2); end
 
-for k=1:hmm.K,
+for k=1:hmm.K
     if isfield(hmm.train,'state') && isfield(hmm.train.state(k),'train') && ~isempty(hmm.train.state(k).train)
-        train = hmm.train.state(k).train;
+        train = hmm.state(k).train;
     else
         train = hmm.train;
     end
@@ -336,13 +335,13 @@ end
 
 % moving the state options for convenience
 for k=1:hmm.K,
-    if isfield(hmm.train,'state') && isfield(hmm.train.state(k),'train') ...
-            && ~isempty(hmm.train.state(k).train)
-        hmm.state(k).train = hmm.train.state(k).train;
-    end
+   if isfield(hmm.train,'state') && isfield(hmm.train.state(k),'train') ...
+           && ~isempty(hmm.train.state(k).train)
+       hmm.state(k).train = hmm.train.state(k).train;
+   end
 end
 if isfield(hmm.train,'state')
-    hmm.train = rmfield(hmm.train,'state');
+   hmm.train = rmfield(hmm.train,'state');
 end
 
 end
