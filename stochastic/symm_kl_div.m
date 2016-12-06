@@ -5,7 +5,7 @@ if isfield(m1,'W') && ~isempty(m1.W.Mu_W)
     [nprec,ndim] = size(m1.W.Mu_W);
     kl = 0;  
     for n=1:ndim
-        if fullcovtype % full cov matrix
+        if fullcovtype || ndim==1  % full cov matrix
             i = (1:nprec) + (n-1)*nprec;
             kl = kl + 0.5 * gauss_kl(m1.W.Mu_W(:,n),m2.W.Mu_W(:,n),m1.W.S_W(i,i),m2.W.S_W(i,i)) + ...
                 0.5 * gauss_kl(m2.W.Mu_W(:,n),m1.W.Mu_W(:,n),m2.W.S_W(i,i),m1.W.S_W(i,i));
