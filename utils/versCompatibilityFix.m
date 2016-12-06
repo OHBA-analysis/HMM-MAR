@@ -13,7 +13,9 @@ end
 
 for k=1:K
     if ~isfield(hmm.state(k),'train') || isempty(hmm.state(k).train)
-        if isfield(hmm.train.state(k),'train') && ~isempty(hmm.train.state(k).train)
+        if isfield(hmm.train,'state') && ...
+                isfield(hmm.train.state(k),'train') && ...
+                ~isempty(hmm.train.state(k).train)
             hmm.state(k).train = hmm.train.state(k).train;
         else
             hmm.state(k).train = hmm.train;
