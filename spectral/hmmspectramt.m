@@ -164,7 +164,14 @@ for k=1:K
         end
     end
     psd = mean(psdc,4); ipsd = zeros(Nf,ndim,ndim);
-    for ff=1:Nf, ipsd(ff,:,:) = inv(permute(psd(ff,:,:),[3 2 1])); end
+    
+    for ff=1:Nf, 
+        if rcond(permute(psd(ff,:,:),[3 2 1]))>1e-10
+            ipsd(ff,:,:) = pinv(permute(psd(ff,:,:),[3 2 1])); 
+        else
+            ipsd(ff,:,:) = nan;
+        end
+    end
     
     % coherence
     coh = []; pcoh = []; phase = []; pdc = [];
@@ -244,6 +251,8 @@ for k=1:K
         end
     end
 end
+
+%fit.state(k).ntpts=size(X,1);
 
 end
 
