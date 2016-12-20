@@ -12,7 +12,7 @@ for i=1:4,
     end
 end
 
-% standard inference
+% standard inference, GMM init
 options = struct();
 options.K = 2; 
 options.tol = 1e-7;
@@ -25,7 +25,7 @@ options.standardise = 1;
 options.verbose = 0; 
 options.useParallel = 0; 
 
-for covtype = {'full','diag'} %,'uniquefull','uniquediag'}
+for covtype = {'full','diag','uniquefull','uniquediag'}
     for order = [0 2]
         for zeromean = [0 1]
             if (strcmp(covtype,'uniquefull') || strcmp(covtype,'uniquediag')) ...
@@ -39,6 +39,11 @@ for covtype = {'full','diag'} %,'uniquefull','uniquediag'}
         end
     end
 end
+
+% HMM-MAR initialization
+options.inittype = 'hmmmar';
+[hmm,Gamma] = hmmmar(X,T,options);
+
 
 %% stochastic inference
 options.BIGNbatch = 2;
