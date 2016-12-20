@@ -81,25 +81,40 @@ for k = 1:K
     hmm.cache.S{k} = S;
     hmm.cache.kk{k} = kk;
 
-    switch train.covtype,
-
-        case 'diag'
-            ldetWishB=0;
-            PsiWish_alphasum=0;
-            for n=1:ndim,
-                if ~regressed(n), continue; end
-                ldetWishB=ldetWishB+0.5*log(hmm.state(k).Omega.Gam_rate(n));
-                PsiWish_alphasum=PsiWish_alphasum+0.5*psi(hmm.state(k).Omega.Gam_shape);
-            end;
-            C = hmm.state(k).Omega.Gam_shape ./ hmm.state(k).Omega.Gam_rate;
-        case 'full'
-            ldetWishB=0.5*logdet(hmm.state(k).Omega.Gam_rate(regressed,regressed));
-            PsiWish_alphasum=0;
-            for n=1:sum(regressed),
-                PsiWish_alphasum=PsiWish_alphasum+0.5*psi(hmm.state(k).Omega.Gam_shape/2+0.5-n/2);  
-            end;
-            C = hmm.state(k).Omega.Gam_shape * hmm.state(k).Omega.Gam_irate;
-    end
+    if k == 1 && strcmp(train.covtype,'uniquediag')
+        ldetWishB=0;
+        PsiWish_alphasum=0;
+        for n=1:ndim,
+            if ~regressed(n), continue; end
+            ldetWishB=ldetWishB+0.5*log(hmm.Omega.Gam_rate(n));
+            PsiWish_alphasum=PsiWish_alphasum+0.5*psi(hmm.Omega.Gam_shape);
+        end;
+        C = hmm.Omega.Gam_shape ./ hmm.Omega.Gam_rate;
+    elseif k == 1 && strcmp(train.covtype,'uniquefull')
+        ldetWishB=0.5*logdet(hmm.Omega.Gam_rate(regressed,regressed));
+        PsiWish_alphasum=0;
+        for n=1:sum(regressed),
+            PsiWish_alphasum=PsiWish_alphasum+psi(hmm.Omega.Gam_shape/2+0.5-n/2); 
+        end;
+        PsiWish_alphasum=PsiWish_alphasum*0.5;
+        C = hmm.Omega.Gam_shape * hmm.Omega.Gam_irate;
+    elseif strcmp(train.covtype,'diag')
+        ldetWishB=0;
+        PsiWish_alphasum=0;
+        for n=1:ndim,
+            if ~regressed(n), continue; end
+            ldetWishB=ldetWishB+0.5*log(hmm.state(k).Omega.Gam_rate(n));
+            PsiWish_alphasum=PsiWish_alphasum+0.5*psi(hmm.state(k).Omega.Gam_shape);
+        end;
+        C = hmm.state(k).Omega.Gam_shape ./ hmm.state(k).Omega.Gam_rate;
+    elseif strcmp(train.covtype,'full')
+        ldetWishB=0.5*logdet(hmm.state(k).Omega.Gam_rate(regressed,regressed));
+        PsiWish_alphasum=0;
+        for n=1:sum(regressed),
+            PsiWish_alphasum=PsiWish_alphasum+0.5*psi(hmm.state(k).Omega.Gam_shape/2+0.5-n/2);  
+        end;
+        C = hmm.state(k).Omega.Gam_shape * hmm.state(k).Omega.Gam_irate;
+    end  
 
     hmm.cache.ldetWishB{k} = ldetWishB;
     hmm.cache.PsiWish_alphasum{k} = PsiWish_alphasum;
