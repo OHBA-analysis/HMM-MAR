@@ -140,10 +140,10 @@ for rep = 1:options.BIGinitrep
         end
         % update sufficient statistics
         tacc = 0; 
-        for i=1:length(subset);
+        for i=1:length(subset)
             subj = subset(i);
             Tsubj = T{subj} - tp_less;
-            t = tacc + (1 : sum(Tsubj)-length(sum(Tsubj))*hmm_i.train.maxorder);
+            t = tacc + (1 : (sum(Tsubj)-length(Tsubj)*hmm_i.train.maxorder));
             tacc = tacc + length(t);
             for k=1:K_i
                 XG = XX(t,:)' .* repmat(Gamma(t,k)',npred,1);

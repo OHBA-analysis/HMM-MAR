@@ -64,7 +64,6 @@ if options.pcapred > 0 && ~isfield(options,'V')
     options.V = pcapred_decomp(data,T,options);
 end
 
-
 options = rmfield(options,'orders');
 I = randpermNK(N,options.BIGNinitbatch);
 
