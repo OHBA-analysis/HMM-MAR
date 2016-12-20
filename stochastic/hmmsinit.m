@@ -66,7 +66,7 @@ for rep = 1:options.BIGinitrep
         end
         % Running the individual HMM
         if ~isempty(initial_hmm)
-            hmm_i = initial_hmm{i};
+            hmm_i = versCompatibilityFix(initial_hmm{i});
             [Gamma,~,Xi] = hsinference(X,Ti,hmm_i,Y,options,XX_i);
         else
             options_copy = options;

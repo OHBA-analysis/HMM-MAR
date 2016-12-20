@@ -74,6 +74,7 @@ regressed = sum(S,1)>0;
 for k = 1:K
 
     setstateoptions;
+    %hmm.cache = struct();
     hmm.cache.train{k} = train;
     hmm.cache.order{k} = order;
     hmm.cache.orders{k} = orders;

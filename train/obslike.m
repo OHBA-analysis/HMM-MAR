@@ -75,10 +75,8 @@ for k=1:K
 
     if use_cache
         train = cache.train{k};
-        order = cache.order{k};
         orders = cache.orders{k};
         Sind = cache.Sind{k};
-        S = cache.S{k};
         kk = cache.kk{k};
 
         ldetWishB = cache.ldetWishB{k};

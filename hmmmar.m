@@ -118,7 +118,7 @@ if stochastic_learn
         [hmm,info] = hmmsinit(data,T,options);
         GammaInit = []; 
     elseif isempty(options.Gamma) && ~isempty(options.hmm)
-        hmm = options.hmm;
+        hmm = versCompatibilityFix(options.hmm);
         GammaInit = [];
         [hmm,info] = hmmsinith(data,T,options,hmm);
     else % ~isempty(options.Gamma)
@@ -211,7 +211,7 @@ else
         hmm_wr = hmmhsinit(hmm_wr);
         [hmm_wr,residuals_wr] = obsinit(data,T,hmm_wr,GammaInit);
     else % using a warm restart from a previous run
-        hmm_wr = options.hmm;
+        hmm_wr = versCompatibilityFix(options.hmm);
         options = rmfield(options,'hmm');
         hmm_wr.train = options;
         residuals_wr = getresiduals(data.X,T,hmm_wr.train.Sind,hmm_wr.train.maxorder,hmm_wr.train.order,...

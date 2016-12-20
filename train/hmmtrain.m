@@ -95,6 +95,12 @@ for cycle=1:hmm.train.cyc
 
 end
 
+for k = 1:K
+    if isfield(hmm.state(k),'cache'),
+        hmm.state(k) = rmfield(hmm.state(k),'cache');
+    end
+end
+
 if hmm.train.verbose
     fprintf('Model: %d states, %d data samples, covariance: %s \n', ...
         K,sum(T),hmm.train.covtype);
