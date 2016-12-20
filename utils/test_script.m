@@ -48,7 +48,7 @@ options.inittype = 'hmmmar';
 %% stochastic inference
 options.BIGNbatch = 2;
 options.BIGtol = 1e-7;
-options.BIGcyc = 500;
+options.BIGcyc = 10;
 options.BIGundertol_tostop = 5;
 options.BIGdelay = 5; 
 options.BIGforgetrate = 0.7;
@@ -69,4 +69,8 @@ for covtype = {'full','diag'} %,'uniquefull','uniquediag'}
         end
     end
 end
+
+% Test stochastic with K=1
+options.K = 1;
+[hmm,Gamma] = hmmmar(X,T,options);
 
