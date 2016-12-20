@@ -12,7 +12,7 @@ for i=1:4,
     end
 end
 
-% standard inference
+% standard inference, GMM init
 options = struct();
 options.K = 2; 
 options.tol = 1e-7;
@@ -25,7 +25,7 @@ options.standardise = 1;
 options.verbose = 0; 
 options.useParallel = 0; 
 
-for covtype = {'full','diag'} %,'uniquefull','uniquediag'}
+for covtype = {'full','diag','uniquefull','uniquediag'}
     for order = [0 2]
         for zeromean = [0 1]
             if (strcmp(covtype,'uniquefull') || strcmp(covtype,'uniquediag')) ...
@@ -40,11 +40,16 @@ for covtype = {'full','diag'} %,'uniquefull','uniquediag'}
     end
 end
 
+% HMM-MAR initialization
+options.inittype = 'hmmmar';
+[hmm,Gamma] = hmmmar(X,T,options);
+
+
 %% stochastic inference
 options.BIGNbatch = 3;
 options.BIGNinitbatch = 3;
 options.BIGtol = 1e-7;
-options.BIGcyc = 20;
+options.BIGcyc = 10;
 options.BIGundertol_tostop = 5;
 options.BIGdelay = 5; 
 options.BIGforgetrate = 0.7;
@@ -64,6 +69,10 @@ for covtype = {'full','diag'} %,'uniquefull','uniquediag'}
         end
     end
 end
+
+% Test stochastic with K=1
+options.K = 1;
+[hmm,Gamma] = hmmmar(X,T,options);
 
 % you need to test the other options of initialisation as well
 

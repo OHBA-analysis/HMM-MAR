@@ -13,21 +13,20 @@
 #  make tidy - remove object files
 
 # USER NOTES: CHANGE THE LINES BELOW TO REFLECT YOUR MATLAB INSTALLATION
-MATLAB_DIR    = /Applications/MATLAB_R2015b.app/
+MATLAB_DIR    = /Applications/MATLAB_R2016a.app/#
 MATLAB_ARCH   = maci64# e.g. $(MATLAB_DIR)/bin/$(MATLAB_ARCH)/
 MACOS_VERSION = 10.11
 
 # If you want to link dynamically, change the lines below to reflect your armadillo installation
 # Install armadillo on mac with 'brew install armadillo' (assuming you have homebrew)
-# or 'brew install homebrew/science/armadillo'
 #
 # If you don't have homebrew, get it by running this at the terminal prompt.
 # /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
 #
 # Matlab mex files need these direct paths to the dynamic libraries. If you know how to link statically, please tell me. 
-# check this is correct for your armadillo install:
-ARMADILLO_DIR = /usr/local/Cellar/armadillo/6.500.5
-ARMADILLO_LIB = $(ARMADILLO_DIR)/lib/libarmadillo.dylib #file found in ARMADILLO_DIR
+ARMADILLO_DIR = /usr/local/opt/armadillo/lib
+ARMADILLO_LIB = $(ARMADILLO_DIR)/libarmadillo.dylib #file found in ARMADILLO_DIR
+
 
 
 
@@ -41,7 +40,7 @@ CC       = clang++ $(OPT) -march=native -std=c++14
 DEBUG    = -DARMA_NO_DEBUG -DNDEBUG # this speeds things up but makes debugging hard. Use -g to help debugging
 CFLAGS   = -Wall -c $(DEBUG) 
 LFLAGS   = -Wall -larmadillo $(DEBUG) 
-INCLUDE  = -I$(PWD) -I$(PWD)/../ -I$(PWD)/../test -I$(ARMADILLO_DIR)/include
+INCLUDE  = -I$(PWD) -I$(PWD)/../ -I$(PWD)/../test # armadillo header files are in /usr/local/include, symlinked to the homebrew Cellar
 LFLAGS_STATIC = -Wall -framework Accelerate $(DEBUG)
 
 BLAS_LIB    = $(MATLAB_DIR)/bin/$(MATLAB_ARCH)/libmwblas.dylib
@@ -59,7 +58,7 @@ ARMA_FLAGS  = -DARMA_BLAS_LONG_LONG -DARMA_64BIT_WORD -DARMA_USE_CXX11 # These f
 MEX_LFLAGS_STATIC = LINKLIBS='-L$(MATLAB_DIR)/bin/$(MATLAB_ARCH)/ -lmx -lmex -lm -lmat -framework Accelerate'  # LINKLIBS='-L$(MATLAB_DIR)/bin/$(MATLAB_ARCH)/ -lmx -lmex -lmat $(BLAS_LIB) $(LAPACK_LIB)' # - use these to link against matlab intel MKL libraries, not to MacOSX framework Accelerate #
 
 # This line is very machine specific. Try commenting this out, and running mex in verbose mode - it should print out the defaults for your system. Unfortunately, setting this file up to just append to this variable seems impossible.
-#MEX_CXXFLAG = CXXFLAGS="-fno-common -arch x86_64 -march=native -mmacosx-version-min=$(MACOS_VERSION) -fexceptions -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX$(MACOS_VERSION).sdk -fobjc-arc -std=c++14 -stdlib=libc++ -Wall"
+MEX_CXXFLAG = CXXFLAGS="-fno-common -arch x86_64 -march=native -mmacosx-version-min=10.9 -fexceptions -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX$(MACOS_VERSION).sdk -fobjc-arc -std=c++14 -stdlib=libc++ -Wall"
 
 
 
@@ -70,7 +69,7 @@ default: all
 
 
 # Multiple target calls
-all: mex test tidy # docs tidy
+all: mex test docs tidy
 
 
 # Executable targets
