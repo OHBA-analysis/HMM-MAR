@@ -14,8 +14,7 @@ if ~isfield(options,'standardise'), options.standardise = (options.pca>0); end
 
 if ~isfield(options,'K'), error('K was not specified'); end
 % Specific BigHMM options
-if ~isfield(options,'BIGNbatch'), options.BIGNbatch = min(10,N); end
-if ~isfield(options,'BIGuniqueTrans'), options.BIGuniqueTrans = 1; end
+if ~isfield(options,'BIGNinitbatch'), options.BIGNinitbatch = 1; end
 if ~isfield(options,'BIGprior'), options.BIGprior = []; end
 if ~isfield(options,'BIGcyc'), options.BIGcyc = 200; end
 if ~isfield(options,'BIGmincyc'), options.BIGmincyc = 10; end
@@ -33,10 +32,6 @@ if ~isfield(options,'initial_hmm'), options.initial_hmm = []; end
 options.BIGbase_weights = options.BIGbase_weights * ones(1,N);
 if ~isfield(options,'Gamma'), options.Gamma = []; end
 if ~isfield(options,'hmm'), options.hmm = []; end
-if options.BIGuniqueTrans==0 && ~isempty(options.Gamma), 
-    error('BIGuniqueTrans needs to be 1 if Gamma is supplied'); 
-end
-
 
 % HMM-MAR options
 if ~isfield(options,'zeromean'), options.zeromean = 0; end

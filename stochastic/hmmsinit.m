@@ -30,6 +30,7 @@ if isfield(options,'initial_hmm')
 else 
     initial_hmm = [];
 end
+tp_less = max(options.embeddedlags) + max(-options.embeddedlags);
 
 % init sufficient statistics
 subj_m_init = zeros(npred,ndim,N,K);
@@ -44,18 +45,26 @@ end
 subj_time_init = zeros(N,K);
 
 % init subject parameters
-P_init = zeros(K,K,N); Pi_init = zeros(K,N);
 Dir2d_alpha_init = zeros(K,K,N); Dir_alpha_init = zeros(K,N);
 
 best_fe = Inf;
 for rep = 1:options.BIGinitrep
     
     % train individual HMMs
-    I = randperm(N);
+    if ~isempty(initial_hmm)  
+        II = randperm(length(initial_hmm));
+        I = cell(1,length(II));
+        for ii = 1:length(I), I{ii} = initial_hmm{II(ii)}.subset; end
+    else
+        I = randpermNK(N,round(N/options.BIGNinitbatch));
+    end
+    covered = [];
     for ii = 1:length(I)
         % read data
-        i = I(ii);
-        [X,XX,Y,Ti] = loadfile(Xin{i},T{i},options);
+        subset = I{ii};
+        if size(subset,1)==1, subset = subset'; end
+        covered = [covered; subset];
+        [X,XX,Y,Ti] = loadfile(Xin(subset),T(subset),options);
         XX_i = cell(1); XX_i{1} = XX;
         if rep==1
             if ii==1
@@ -66,7 +75,7 @@ for rep = 1:options.BIGinitrep
         end
         % Running the individual HMM
         if ~isempty(initial_hmm)
-            hmm_i = versCompatibilityFix(initial_hmm{i});
+            hmm_i = versCompatibilityFix(initial_hmm{II(ii)});
             [Gamma,~,Xi] = hsinference(X,Ti,hmm_i,Y,options,XX_i);
         else
             options_copy = options;
@@ -92,18 +101,21 @@ for rep = 1:options.BIGinitrep
             if ~hmm_i.train.zeromean, Sind = [true(1,ndim); Sind]; end
         end
         if options.BIGverbose
-            fprintf('Init: repetition %d, subject %d \n',rep,ii);
+            fprintf('Init: repetition %d, batch %d \n',rep,ii);
         end
-        if options.BIGuniqueTrans % update transition probabilities
-            for trial=1:length(Ti)
-                t = sum(Ti(1:trial-1)) - hmm_i.train.maxorder*(trial-1) + 1;
-                Dir_alpha_init(:,i) = Dir_alpha_init(:,i) + Gamma(t,:)';
+        % update transition probabilities
+        tacc = 0; tacc2 = 0;
+        for i=1:length(subset);
+            subj = subset(i);
+            Tsubj = T{subj} - tp_less;
+            for trial=1:length(Tsubj)
+                t = tacc + 1;
+                Dir_alpha_init(:,subj) = Dir_alpha_init(:,subj) + Gamma(t,:)';
+                tacc = tacc + Tsubj(trial) - hmm_i.train.maxorder;
+                t = tacc2 + (1:Tsubj(trial)-hmm_i.train.maxorder-1);
+                Dir2d_alpha_init(:,:,subj) = Dir2d_alpha_init(:,:,subj) + squeeze(sum(Xi(t,:,:),1));
+                tacc2 = tacc2 + Tsubj(trial) - hmm_i.train.maxorder - 1;
             end
-            Dir2d_alpha_init(:,:,i) = squeeze(sum(Xi,1));
-        else
-            P_init(:,:,i) = hmm_i.P; Pi_init(:,i) = hmm_i.Pi';
-            Dir2d_alpha_init(:,:,i) = hmm_i.Dir2d_alpha;
-            Dir_alpha_init(:,i) = hmm_i.Dir_alpha';
         end
         K_i = length(hmm_i.state);
         % Reassigning ordering of the states according the closest hmm
@@ -127,23 +139,30 @@ for rep = 1:options.BIGinitrep
             assig = munkres(dist); % linear assignment problem
         end
         % update sufficient statistics
-        for k=1:K_i,
-            XG = XX' .* repmat(Gamma(:,k)',npred,1);
-            subj_m_init(:,:,i,assig(k)) = XG * Y;
-            subj_gram_init(:,:,i,assig(k)) = XG * XX;
-            if strcmp(options.covtype,'full')
-                subj_err_init(:,:,i,assig(k)) = hmm_i.state(k).Omega.Gam_rate - ...
-                    hmm_i.state(k).prior.Omega.Gam_rate;
-                subj_time_init(i,assig(k)) = hmm_i.state(k).Omega.Gam_shape - ...
-                    hmm_i.state(k).prior.Omega.Gam_shape;
-            elseif strcmp(options.covtype,'diag')
-                subj_err_init(:,i,assig(k)) = hmm_i.state(k).Omega.Gam_rate' - ...
-                    hmm_i.state(k).prior.Omega.Gam_rate';
-                subj_time_init(i,assig(k)) = hmm_i.state(k).Omega.Gam_shape - ...
-                    hmm_i.state(k).prior.Omega.Gam_shape;
+        tacc = 0; 
+        for i=1:length(subset);
+            subj = subset(i);
+            Tsubj = T{subj} - tp_less;
+            t = tacc + (1 : sum(Tsubj)-length(sum(Tsubj))*hmm_i.train.maxorder);
+            tacc = tacc + length(t);
+            for k=1:K_i
+                XG = XX(t,:)' .* repmat(Gamma(t,k)',npred,1);
+                subj_m_init(:,:,subj,assig(k)) = XG * Y(t,:);
+                subj_gram_init(:,:,subj,assig(k)) = XG * XX(t,:);
+                if strcmp(options.covtype,'full')
+                    subj_err_init(:,:,subj,assig(k)) = hmm_i.state(k).Omega.Gam_rate - ...
+                        hmm_i.state(k).prior.Omega.Gam_rate;
+                    subj_time_init(subj,assig(k)) = hmm_i.state(k).Omega.Gam_shape - ...
+                        hmm_i.state(k).prior.Omega.Gam_shape;
+                elseif strcmp(options.covtype,'diag')
+                    subj_err_init(:,subj,assig(k)) = hmm_i.state(k).Omega.Gam_rate' - ...
+                        hmm_i.state(k).prior.Omega.Gam_rate';
+                    subj_time_init(subj,assig(k)) = hmm_i.state(k).Omega.Gam_shape - ...
+                        hmm_i.state(k).prior.Omega.Gam_shape;
+                end
+                % cov mats: note also that these are the individual ones, and,
+                % hence, an underestimation of the group ones
             end
-            % cov mats: note also that these are the individual ones, and,
-            % hence, an underestimation of the group ones
         end
         if ii>1 && (strcmp(options.covtype,'uniquefull') || strcmp(options.covtype,'uniquediag'))
             hmm_init.Omega.Gam_shape = hmm_init.Omega.Gam_shape + ...
@@ -155,21 +174,21 @@ for rep = 1:options.BIGinitrep
         for k = 1:K_i
             if strcmp(options.covtype,'full')
                 hmm_init.state(k) = state_snew( ...
-                    sum(subj_err_init(:,:,I(1:ii),k),3) + hmm_i.state(k).prior.Omega.Gam_rate, ...
-                    sum(subj_time_init(I(1:ii),k)) + hmm_i.state(k).prior.Omega.Gam_shape, ...
-                    sum(subj_gram_init(:,:,I(1:ii),k),3) + 0.01 * eye(npred), ...
-                    sum(subj_m_init(:,:,I(1:ii),k),3),options.covtype,Sind);
+                    sum(subj_err_init(:,:,covered,k),3) + hmm_i.state(k).prior.Omega.Gam_rate, ...
+                    sum(subj_time_init(covered,k)) + hmm_i.state(k).prior.Omega.Gam_shape, ...
+                    sum(subj_gram_init(:,:,covered,k),3) + 0.01 * eye(npred), ...
+                    sum(subj_m_init(:,:,covered,k),3),options.covtype,Sind);
             elseif strcmp(options.covtype,'diag')
                 hmm_init.state(k) = state_snew( ...
-                    sum(subj_err_init(:,I(1:ii),k),2)' + hmm_i.state(k).prior.Omega.Gam_rate, ...
-                    sum(subj_time_init(I(1:ii),k)) + hmm_i.state(k).prior.Omega.Gam_shape, ...
-                    sum(subj_gram_init(:,:,I(1:ii),k),3) + 0.01 * eye(npred), ...
-                    sum(subj_m_init(:,:,I(1:ii),k),3),options.covtype,Sind);
+                    sum(subj_err_init(:,covered,k),2)' + hmm_i.state(k).prior.Omega.Gam_rate, ...
+                    sum(subj_time_init(covered,k)) + hmm_i.state(k).prior.Omega.Gam_shape, ...
+                    sum(subj_gram_init(:,:,covered,k),3) + 0.01 * eye(npred), ...
+                    sum(subj_m_init(:,:,covered,k),3),options.covtype,Sind);
             else
                hmm_init.state(k) = state_snew(hmm_init.Omega.Gam_rate,...
                     hmm_init.Omega.Gam_shape,...
-                    sum(subj_gram_init(:,:,I(1:ii),k),3) + 0.01 * eye(npred),...
-                    sum(subj_m_init(:,:,I(1:ii),k),3),options.covtype,Sind);                
+                    sum(subj_gram_init(:,:,covered,k),3) + 0.01 * eye(npred),...
+                    sum(subj_m_init(:,:,covered,k),3),options.covtype,Sind);                
             end
         end
     end
@@ -229,12 +248,10 @@ for rep = 1:options.BIGinitrep
         end
     end
 
-    % update transition probabilities 
-    if options.BIGuniqueTrans 
-        hmm_init.Dir_alpha = sum(Dir_alpha_init,2)' + Dir_alpha_prior;
-        hmm_init.Dir2d_alpha = sum(Dir2d_alpha_init,3) + Dir2d_alpha_prior;
-        [hmm_init.P,hmm_init.Pi] =  computePandPi(hmm_init.Dir_alpha,hmm_init.Dir2d_alpha);
-    end
+    % update transition probabilities
+    hmm_init.Dir_alpha = sum(Dir_alpha_init,2)' + Dir_alpha_prior;
+    hmm_init.Dir2d_alpha = sum(Dir2d_alpha_init,3) + Dir2d_alpha_prior;
+    [hmm_init.P,hmm_init.Pi] =  computePandPi(hmm_init.Dir_alpha,hmm_init.Dir2d_alpha);
     
     % Compute free energy
     hmm_init_i = hmm_init;
@@ -242,21 +259,11 @@ for rep = 1:options.BIGinitrep
         [X,XX,Y,Ti] = loadfile(Xin{i},T{i},options);
         XX_i = cell(1); XX_i{1} = XX;
         data = struct('X',X,'C',NaN(size(XX,1),K));
-        if ~options.BIGuniqueTrans
-            hmm_init_i = copyhmm(hmm_init,...
-                P_init(:,:,i),Pi_init(:,i)',Dir2d_alpha_init(:,:,i),Dir_alpha_init(:,i)');
-        end
         [Gamma,~,Xi,l] = hsinference(data,Ti,hmm_init_i,Y,[],XX_i);
-        if options.BIGuniqueTrans
-            subjfe_init(i,1:2) = evalfreeenergy([],Ti,Gamma,Xi,hmm_init_i,[],[],[1 0 1 0 0]); % Gamma entropy&LL
-        else
-            subjfe_init(i,:) = evalfreeenergy([],Ti,Gamma,Xi,hmm_init_i,[],[],[1 0 1 1 0]); 
-        end
+        subjfe_init(i,1:2) = evalfreeenergy([],Ti,Gamma,Xi,hmm_init_i,[],[],[1 0 1 0 0]); % Gamma entropy&LL
         loglik_init(i) = sum(l);
     end
-    if options.BIGuniqueTrans
-        subjfe_init(:,3) = evalfreeenergy([],[],[],[],hmm_init,[],[],[0 0 0 1 0]) / N; % "share" P and Pi KL
-    end
+    subjfe_init(:,3) = evalfreeenergy([],[],[],[],hmm_init,[],[],[0 0 0 1 0]) / N; % "share" P and Pi KL
     statekl_init = sum(evalfreeenergy([],[],[],[],hmm_init,[],[],[0 0 0 0 1])); % state KL
     fe = - sum(loglik_init) + sum(subjfe_init(:)) + statekl_init;
     
@@ -281,5 +288,3 @@ hmm.prior.Dir2d_alpha_prior = Dir2d_alpha_prior;
 
 
 end
-
-

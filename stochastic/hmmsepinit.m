@@ -66,19 +66,14 @@ end
 
 
 options = rmfield(options,'orders');
+I = randpermNK(N,options.BIGNinitbatch);
 
-parfor j = 1:N
-    if ischar(data{j})
-        if ~isempty(strfind(data{j},'.mat')), 
-            S = load(data{j},'X'); X = S.X;
-        else
-            X = dlmread(data{j});
-        end
-    else
-        X = data{j};
-    end
-    hmm{j} = hmmmar(X,T{j},options);
-    fprintf('Subject %d: %d states active \n',j,sum(hmm{j}.train.active) )
+for ii = 1:length(I)
+    subset = I{ii};
+    [X,~,~,Ti] = loadfile(Xin(subset),T(subset),options);  
+    hmm{ii} = hmmmar(X,T{ii},options);
+    hmm{ii}.subset = subset; 
+    fprintf('Init: batch %d: %d states active \n',ii,sum(hmm{ii}.train.active) )
 end
 
 end

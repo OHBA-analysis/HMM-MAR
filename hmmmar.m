@@ -1,4 +1,4 @@
-function [hmm, Gamma, Xi, vpath, GammaInit, residuals, fehist, feterms, markovTrans, rho] = ...
+function [hmm, Gamma, Xi, vpath, GammaInit, residuals, fehist, feterms, rho] = ...
     hmmmar (data,T,options)
 % Main function to train the HMM-MAR model, compute the Viterbi path and,
 % if requested, obtain the cross-validated sum of prediction quadratic errors.
@@ -127,16 +127,16 @@ if stochastic_learn
         [hmm,info] = hmmsinitg(data,T,options,GammaInit);
     end
     if options.BIGcyc>1
-        [hmm,markovTrans,fehist,feterms,rho] = hmmstrain(data,T,hmm,info,options);
+        [hmm,fehist,feterms,rho] = hmmstrain(data,T,hmm,info,options);
     else
-        markovTrans = []; fehist = []; feterms = []; rho = [];
+        fehist = []; feterms = []; rho = [];
     end
     Gamma = []; Xi = []; vpath = []; residuals = [];
     if options.BIGcomputeGamma && nargout >= 2
-       [Gamma,Xi] = hmmdecode(data,T,hmm,0,[],[],markovTrans); 
+       [Gamma,Xi] = hmmdecode(data,T,hmm,0,[],[]); 
     end
     if options.BIGdecodeGamma && nargout >= 4
-       vpath = hmmdecode(data,T,hmm,1,[],[],markovTrans); 
+       vpath = hmmdecode(data,T,hmm,1,[],[]); 
     end
     
 else
@@ -243,7 +243,7 @@ else
     end
     hmm.train = rmfield(hmm.train,'Sind');
     
-    markovTrans = []; feterms = []; rho = [];
+    feterms = []; rho = [];
     
 end
 

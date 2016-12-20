@@ -1,4 +1,4 @@
-function [hmm,markovTrans,fehist,feterms,rho] = hmmstrain(Xin,T,hmm,info,options)
+function [hmm,fehist,feterms,rho] = hmmstrain(Xin,T,hmm,info,options)
 % Stochastic HMM variational inference
 %
 % INPUTS
@@ -60,19 +60,21 @@ for cycle = 2:options.BIGcyc
         Tbatch = [Tbatch; (T{i}-tp_less)]; 
         Tbatch_list{ii} = (T{i}-tp_less);
     end
-    X = zeros(sum(Tbatch),ndim);
-    XX = cell(1); 
-    XX{1} = zeros(sum(Tbatch)-length(Tbatch)*options.order,npred+(~options.zeromean));
-    Y = zeros(sum(Tbatch)-length(Tbatch)*options.order,ndim);
-    tacc = 0; t2acc = 0;
-    for ii = 1:length(I)
-        i = I(ii);
-        [X_ii,XX_ii,Y_ii,T_ii]  = loadfile(Xin{i},T{i},options);
-        t = (1:sum(T_ii)) + tacc;
-        t2 = (1:(sum(T_ii)-length(T_ii)*options.order)) + t2acc;
-        X(t,:) = X_ii; XX{1}(t2,:) = XX_ii; Y(t2,:) = Y_ii;
-        tacc = tacc + sum(T_ii); t2acc = t2acc + sum(T_ii) - length(T_ii)*options.order;
-    end
+    
+    [X,XX,Y] = loadfile(Xin(I),T(I),options,1);
+    %X = zeros(sum(Tbatch),ndim);
+    %XX = cell(1); 
+    %XX{1} = zeros(sum(Tbatch)-length(Tbatch)*options.order,npred+(~options.zeromean));
+    %Y = zeros(sum(Tbatch)-length(Tbatch)*options.order,ndim);
+    %tacc = 0; t2acc = 0;
+    %for ii = 1:length(I)
+    %    i = I(ii);
+    %    [X_ii,XX_ii,Y_ii,T_ii]  = loadfile(Xin{i},T{i},options);
+    %    t = (1:sum(T_ii)) + tacc;
+    %    t2 = (1:(sum(T_ii)-length(T_ii)*options.order)) + t2acc;
+    %    X(t,:) = X_ii; XX{1}(t2,:) = XX_ii; Y(t2,:) = Y_ii;
+    %    tacc = tacc + sum(T_ii); t2acc = t2acc + sum(T_ii) - length(T_ii)*options.order;
+    %end
     
     % local parameters (Gamma, Xi, P, Pi, Dir2d_alpha and Dir_alpha),
     % and free energy relative these local parameters
@@ -88,38 +90,26 @@ for cycle = 2:options.BIGcyc
         t2acc = t2acc + sum(Tbatch_list{ii}) - length(Tbatch_list{ii})*options.order;
         data = struct('X',X(t,:),'C',NaN(sum(Tbatch_list{ii})-length(Tbatch_list{ii})*options.order,K));
         XX_i = cell(1); XX_i{1} = XX{1}(t2,:); Y_i = Y(t2,:);
-        if options.BIGuniqueTrans
-            hmm_i = hmm;
-        else
-            hmm_i = copyhmm(hmm,P(:,:,i),Pi(:,i)',Dir2d_alpha(:,:,i),Dir_alpha(:,i)');
-        end
+        hmm_i = hmm;
         [Gamma{ii},~,Xi{ii}] = hsinference(data,Tbatch_list{ii},hmm_i,Y_i,[],XX_i); % state time courses
         for k=1:K
             XXGXX{k} = XXGXX{k} + (XX_i{1}' .* repmat(Gamma{ii}(:,k)',size(XX_i{1},2),1)) * XX_i{1};
         end
-        if options.BIGuniqueTrans % update transition probabilities
-            Dir_alpha(:,i) = 0;
-            for trial=1:length(Tbatch_list{ii})
-                t3 = sum(Tbatch_list{ii}(1:trial-1)) - options.order*(trial-1) + 1;
-                Dir_alpha(:,i) = Dir_alpha(:,i) + Gamma{ii}(t3,:)';
-            end
-            Dir2d_alpha(:,:,i) = squeeze(sum(Xi{ii},1));
-        else
-            hmm_i = hsupdate(Xi{ii},Gamma{ii},Tbatch_list{ii},hmm_i);
-            P(:,:,i) = hmm_i.P; Pi(:,i) = hmm_i.Pi'; % one per subject, not like pure group HMM
-            Dir2d_alpha(:,:,i) = hmm_i.Dir2d_alpha; Dir_alpha(:,i) = hmm_i.Dir_alpha';
-            subjfe(i,:,cycle) = evalfreeenergy([],Tbatch_list{ii},Gamma{ii},Xi{ii},hmm_i,[],[],[1 0 1 1 0]); 
+        % update transition probabilities
+        Dir_alpha(:,i) = 0;
+        for trial=1:length(Tbatch_list{ii})
+            t3 = sum(Tbatch_list{ii}(1:trial-1)) - options.order*(trial-1) + 1;
+            Dir_alpha(:,i) = Dir_alpha(:,i) + Gamma{ii}(t3,:)';
         end
+        Dir2d_alpha(:,:,i) = squeeze(sum(Xi{ii},1));
     end
-    if options.BIGuniqueTrans
-        hmm.Dir_alpha = sum(Dir_alpha,2)' + hmm.prior.Dir_alpha;
-        hmm.Dir2d_alpha = sum(Dir2d_alpha,3) + hmm.prior.Dir2d_alpha;
-        [hmm.P,hmm.Pi] = computePandPi(hmm.Dir_alpha,hmm.Dir2d_alpha);
-        subjfe(:,3,cycle) = evalfreeenergy([],[],[],[],hmm,[],[],[0 0 0 1 0]) / N; % "shared" P/Pi KL
-        for ii = 1:length(I)
-            i = I(ii); % Gamma entropy&LL
-            subjfe(i,1:2,cycle) = evalfreeenergy([],Tbatch_list{ii},Gamma{ii},Xi{ii},hmm,[],[],[1 0 1 0 0]); 
-        end
+    hmm.Dir_alpha = sum(Dir_alpha,2)' + hmm.prior.Dir_alpha;
+    hmm.Dir2d_alpha = sum(Dir2d_alpha,3) + hmm.prior.Dir2d_alpha;
+    [hmm.P,hmm.Pi] = computePandPi(hmm.Dir_alpha,hmm.Dir2d_alpha);
+    subjfe(:,3,cycle) = evalfreeenergy([],[],[],[],hmm,[],[],[0 0 0 1 0]) / N; % "shared" P/Pi KL
+    for ii = 1:length(I)
+        i = I(ii); % Gamma entropy&LL
+        subjfe(i,1:2,cycle) = evalfreeenergy([],Tbatch_list{ii},Gamma{ii},Xi{ii},hmm,[],[],[1 0 1 0 0]);
     end
         
     % global parameters (hmm), and collect state free energy
@@ -166,9 +156,6 @@ for cycle = 2:options.BIGcyc
     % bring from last iteration whatever was not updated
     for i = setdiff(1:N,I)
         loglik(i,cycle) = loglik(i,cycle-1);
-        if ~options.BIGuniqueTrans
-            subjfe(i,:,cycle) = subjfe(i,:,cycle-1);
-        end
     end
           
     fehist(cycle) = (-sum(loglik(:,cycle)) + statekl(cycle) + sum(sum(subjfe(:,:,cycle))));
@@ -176,7 +163,6 @@ for cycle = 2:options.BIGcyc
     if min(fehist)==fehist(cycle)
         hmm_best = hmm; 
         cyc_best = cycle;
-        if ~options.BIGuniqueTrans, P_best = P; Pi_best = Pi; end
         Dir2d_alpha_best = Dir2d_alpha; Dir_alpha_best = Dir_alpha;
         count = 0;
     else
@@ -200,26 +186,11 @@ for cycle = 2:options.BIGcyc
 end
 
 hmm = hmm_best;
-markovTrans = struct();
-if ~options.BIGuniqueTrans
-    markovTrans.P = P_best;
-    markovTrans.Pi = Pi_best;
-end
-markovTrans.Dir2d_alpha = Dir2d_alpha_best;
-markovTrans.Dir_alpha = Dir_alpha_best;
-markovTrans.prior.Dir2d_alpha = hmm.prior.Dir2d_alpha;
-markovTrans.prior.Dir_alpha = hmm.prior.Dir_alpha;
 fehist = fehist(1:cyc_best);
 loglik = loglik(:,1:cyc_best);
 subjfe = subjfe(:,:,1:cyc_best);
 statekl = statekl(1:cyc_best);
 rho = rho(1:cyc_best);
-
-if ~options.BIGuniqueTrans
-    hmm.Dir_alpha = sum(markovTrans.Dir_alpha,2)' + hmm.prior.Dir_alpha_prior;
-    hmm.Dir2d_alpha = sum(markovTrans.Dir2d_alpha,3) + hmm.prior.Dir2d_alpha_prior;
-    [hmm.P,hmm.Pi] = computePandPi(hmm.Dir_alpha,hmm.Dir2d_alpha);
-end
 
 feterms = struct();
 feterms.loglik = loglik;

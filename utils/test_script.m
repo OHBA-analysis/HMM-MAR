@@ -3,7 +3,7 @@
 % That is: we won't update stuff to git without running this script first
 
 % gen data
-X = randn(1000,3); T = 250*ones(4,1); 
+X = randn(2000,3); T = 250*ones(8,1); 
 B = rand(3);
 for i=1:4, 
     X((1:100)+sum(T(1:i-1)),:) = X((1:100)+sum(T(1:i-1)),:) * B; 
@@ -41,14 +41,14 @@ for covtype = {'full','diag'} %,'uniquefull','uniquediag'}
 end
 
 %% stochastic inference
-options.BIGNbatch = 2;
+options.BIGNbatch = 3;
+options.BIGNinitbatch = 3;
 options.BIGtol = 1e-7;
-options.BIGcyc = 500;
+options.BIGcyc = 20;
 options.BIGundertol_tostop = 5;
 options.BIGdelay = 5; 
 options.BIGforgetrate = 0.7;
 options.BIGbase_weights = 0.9;
-options.BIGuniqueTrans = 1;
     
 for covtype = {'full','diag'} %,'uniquefull','uniquediag'}
     for order = [0 2]
@@ -64,4 +64,6 @@ for covtype = {'full','diag'} %,'uniquefull','uniquediag'}
         end
     end
 end
+
+% you need to test the other options of initialisation as well
 
