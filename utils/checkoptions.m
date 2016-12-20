@@ -15,15 +15,19 @@ if ~isfield(options,'vcomp') && options.pcapred>0, options.vcomp = 1; end
 
 if ~isfield(options,'standardise'), options.standardise = 0; end
 
-if options.pca == 0, ndim = length(options.embeddedlags) * size(data.X,2);
-else ndim = options.pca;
+if length(options.pca)==1 && options.pca == 0, 
+    ndim = length(options.embeddedlags) * size(data.X,2);
+elseif options.pca(1) < 1
+    ndim = size(data.X,2); % temporal assignment
+else
+    ndim = options.pca;
 end
 if ~isfield(options,'S'), 
     if options.pcamar>0, options.S = ones(options.pcamar,ndim);
     else options.S = ones(ndim); end
 end
 
-options = checkMARparametrization(options,[],ndim);
+options = checkMARparametrization(options,[],ndim); copyopt = options;
 options.multipleConf = isfield(options,'state');
 if options.multipleConf && options.pcamar>0
     error('Multiple configurations are not compatible with pcamar>0');
@@ -40,16 +44,26 @@ end
 
 if options.multipleConf
     options.maxorder = 0;
-    for k = 1:options.K
-        if ~isempty(options.state(k).train)
-            options.state(k).train = checkMARparametrization(options.state(k).train,options.S,ndim);
-            train =  options.state(k).train;
-            [~,order] = formorders(train.order,train.orderoffset,train.timelag,train.exptimelag);
-            options.maxorder = max(options.maxorder,order);
-        end
-    end
 else
-    [~,options.maxorder] = formorders(options.order,options.orderoffset,options.timelag,options.exptimelag);
+    [options.orders,options.maxorder] = ...
+        formorders(options.order,options.orderoffset,options.timelag,options.exptimelag);
+end
+
+if ~isfield(options,'state') || isempty(options.state)
+    for k = 1:options.K
+        options.state(k) = struct();
+    end
+end
+for k = 1:options.K
+    if isfield(options.state(k),'train') && ~isempty(options.state(k).train)
+        options.state(k).train = checkMARparametrization(options.state(k).train,options.S,ndim);
+    else
+        options.state(k).train = copyopt;
+    end
+    train =  options.state(k).train;
+    [options.state(k).train.orders,order] = ...
+        formorders(train.order,train.orderoffset,train.timelag,train.exptimelag);
+    options.maxorder = max(options.maxorder,order);
 end
 
 if ~isfield(data,'C'), 
@@ -72,7 +86,9 @@ if ~isfield(options,'cyc'), options.cyc = 1000; end
 if ~isfield(options,'tol'), options.tol = 1e-5; end
 if ~isfield(options,'meancycstop'), options.meancycstop = 1; end
 if ~isfield(options,'cycstogoafterevent'), options.cycstogoafterevent = 20; end
-if ~isfield(options,'initTestSmallerK'), options.initTestSmallerK = false; end % For hmmmar init type, if initTestSmallerK is true, initializations with smaller K will be tested up to specified K. See hmmmar_init.m
+if ~isfield(options,'initTestSmallerK'), options.initTestSmallerK = false; end 
+% For hmmmar init type, if initTestSmallerK is true, initializations with smaller 
+% K will be tested up to specified K. See hmmmar_init.m
 if ~isfield(options,'initcyc'), options.initcyc = 100; end
 if ~isfield(options,'initrep'), options.initrep = 5; end
 if ~isfield(options,'inittype'), 
@@ -93,7 +109,10 @@ if ~isfield(options,'keepS_W'), options.keepS_W = 1; end
 if ~isfield(options,'useParallel'), 
     options.useParallel = (length(T)>1);
 end
-if ~isfield(options,'useMEX'), options.useMEX = 1; end
+
+if ~isfield(options,'useMEX') || options.useMEX==1, 
+    options.useMEX = verifyMEX(); 
+end
 
 if ~isfield(options,'verbose'), options.verbose = 1; end
 
@@ -122,7 +141,8 @@ if options.updateGamma == 0 && options.repetitions>1,
 end
 
 if ~isempty(options.Gamma)
-    if (size(options.Gamma,1) ~= (sum(T) - options.maxorder*length(T))) || (size(options.Gamma,2) ~= options.K),
+    if (size(options.Gamma,1) ~= (sum(T) - options.maxorder*length(T))) || ...
+            (size(options.Gamma,2) ~= options.K),
         error('The supplied Gamma has not the right dimensions')
     end
 end
@@ -192,10 +212,10 @@ if (options.order>0) && (options.timelag<1) && (options.exptimelag<=1)
 end
 if ~isfield(options,'S'), % 
     if nargin>=2 && ~isempty(S)
-        if options.pca==0 || all(S(:))==1
+        if (length(options.pca)==1 && options.pca==0) || all(S(:))==1
             options.S = S;
         else
-            warning('S cannot have elements different from 1 if options.pca>1')
+            warning('S cannot have elements different from 1 if PCA is going to be used')
             options.S = ones(size(S));
         end
     else
@@ -261,3 +281,15 @@ B = A';
 test = all(A(:)==B(:)); 
 end
 
+function isfine = verifyMEX()
+X = randn(1000,2);
+directory = which('checkoptions');
+load([directory(1:end-14) 'examples/example_hmm.mat'])
+isfine = 1;
+try
+    hsinference(X,[500 500],hmm);
+catch
+    isfine = 0;
+end
+
+end

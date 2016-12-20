@@ -28,7 +28,8 @@ loglik = info.loglik;
 statekl = info.statekl;
 Dir2d_alpha = info.Dir2d_alpha;
 Dir_alpha = info.Dir_alpha;
-fehist = info.fehist; 
+fehist = info.fehist;
+
 hmm_best = hmm;
 Dir2d_alpha_best = Dir2d_alpha; 
 Dir_alpha_best = Dir_alpha;
@@ -36,7 +37,6 @@ cyc_best = 1;
 tp_less = max(hmm.train.embeddedlags) + max(-hmm.train.embeddedlags);
 
 clear info;
-hmm.train.ignore_MEX = tempname;
 
 % init stochastic learning stuff
 nUsed = zeros(1,N); 
@@ -155,7 +155,7 @@ for cycle = 2:options.BIGcyc
    
     % rest of the free energy (states' KL and data loglikelihood)
     [fe,ll] = evalfreeenergy(X,Tbatch,MGamma,cell2mat(Xi),hmm,Y,XX,[0 1 0 0 1]); % state KL
-    statekl(1,cycle) = sum(fe(2:end));
+    statekl(cycle) = sum(fe(2:end));
     tacc = 0;
     for ii = 1:length(I)
         i = I(ii); 
@@ -171,7 +171,7 @@ for cycle = 2:options.BIGcyc
         end
     end
           
-    fehist(cycle) = (-sum(loglik(:,cycle)) + statekl(1,cycle) + sum(sum(subjfe(:,:,cycle))));
+    fehist(cycle) = (-sum(loglik(:,cycle)) + statekl(cycle) + sum(sum(subjfe(:,:,cycle))));
     ch = (fehist(end)-fehist(end-1)) / abs(fehist(end)-fehist(1));
     if min(fehist)==fehist(cycle)
         hmm_best = hmm; 
@@ -242,17 +242,13 @@ if options.BIGverbose
         fprintf('Lapse: %d, order %g, offset %g \n', ...
             hmm.train.timelag,hmm.train.order,hmm.train.orderoffset)
     end
-    if exist(hmm.train.ignore_MEX, 'file')>0
-        fprintf('MEX file was not used, maybe due to some problem \n')
+    if hmm.train.useMEX==0
+        fprintf('MEX file was not used \n')
     else
         fprintf('MEX file was used for acceleration \n')
     end
 end
 
-if exist(hmm.train.ignore_MEX,'file')>0
-    delete(hmm.train.ignore_MEX)
-end
-hmm.train = rmfield(hmm.train,'ignore_MEX');
  
 end
 

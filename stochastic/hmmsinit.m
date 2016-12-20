@@ -66,7 +66,7 @@ for rep = 1:options.BIGinitrep
         end
         % Running the individual HMM
         if ~isempty(initial_hmm)
-            hmm_i = initial_hmm{i};
+            hmm_i = versCompatibilityFix(initial_hmm{i});
             [Gamma,~,Xi] = hsinference(X,Ti,hmm_i,Y,options,XX_i);
         else
             options_copy = options;
@@ -173,7 +173,12 @@ for rep = 1:options.BIGinitrep
             end
         end
     end
-        
+    
+    % state options
+    for k=1:K
+        hmm_init.state(k).train = hmm_i.state(k).train;
+    end
+    
     % adjust prior
     if rep==1
         if isempty(options.BIGprior)
@@ -273,6 +278,7 @@ end
 
 hmm.prior.Dir_alpha_prior = Dir_alpha_prior;
 hmm.prior.Dir2d_alpha_prior = Dir2d_alpha_prior;
+
 
 end
 

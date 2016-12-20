@@ -40,12 +40,9 @@ for k=1:hmm.K,
     else
         train = hmm.train;
     end
-
-    % Cache some outputs to make setstateoptions more efficient
-    hmm.state(k).train = train;
-    [orders,order] = formorders(train.order,train.orderoffset,train.timelag,train.exptimelag);
-    hmm.state(k).train.cache.order = order;
-    hmm.state(k).train.cache.orders = orders;
+    
+    orders = train.orders;
+    %train.orders = formorders(train.order,train.orderoffset,train.timelag,train.exptimelag);
 
     if (strcmp(train.covtype,'diag') || strcmp(train.covtype,'full')) && pcapred
         defstateprior(k)=struct('beta',[],'Omega',[],'Mean',[]);
@@ -118,7 +115,7 @@ else
 end
 
 % moving the state options for convenience
-for k=1:hmm.K,
+for k=1:hmm.K
     if isfield(hmm.train,'state') && isfield(hmm.train.state(k),'train') ...
             && ~isempty(hmm.train.state(k).train)
         hmm.state(k).train = hmm.train.state(k).train;

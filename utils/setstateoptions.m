@@ -4,8 +4,8 @@
 	% train = hmm.train;
 % end
 % [orders,order] = formorders(train.order,train.orderoffset,train.timelag,train.exptimelag);
-orders = train.cache.orders;
-order = train.cache.order;
+orders = train.orders;
+order = train.order;
 
 if ~isfield(train,'Sind'), 
     if isfield(hmm.train,'V') && ~isempty(hmm.train.V)

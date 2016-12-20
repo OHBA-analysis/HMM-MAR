@@ -27,6 +27,8 @@ order = options.maxorder;
 LL = -Inf;
 ll = nan(1,options.initrep);
 gamma = cell(1,options.initrep);
+
+if options.useParallel % not very elegant
 parfor n=1:options.initrep
     mix = gmm(ndim,options.K,options.covtype);
     netlaboptions = foptions;
@@ -44,7 +46,32 @@ parfor n=1:options.initrep
     if options.verbose
         fprintf('Init run %d, LL %f \n',n,ll(n));
     end
-  
+end
+else
+for n=1:options.initrep
+    mix = gmm(ndim,options.K,options.covtype);
+    netlaboptions = foptions;
+    netlaboptions(14) = 5; % Just use 5 iterations of k-means initialisation
+    try
+        mix = gmminit(mix, data.X, netlaboptions);
+    catch excp,
+        disp('Probably, part of your time series has no information and can be removed.')
+        disp('For example, check if there are segments such that data(during_segment,:) == 0')
+        error('Error computing the inverse of the covariance matrix.')
+    end
+    netlaboptions = zeros(1, 18);
+    netlaboptions(1)  = 0;                % Prints out error values.
+    % Termination criteria
+    netlaboptions(3) = 0.000001;          % tolerance in likelihood
+    netlaboptions(14) = options.initcyc;              % Max. Number of iterations.
+    % Reset cov matrix if singular values become too small
+    netlaboptions(5) = 1;
+    [~, netlaboutput, ~, gamma{n}] = wgmmem(mix, data.X, ones(sum(T),1), netlaboptions);
+    ll(n) = -netlaboutput(8);     % Log likelihood of gmm model
+    if options.verbose
+        fprintf('Init run %d, LL %f \n',n,ll(n));
+    end
+end    
 end
 
 [~,s] = max(ll);

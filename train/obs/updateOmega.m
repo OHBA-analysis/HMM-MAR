@@ -16,7 +16,7 @@ if strcmp(hmm.train.covtype,'uniquediag') && hmm.train.uniqueAR
         if hmm.train.multipleConf, kk = k;
         else kk = 1;
         end
-        XWk = permute(XW(k,:,:),[2 3 1]);
+        XWk = XW(:,:,k);
         e = (residuals - XWk).^2;
         swx2 = zeros(Tres,ndim);
         for n=1:ndim
@@ -33,7 +33,7 @@ elseif strcmp(hmm.train.covtype,'uniquediag')
     hmm.Omega.Gam_rate(regressed) = hmm.prior.Omega.Gam_rate(regressed);
     for k=1:K
         setstateoptions;
-        XWk = permute(XW(k,:,:),[2 3 1]);
+        XWk = XW(:,:,k);
         e = (residuals(:,regressed) - XWk(:,regressed)).^2;
         swx2 = zeros(Tres,ndim);
         if ~isempty(hmm.state(k).W.Mu_W)
@@ -56,7 +56,7 @@ elseif strcmp(hmm.train.covtype,'uniquefull')
     hmm.Omega.Gam_rate(regressed,regressed) = hmm.prior.Omega.Gam_rate(regressed,regressed);
     for k=1:K
         setstateoptions;
-        XWk = permute(XW(k,:,:),[2 3 1]);
+        XWk = XW(:,:,k);
         e = (residuals(:,regressed) - XWk(:,regressed));
         e = (e' .* repmat(Gamma(:,k)',sum(regressed),1)) * e;
         swx2 =  zeros(ndim,ndim);

@@ -32,21 +32,19 @@ expected_lifetime =  f_prob(p)/options.Fs; % Expected number of steps given the 
 fehist = inf(length(init_k),1);
 Gamma = cell(length(init_k),1);
 
-parfor it=1:length(init_k)
 
+if options.useParallel % not very elegant
+parfor it=1:length(init_k)
     opt_worker = options;
     opt_worker.K = init_k(it);
     opt_worker.DirichletDiag = dirichletdiags.get(expected_lifetime,options.Fs,opt_worker.K);
-
     if opt_worker.K == options.K && abs(opt_worker.DirichletDiag-options.DirichletDiag)>1e-3
-        warning(sprintf('Calculated DirichletDiag for k=%d was %.2f, but user specified %.2f',opt_worker.K,opt_worker.DirichletDiag,options.DirichletDiag))
+        warning(sprintf('Calculated DirichletDiag for k=%d was %.2f, but user specified %.2f',...
+            opt_worker.K,opt_worker.DirichletDiag,options.DirichletDiag))
     end
-
     data2 = data;
     data2.C = data2.C(:,1:opt_worker.K);
-
     opt_worker.Gamma = initGamma_random(T-opt_worker.maxorder,opt_worker.K,1);
-
     hmm0=struct('train',struct());
     hmm0.K = opt_worker.K;
     hmm0.train = options; 
@@ -57,11 +55,38 @@ parfor it=1:length(init_k)
     [hmm0,residuals0]=obsinit(data2,T,hmm0,opt_worker.Gamma);
     [~,Gamma{it},~,fehist0] = hmmtrain(data2,T,hmm0,opt_worker.Gamma,residuals0);
     fehist(it) = fehist0(end);
-
     if opt_worker.verbose,
-        fprintf('Init run %2d, %2d->%2d states, Free Energy = %f \n',it,opt_worker.K,size(Gamma{it},2),fehist(it));
+        fprintf('Init run %2d, %2d->%2d states, Free Energy = %f \n',it,opt_worker.K,...
+            size(Gamma{it},2),fehist(it));
     end
-
+end
+else
+for it=1:length(init_k)
+    opt_worker = options;
+    opt_worker.K = init_k(it);
+    opt_worker.DirichletDiag = dirichletdiags.get(expected_lifetime,options.Fs,opt_worker.K);
+    if opt_worker.K == options.K && abs(opt_worker.DirichletDiag-options.DirichletDiag)>1e-3
+        warning(sprintf('Calculated DirichletDiag for k=%d was %.2f, but user specified %.2f',...
+            opt_worker.K,opt_worker.DirichletDiag,options.DirichletDiag))
+    end
+    data2 = data;
+    data2.C = data2.C(:,1:opt_worker.K);
+    opt_worker.Gamma = initGamma_random(T-opt_worker.maxorder,opt_worker.K,1);
+    hmm0=struct('train',struct());
+    hmm0.K = opt_worker.K;
+    hmm0.train = options; 
+    hmm0.train.Sind = Sind; 
+    hmm0.train.cyc = hmm0.train.initcyc;
+    hmm0.train.verbose = 0;
+    hmm0 = hmmhsinit(hmm0);
+    [hmm0,residuals0]=obsinit(data2,T,hmm0,opt_worker.Gamma);
+    [~,Gamma{it},~,fehist0] = hmmtrain(data2,T,hmm0,opt_worker.Gamma,residuals0);
+    fehist(it) = fehist0(end);
+    if opt_worker.verbose,
+        fprintf('Init run %2d, %2d->%2d states, Free Energy = %f \n',it,opt_worker.K,...
+            size(Gamma{it},2),fehist(it));
+    end
+end 
 end
 
 [fmin,s] = min(fehist);
