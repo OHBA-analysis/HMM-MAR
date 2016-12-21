@@ -42,8 +42,21 @@ function fit = hmmspectramar(X,T,hmm,Gamma,options)
 %
 % Author: Diego Vidaurre, OHBA, University of Oxford (2014)
 
+if ~isfield(options,'MLestimation'), options.MLestimation = 1 ; end
+
 if options.MLestimation && isempty(Gamma)
     error('If MLestimation=1, you need to supply Gamma')
+end
+
+if iscell(T)
+    for i = 1:length(T)
+        if size(T{i},1)==1, T{i} = T{i}'; end
+    end
+    T = cell2mat(T);
+end
+if iscell(X)
+    if size(X,1)==1, X = X'; end
+    X = cell2mat(X);
 end
 
 if ~isempty(hmm)
@@ -82,7 +95,6 @@ else
 end
 
 options = checkoptions_spectra(options,ndim,T);
-
 
 if options.MLestimation && options.order~=hmm.train.maxorder % trim Gamma
    if options.order<hmm.train.maxorder

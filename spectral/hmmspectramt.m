@@ -1,4 +1,4 @@
-function fit = hmmspectramt(data,T,options)
+function fit = hmmspectramt(data,T,Gamma,options)
 %
 % Computes nonparametric (multitaper) power, coherence, phase and PDC, with intervals of
 % confidence. Also obtains mean and standard deviation of the phases.
@@ -10,6 +10,7 @@ function fit = hmmspectramt(data,T,options)
 % INPUTS:
 % X: the data matrix, with all trials concatenated
 % T: length of each trial
+% Gamma: State time course (not used if options.MLestimation=0)
 % options: include the following fields
 %   .Gamma: Estimated posterior probabilities of the states (default: all ones)
 %   .tapers: A numeric vector [TW K] where TW is the
@@ -45,6 +46,13 @@ function fit = hmmspectramt(data,T,options)
 % Author: Diego Vidaurre, OHBA, University of Oxford (2014)
 %  the code uses some parts from Chronux
 
+% if iscell(T)
+%     for i = 1:length(T)
+%         if size(T{i},1)==1, T{i} = T{i}'; end
+%     end
+%     T = cell2mat(T);
+% end
+
 if iscell(data)
     if ~isfield(options,'standardise'), options.standardise = 0; end
     X = loadfile_mt(data{1},T{1},options);
@@ -55,12 +63,18 @@ if iscell(data)
         X = loadfile_mt(data{1},T{1},options);
         TT = [TT; t];
     end
-    [options,Gamma] = checkoptions_spectra(options,ndim,TT);
-    order = (sum(TT) - size(Gamma,1)) / length(T);
+    options = checkoptions_spectra(options,ndim,TT);
+    if nargin<3 || isempty('Gamma')
+        Gamma = ones(sum(TT),1);
+    end
+    order = (sum(TT) - size(Gamma,1)) / length(TT);
     TT = TT - order;
 else
     ndim = size(data,2); T = double(T); 
-    [options,Gamma] = checkoptions_spectra(options,ndim,T);
+    options = checkoptions_spectra(options,ndim,T);
+    if nargin<3 || ~isempty('Gamma'),
+        Gamma = ones(sum(T),1);
+    end
     order = (sum(T) - size(Gamma,1)) / length(T);
     % remove the exceeding part of X (with no attached Gamma)
     if order>0
