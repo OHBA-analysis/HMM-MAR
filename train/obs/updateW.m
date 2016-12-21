@@ -54,7 +54,7 @@ for k=1:K
         
     elseif strcmp(train.covtype,'diag') || strcmp(train.covtype,'uniquediag')
         for n=1:ndim
-            ndim_n = sum(S(:,n));
+            ndim_n = sum(S(:,n)>0);
             if ndim_n==0 && train.zeromean==1, continue; end
             regterm = [];
             if ~train.zeromean, regterm = hmm.state(k).prior.Mean.iS(n); end
