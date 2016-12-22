@@ -3,7 +3,7 @@ function [options,data] = checkoptions (options,data,T,cv)
 path_pca = which('pca');
 path_root = matlabroot;
 if isempty(findstr(path_pca,path_root))
-    error('Function pca() seems to be other than Matlab''s own - you need to rmpath() it')
+    error('Function pca() seems to be other than Matlab''s own - you need to rmpath() it. Use ''rmpath(fileparts(which(''pca'')))''')
 end
 
 if ~isfield(options,'K'), error('K was not specified'); end
