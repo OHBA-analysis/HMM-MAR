@@ -35,13 +35,13 @@ end
 
 options = checkMARparametrization(options,[],ndim); copyopt = options;
 
-if options.crosstermsonly
-    options.covtype = 'uniquediag';
-    options.S = - ones(2*ndim);
-    options.S(1:ndim,1:ndim) = ones(ndim) - 2*eye(ndim);
-    options.order = 1; 
-    options.zeromean = 1; 
-end
+% if options.crosstermsonly
+%     options.covtype = 'uniquediag';
+%     options.S = - ones(2*ndim);
+%     options.S(1:ndim,1:ndim) = ones(ndim) - 2*eye(ndim);
+%     options.order = 1; 
+%     options.zeromean = 1; 
+% end
 
 options.multipleConf = isfield(options,'state');
 if options.multipleConf && options.pcamar>0
@@ -53,9 +53,9 @@ end
 if options.multipleConf && length(options.embeddedlags)>1 
     error('Multiple configurations are not compatible with embeddedlags');
 end
-if options.multipleConf && options.crosstermsonly 
-    error('Multiple configurations are not compatible with crosstermsonly')
-end
+% if options.multipleConf && options.crosstermsonly 
+%     error('Multiple configurations are not compatible with crosstermsonly')
+% end
 if options.pcamar>0 && options.pcapred>0
     error('Options pcamar and pcapred are not compatible')
 end
@@ -223,7 +223,7 @@ if ~isfield(options,'exptimelag'), options.exptimelag = 1; end
 if ~isfield(options,'orderoffset'), options.orderoffset = 0; end
 if ~isfield(options,'symmetricprior'),  options.symmetricprior = 0; end
 if ~isfield(options,'uniqueAR'), options.uniqueAR = 0; end
-if ~isfield(options,'crosstermsonly'), options.crosstermsonly = 0; end
+%if ~isfield(options,'crosstermsonly'), options.crosstermsonly = 0; end
 
 if (options.order>0) && (options.order <= options.orderoffset)
     error('order has to be either zero or higher than orderoffset')

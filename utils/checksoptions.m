@@ -45,6 +45,8 @@ if ~isfield(options,'initcyc'), options.initcyc = 5; end
 if ~isfield(options,'initrep'), options.initrep = 3; end
 if ~isfield(options,'useParallel'), options.useParallel = 1; end
 if ~isfield(options,'uniqueAR'), options.uniqueAR = 0; end
+%if ~isfield(options,'crosstermsonly'), options.crosstermsonly = 0; end
+
 
 if isfield(options,'S') && ~all(options.S(:)==1)
     error('S(i,j)<1 is not yet implemented for stochastic inference')

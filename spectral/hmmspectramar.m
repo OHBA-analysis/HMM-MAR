@@ -52,7 +52,10 @@ if iscell(T)
     for i = 1:length(T)
         if size(T{i},1)==1, T{i} = T{i}'; end
     end
+    T0 = T; 
     T = cell2mat(T);
+else
+    T0 = T; 
 end
 if iscell(X)
     if size(X,1)==1, X = X'; end
@@ -127,7 +130,7 @@ end
 freqs = (0:options.Nf-1)* ...
     ( (options.fpass(2) - options.fpass(1)) / (options.Nf-1)) + options.fpass(1);
 w = 2*pi*freqs/options.Fs;
-N = length(T);
+N = length(T0);
 Gammasum = zeros(N,K);
 
 if options.p==0
@@ -170,11 +173,26 @@ for j=1:NN
         if options.p==0 && strcmp(options.level,'group')
             Gammaj = Gamma; Xj = X; Tj = T;
         elseif options.p>0 && strcmp(options.level,'group')
-            t0 = sum(T(1:j-1)); jj = [1:t0 (sum(T(1:j))+1):sum(T)];
-            Xj = X(jj,:); Tj = [T(1:j-1); T(j+1:end) ];
-            t0 = sum(T(1:j-1)) - (j-1)*hmm.train.maxorder;
-            jj = [1:t0 (sum(T(1:j))-j*hmm.train.maxorder+1):(sum(T)-length(T)*hmm.train.maxorder)];
-            Gammaj = Gamma(jj,:);
+            if iscell(T0)
+                auxj1 = cell2mat(T0(1:j-1));
+                auxj = cell2mat(T0(1:j));
+                t0 = sum(auxj1);
+                t1 = sum(auxj);
+                jj = [1:t0 (t1+1):sum(T)];
+                Xj = X(jj,:); 
+                Tj = [auxj1;  cell2mat(T0((j+1):end)) ];
+                t0 = sum(auxj1) - length(auxj1)*hmm.train.maxorder;
+                t1 = sum(auxj) - length(auxj)*hmm.train.maxorder;
+                jj = [1:t0 (t1+1):size(Gamma,1) ];
+                Gammaj = Gamma(jj,:);
+            else
+                t0 = sum(T(1:j-1)); jj = [1:t0 (sum(T(1:j))+1):sum(T)];
+                Xj = X(jj,:); Tj = [T(1:j-1); T(j+1:end) ];
+                t0 = sum(T(1:j-1)) - (j-1)*hmm.train.maxorder;
+                t1 = sum(T(1:j)) - j*hmm.train.maxorder;
+                jj = [1:t0 (t1+1):size(Gamma,1) ];
+                Gammaj = Gamma(jj,:);
+            end
         else % subject level estimation
             t0 = sum(T(1:j-1));
             Xj = X(t0+1:t0+T(j),:); Tj = T(j);
