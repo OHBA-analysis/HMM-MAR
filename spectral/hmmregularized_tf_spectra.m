@@ -11,6 +11,9 @@ function [psd_tf,coh_tf,pdc_tf] = hmmregularized_tf_spectra(fit,Gamma,center)
 %  coh_tf: (time points by no. of frequency bins by no.regions by no.regions) 
 %  pdc_tf: (time points by no. of frequency bins by no.regions by no.regions)
 %
+% To display later: imagesc(time,freq,psd_tf(:,:,1)')  
+%  i.e. you need to transpose
+%
 % Author: Diego Vidaurre, OHBA, University of Oxford (2016)
 
 if nargin<3, center = 0; end
