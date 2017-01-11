@@ -4,6 +4,7 @@ if iscell(T)
     if size(T,1)==1, T = T'; end
     T = cell2mat(T);
 end
+T = sum(T);
 
 ndim = size(hmm.state(1).W.Mu_W,2); K = size(Gamma,2);
 X = zeros(T,ndim);
@@ -26,6 +27,13 @@ switch hmm.train.covtype
             Cov = hmm.state(k).Omega.Gam_rate / hmm.state(k).Omega.Gam_shape;
             X = X + repmat(Gamma(:,k),1,ndim) .* mvnrnd(mu,Cov);
         end        
+end
+
+if ~hmm.train.zeromean
+    for k = 1:K
+        X = X + repmat(Gamma(:,k),1,ndim) .* ...
+            repmat(hmm.state(k).W.Mu_W(1,:),T,1);
+    end
 end
 
 end
