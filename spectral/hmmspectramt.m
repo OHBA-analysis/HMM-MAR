@@ -54,13 +54,13 @@ function fit = hmmspectramt(data,T,Gamma,options)
 % end
 
 if iscell(data)
+    if ~iscell(T), error('If you provide data as a cell, T must be a cell too'); end
     if ~isfield(options,'standardise'), options.standardise = 0; end
     X = loadfile_mt(data{1},T{1},options);
     ndim = size(X,2);
     TT = [];
     for j=1:length(data)
         t = double(T{j}); if size(t,1)==1, t = t'; end
-        X = loadfile_mt(data{1},T{1},options);
         TT = [TT; t];
     end
     options = checkoptions_spectra(options,ndim,TT);
