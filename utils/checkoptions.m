@@ -20,6 +20,7 @@ if ~isfield(options,'pcapred'), options.pcapred = 0; end
 if ~isfield(options,'vcomp') && options.pcapred>0, options.vcomp = 1; end
 
 if ~isfield(options,'standardise'), options.standardise = 0; end
+if ~isfield(options,'standardise_pc'), options.standardise_pc = 0; end  
 
 if length(options.pca)==1 && options.pca == 0, 
     ndim = length(options.embeddedlags) * size(data.X,2);
@@ -191,6 +192,14 @@ if ~isfield(options,'order'), error('order was not specified'); end
 if isfield(options,'embeddedlags') && length(options.embeddedlags)>1 && options.order>0 
     error('Order needs to be zero for multiple embedded lags')
 end
+if isfield(options,'AR') && options.AR == 1
+    if options.order == 0, error('Option AR cannot be 1 if order==0'); end
+   %if isfield(options,'S'), 
+   %    warning('Because you specified AR=1, S will be overwritten')
+   %end
+   options.S = -1*ones(ndim) + 2*eye(ndim);  
+end
+
 if isfield(options,'pcamar') && options.pcamar>0 
     if options.order==0, error('Option pcamar>0 must be used with some order>0'); end
     if isfield(options,'S') && any(options.S(:)~=1), error('S must have all elements equal to 1 if pcamar>0'); end 
