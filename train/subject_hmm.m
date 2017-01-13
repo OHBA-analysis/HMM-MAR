@@ -1,6 +1,6 @@
 function hmm = subject_hmm(data,T,hmm,Gamma,Xi)  
 % Get subject-specific states
-% If option Xi is specified, it will also update the transition probability
+% If argument Xi is provided, it will also update the transition probability
 % matrix
 %
 % Author: Diego Vidaurre, OHBA, University of Oxford (2016)
@@ -23,6 +23,14 @@ if hmm.train.standardise == 1
         data.X(t,:) = data.X(t,:) - repmat(mean(data.X(t,:)),length(t),1);
         data.X(t,:) = data.X(t,:) ./ repmat(std(data.X(t,:)),length(t),1);
     end
+end
+if isfield(hmm.train,'A')
+    data.X = data.X - repmat(mean(data.X),size(data.X,1),1); % must center
+    data.X = data.X * hmm.train.A;
+end
+if hmm.train.standardise_pc == 1
+    data.X = data.X - repmat(mean(data.X),size(data.X,1),1); 
+    data.X = data.X ./ repmat(std(data.X),size(data.X,1),1); 
 end
 hmm.train.orders = formorders(hmm.train.order,hmm.train.orderoffset,...
     hmm.train.timelag,hmm.train.exptimelag);

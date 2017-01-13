@@ -152,6 +152,13 @@ else
         else
             [options.A,data.X] = highdim_pca(data.X,T,options.pca,0,0);
         end
+        if options.standardise_pc == 1
+            for i = 1:N
+                t = (1:T(i)) + sum(T(1:i-1));
+                data.X(t,:) = data.X(t,:) - repmat(mean(data.X(t,:)),length(t),1);
+                data.X(t,:) = data.X(t,:) ./ repmat(std(data.X(t,:)),length(t),1);
+            end
+        end
         options.ndim = size(options.A,2);
         options.S = ones(options.ndim);
         orders = formorders(options.order,options.orderoffset,options.timelag,options.exptimelag);
