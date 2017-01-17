@@ -64,7 +64,7 @@ if iscell(data)
         TT = [TT; t];
     end
     options = checkoptions_spectra(options,ndim,TT);
-    if nargin<3 || isempty('Gamma')
+    if nargin<3 || isempty(Gamma)
         Gamma = ones(sum(TT),1);
     end
     order = (sum(TT) - size(Gamma,1)) / length(TT);
@@ -72,7 +72,7 @@ if iscell(data)
 else
     ndim = size(data,2); T = double(T); 
     options = checkoptions_spectra(options,ndim,T);
-    if nargin<3 || isempty('Gamma'),
+    if nargin<3 || isempty(Gamma),
         Gamma = ones(sum(T),1);
     end
     order = (sum(T) - size(Gamma,1)) / length(T);
