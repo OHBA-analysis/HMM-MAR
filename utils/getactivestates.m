@@ -38,7 +38,8 @@ if hmm.train.dropstates==1
     if hmm.train.verbose
         knockout = find(~is_active);
         for j = 1:length(knockout)
-            fprintf('State %d has been knocked out with %f points - there are %d left\n',knockout(j),Gammasum(knockout(j)),K)
+            fprintf('State %d has been knocked out with %f points - there are %d left\n',...
+                knockout(j),Gammasum(knockout(j)),K-j)
         end
     end
 

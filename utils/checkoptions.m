@@ -161,9 +161,16 @@ if options.updateGamma == 0 && options.repetitions>1,
 end
 
 if ~isempty(options.Gamma)
-    if (size(options.Gamma,1) ~= (sum(T) - options.maxorder*length(T))) || ...
-            (size(options.Gamma,2) ~= options.K),
-        error('The supplied Gamma has not the right dimensions')
+    if length(options.embeddedlags)>1
+        if (size(options.Gamma,1) ~= (sum(T) - length(options.embeddedlags) + 1 )) || ...
+                (size(options.Gamma,2) ~= options.K),
+            error('The supplied Gamma has not the right dimensions')
+        end        
+    else
+        if (size(options.Gamma,1) ~= (sum(T) - options.maxorder*length(T))) || ...
+                (size(options.Gamma,2) ~= options.K),
+            error('The supplied Gamma has not the right dimensions')
+        end
     end
 end
 
