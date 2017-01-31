@@ -23,13 +23,18 @@ function [X,T,Gamma] = simhmmmar(T,hmm,Gamma,nrep,trim,X0,sim_state_tcs_only)
 
 N = length(T); K = length(hmm.state);
 ndim = size(hmm.state(1).W.Mu_W,2); 
-span = .1;  
 
 if nargin<3, Gamma = []; end
 if nargin<4, nrep = 10; end
 if nargin<5, trim = 0; end
 if nargin<6, X0 = []; end
 if nargin<7, sim_state_tcs_only=0; end
+    
+if ~isfield(hmm.train,'timelag'), hmm.train.timelag = 1; end
+if ~isfield(hmm.train,'exptimelag'), hmm.train.exptimelag = 1; end
+if ~isfield(hmm.train,'orderoffset'), hmm.train.orderoffset = 0; end
+if ~isfield(hmm.train,'S'), hmm.train.S = ones(ndim); end
+if ~isfield(hmm.train,'multipleConf'), hmm.train.multipleConf = 0; end
 
 if isempty(Gamma), % Gamma is not provided, so we simulate it too
     Gamma = simgamma(T,hmm.P,hmm.Pi,nrep);

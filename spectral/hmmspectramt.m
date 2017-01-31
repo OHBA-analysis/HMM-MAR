@@ -10,9 +10,8 @@ function fit = hmmspectramt(data,T,Gamma,options)
 % INPUTS:
 % X: the data matrix, with all trials concatenated
 % T: length of each trial
-% Gamma: State time course (not used if options.MLestimation=0)
+% Gamma: State time course  
 % options: include the following fields
-%   .Gamma: Estimated posterior probabilities of the states (default: all ones)
 %   .tapers: A numeric vector [TW K] where TW is the
 %       time-bandwidth product and K is the number of
 %       tapers to be used (less than or equal to
