@@ -23,10 +23,11 @@ else
 end
 
 Intervals = cell(K,1);
+order = (sum(T)-size(Gamma,1))/length(T);
 
 for j=1:N
-    t0 = sum(T(1:j-1));
-    ind = (1:T(j)) + t0;
+    t0 = sum(T(1:j-1)) - (j-1)*order;
+    ind = (1:T(j)-order) + t0;
     for k=1:K
         t = find(Gamma(ind,k)==1,1);
         if isempty(t), continue; end
