@@ -39,6 +39,18 @@ X = [];
 if ~isfield(hmm.train,'maxorder'), hmm.train.maxorder = hmm.train.order; end
 
 if ~sim_state_tcs_only
+    for k=1:K
+        if ~isfield(hmm.state(k),'train') || isempty(hmm.state(k).train)
+            hmm.state(k).train = hmm.train;
+        end
+        if ~isfield(hmm.state(k).train,'orders')
+            hmm.state(k).train.orders = ...
+                formorders(hmm.state(k).train.order,...
+                hmm.state(k).train.orderoffset,...
+                hmm.state(k).train.timelag,...
+                hmm.state(k).train.exptimelag);
+        end
+    end
     for in=1:N
         t0 = sum(T(1:in-1)) + 1; t1 = sum(T(1:in));
         if isempty(X0)
@@ -77,11 +89,9 @@ if trim>0,
         if ~sim_state_tcs_only
             X0 = [X0; X(t0+trim:t1,:)];
         end
-        
         T(in) = T(in) - trim;
     end
     Gamma = Gamma0; 
-    
     if ~sim_state_tcs_only
         X = X0;
     end
