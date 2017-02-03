@@ -5,7 +5,7 @@ function LifeTimes = findStateLifeTimes (Gamma,T,threshold,is_vpath)
 % probabilistic assignment
 
 if nargin<3, threshold = 0 ; end
-if nargin<4, is_vpath = size(Gamma,2)==1; end
+if nargin<4, is_vpath = (size(Gamma,2)==1 && all(rem(Gamma,1)==0)); end
 if iscell(T)
     for i = 1:length(T)
         if size(T{i},1)==1, T{i} = T{i}'; end

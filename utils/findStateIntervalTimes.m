@@ -1,8 +1,9 @@
-function Intervals = findStateIntervalTimes (Gamma,T,threshold)
+function Intervals = findStateIntervalTimes (Gamma,T,threshold,is_vpath)
 % find the interval times for the state time courses of one state
 % Gamma needs to be (time by 1), and the sum of T be equal to size(Gamma,1)
 
 if nargin<3, threshold = 0 ; end
+if nargin<4, is_vpath = (size(Gamma,2)==1 && all(rem(Gamma,1)==0)); end
 if iscell(T)
     for i = 1:length(T)
         if size(T{i},1)==1, T{i} = T{i}'; end
@@ -10,7 +11,7 @@ if iscell(T)
     T = cell2mat(T);
 end
 N = length(T);
-if size(Gamma,2)==1 % viterbi path
+if is_vpath % viterbi path
     vpath = Gamma; 
     K = length(unique(vpath));
     Gamma = zeros(length(vpath),K);
