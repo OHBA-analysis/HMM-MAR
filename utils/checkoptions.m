@@ -319,14 +319,10 @@ test = all(A(:)==B(:));
 end
 
 function isfine = verifyMEX()
-X = randn(1000,2);
-directory = which('checkoptions');
-load([directory(1:end-14) 'examples/example_hmm.mat'])
 isfine = 1;
 try
-    hsinference(X,[500 500],hmm);
+    [~,~,~]=hidden_state_inference_mx(1,1,1,0);
 catch
     isfine = 0;
 end
-
 end
