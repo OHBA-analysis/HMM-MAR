@@ -26,6 +26,7 @@ options = struct();
 options.standardise = standardise;
 options.embeddedlags = embeddedlags;
 options.pca = 0; % PCA is done here! 
+if isfield(options,'A'), options = rmfield(options,'A'); end  
 
 if is_cell_strings || is_cell_matrices
     B = [];
@@ -38,10 +39,21 @@ if is_cell_strings || is_cell_matrices
     [A,e,~] = svd(C); 
     e = diag(e);  
 else
+    if standardise
+        if isstruct(X)
+            X.X = zscore(X.X);
+        else
+            X = zscore(X);
+        end
+    end
     if length(embeddedlags)>1
        X = embeddata(X,T,options.embeddedlags); 
     end
-    [A,B,e] = pca(X,'Centered',true);     
+    if isstruct(X)
+        [A,B,e] = pca(X.X,'Centered',true);
+    else
+        [A,B,e] = pca(X,'Centered',true);
+    end
 end
 e = cumsum(e)/sum(e);
 

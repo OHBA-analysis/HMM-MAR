@@ -10,9 +10,8 @@ function fit = hmmspectramt(data,T,Gamma,options)
 % INPUTS:
 % X: the data matrix, with all trials concatenated
 % T: length of each trial
-% Gamma: State time course (not used if options.MLestimation=0)
+% Gamma: State time course  
 % options: include the following fields
-%   .Gamma: Estimated posterior probabilities of the states (default: all ones)
 %   .tapers: A numeric vector [TW K] where TW is the
 %       time-bandwidth product and K is the number of
 %       tapers to be used (less than or equal to
@@ -54,17 +53,17 @@ function fit = hmmspectramt(data,T,Gamma,options)
 % end
 
 if iscell(data)
+    if ~iscell(T), error('If you provide data as a cell, T must be a cell too'); end
     if ~isfield(options,'standardise'), options.standardise = 0; end
     X = loadfile_mt(data{1},T{1},options);
     ndim = size(X,2);
     TT = [];
     for j=1:length(data)
         t = double(T{j}); if size(t,1)==1, t = t'; end
-        X = loadfile_mt(data{1},T{1},options);
         TT = [TT; t];
     end
     options = checkoptions_spectra(options,ndim,TT);
-    if nargin<3 || isempty('Gamma')
+    if nargin<3 || isempty(Gamma)
         Gamma = ones(sum(TT),1);
     end
     order = (sum(TT) - size(Gamma,1)) / length(TT);
@@ -72,7 +71,7 @@ if iscell(data)
 else
     ndim = size(data,2); T = double(T); 
     options = checkoptions_spectra(options,ndim,T);
-    if nargin<3 || ~isempty('Gamma'),
+    if nargin<3 || isempty(Gamma),
         Gamma = ones(sum(T),1);
     end
     order = (sum(T) - size(Gamma,1)) / length(T);

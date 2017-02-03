@@ -148,9 +148,17 @@ else
     % pca
     if length(options.pca) > 1 || options.pca > 0  
         if isfield(options,'A')
+            data.X = data.X - repmat(mean(data.X),mean(data.X,1),1);
             data.X = data.X * options.A; 
         else
             [options.A,data.X] = highdim_pca(data.X,T,options.pca,0,0);
+        end
+        if options.standardise_pc == 1
+            for i = 1:N
+                t = (1:T(i)) + sum(T(1:i-1));
+                data.X(t,:) = data.X(t,:) - repmat(mean(data.X(t,:)),length(t),1);
+                data.X(t,:) = data.X(t,:) ./ repmat(std(data.X(t,:)),length(t),1);
+            end
         end
         options.ndim = size(options.A,2);
         options.S = ones(options.ndim);

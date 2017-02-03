@@ -12,6 +12,8 @@ for i=1:4,
     end
 end
 
+%%
+
 % standard inference, GMM init
 options = struct();
 options.K = 2; 
@@ -46,6 +48,19 @@ options.inittype = 'hmmmar';
 
 
 %% stochastic inference
+options = struct();
+options.K = 2; 
+options.tol = 1e-7;
+options.cyc = 12;
+options.inittype = 'GMM';
+options.DirichletDiag = 10;
+options.initcyc = 4;
+options.initrep = 2;
+options.standardise = 1;
+options.verbose = 0; 
+options.useParallel = 0;
+%options.AR = 1;
+
 options.BIGNbatch = 3;
 options.BIGNinitbatch = 3;
 options.BIGtol = 1e-7;
@@ -56,6 +71,7 @@ options.BIGforgetrate = 0.7;
 options.BIGbase_weights = 0.9;
     
 for covtype = {'full','diag'} %,'uniquefull','uniquediag'}
+    if strcmp(covtype,'full') && options.AR==1, continue; end
     for order = [0 2]
         for zeromean = [0 1]
             if (strcmp(covtype,'uniquefull') || strcmp(covtype,'uniquediag')) ...
@@ -70,7 +86,7 @@ for covtype = {'full','diag'} %,'uniquefull','uniquediag'}
     end
 end
 
-% Test stochastic with K=1
+%% Test stochastic with K=1
 options.K = 1;
 [hmm,Gamma] = hmmmar(X,T,options);
 

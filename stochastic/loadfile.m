@@ -40,6 +40,10 @@ end
 if isfield(options,'A')
     X = X - repmat(mean(X),size(X,1),1); % must center
     X = X * options.A;
+    if options.standardise_pc == 1
+        X = X - repmat(mean(X),size(X,1),1);
+        X = X ./ repmat(std(X),size(X,1),1);
+    end
 end
 if isfield(options,'B'), B = options.B;
 else B = []; end

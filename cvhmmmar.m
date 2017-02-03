@@ -16,6 +16,9 @@ function [mcv,cv] = cvhmmmar(data,T,options)
 
 
 [options,data] = checkoptions(options,data,T,1);
+options.verbose = options.cvverbose;
+options.dropstates = 0;
+options.updateGamma = options.K>1;
 
 if length(options.embeddedlags)>1
     X = []; C = [];
@@ -27,23 +30,21 @@ if length(options.embeddedlags)>1
     data.X = X; data.C = C;
 end
 
-options.verbose = options.cvverbose;
-options.dropstates = 0;
-options.updateGamma = options.K>1;
-
 mcv = 0; if options.cvmode>2, mcv = [0 0]; end
 if length(options.cvfolds)==1,
     options.cvfolds = crossvalind('Kfold', length(T), options.cvfolds);
 end
 nfolds = max(options.cvfolds);
-
 [orders,order] = formorders(options.order,options.orderoffset,options.timelag,options.exptimelag);
 Sind = formindexes(orders,options.S);
 if ~options.zeromean, Sind = [true(1,size(Sind,2)); Sind]; end
-
+maxorder = options.maxorder;
+W0tr = [];
 Ttotal = 0;
 cv = zeros(nfolds,1);
+
 for fold=1:nfolds
+    
     Ttr = [];
     indtr1 = []; indtr2 = [];
     Tte = []; 
@@ -71,47 +72,24 @@ for fold=1:nfolds
     
     Ttotal = Ttotal + sum(Tte) - length(Tte)*order;
     
-    %if options.whitening>0
-    %    mu = mean(datatr.X);
-    %    datatr.X = bsxfun(@minus, datatr.X, mu);
-    %    datate.X = bsxfun(@minus, datate.X, mu);
-    %    [V,D] = svd(datatr.X'*datatr.X);
-    %    A = sqrt(size(datatr.X,1)-1)*V*sqrtm(inv(D + eye(size(D))*0.00001))*V';
-    %    datatr.X = datatr.X*A;
-    %    datate.X = datate.X*A;
-    %    %iA = pinv(A);
-    %end
-    
     Fe = Inf;
+      
     for it=1:options.cvrep
         if options.verbose, fprintf('CV fold %d, repetition %d \n',fold,it); end
-        % init Gamma
-        options.Gamma = [];
-        if options.K > 1
-            if options.initrep>0 && ...
-                    (strcmpi(options.inittype,'HMM-MAR') || strcmpi(options.inittype,'HMMMAR'))
-                options.Gamma = hmmmar_init(datatr,Ttr,options,Sind);
-            elseif options.initrep>0 && strcmpi(options.inittype,'EM')
-                options.nu = sum(T)/200;
-                options.Gamma = em_init(datatr,Ttr,options,Sind);
-            elseif options.initrep>0 && strcmpi(options.inittype,'GMM')
-                options.Gamma = gmm_init(datatr,Ttr,options);
-            else
-                options.Gamma = [];
-                for in=1:length(Ttr)
-                    gamma = rand(Ttr(in)-options.maxorder,options.K);
-                    options.Gamma = [options.Gamma; gamma ./ repmat(sum(gamma,2),1,options.K)];
-                end
-            end
+        
+        if isfield(options,'multipleConf')
+            options = rmfield(options,'multipleConf');
         end
-        % train
-        hmmtr=struct('train',struct());
-        hmmtr.K = options.K; 
-        hmmtr.train = options; 
-        hmmtr.train.Sind = Sind; 
-        hmmtr=hmmhsinit(hmmtr);
-        [hmmtr,residualstr,W0tr] = obsinit(datatr,Ttr,hmmtr,options.Gamma);
-        [hmmtr,~,~,fe] = hmmtrain(datatr,Ttr,hmmtr,options.Gamma,residualstr); fe = fe(end);
+        if isfield(options,'orders')
+            options = rmfield(options,'orders');
+        end
+        if isfield(options,'maxorder')
+            options = rmfield(options,'maxorder');
+        end
+        [hmmtr,~,~,~,~,~,fe] = hmmmar (datatr,Ttr,options); fe = fe(end);
+        hmmtr.train.Sind = Sind;
+        hmmtr.train.maxorder = maxorder;
+               
         % test
         if fe<Fe,
             Fe = fe;
@@ -132,10 +110,12 @@ for fold=1:nfolds
         end
     end
     if options.cvmode==1, mcv = mcv + cv(fold);
-    elseif options.cvmode==2, mcv = mcv + (sum(Tte) - length(Tte)*options.maxorder) * cv(fold);
-    else mcv(1) = mcv(1) + cv(fold,1); mcv(2) = mcv(2) + (sum(Tte) - length(Tte)*options.maxorder) * cv(fold,2);
+    elseif options.cvmode==2, mcv = mcv + (sum(Tte) - length(Tte)*maxorder) * cv(fold);
+    else mcv(1) = mcv(1) + cv(fold,1); mcv(2) = mcv(2) + (sum(Tte) - length(Tte)*maxorder) * cv(fold,2);
     end
+    
 end
+
 if options.cvmode==2, mcv = mcv / Ttotal;
 elseif options.cvmode==3, mcv(2) = mcv(2) / Ttotal;
 end
