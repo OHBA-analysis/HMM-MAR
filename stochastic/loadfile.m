@@ -31,7 +31,18 @@ if options.standardise == 1
     for i=1:length(T)
         t = (1:T(i)) + sum(T(1:i-1));
         X(t,:) = X(t,:) - repmat(mean(X(t,:)),length(t),1);
-        X(t,:) = X(t,:) ./ repmat(std(X(t,:)),length(t),1);
+        sdx = std(X(t,:));
+        if any(sdx==0),
+            error('At least one of the trials/segments/subjects has variance equal to zero');
+        end
+        X(t,:) = X(t,:) ./ repmat(sdx,length(t),1);
+    end
+else
+    for i = 1:length(T)
+        t = (1:T(i)) + sum(T(1:i-1));
+        if any(std(X(t,:))==0)
+            error('At least one of the trials/segments/subjects has variance equal to zero');
+        end
     end
 end
 if length(options.embeddedlags)>1

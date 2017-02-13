@@ -64,7 +64,18 @@ else % data is a struct, with a matrix .X
         for i = 1:N
             t = (1:T(i)) + sum(T(1:i-1));
             data.X(t,:) = data.X(t,:) - repmat(mean(data.X(t,:)),length(t),1);
-            data.X(t,:) = data.X(t,:) ./ repmat(std(data.X(t,:)),length(t),1);
+            sdx = std(data.X(t,:));
+            if any(sdx==0)
+                error('At least one of the trials/segments/subjects has variance equal to zero');
+            end
+            data.X(t,:) = data.X(t,:) ./ repmat(sdx,length(t),1);
+        end
+    else
+        for i = 1:N
+            t = (1:T(i)) + sum(T(1:i-1));
+            if any(std(data.X(t,:))==0)
+                error('At least one of the trials/segments/subjects has variance equal to zero');
+            end
         end
     end
 end
