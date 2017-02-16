@@ -16,7 +16,8 @@ if ~isfield(options,'tol'), options.tol = 1e-18; end
 if ~isfield(options,'pad'), options.pad = 0; end;
 if ~isfield(options,'Fs'), options.Fs=1; end;
 if ~isfield(options,'fpass'),  options.fpass=[options.Fs/200 options.Fs/2]; end;
-if ~isfield(options,'win'),  options.win = min(4*options.Fs/options.fpass(1), min(T));  end
+mfs = max(options.Fs/200, options.fpass(1));
+if ~isfield(options,'win'),  options.win = min(4*options.Fs/mfs, min(T));  end
 if ~isfield(options,'tapers'), options.tapers = [4 7]; end;
 if ~isfield(options,'standardise'), options.standardise = 0; end
 if ~isfield(options,'to_do'), 
