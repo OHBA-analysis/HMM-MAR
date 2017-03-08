@@ -111,10 +111,7 @@ if ~isfield(options,'initTestSmallerK'), options.initTestSmallerK = false; end
 % K will be tested up to specified K. See hmmmar_init.m
 if ~isfield(options,'initcyc'), options.initcyc = 100; end
 if ~isfield(options,'initrep'), options.initrep = 5; end
-if ~isfield(options,'inittype'), 
-    if options.maxorder==0, options.inittype = 'GMM'; 
-    else options.inittype = 'hmmmar'; end
-end
+if ~isfield(options,'inittype'), options.inittype = 'hmmmar'; end 
 if ~isfield(options,'Gamma'), options.Gamma = []; end
 if ~isfield(options,'hmm'), options.hmm = []; end
 if ~isfield(options,'fehist'), options.fehist = []; end

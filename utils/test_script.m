@@ -14,12 +14,12 @@ end
 
 %%
 
-% standard inference, GMM init
+% standard inference, hmmmar init
 options = struct();
 options.K = 2; 
 options.tol = 1e-7;
 options.cyc = 12;
-options.inittype = 'GMM';
+options.inittype = 'hmmmar';
 options.DirichletDiag = 10;
 options.initcyc = 4;
 options.initrep = 2;
@@ -38,12 +38,17 @@ for covtype = {'full','diag','uniquefull','uniquediag'}
             options.order = order;
             options.zeromean = zeromean;
             [hmm,Gamma] = hmmmar(X,T,options);
+            if order==2 && (strcmp(covtype,'diag') || strcmp(covtype,'uniquediag'))
+                options.AR = 1;
+                [hmm,Gamma] = hmmmar(X,T,options);
+                options.AR = 0;
+            end
         end
     end
 end
 
-% HMM-MAR initialization
-options.inittype = 'hmmmar';
+% random initialization
+options.inittype = 'random';
 [hmm,Gamma] = hmmmar(X,T,options);
 
 
@@ -52,14 +57,14 @@ options = struct();
 options.K = 2; 
 options.tol = 1e-7;
 options.cyc = 12;
-options.inittype = 'GMM';
+options.inittype = 'hmmmar';
 options.DirichletDiag = 10;
 options.initcyc = 4;
 options.initrep = 2;
 options.standardise = 1;
 options.verbose = 0; 
 options.useParallel = 0;
-%options.AR = 1;
+options.AR = 0;
 
 options.BIGNbatch = 3;
 options.BIGNinitbatch = 3;
