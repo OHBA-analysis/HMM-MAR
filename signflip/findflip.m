@@ -14,6 +14,7 @@ function [flips,scorepath,covmats_unflipped] = findflip(X,T,options)
 %  nbatch        no. of channels to evaluate at each iteration
 %  noruns        how many random initialisations will be carried out
 %  standardise   if 1, standardise the data
+%  partial       if 1, base on partial correlation instead of correlation 
 %  maxcyc        for each initialization, maximum number of cycles of the greedy algorithm
 %  mincyc        for each initialization, minimum number of cycles of the greedy algorithm
 %
@@ -34,6 +35,7 @@ if ~isfield(options,'mincyc'), options.mincyc = 10; end
 if ~isfield(options,'probinitflip'), options.probinitflip = 0.25; end
 if ~isfield(options,'nbatch'), options.nbatch = ndim; end
 if ~isfield(options,'standardise'), options.standardise = 1; end
+if ~isfield(options,'partial'), options.partial = 0; end
 if ~isfield(options,'verbose'), options.verbose = 1; end
 
 if options.maxcyc<options.mincyc
@@ -54,7 +56,7 @@ else
             X(ind,:) = X(ind,:) ./ repmat(sd,T(in),1);
         end
     end
-    covmats_unflipped = getCovMats(X,T,options.maxlag);
+    covmats_unflipped = getCovMats(X,T,options.maxlag,options.partial);
 end
 
 score = -Inf;

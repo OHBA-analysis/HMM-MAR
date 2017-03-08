@@ -1,8 +1,9 @@
-function CovMats = getCovMats(X,T,maxlag,Flips)
+function CovMats = getCovMats(X,T,maxlag,partial,Flips)
 % Get the autocorrelation matrices up to lag maxlag, for each trial
 N = length(T); ndim = size(X,2);
-if nargin<4, Flips = zeros(N,ndim); end
+if nargin<5, Flips = zeros(N,ndim); end
 CovMats = zeros(ndim,ndim,maxlag+1,N);
+eps = 1e-8;
 t0 = 0;
 for in=1:N 
     t1 = t0 + T(in);
@@ -13,12 +14,18 @@ for in=1:N
         r = xcorr(Xin,maxlag,'coeff'); % xcorr is extremely memory consuming
         for j = 0:maxlag
             CovMats(:,:,j+1,in) = reshape(r(maxlag-j+1,:),[ndim ndim]) ;
+            if partial
+                CovMats(:,:,j+1,in) = inv(CovMats(:,:,j+1,in) + eps*eye(ndim));
+            end
             CovMats(:,:,j+1,in) = CovMats(:,:,j+1,in) - diag(diag(CovMats(:,:,j+1,in)));
         end
     else
         r = lowmem_xcorr(Xin,maxlag);
         for j = 0:maxlag
             CovMats(:,:,j+1,in) = r(maxlag-j+1,:,:);
+            if partial
+                CovMats(:,:,j+1,in) = inv(CovMats(:,:,j+1,in) + eps*eye(ndim));
+            end            
             CovMats(:,:,j+1,in) = CovMats(:,:,j+1,in) - diag(diag(CovMats(:,:,j+1,in)));
         end
     end
