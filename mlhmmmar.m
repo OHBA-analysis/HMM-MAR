@@ -30,7 +30,6 @@ end
 if nargin<4, Gamma = ones(sumT-length(T2)*hmm.train.order,1); end
 if nargin<5, completelags = 0; end
     
-ndim = size(hmm.state(1).W.Mu_W,2);
 K = size(Gamma,2);
 hmm.K = K; N = length(T);
 
@@ -38,16 +37,6 @@ if completelags
     maxorder0 = hmm.train.maxorder;
     hmm.train.orderoffset=0; hmm.train.timelag=1; hmm.train.exptimelag=0;
     hmm.train.maxorder = hmm.train.order;
-    if hmm.train.multipleConf
-        for k=1:K
-            if isfield(hmm.state(k),'train') && ~isempty(hmm.state(k).train),
-                hmm.state(k).train.orderoffset=0; 
-                hmm.state(k).train.timelag=1; 
-                hmm.state(k).train.exptimelag=0;
-                hmm.train.maxorder = max(hmm.train.maxorder,hmm.state(k).train.order);
-            end
-        end
-    end
     maxorderd = hmm.train.maxorder - maxorder0;
     if maxorderd>0 % trim Gamma if maxorder has changed
         Gamma0 = Gamma;
@@ -64,6 +53,12 @@ end
 
 [hmm.train.orders,order] = formorders(hmm.train.order,hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag);
 
+for k=1:K
+    if ~isfield(hmm.state(k),'train') || isempty(hmm.state(k).train)
+        hmm.state(k).train = hmm.train;
+    end
+end
+
 if isfield(hmm.train,'B'), hmm.train.B = []; end
 if isfield(hmm.train,'V'), hmm.train.V = []; end
 
@@ -71,6 +66,7 @@ if iscell(X)
     c = 0;
     for i = 1:N
         [~,XX,Y] = loadfile(X{i},T{i},hmm.train);
+        if i==1, ndim = size(Y,2); end
         ind = (1:sum(T{i})-length(T{i})*order) + c;
         c = c + length(ind);
         %else
@@ -144,10 +140,11 @@ if iscell(X)
     
 else
     
+    ndim = size(X,2);
     S = hmm.train.S==1; regressed = sum(S,1)>0;
     Sind = formindexes(hmm.train.orders,hmm.train.S); hmm.train.Sind = Sind;
     if ~hmm.train.zeromean, Sind = [true(1,size(X,2)); Sind]; end
-    Y =  getresiduals(X,T,Sind,hmm.train.maxorder,hmm.train.order,hmm.train.orderoffset,...
+    Y = getresiduals(X,T,Sind,hmm.train.maxorder,hmm.train.order,hmm.train.orderoffset,...
         hmm.train.timelag,hmm.train.exptimelag,hmm.train.zeromean);
     pred = zeros(size(Y));
     setxx; % build XX

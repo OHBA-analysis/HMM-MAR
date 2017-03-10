@@ -63,21 +63,19 @@ if iscell(X)
 end
 
 if ~isempty(hmm)
-    ndim = size(hmm.state(1).W.Mu_W,2);
+    if isfield(hmm.state(1),'W')
+        ndim = size(hmm.state(1).W.Mu_W,2);
+    else
+        ndim = length(hmm.state(1).Omega.Gam_rate);
+    end
     if isfield(hmm.train,'S') && size(hmm.train.S,1)~=ndim
         hmm.train.S = ones(ndim);
     end
     K = length(hmm.state); 
     if isfield(options,'order') % a new order?
-        for k=1:K,
-            hmm.state(k).order = options.order;
-            if isfield(hmm.state(k),'train'), hmm.state(k).train.order = options.order; end
-        end
-        hmm.train.order = options.order;
-        hmm.train.maxorder = options.order;
-    else
-        options.order = hmm.train.maxorder;
-    end       
+        warning('An hmm structure has been specified, so options.order has no effect')
+    end
+    options.order = hmm.train.maxorder;
 else
     ndim = size(X,2);
     hmm = struct('train',struct()); hmm.train.S = ones(ndim);
@@ -85,7 +83,8 @@ else
     if ~isfield(options,'order')
         options.order = (size(X,1) - size(Gamma,1) ) / length(T);
     end
-    hmm.train.order = options.order; hmm.train.maxorder = options.order; 
+    hmm.train.order = options.order; 
+    hmm.train.maxorder = options.order; 
     hmm.train.multipleConf = 0;
     hmm.train.uniqueAR = 0;
     hmm.train.covtype = 'diag';
@@ -99,18 +98,28 @@ end
 
 options = checkoptions_spectra(options,ndim,T);
 
-if options.MLestimation && options.order~=hmm.train.maxorder % trim Gamma
-   if options.order<hmm.train.maxorder
-       error('If you specify a new MAR order, has to be higher than hmm.train.maxorder')
+if options.MLestimation 
+   supposed_order = (size(X,1) - size(Gamma,1) ) / length(T);
+   if supposed_order > options.order % trim X
+       d = supposed_order-options.order;
+       X2 = zeros(sum(T)-length(T)*d,ndim);
+       T2 = T - d; 
+       for in = 1:length(T),
+           ind1 = sum(T(1:in-1)) + ( (d+1):T(in) );
+           ind2 = sum(T2(1:in-1)) + (1:T2(in));
+           X2(ind2,:) = X(ind1,:); 
+       end
+       X = X2; T = T2; clear T2 X2
+   elseif supposed_order < options.order % trim Gamma
+       d = options.order-supposed_order;
+       Gamma2 = zeros(sum(T)-length(T)*options.order,K);
+       for in = 1:length(T),
+           ind1 = sum(T(1:in-1)) - supposed_order*(in-1) + ( (d+1):(T(in)-supposed_order) );
+           ind2 = sum(T(1:in-1)) - options.order*(in-1) + ( 1:(T(in)-options.order) );
+           Gamma2(ind2,:) = Gamma(ind1,:);
+       end
+       Gamma = Gamma2; clear Gamma2
    end
-   Gamma2 = zeros(sum(T)-length(T)*options.order,K);
-   for in = 1:length(T),
-       t0 = sum(T(1:in-1)) - (in-1)*hmm.train.order;
-       t00 = sum(T(1:in-1)) - (in-1)*options.order;
-       Gamma2(t00+1:t00+T(in)-options.order,:) = ...
-           Gamma(t0+1+options.order:t0+T(in),:);
-   end
-   Gamma = Gamma2; clear Gamma2
    hmm.train.maxorder = options.order; 
 end
 
