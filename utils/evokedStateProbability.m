@@ -8,7 +8,7 @@ function evokedGamma = evokedStateProbability(stim,T,Gamma,window)
 % Window        Window length, in time points, to be plotted around the stimulus
 %
 % OUTPUT
-% evokedGamma   Evoed state time course, (window length by no. of states) 
+% evokedGamma   Evoked state time course, (window length by no. of states) 
 %
 % Author: Diego Vidaurre, OHBA, University of Oxford (2017)
 
