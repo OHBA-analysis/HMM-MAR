@@ -88,6 +88,9 @@ else
     hmm.train.multipleConf = 0;
     hmm.train.uniqueAR = 0;
     hmm.train.covtype = 'diag';
+    hmm.train.orderoffset = 0;
+    hmm.train.timelag = 1; 
+    hmm.train.exptimelag = 0; 
     if isfield(options,'zeromean'), 
         hmm.train.zeromean = options.zeromean; 
     else
