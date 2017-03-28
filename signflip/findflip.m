@@ -137,7 +137,9 @@ for r = 1:options.noruns
    
 end
 
-fprintf('Final Score=%f\n',score)
+if options.verbose
+    fprintf('Final Score=%f\n',score)
+end
 
 % Among the equivalent flippings, we keep the one w/ the lowest no. of flips
 for in = 1:N
