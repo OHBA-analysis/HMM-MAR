@@ -31,7 +31,10 @@ else
 end
 if ~isfield(options,'S'), 
     if options.pcamar>0, options.S = ones(options.pcamar,ndim);
-    else options.S = ones(ndim); end
+    else options.S = ones(ndim); 
+    end
+elseif (size(data.X,2)~=size(options.S,1)) || (size(data.X,2)~=size(options.S,2))
+    error('Dimensions of S are incorrect; must be a square matrix of size nchannels by nchannels')
 end
 
 options = checkMARparametrization(options,[],ndim); copyopt = options;

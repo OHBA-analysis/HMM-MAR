@@ -26,11 +26,11 @@ for in=1:N
         Gammai(1,Pi==1) = 1;
     else
         Gammai(1,:) = mnrnd(nrep,Pi);
-        Gammai(1,:) = Gammai(1,:) / sum(Gammai(1,:));
+        if nrep>1, Gammai(1,:) = Gammai(1,:) / sum(Gammai(1,:)); end
     end
     for t=2:T(in)
         Gammai(t,:) = mnrnd(nrep,Gammai(t-1,:) * P);
-        Gammai(t,:) = Gammai(t,:) / sum(Gammai(t,:));
+        if nrep>1,  Gammai(t,:) = Gammai(t,:) / sum(Gammai(t,:)); end
     end
     t = (1:T(in)) + sum(T(1:in-1));
     Gamma(t,:) = Gammai;
