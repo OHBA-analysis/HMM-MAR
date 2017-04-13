@@ -22,6 +22,7 @@ function [hmm, Gamma, Xi, vpath, GammaInit, residuals, fehist, feterms, rho] = .
 % Author: Diego Vidaurre, OHBA, University of Oxford (2015)
 
 if iscell(T)
+    if size(T,1)==1, T = T'; end
     for i = 1:length(T)
         if size(T{i},1)==1, T{i} = T{i}'; end
     end
