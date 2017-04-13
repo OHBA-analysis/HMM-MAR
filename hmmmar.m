@@ -272,7 +272,7 @@ else
     
 end
 
-if (all(max(Gamma)<0.6) || all(min(Gamma)>(1/hmm.train.K/2)))
+if (all(max(Gamma)<0.6) && all(min(Gamma)>(1/hmm.train.K/2)))
     warning(['It seems that the inference was trapped in a local minima; ' ...
         'you might want to increment DirichletDiag and rerun'])
 end
