@@ -91,9 +91,4 @@ for covtype = {'full','diag'} %,'uniquefull','uniquediag'}
     end
 end
 
-%% Test stochastic with K=1
-options.K = 1;
-[hmm,Gamma] = hmmmar(X,T,options);
-
-% you need to test the other options of initialisation as well
 

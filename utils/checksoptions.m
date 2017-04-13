@@ -6,6 +6,7 @@ N = length(T);
 
 % data options
 if ~isfield(options,'embeddedlags'), options.embeddedlags = 0; end
+if ~isfield(options,'onpower'), options.onpower = 0; end
 if ~isfield(options,'pca'), options.pca = 0; end
 if ~isfield(options,'pcamar'), options.pcamar = 0; end
 if ~isfield(options,'pcapred'), options.pcapred = 0; end
