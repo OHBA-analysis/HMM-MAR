@@ -92,6 +92,7 @@ for cycle = 2:options.BIGcyc
         XX_i = cell(1); XX_i{1} = XX{1}(t2,:); Y_i = Y(t2,:);
         hmm_i = hmm;
         [Gamma{ii},~,Xi{ii}] = hsinference(data,Tbatch_list{ii},hmm_i,Y_i,[],XX_i); % state time courses
+        checkGamma(Gamma{ii},Tbatch_list{ii},hmm_i.train,i);
         for k=1:K
             XXGXX{k} = XXGXX{k} + (XX_i{1}' .* repmat(Gamma{ii}(:,k)',size(XX_i{1},2),1)) * XX_i{1};
         end

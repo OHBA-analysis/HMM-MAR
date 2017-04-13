@@ -37,9 +37,7 @@ for cycle=1:hmm.train.cyc
         if hmm.K>1 || cycle==1
             % state inference
             [Gamma,~,Xi] = hsinference(data,T,hmm,residuals,[],XX);
-            if any(isnan(Gamma(:))), 
-                error('Gamma has NaN, probably due to problems of precision')
-            end
+            checkGamma(Gamma,T,hmm.train);
             % any state to remove?
             [as,hmm,Gamma,Xi] = getactivestates(hmm,Gamma,Xi);
             if hmm.train.dropstates
@@ -47,6 +45,7 @@ for cycle=1:hmm.train.cyc
                     cyc_to_go = hmm.train.cycstogoafterevent;
                     data.C = data.C(:,as==1);
                     [Gamma,~,Xi] = hsinference(data,T,hmm,residuals,[],XX);
+                    checkGamma(Gamma,T,hmm.train);
                 end
                 if sum(hmm.train.active)==1
                     fehist(end+1) = sum(evalfreeenergy(data.X,T,Gamma,Xi,hmm,residuals,XX));

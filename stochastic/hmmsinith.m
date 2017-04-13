@@ -36,6 +36,7 @@ for i = 1:N
     end
     XX_i = cell(1); XX_i{1} = XX;
     [Gamma,~,Xi] = hsinference(X,Ti,hmm,Y,options,XX_i);
+    checkGamma(Gamma,Ti,hmm.train,i);
     for trial=1:length(Ti)
         t = sum(Ti(1:trial-1)) + 1;
         Dir_alpha_init(:,i) = Dir_alpha_init(:,i) + Gamma(t,:)';

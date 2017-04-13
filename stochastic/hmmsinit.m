@@ -77,6 +77,10 @@ for rep = 1:options.BIGinitrep
         if ~isempty(initial_hmm)
             hmm_i = versCompatibilityFix(initial_hmm{II(ii)});
             [Gamma,~,Xi] = hsinference(X,Ti,hmm_i,Y,options,XX_i);
+            for i=1:length(subset)
+                tt = (1:Ti(i)-hmm_i.train.order) + sum(Ti(1:i-1)) - (i-1)*hmm_i.train.order;
+                checkGamma(Gamma(tt,:),Ti(i),hmm_i.train,subset(i));
+            end
         else
             options_copy = options;
             options_copy = rmfield(options_copy,'BIGNbatch');
@@ -105,7 +109,7 @@ for rep = 1:options.BIGinitrep
         end
         % update transition probabilities
         tacc = 0; tacc2 = 0;
-        for i=1:length(subset);
+        for i=1:length(subset)
             subj = subset(i);
             Tsubj = T{subj} - tp_less;
             for trial=1:length(Tsubj)
@@ -260,6 +264,7 @@ for rep = 1:options.BIGinitrep
         XX_i = cell(1); XX_i{1} = XX;
         data = struct('X',X,'C',NaN(size(XX,1),K));
         [Gamma,~,Xi,l] = hsinference(data,Ti,hmm_init_i,Y,[],XX_i);
+        checkGamma(Gamma,Ti,hmm_init_i.train,i);
         subjfe_init(i,1:2) = evalfreeenergy([],Ti,Gamma,Xi,hmm_init_i,[],[],[1 0 1 0 0]); % Gamma entropy&LL
         loglik_init(i) = sum(l);
     end

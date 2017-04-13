@@ -46,6 +46,7 @@ for i = 1:N
     if type==0
         data = struct('X',X,'C',NaN(sum(Ti)-length(Ti)*hmm.train.maxorder,K));
         [gamma,~,xi] = hsinference(data,Ti,hmm_i,Y,[],XX_i);
+        checkGamma(gamma,Ti,hmm_i.train,i);
         Path(t,:) = single(gamma);
         Xi(t2,:,:) = xi;
     else
