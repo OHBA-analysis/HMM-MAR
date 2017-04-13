@@ -34,6 +34,7 @@ stochastic_learn = isfield(options,'BIGNbatch') && ...
     (options.BIGNbatch < N && options.BIGNbatch > 0);
 options = checkspelling(options);
 
+% do some data checking and preparation
 if stochastic_learn, % data is a cell, either with strings or with matrices
     if ~iscell(data)
        dat = cell(N,1); TT = cell(N,1);
@@ -80,7 +81,6 @@ else % data is a struct, with a matrix .X
     end
 end
 
-    
 ver = version('-release');
 oldMatlab = ~isempty(strfind(ver,'2010')) || ~isempty(strfind(ver,'2010')) ...
     || ~isempty(strfind(ver,'2011')) || ~isempty(strfind(ver,'2012'));
@@ -105,13 +105,13 @@ if isfield(options,'DirStats')
     % to avoid recurrent calls to hmmmar to do the same
 end
 
-
 if stochastic_learn
     
     % get PCA loadings 
     if length(options.pca) > 1 || options.pca > 0 
         if ~isfield(options,'A')
-            options.A = highdim_pca(data,T,options.pca,options.embeddedlags,options.standardise);
+            options.A = highdim_pca(data,T,options.pca,...
+                options.embeddedlags,options.standardise,options.onpower);
         end
         options.ndim = size(options.A,2);
         options.S = ones(options.ndim);
@@ -152,17 +152,21 @@ if stochastic_learn
     
 else
     
-    % embed data?
+    % Hilbert envelope
+    if options.onpower
+       data = rawsignal2power(data,T); 
+    end
+    % Embedding
     if length(options.embeddedlags) > 1  
         [data,T] = embeddata(data,T,options.embeddedlags);
     end
-    % pca
+    % PCA transform
     if length(options.pca) > 1 || options.pca > 0  
         if isfield(options,'A')
             data.X = data.X - repmat(mean(data.X),mean(data.X,1),1);
             data.X = data.X * options.A; 
         else
-            [options.A,data.X] = highdim_pca(data.X,T,options.pca,0,0);
+            [options.A,data.X] = highdim_pca(data.X,T,options.pca,0,0,0);
         end
         if options.standardise_pc == 1
             for i = 1:N

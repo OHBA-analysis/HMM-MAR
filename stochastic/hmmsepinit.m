@@ -53,7 +53,8 @@ options.dropstates = 0;
 % get PCA loadings
 if length(options.pca) > 1 || options.pca > 0
     if ~isfield(options,'A')
-        options.A = highdim_pca(data,T,options.pca,options.embeddedlags,options.standardise);
+        options.A = highdim_pca(data,T,options.pca,...
+            options.embeddedlags,options.standardise,options.onpower);
     end
     options.ndim = size(options.A,2);
 end

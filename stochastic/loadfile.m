@@ -45,9 +45,16 @@ else
         end
     end
 end
+
+% Hilbert envelope
+if options.onpower
+    X = rawsignal2power(X,T);
+end
+% Embedding
 if length(options.embeddedlags)>1
     [X,T] = embeddata(X,T,options.embeddedlags);
 end
+% PCA transform
 if isfield(options,'A')
     X = X - repmat(mean(X),size(X,1),1); % must center
     X = X * options.A;

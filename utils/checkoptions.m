@@ -105,6 +105,7 @@ end
 
 % training options
 if ~isfield(options,'Fs'), options.Fs = 1; end
+if ~isfield(options,'onpower'), options.onpower = 0; end
 if ~isfield(options,'cyc'), options.cyc = 1000; end
 if ~isfield(options,'tol'), options.tol = 1e-5; end
 if ~isfield(options,'meancycstop'), options.meancycstop = 1; end
@@ -195,7 +196,10 @@ end
 
 function options = checkMARparametrization(options,S,ndim)
 
-if ~isfield(options,'order'), error('order was not specified'); end
+if ~isfield(options,'order'), 
+    options.order = 0;
+    warning('order was not specified - it will be set to 0'); 
+end
 if isfield(options,'embeddedlags') && length(options.embeddedlags)>1 && options.order>0 
     error('Order needs to be zero for multiple embedded lags')
 end

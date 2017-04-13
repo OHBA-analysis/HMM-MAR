@@ -8,15 +8,15 @@ else % just a matrix
 end
 X = zeros(sum(T-tp_less),ndim*length(embeddedlags));
 acc = 0;
-for in=1:length(T)
+for n=1:length(T)
     if isstruct(data)
-        [x,ind] = embedx(data.X(sum(T(1:in-1))+1:sum(T(1:in)),:),embeddedlags);
-        c = data.C( sum(T(1:in-1))+1: sum(T(1:in)) , : ); c = c(ind,:);
-        C(acc+(1:T(in)-tp_less),:) = c;
+        [x,ind] = embedx(data.X(sum(T(1:n-1))+1:sum(T(1:n)),:),embeddedlags);
+        c = data.C( sum(T(1:n-1))+1: sum(T(1:n)) , : ); c = c(ind,:);
+        C(acc+(1:T(n)-tp_less),:) = c;
     else
-        [x,ind] = embedx(data(sum(T(1:in-1))+1:sum(T(1:in)),:),embeddedlags);
+        [x,ind] = embedx(data(sum(T(1:n-1))+1:sum(T(1:n)),:),embeddedlags);
     end
-    X(acc+(1:T(in)-tp_less),:) = x;
+    X(acc+(1:T(n)-tp_less),:) = x;
     acc = acc + sum(ind);
 end
 T = T-tp_less;
