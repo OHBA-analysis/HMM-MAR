@@ -36,6 +36,7 @@ stochastic_learn = isfield(options,'BIGNbatch') && ...
 options = checkspelling(options);
 
 % do some data checking and preparation
+if xor(iscell(data),iscell(T)), error('X and T must be cells, either both or none of them.'); end
 if stochastic_learn, % data is a cell, either with strings or with matrices
     if ~iscell(data)
        dat = cell(N,1); TT = cell(N,1);
@@ -52,14 +53,33 @@ if stochastic_learn, % data is a cell, either with strings or with matrices
        data = dat; T = TT; clear dat TT
     end
     options = checksoptions(options,T);
-else % data is a struct, with a matrix .X  
-    if iscell(data)
-        if size(data,1)==1, data = data'; end
-        data = cell2mat(data);
-    end
+else % data can be a cell or a matrix 
     if iscell(T)
+        for i = 1:length(T)
+            if size(T{i},1)==1, T{i} = T{i}'; end
+        end
         if size(T,1)==1, T = T'; end
         T = cell2mat(T);
+    end
+    if iscell(data) 
+        if size(data,1)==1, data = data'; end
+        if iscellstr(data) % if comes in file name format
+            dfilenames = data; t0 = 0;
+            for i=1:N
+                if ~isempty(strfind(dfilenames{i},'.mat')), load(dfilenames{i},'X');
+                else X = dlmread(dfilenames{i});
+                end
+                if i==1, data = zeros(sum(T),size(X,2)); end
+                try, data(t0 + (1:size(X,1)),:) = X; t0 = t0 + size(X,1); 
+                catch, error('The dimension of data does not correspond to T'); 
+                end
+            end
+            if t0~=sum(T), error('The dimension of data does not correspond to T'); end
+        else
+            try, data = cell2mat(data);
+            catch, error('Subjects do not have the same number of channels');
+            end
+        end
     end
     [options,data] = checkoptions(options,data,T,0);
     if options.standardise == 1

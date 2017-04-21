@@ -1,4 +1,4 @@
-function [Path,Xi] = hmmdecode(X,T,hmm,type,residuals,options)
+function [Path,Xi] = hmmdecode(data,T,hmm,type,residuals,options)
 %
 % State time course and Viterbi decoding for hmm
 % The algorithm is run for the whole data set, including those whose class
@@ -25,22 +25,24 @@ if nargin<6, options = []; end
 stochastic_learn = isfield(hmm.train,'BIGNbatch') && hmm.train.BIGNbatch < length(T);
 N = length(T);
 
+if xor(iscell(data),iscell(T)), error('data and T must be cells, either both or none of them.'); end
+
 if stochastic_learn
-    if ~iscell(X)
+    if ~iscell(data)
        dat = cell(N,1); TT = cell(N,1);
        for i=1:N
           t = 1:T(i);
-          dat{i} = X(t,:); TT{i} = T(i);
-          try X(t,:) = []; 
+          dat{i} = data(t,:); TT{i} = T(i);
+          try data(t,:) = []; 
           catch, error('The dimension of data does not correspond to T');
           end
        end
-       if ~isempty(X), 
+       if ~isempty(data), 
            error('The dimension of data does not correspond to T');
        end 
-       X = dat; T = TT; clear dat TT
+       data = dat; T = TT; clear dat TT
     end
-    [Path,Xi] = hmmsdecode(X,T,hmm,type);
+    [Path,Xi] = hmmsdecode(data,T,hmm,type);
     return
 end
 
@@ -51,20 +53,36 @@ if iscell(T)
     if size(T,1)==1, T = T'; end
     T = cell2mat(T);
 end
-if iscell(X)
-    if size(X,1)==1, X = X'; end
-    X = cell2mat(X);
+if iscell(data)
+    if size(data,1)==1, data = data'; end
+    if iscellstr(data) % if comes in file name format
+        dfilenames = data; t0 = 0;
+        for i=1:N
+            if ~isempty(strfind(dfilenames{i},'.mat')), load(dfilenames{i},'X');
+            else X = dlmread(dfilenames{i});
+            end
+            if i==1, data = zeros(sum(T),size(X,2)); end
+            try, data(t0 + (1:size(X,1)),:) = X; t0 = t0 + size(X,1); 
+            catch, error('The dimension of data does not correspond to T'); 
+            end
+        end
+        if t0~=sum(T), error('The dimension of data does not correspond to T'); end
+    else
+        try, data = cell2mat(data);
+        catch, error('Subjects do not have the same number of channels');
+        end
+    end
 end
 
 if type==0
-   [Path,Xi] = hsinference(X,T,hmm,residuals,options); 
+   [Path,Xi] = hsinference(data,T,hmm,residuals,options); 
    return
 end
 Xi = [];
 
 if ~isfield(hmm,'train')
     if nargin<5, error('You must specify the field options if hmm.train is missing'); end
-    hmm.train = checkoptions(options,X,T,0);
+    hmm.train = checkoptions(options,data,T,0);
 end
 
 K = length(hmm.state);
@@ -74,7 +92,7 @@ if isempty(residuals)
         orders = formorders(hmm.train.order,hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag);
         hmm.train.Sind = formindexes(orders,hmm.train.S);
     end
-    residuals =  getresiduals(X,T,hmm.train.Sind,hmm.train.maxorder,hmm.train.order,...
+    residuals =  getresiduals(data,T,hmm.train.Sind,hmm.train.maxorder,hmm.train.order,...
         hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag,hmm.train.zeromean);
 end
 
@@ -115,7 +133,7 @@ if hmm.train.useParallel==1 && N>1
         else t0 = sum(T(1:tr-1)); s0 = t0 - order*(tr-1);
         end
         
-        B = obslike(X(t0+1:t0+T(tr),:),hmm,residuals(s0+1:s0+T(tr)-order,:));
+        B = obslike(data(t0+1:t0+T(tr),:),hmm,residuals(s0+1:s0+T(tr)-order,:));
         B(B<realmin) = realmin;
         
         % Scaling for delta
@@ -203,7 +221,7 @@ else
         else t0 = sum(T(1:tr-1)); s0 = t0 - order*(tr-1);
         end
         
-        B = obslike(X(t0+1:t0+T(tr),:),hmm,residuals(s0+1:s0+T(tr)-order,:));
+        B = obslike(data(t0+1:t0+T(tr),:),hmm,residuals(s0+1:s0+T(tr)-order,:));
         B(B<realmin) = realmin;
         
         scale=zeros(T(tr),1);
