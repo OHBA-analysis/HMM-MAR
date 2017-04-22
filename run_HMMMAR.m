@@ -6,9 +6,10 @@
 % configuration for the user's particular data.
 %
 % Also, it assumes that the data has been loaded into the right format
-% (Note that there are multiple possible input formats - see Wiki Documentation),
-% that the variables data_modality, no_states,Hz and stochastic_inference 
-% (see below) are correctly set, and that the toolbox paths are in the right place. 
+% (there are multiple possible input formats - see Wiki Documentation),
+% that the variables data_modality, no_states ,Hz and stochastic_inference 
+% (see below) are correctly set, 
+% and that the toolbox paths are in the right place. 
 
 
 if ~exist('data','var') || ~exist('T','var'), 
