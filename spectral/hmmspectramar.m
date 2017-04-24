@@ -48,6 +48,8 @@ if options.MLestimation && isempty(Gamma)
     error('If MLestimation=1, you need to supply Gamma')
 end
 
+if xor(iscell(data),iscell(T)), error('X and T must be cells, either both or none of them.'); end
+
 if iscell(T)
     for i = 1:length(T)
         if size(T{i},1)==1, T{i} = T{i}'; end
@@ -59,6 +61,10 @@ else
 end
 
 checkdata;
+
+if isstruct(data)
+    data = data.X;
+end
 
 if ~isempty(hmm)
     if isfield(hmm.state(1),'W')

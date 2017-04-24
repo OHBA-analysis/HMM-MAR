@@ -59,6 +59,14 @@ if type==0
    [Path,Xi] = hsinference(data,T,hmm,residuals,options); 
    return
 end
+
+if isstruct(data)
+    if isfield(data,'C') && ~all(isnan(data.C(:)))
+        warning('Pre-specified state time courses will be ignored for Viterbi path calculation')
+    end
+    data = data.X;
+end
+
 Xi = [];
 
 if ~isfield(hmm,'train')

@@ -1,3 +1,5 @@
+% if data is a cell, transform into matrix format
+% (this snippet is called in different places so I factorised it into a different file)
 if iscell(data)
     if size(data,1)==1, data = data'; end
     if iscellstr(data) % if comes in file name format

@@ -69,6 +69,7 @@ if iscell(data)
     order = (sum(TT) - size(Gamma,1)) / length(TT);
     TT = TT - order;
 else
+    if isstruct(data), data = data.X; end
     ndim = size(data,2); T = double(T); 
     options = checkoptions_spectra(options,ndim,T);
     if nargin<3 || isempty(Gamma),
@@ -282,11 +283,15 @@ function [tapers,eigs]=dpsschk(tapers,N,Fs)
 
 if nargin < 3; error('Need all arguments'); end
 sz=size(tapers);
+if isempty(strfind(which('dpss'),matlabroot))
+    error('Function dpss() seems to be other than Matlab''s own - you need to rmpath() it. Use ''rmpath(fileparts(which(''dpss'')))''')
+end
+
 if sz(1)==1 && sz(2)==2;
     try
         [tapers,eigs]=dpss(N,tapers(1),tapers(2));
     catch 
-        error('Problem with dpss - do you have fieldtrip in your path? if so, remove it')
+        error('Window is too short - increase options.win')
     end
     tapers = tapers*sqrt(Fs);
 elseif N~=sz(1);

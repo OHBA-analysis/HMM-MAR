@@ -1,8 +1,6 @@
 function [options,data] = checkoptions (options,data,T,cv)
 
-path_pca = which('pca');
-path_root = matlabroot;
-if isempty(findstr(path_pca,path_root))
+if isempty(strfind(which('pca'),matlabroot))
     error('Function pca() seems to be other than Matlab''s own - you need to rmpath() it. Use ''rmpath(fileparts(which(''pca'')))''')
 end
 
@@ -100,7 +98,7 @@ elseif size(data.C,1)==sum(T) && options.maxorder>0 % we need to trim C
         ind = [ind (t0+options.maxorder+1:t0+T(j))];
     end
     data.C = data.C(ind,:); 
-    %fprintf('C has more rows than it should; the first rows of each trial will be discarded\n')
+    %warning('C has more rows than it should; the first rows of each trial will be discarded\n')
 end
 
 % training options
