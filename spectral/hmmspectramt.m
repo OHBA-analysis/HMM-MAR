@@ -11,19 +11,9 @@ function fit = hmmspectramt(data,T,Gamma,options)
 % X: the data matrix, with all trials concatenated
 % T: length of each trial
 % Gamma: State time course  
-% options: include the following fields
-%   .tapers: A numeric vector [TW K] where TW is the
-%       time-bandwidth product and K is the number of
-%       tapers to be used (less than or equal to
-%       2TW-1)
-%   .win: number of time points per non-overlapping window
-%   .Fs: Sampling frequency
-%   .fpass: Frequency band to be used [fmin fmax] (default [0 fs/2])
-%   .p: p-value for computing jackknife confidence intervals (default 0)
-%   .to_do: a (2 by 1) vector, with component indicating, respectively, 
-% 		whether a estimation of coherence and/or PDC is going to be produced (default is [1 1])
-%   .numIterations: no. iterations for the Wilson algorithm (default: 100)
-%   .tol: tolerance limit (default: 1e-18)
+% options       structure with the training options - see documentation in 
+%                       https://github.com/OHBA-analysis/HMM-MAR/wiki
+%
 %
 % OUTPUTS:
 %
@@ -70,10 +60,21 @@ if iscell(data)
     TT = TT - order;
 else
     if isstruct(data), data = data.X; end
-    ndim = size(data,2); T = double(T); 
+    ndim = size(data,2); T = double(T);
     options = checkoptions_spectra(options,ndim,T);
     if nargin<3 || isempty(Gamma),
         Gamma = ones(sum(T),1);
+    end
+    if options.standardise == 1
+        for i = 1:length(T)
+            t = (1:T(i)) + sum(T(1:i-1));
+            data(t,:) = data(t,:) - repmat(mean(data(t,:)),length(t),1);
+            sdx = std(data(t,:));
+            if any(sdx==0)
+                error('At least one of the trials/segments/subjects has variance equal to zero');
+            end
+            data(t,:) = data(t,:) ./ repmat(sdx,length(t),1);
+        end
     end
     order = (sum(T) - size(Gamma,1)) / length(T);
     % remove the exceeding part of X (with no attached Gamma)
@@ -87,6 +88,7 @@ else
         data = data2; clear data2;
     end
     TT = T;
+    
 end
 
 Gamma = sqrt(Gamma) .* repmat( sqrt(size(Gamma,1) ./ sum(Gamma)), size(Gamma,1), 1);

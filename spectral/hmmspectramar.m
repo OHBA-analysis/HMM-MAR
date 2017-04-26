@@ -6,22 +6,9 @@ function fit = hmmspectramar(data,T,hmm,Gamma,options)
 % T             Number of time points for each time series
 % hmm           An hmm-mar structure (optional)
 % Gamma         State time course (not used if options.MLestimation=0)
-% options 
-
-%  .Fs:       Sampling frequency
-%  .fpass:    Frequency band to be used [fmin fmax] (default [0 Fs/2])
-%  .p:        p-value for computing jackknife confidence intervals (default 0)
-%  .Nf        No. of frequencies to be computed in the range minHz-maxHz
-%  .order     If we want a higher MAR order than that used for training,
-%               specify it here - a new set of MAR models will be estimated
-%  .MLestimation     if 0, it will use the
-%               MAR models as they were returned by the HMM-MAR inference (i.e. a
-%               posterior distribution instead of maximum likelihood)
-%  .completelags    if MLestimation is true and completelags is true,
-%               the MAR spectra will be calculated with the complete set of
-%               lags up to the specified order (lags=1,2,...,order)
-%  .level       'group' (by default) for group level estimations, or
-%               'subject' for subject level (no jackknife is allowed)
+% options       structure with the training options - see documentation in 
+%                       https://github.com/OHBA-analysis/HMM-MAR/wiki
+%
 %
 % OUTPUT
 % fit is a list with K elements, each of which contains: 
@@ -180,7 +167,18 @@ if options.MLestimation
     end
     if isfield(hmm0.train,'V'), 
         hmm0.train = rmfield(hmm0.train,'V'); 
-    end    
+    end
+    if options.standardise == 1
+        for i = 1:N
+            t = (1:T(i)) + sum(T(1:i-1));
+            data(t,:) = data(t,:) - repmat(mean(data(t,:)),length(t),1);
+            sdx = std(data(t,:));
+            if any(sdx==0)
+                error('At least one of the trials/segments/subjects has variance equal to zero');
+            end
+            data(t,:) = data(t,:) ./ repmat(sdx,length(t),1);
+        end
+    end
 end
 
 for j=1:NN
