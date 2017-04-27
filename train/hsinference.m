@@ -191,7 +191,7 @@ if hmm.train.useParallel==1 && N>1
     end
     
 else
-    
+
     for in=1:N % this is exactly the same than the code above but changing parfor by for
        Bt = []; sc = [];
         t0 = sum(T(1:in-1)); s0 = t0 - order*(in-1);
@@ -244,7 +244,7 @@ else
             if nargout>=5, scale = [scale; sc ]; end
             if isempty(no_c), break;
             else t = no_c(1)+t-1;
-            end;
+            end
         end
         Gamma{in} = gamma;
         Gammasum(in,:) = gammasum;

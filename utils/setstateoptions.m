@@ -5,7 +5,7 @@
 % end
 % [orders,order] = formorders(train.order,train.orderoffset,train.timelag,train.exptimelag);
 orders = train.orders;
-order = train.order;
+order = max(orders);
 
 if ~isfield(train,'Sind'), 
     if isfield(hmm.train,'V') && ~isempty(hmm.train.V)
