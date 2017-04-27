@@ -46,14 +46,14 @@ if length(size(X))==4 % it is an array of autocorrelation matrices already
     covmats_unflipped = X; clear X
 else
     if options.standardise
-        for in = 1:N
-            ind = (1:T(in)) + sum(T(1:in-1));
-            X(ind,:) = X(ind,:) - repmat(mean(X(ind,:)),T(in),1);
+        for n = 1:N
+            ind = (1:T(n)) + sum(T(1:n-1));
+            X(ind,:) = X(ind,:) - repmat(mean(X(ind,:)),T(n),1);
             sd = std(X(ind,:));
             if any(sd==0), 
                 error('At least one channel in at least one trial has variance equal to 0')
             end
-            X(ind,:) = X(ind,:) ./ repmat(sd,T(in),1);
+            X(ind,:) = X(ind,:) ./ repmat(sd,T(n),1);
         end
     end
     covmats_unflipped = getCovMats(X,T,options.maxlag,options.partial);
@@ -78,7 +78,7 @@ for r = 1:options.noruns
         if cyc==1 || ch
             signmats = getSignMat(flipsr);
             covmats = applySign(covmats_unflipped,signmats);
-            scorer = getscore(covmats);
+            [scorer,scorers] = getscore(covmats);
         end
         ScoreMatrix = zeros(N,ndim);
         channels = randperm(ndim,options.nbatch);
@@ -91,24 +91,25 @@ for r = 1:options.noruns
             scorepath{r} = [scorepath{r} scorer];
         end
         for d = channels
-            for in = 1:N
-                cm = covmats(:,:,:,in); sm = signmats(:,:,in);
-                flipsr(in,d) = ~flipsr(in,d); % do ...
-                signmats(:,:,in) = getSignMat(flipsr(in,:)); 
-                covmats(:,:,:,in) = applySign(covmats_unflipped(:,:,:,in),signmats(:,:,in));
-                s = getscore(covmats); % ... evaluate ...
-                covmats(:,:,:,in) = cm;
-                signmats(:,:,in) = sm;
-                flipsr(in,d) = ~flipsr(in,d); % ... and undo
-                ScoreMatrix(in,d) = s - scorer;
+            for n = 1:N
+                cm = covmats(:,:,:,n); 
+                sm = signmats(:,:,n);
+                flipsr(n,d) = ~flipsr(n,d); % do ...
+                signmats(:,:,n) = getSignMat(flipsr(n,:)); 
+                covmats(:,:,:,n) = applySign(covmats_unflipped(:,:,:,n),signmats(:,:,n));
+                s = getscore(covmats,n,scorers); % ... evaluate ...
+                covmats(:,:,:,n) = cm;
+                signmats(:,:,n) = sm;
+                flipsr(n,d) = ~flipsr(n,d); % ... and undo
+                ScoreMatrix(n,d) = s - scorer;
             end
         end
         [score1,I] = max(ScoreMatrix(:));
-        [in,d] = ind2sub([N ndim],I);
+        [n,d] = ind2sub([N ndim],I);
         if score1>0
-            flipsr(in,d) = ~flipsr(in,d);
+            flipsr(n,d) = ~flipsr(n,d);
             if options.verbose
-                fprintf('Run %d, Cycle %d, score +%f, flipped (%d,%d) \n',r,cyc,score1,in,d)
+                fprintf('Run %d, Cycle %d, score +%f, flipped (%d,%d) \n',r,cyc,score1,n,d)
             end
             if cyc==options.maxcyc % we are finishing
                 scorer = scorer+score1;
@@ -142,17 +143,17 @@ if options.verbose
 end
 
 % Among the equivalent flippings, we keep the one w/ the lowest no. of flips
-for in = 1:N
-    if mean(flips(in,:))>0.5
-        flips(in,:) = 1 - flips(in,:);
+for n = 1:N
+    if mean(flips(n,:))>0.5
+        flips(n,:) = 1 - flips(n,:);
     end
 end
 
 if nargout>1
-    for in = 1:N
-        ind = (1:T(in)) + sum(T(1:in-1));
+    for n = 1:N
+        ind = (1:T(n)) + sum(T(1:n-1));
         for d = 1:ndim
-            if flips(in,d)==1
+            if flips(n,d)==1
                 X(ind,d) = -X(ind,d);
             end
         end
