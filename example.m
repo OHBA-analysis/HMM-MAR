@@ -64,7 +64,7 @@ disp(['CV-Fractional error: ' num2str(mcv(2)) ])
 
 options.Fs = 100; % Frequency in Hertzs
 options.p = 0.01; % setting intervals of confidence
-spectral_info = hmmspectramar(X,T,hmm,Gamma,options);
+spectral_info = hmmspectramar(X,T,[],Gamma,options);
 
 figure
 cols = {'b','g','r'};
