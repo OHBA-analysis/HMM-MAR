@@ -88,7 +88,7 @@ if reproc % Adjust the data if necessary
     % PCA transform
     if length(train.pca) > 1 || train.pca > 0
         if isfield(train,'A')
-            data.X = data.X - repmat(mean(data.X),mean(data.X,1),1);
+            data.X = data.X - repmat(mean(data.X),size(data.X,1),1);
             data.X = data.X * train.A;
         else
             [train.A,data.X] = highdim_pca(data.X,T,train.pca,0,0,0);

@@ -165,7 +165,7 @@ else
     % PCA transform
     if length(options.pca) > 1 || options.pca > 0  
         if isfield(options,'A')
-            data.X = data.X - repmat(mean(data.X),mean(data.X,1),1);
+            data.X = data.X - repmat(mean(data.X),size(data.X,1),1);
             data.X = data.X * options.A; 
         else
             [options.A,data.X] = highdim_pca(data.X,T,options.pca,0,0,0);
