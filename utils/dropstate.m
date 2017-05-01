@@ -4,7 +4,7 @@ K = length(hmm.state);
 no_k = setdiff(1:K,k);
 K = K - 1;
 hmm.state(k) = [];
-hmm.K = K; hmm.train.K = K; 
+hmm.K = K; 
 hmm.Dir2d_alpha = hmm.Dir2d_alpha(no_k,no_k);
 hmm.Dir_alpha = hmm.Dir_alpha(no_k);
 hmm.prior.Dir2d_alpha = hmm.prior.Dir2d_alpha(no_k,no_k);

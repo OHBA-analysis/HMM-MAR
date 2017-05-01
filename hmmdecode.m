@@ -1,4 +1,4 @@
-function [Path,Xi] = hmmdecode(data,T,hmm,type,residuals,options)
+function [Path,Xi] = hmmdecode(data,T,hmm,type,residuals,reproc)
 %
 % State time course and Viterbi decoding for hmm
 % The algorithm is run for the whole data set, including those whose class
@@ -10,7 +10,7 @@ function [Path,Xi] = hmmdecode(data,T,hmm,type,residuals,options)
 % hmm           hmm data structure
 % type          0, state time courses; 1, viterbi path
 % residuals     in case we train on residuals, the value of those (optional)
-% options       the hmm options, that will be used if hmm.train is missing
+% train       the hmm train, that will be used if hmm.train is missing
 %
 % OUTPUT
 % vpath         (T x 1) maximum likelihood state sequence (type=0 OR
@@ -20,7 +20,7 @@ function [Path,Xi] = hmmdecode(data,T,hmm,type,residuals,options)
 
 if nargin<4, type = 0; end
 if nargin<5, residuals = []; end
-if nargin<6, options = []; end
+if nargin<6, reproc = 1; end
 
 stochastic_learn = isfield(hmm.train,'BIGNbatch') && hmm.train.BIGNbatch < length(T);
 N = length(T);
@@ -53,10 +53,62 @@ if iscell(T)
     if size(T,1)==1, T = T'; end
     T = cell2mat(T);
 end
-checkdata;
+
+if reproc % Adjust the data if necessary
+    train = hmm.train;
+    checkdata;
+    data = data2struct(data,T,train);
+    % Standardise
+    if train.standardise == 1
+        for i = 1:N
+            t = (1:T(i)) + sum(T(1:i-1));
+            data.X(t,:) = data.X(t,:) - repmat(mean(data.X(t,:)),length(t),1);
+            sdx = std(data.X(t,:));
+            if any(sdx==0)
+                error('At least one of the trials/segments/subjects has variance equal to zero');
+            end
+            data.X(t,:) = data.X(t,:) ./ repmat(sdx,length(t),1);
+        end
+    else
+        for i = 1:N
+            t = (1:T(i)) + sum(T(1:i-1));
+            if any(std(data.X(t,:))==0)
+                error('At least one of the trials/segments/subjects has variance equal to zero');
+            end
+        end
+    end
+    % Hilbert envelope
+    if train.onpower
+        data = rawsignal2power(data,T);
+    end
+    % Embedding
+    if length(train.embeddedlags) > 1
+        [data,T] = embeddata(data,T,train.embeddedlags);
+    end
+    % PCA transform
+    if length(train.pca) > 1 || train.pca > 0
+        if isfield(train,'A')
+            data.X = data.X - repmat(mean(data.X),mean(data.X,1),1);
+            data.X = data.X * train.A;
+        else
+            [train.A,data.X] = highdim_pca(data.X,T,train.pca,0,0,0);
+        end
+        if train.standardise_pc == 1
+            for i = 1:N
+                t = (1:T(i)) + sum(T(1:i-1));
+                data.X(t,:) = data.X(t,:) - repmat(mean(data.X(t,:)),length(t),1);
+                data.X(t,:) = data.X(t,:) ./ repmat(std(data.X(t,:)),length(t),1);
+            end
+        end
+        train.ndim = size(train.A,2);
+        train.S = ones(train.ndim);
+        orders = formorders(train.order,train.orderoffset,train.timelag,train.exptimelag);
+        train.Sind = formindexes(orders,train.S);
+    end
+end
 
 if type==0
-   [Path,Xi] = hsinference(data,T,hmm,residuals,options); 
+   [Path,Xi] = hsinference(data,T,hmm,residuals); 
    return
 end
 
@@ -68,11 +120,6 @@ if isstruct(data)
 end
 
 Xi = [];
-
-if ~isfield(hmm,'train')
-    if nargin<5, error('You must specify the field options if hmm.train is missing'); end
-    hmm.train = checkoptions(options,data,T,0);
-end
 
 K = length(hmm.state);
 

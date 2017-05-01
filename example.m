@@ -53,6 +53,9 @@ options.verbose = 1;
 [hmm, Gamma,~, ~, ~, ~, fehist] = hmmmar(X,T,options);
 plot(fehist)
 
+% re-estimate the viterbi path
+[Path,Xi] = hmmdecode(X,T,hmm,1);
+
 %% Perform cross-validation
 
 options.cvmode = 3; 

@@ -21,7 +21,6 @@ K = length(hmm.state);
 TT = []; for i=1:N, TT = [TT; T{i}]; end
 tacc = 0; tacc2 = 0;
 
-L = 0;
 if length(hmm.train.embeddedlags)>1
     L = -min(hmm.train.embeddedlags) + max(hmm.train.embeddedlags);
 else
