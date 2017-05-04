@@ -75,6 +75,11 @@ else
     error('pca parameters are wrongly specified')
 end
 
+if ncomp > size(A,2)
+   warning(['The number of required PCA components is higher than ' ...
+       'the dimension of the data - Ignoring PCA.']) 
+end
+
 fprintf('Working in PCA space, with %d components... \n',ncomp)
 
 A = A(:,1:ncomp);
