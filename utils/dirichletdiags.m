@@ -96,15 +96,22 @@ classdef (Abstract) dirichletdiags
 
 		function f = mean_lifetime()
 			% Given a transition probability, what is the expected lifetime in units of steps?
-			% Do a symbolic integration and return a function that performs this calculation and
-			% returns a numeric result
-			syms k_step p;
-			assume(p>0);
-			f =(k_step)*p^k_step*(1-p); % (probability that the state lasts k *more* steps, multiplied by lifetime which is k)
-			fa = 1+int(f,k_step,0,inf); % Add 1 to the lifetime because all states last at least 1 sample
-			f = @(x) double(subs(fa,p,x));
-		end
 
+			% This can be determined using a symbolic integration, below
+			% syms k_step p;
+			% assume(p>0);
+			% f =(k_step)*p^k_step*(1-p); % (probability that the state lasts k *more* steps, multiplied by lifetime which is k)
+			% fa = 1+int(f,k_step,0,inf); % Add 1 to the lifetime because all states last at least 1 sample
+			% f = @(x) double(subs(fa,p,x));
+
+			% However, the result of the symbolic integration contains a limit which is
+			% zero unless p=1, but p=1 is not valid for other reasons because it corresponds to
+			% a diririchletdiag of zero, yet it is not allowed to be < 1. So instead of the function
+			% above, can instead drop the limit term and write the rest of the expression out
+			% which give identical results from p=0.00001 to p=0.99 (note that if dirichletdiag>=1) 
+			% then the upper bound on the transition probability is p=0.5 anyway for K=2
+			f = @(p)1-(1./log(p).^2).*(p-1);
+		end
 
 		function tested_lifetime = test_lifetime(n_trials,steps_per_trial,K,dirichletdiag)
 			% Run simulate_lifetimes for n_trials times, and return the average lifetime
