@@ -76,6 +76,7 @@ else
 end
 
 if ncomp > size(A,2)
+   ncomp = size(A,2);
    warning(['The number of required PCA components is higher than ' ...
        'the dimension of the data - Ignoring PCA.']) 
 end
