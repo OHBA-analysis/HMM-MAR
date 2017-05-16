@@ -51,7 +51,9 @@ for i = 1:N
     else
         BIGNbatch = hmm.train.BIGNbatch;
         hmm.train = rmfield(hmm.train,'BIGNbatch');
+        pca = hmm.train.pca; hmm.train.pca = 0; 
         Path(t,:) = hmmdecode(X,Ti,hmm,type,Y);
+        hmm.train.pca = pca; 
         hmm.train.BIGNbatch = BIGNbatch;
     end
     
