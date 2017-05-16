@@ -120,6 +120,7 @@ if stochastic_learn
         options.S = ones(options.ndim);
         orders = formorders(options.order,options.orderoffset,options.timelag,options.exptimelag); 
         options.Sind = formindexes(orders,options.S);
+        if ~options.zeromean, options.Sind = [true(1,size(options.Sind,2)); options.Sind]; end
         if isfield(options,'state') && isfield(options.state(1),'train')
             for k = 1:options.K
                 options.state(k).train.S = options.S;
@@ -190,6 +191,7 @@ else
         options.S = ones(options.ndim);
         orders = formorders(options.order,options.orderoffset,options.timelag,options.exptimelag);
         options.Sind = formindexes(orders,options.S);
+        if ~options.zeromean, options.Sind = [true(1,size(options.Sind,2)); options.Sind]; end
         if isfield(options,'state') && isfield(options.state(1),'train')
             for k = 1:options.K
                 options.state(k).train.S = options.S;

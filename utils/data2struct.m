@@ -1,7 +1,7 @@
 function data = data2struct(data,T,options)
 
 if ~isstruct(data), data = struct('X',data); end
-if ~isfield(data,'C'), 
+if ~isfield(data,'C')
     if options.K>1, data.C = NaN(size(data.X,1)-options.maxorder*length(T),options.K); 
     else data.C = ones(size(data.X,1),1); 
     end

@@ -5,17 +5,19 @@ function [Path,Xi] = hmmdecode(data,T,hmm,type,residuals,reproc)
 % was fixed. This means that the assignment for those can be different.
 %
 % INPUT
-% X             Observations
+% data          observations, either a struct with X (time series) and C (classes, optional)
+%                             or just a matrix containing the time series
 % T             length of series
 % hmm           hmm data structure
 % type          0, state time courses; 1, viterbi path
 % residuals     in case we train on residuals, the value of those (optional)
-% train       the hmm train, that will be used if hmm.train is missing
 %
 % OUTPUT
-% vpath         (T x 1) maximum likelihood state sequence (type=0 OR
+% vpath         (T x 1) maximum likelihood state sequence (type=1) OR
 % vpath         (T x K) state time courses
-%
+% Xi            joint probability of past and future states conditioned on data
+%                   (empty if Viterbi path is computed) 
+
 % Author: Diego Vidaurre, OHBA, University of Oxford
 
 if nargin<4, type = 0; end
@@ -37,7 +39,7 @@ if stochastic_learn
           catch, error('The dimension of data does not correspond to T');
           end
        end
-       if ~isempty(data), 
+       if ~isempty(data)
            error('The dimension of data does not correspond to T');
        end 
        data = dat; T = TT; clear dat TT
@@ -187,7 +189,7 @@ if hmm.train.useParallel==1 && N>1
             if scale(i)<realmin, scale(i) = realmin; end
             alpha(i,:)=alpha(i,:)/(scale(i));
             
-            for k=1:K,
+            for k=1:K
                 v=delta(i-1,:).*P(:,k)';
                 mv=max(v);
                 delta(i,k)=mv*B(i,k);  % Eq 33a Rabiner (1989)
@@ -201,7 +203,7 @@ if hmm.train.useParallel==1 && N>1
                 else
                     psi(i,k)=fmv;  % ARGMAX; Eq 33b Rabiner (1989)
                 end
-            end;
+            end
             
             % SCALING FOR DELTA ????
             dscale(i)=sum(delta(i,:));
@@ -227,7 +229,7 @@ if hmm.train.useParallel==1 && N>1
         % Backtracking for Viterbi decoding
         id = find(delta(T(tr)-order,:)==max(delta(T(tr)-order,:)));% Eq 34b Rabiner;
         q_star(T(tr)-order) = id(1);
-        for i=T(tr)-1-order:-1:1,
+        for i=T(tr)-1-order:-1:1
             q_star(i) = psi(i+1,q_star(i+1));
         end
         
@@ -276,7 +278,7 @@ else
             scale(i)=sum(alpha(i,:));
             alpha(i,:)=alpha(i,:)/(scale(i)+realmin);
             
-            for k=1:K,
+            for k=1:K
                 v=delta(i-1,:).*P(:,k)';
                 mv=max(v);
                 delta(i,k)=mv*B(i,k);  % Eq 33a Rabiner (1989)
@@ -314,7 +316,7 @@ else
         % Backtracking for Viterbi decoding
         id = find(delta(T(tr)-order,:)==max(delta(T(tr)-order,:)));% Eq 34b Rabiner;
         q_star(T(tr)-order) = id(1);
-        for i=T(tr)-1-order:-1:1,
+        for i=T(tr)-1-order:-1:1
             q_star(i) = psi(i+1,q_star(i+1));
         end
         

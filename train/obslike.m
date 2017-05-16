@@ -32,7 +32,7 @@ else Q = ndim; end
 
 if nargin<3 || isempty(residuals)
     ndim = size(X,2);
-    if ~isfield(hmm.train,'Sind'),
+    if ~isfield(hmm.train,'Sind')
         if hmm.train.pcapred==0
             orders = formorders(hmm.train.order,hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag);
             hmm.train.Sind = formindexes(orders,hmm.train.S);
@@ -51,25 +51,25 @@ regressed = sum(S,1)>0;
 ltpi = sum(regressed)/2 * log(2*pi);
 L = zeros(T,K);  
 
-switch hmm.train.covtype,
+switch hmm.train.covtype
     case 'uniquediag'
         ldetWishB=0;
         PsiWish_alphasum=0;
-        for n=1:ndim,
+        for n=1:ndim
             if ~regressed(n), continue; end
             ldetWishB=ldetWishB+0.5*log(hmm.Omega.Gam_rate(n));
             PsiWish_alphasum=PsiWish_alphasum+0.5*psi(hmm.Omega.Gam_shape);
-        end;
+        end
         C = hmm.Omega.Gam_shape ./ hmm.Omega.Gam_rate;
     case 'uniquefull'
         ldetWishB=0.5*logdet(hmm.Omega.Gam_rate(regressed,regressed));
         PsiWish_alphasum=0;
-        for n=1:sum(regressed),
+        for n=1:sum(regressed)
             PsiWish_alphasum=PsiWish_alphasum+psi(hmm.Omega.Gam_shape/2+0.5-n/2); 
-        end;
+        end
         PsiWish_alphasum=PsiWish_alphasum*0.5;
         C = hmm.Omega.Gam_shape * hmm.Omega.Gam_irate;
-end;
+end
 
 for k=1:K
 
@@ -87,24 +87,24 @@ for k=1:K
         setstateoptions;
         do_normwishtrace = ~isempty(hmm.state(k).W.Mu_W);
     
-        switch train.covtype,
+        switch train.covtype
             case 'diag'
                 ldetWishB=0;
                 PsiWish_alphasum=0;
-                for n=1:ndim,
+                for n=1:ndim
                     if ~regressed(n), continue; end
                     ldetWishB=ldetWishB+0.5*log(hmm.state(k).Omega.Gam_rate(n));
                     PsiWish_alphasum=PsiWish_alphasum+0.5*psi(hmm.state(k).Omega.Gam_shape);
-                end;
+                end
                 C = hmm.state(k).Omega.Gam_shape ./ hmm.state(k).Omega.Gam_rate;
             case 'full'
                 ldetWishB=0.5*logdet(hmm.state(k).Omega.Gam_rate(regressed,regressed));
                 PsiWish_alphasum=0;
-                for n=1:sum(regressed),
+                for n=1:sum(regressed)
                     PsiWish_alphasum=PsiWish_alphasum+0.5*psi(hmm.state(k).Omega.Gam_shape/2+0.5-n/2);  
-                end;
+                end
                 C = hmm.state(k).Omega.Gam_shape * hmm.state(k).Omega.Gam_irate;
-        end;
+        end
     end
         
     meand = zeros(size(XX{kk},1),sum(regressed));
@@ -124,15 +124,15 @@ for k=1:K
     end
     
     dist=zeros(Tres,1);
-    for n=1:sum(regressed),
+    for n=1:sum(regressed)
         dist=dist-0.5*d(:,n).*Cd(n,:)';
     end
     
     NormWishtrace=zeros(Tres,1);
     if do_normwishtrace
-        switch train.covtype,
+        switch train.covtype
             case {'diag','uniquediag'}
-                for n=1:ndim,
+                for n=1:ndim
                     if ~regressed(n), continue; end
                     if train.uniqueAR
                         ind = n:ndim:size(XX{kk},2);
@@ -147,7 +147,7 @@ for k=1:K
                             sum( (XX{kk}(:,Sind(:,n)) * permute(hmm.state(k).W.S_W(n,Sind(:,n),Sind(:,n)),[2 3 1])) ...
                             .* XX{kk}(:,Sind(:,n)), 2);
                     end
-                end;
+                end
                 
             case {'full','uniquefull'}
                 if isempty(orders) 

@@ -79,7 +79,7 @@ options.BIGforgetrate = 0.7;
 options.BIGbase_weights = 0.9;
     
 for covtype = {'full','diag'} %,'uniquefull','uniquediag'}
-    if strcmp(covtype,'full') && options.AR==1, continue; end
+    if strcmp(covtype,'full') && (isfield(options,'AR') && options.AR==1), continue; end
     for order = [0 2]
         for zeromean = [0 1]
             if (strcmp(covtype,'uniquefull') || strcmp(covtype,'uniquediag')) ...
