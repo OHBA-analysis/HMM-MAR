@@ -34,7 +34,7 @@ else Q = ndim; end
 pcapred = hmm.train.pcapred>0;
 if pcapred, M = hmm.train.pcapred; end
 
-for k=1:hmm.K,
+for k=1:hmm.K
     if isfield(hmm.train,'state') && isfield(hmm.train.state(k),'train') && ~isempty(hmm.train.state(k).train)
         train = hmm.train.state(k).train;
     else
@@ -70,7 +70,7 @@ for k=1:hmm.K,
             defstateprior(k).alpha.Gam_rate = 0.1*ones(1,length(orders));
         end
     end
-    if ~train.zeromean,
+    if ~train.zeromean
         defstateprior(k).Mean = struct('Mu',[],'iS',[]);
         defstateprior(k).Mean.Mu = zeros(ndim,1);
         defstateprior(k).Mean.S = rangresiduals2';
@@ -96,22 +96,22 @@ elseif strcmp(hmm.train.covtype,'uniquediag')
 end
 
 % assigning default priors for observation models
-if ~isfield(hmm,'state') || ~isfield(hmm.state,'prior'),
-    for k=1:hmm.K,
+if ~isfield(hmm,'state') || ~isfield(hmm.state,'prior')
+    for k=1:hmm.K
         hmm.state(k).prior=defstateprior(k);
-    end;
+    end
 else
-    for k=1:hmm.K,
+    for k=1:hmm.K
         % prior not specified are set to default
         statepriorlist=fieldnames(defstateprior(k));
         fldname=fieldnames(hmm.state(k).prior);
         misfldname=find(~ismember(statepriorlist,fldname));
-        for i=1:length(misfldname),
+        for i=1:length(misfldname)
             priorval=getfield(defstateprior(k),statepriorlist{i});
             hmm.state(k).prior=setfield(hmm.state,k,'prior',statepriorlist{i}, ...
                 priorval);
-        end;
-    end;
+        end
+    end
 end
 
 % moving the state options for convenience
@@ -179,7 +179,7 @@ for k=1:K
                 hmm.state(k).W.S_W(n,Sind(:,n),Sind(:,n)) = inv(permute(hmm.state(k).W.iS_W(n,Sind(:,n),Sind(:,n)),[2 3 1]));
                 hmm.state(k).W.Mu_W(Sind(:,n),n) = (( permute(hmm.state(k).W.S_W(n,Sind(:,n),Sind(:,n)),[2 3 1])...
                     * XX{kk}(:,Sind(:,n))') .* repmat(Gamma(:,k)',sum(Sind(:,n)),1)) * residuals(:,n);
-            end;
+            end
         else
             gram = kron(XXGXX{k},eye(ndim));
             hmm.state(k).W.iS_W = gram + 0.01*eye(size(gram,1));
@@ -187,7 +187,7 @@ for k=1:K
             hmm.state(k).W.Mu_W = (( XXGXX{k} \ XX{kk}' ) .* repmat(Gamma(:,k)',(~train.zeromean)+npred,1)) * residuals;
         end
     end
-end;
+end
 
 % Omega
 if strcmp(hmm.train.covtype,'uniquediag') && hmm.train.uniqueAR
@@ -204,7 +204,7 @@ if strcmp(hmm.train.covtype,'uniquediag') && hmm.train.uniqueAR
         e = (residuals - XW).^2;
         hmm.Omega.Gam_rate = hmm.Omega.Gam_rate + ...
             0.5 * sum( repmat(Gamma(:,k),1,ndim) .* e );
-    end;
+    end
     hmm.Omega.Gam_shape = hmm.prior.Omega.Gam_shape + Tres / 2;
     
 elseif strcmp(hmm.train.covtype,'uniquediag')
@@ -280,7 +280,7 @@ end
 
 %%% Priors
 if ~pcapred
-    for k=1:K,
+    for k=1:K
         if isfield(hmm.state(k),'train') && ~isempty(hmm.state(k).train), train = hmm.state(k).train;
         else train = hmm.train;
         end

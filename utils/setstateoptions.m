@@ -7,7 +7,7 @@
 orders = train.orders;
 order = max(orders); if isempty(order), order = 0; end
 
-if ~isfield(train,'Sind'), 
+if ~isfield(train,'Sind') 
     if isfield(hmm.train,'V') && ~isempty(hmm.train.V)
         train.Sind = ones(size(hmm.train.V,2),hmm.train.ndim);
     else

@@ -6,7 +6,7 @@ end
 
 if ~isfield(options,'K'), error('K was not specified'); end
 if ~isstruct(data), data = struct('X',data); end
-if size(data.X,1)~=sum(T), 
+if size(data.X,1)~=sum(T)
     error('Total time specified in T does not match the size of the data')
 end
 
@@ -20,14 +20,14 @@ if ~isfield(options,'vcomp') && options.pcapred>0, options.vcomp = 1; end
 if ~isfield(options,'standardise'), options.standardise = 1; end
 if ~isfield(options,'standardise_pc'), options.standardise_pc = 0; end  
 
-if length(options.pca)==1 && options.pca == 0, 
+if length(options.pca)==1 && options.pca == 0
     ndim = length(options.embeddedlags) * size(data.X,2);
 elseif options.pca(1) < 1
     ndim = size(data.X,2); % temporal assignment
 else
     ndim = options.pca;
 end
-if ~isfield(options,'S'), 
+if ~isfield(options,'S') 
     if options.pcamar>0, options.S = ones(options.pcamar,ndim);
     else options.S = ones(ndim); 
     end
@@ -113,11 +113,11 @@ if ~isfield(options,'repetitions'), options.repetitions = 1; end
 if ~isfield(options,'updateGamma'), options.updateGamma = 1; end
 if ~isfield(options,'decodeGamma'), options.decodeGamma = 1; end
 if ~isfield(options,'keepS_W'), options.keepS_W = 1; end
-if ~isfield(options,'useParallel'), 
+if ~isfield(options,'useParallel')
     options.useParallel = (length(T)>1);
 end
 
-if ~isfield(options,'useMEX') || options.useMEX==1, 
+if ~isfield(options,'useMEX') || options.useMEX==1
     options.useMEX = verifyMEX(); 
 end
 
@@ -131,31 +131,31 @@ if isempty(options.Gamma) && ~isempty(options.hmm)
     error('Gamma must be provided in options if you want a warm restart')
 end
 
-if ~strcmp(options.inittype,'random') && options.initrep == 0,
+if ~strcmp(options.inittype,'random') && options.initrep == 0
     options.inittype = 'random';
     warning('Non random init was set, but initrep==0')
 end
 
 if options.K~=size(data.C,2), error('Matrix data.C should have K columns'); end
-if options.K>1 && options.updateGamma == 0 && isempty(options.Gamma), 
+if options.K>1 && options.updateGamma == 0 && isempty(options.Gamma)
     warning('Gamma is unspecified, so updateGamma was set to 1');  options.updateGamma = 1; 
 end
-if options.updateGamma == 1 && options.K == 1,
+if options.updateGamma == 1 && options.K == 1
     warning('Since K is one, updateGamma was set to 0');  options.updateGamma = 0; 
 end
-if options.updateGamma == 0 && options.repetitions>1,
+if options.updateGamma == 0 && options.repetitions>1
     error('If Gamma is not going to be updated, repetitions>1 is unnecessary')
 end
 
 if ~isempty(options.Gamma)
     if length(options.embeddedlags)>1
         if (size(options.Gamma,1) ~= (sum(T) - length(options.embeddedlags) + 1 )) || ...
-                (size(options.Gamma,2) ~= options.K),
+                (size(options.Gamma,2) ~= options.K)
             error('The supplied Gamma has not the right dimensions')
         end        
     else
         if (size(options.Gamma,1) ~= (sum(T) - options.maxorder*length(T))) || ...
-                (size(options.Gamma,2) ~= options.K),
+                (size(options.Gamma,2) ~= options.K)
             error('The supplied Gamma has not the right dimensions')
         end
     end
@@ -182,7 +182,7 @@ end
 
 function options = checkMARparametrization(options,S,ndim)
 
-if ~isfield(options,'order'), 
+if ~isfield(options,'order')
     options.order = 0;
     warning('order was not specified - it will be set to 0'); 
 end
@@ -206,7 +206,7 @@ end
 if isfield(options,'pcapred') && options.pcapred>0 
     if options.order==0, error('Option pcapred>0 must be used with some order>0'); end
     if isfield(options,'S') && any(options.S(:)~=1), error('S must have all elements equal to 1 if pcapred>0'); end 
-    if isfield(options,'symmetricprior') && options.symmetricprior==1, 
+    if isfield(options,'symmetricprior') && options.symmetricprior==1
         error('Option symmetricprior makes no sense if pcamar>0'); 
     end
     if isfield(options,'uniqueAR') && options.uniqueAR==1, error('pcapred cannot be >0 if uniqueAR is set to 0'); end
@@ -219,7 +219,7 @@ elseif (strcmp(options.covtype,'full') || strcmp(options.covtype,'uniquefull')) 
     else options.covtype = 'uniquediag';
     end
 end
-if ~isfield(options,'zeromean'), 
+if ~isfield(options,'zeromean')
     if options.order>0, options.zeromean = 1; 
     else options.zeromean = 0;
     end
@@ -237,7 +237,7 @@ end
 if (options.order>0) && (options.timelag<1) && (options.exptimelag<=1)
     error('if order>0 then you should specify either timelag>=1 or exptimelag>=1')
 end
-if ~isfield(options,'S'), % 
+if ~isfield(options,'S')
     if nargin>=2 && ~isempty(S)
         if (length(options.pca)==1 && options.pca==0) || all(S(:))==1
             options.S = S;
@@ -268,7 +268,7 @@ elseif ~isfield(options.prior,'S') || ~isfield(options.prior,'Mu')
 elseif size(options.prior.S,1)~=(length(orders) + ~options.zeromean) ...
         || size(options.prior.S,2)~=(length(orders) + ~options.zeromean)
     error('The covariance matrix of the supplied prior has not the right dimensions')
-elseif cond(options.prior.S) > 1/eps;
+elseif cond(options.prior.S) > 1/eps
     error('The covariance matrix of the supplied prior is ill-conditioned')
 elseif size(options.prior.Mu,1)~=(length(orders) + ~options.zeromean) || size(options.prior.Mu,2)~=1
     error('The mean of the supplied prior has not the right dimensions')
@@ -276,13 +276,13 @@ else
     options.prior.iS = inv(options.prior.S);
     options.prior.iSMu = options.prior.iS * options.prior.Mu;
 end
-if ~issymmetric(options.S) && options.symmetricprior==1,
+if ~issymmetric(options.S) && options.symmetricprior==1
    error('In order to use a symmetric prior, you need S to be symmetric as well') 
 end
-if (strcmp(options.covtype,'full') || strcmp(options.covtype,'uniquefull')) &&  ~all(options.S(:)==1),
+if (strcmp(options.covtype,'full') || strcmp(options.covtype,'uniquefull')) &&  ~all(options.S(:)==1)
     error('if S is not all set to 1, then covtype must be diag or uniquediag')
 end
-if (strcmp(options.covtype,'full') || strcmp(options.covtype,'uniquefull')) && options.uniqueAR,
+if (strcmp(options.covtype,'full') || strcmp(options.covtype,'uniquefull')) && options.uniqueAR
     error('covtype must be diag or uniquediag if uniqueAR==1')
 end
 if options.uniqueAR && ~options.zeromean

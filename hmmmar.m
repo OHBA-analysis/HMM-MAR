@@ -37,7 +37,7 @@ options = checkspelling(options);
 
 % do some data checking and preparation
 if xor(iscell(data),iscell(T)), error('X and T must be cells, either both or none of them.'); end
-if stochastic_learn, % data is a cell, either with strings or with matrices
+if stochastic_learn % data is a cell, either with strings or with matrices
     if ~iscell(data)
        dat = cell(N,1); TT = cell(N,1);
        for i=1:N
@@ -47,7 +47,7 @@ if stochastic_learn, % data is a cell, either with strings or with matrices
           catch, error('The dimension of data does not correspond to T');
           end
        end
-       if ~isempty(data), 
+       if ~isempty(data) 
            error('The dimension of data does not correspond to T');
        end 
        data = dat; T = TT; clear dat TT
@@ -110,15 +110,23 @@ end
 if stochastic_learn
     
     % get PCA loadings 
-    if length(options.pca) > 1 || options.pca > 0 
+    if length(options.pca) > 1 || (options.pca > 0 && options.pca ~= 1)
         if ~isfield(options,'A')
             options.A = highdim_pca(data,T,options.pca,...
                 options.embeddedlags,options.standardise,options.onpower);
+            options.pca = size(options.A,2);
         end
         options.ndim = size(options.A,2);
         options.S = ones(options.ndim);
         orders = formorders(options.order,options.orderoffset,options.timelag,options.exptimelag); 
         options.Sind = formindexes(orders,options.S);
+        if isfield(options,'state') && isfield(options.state(1),'train')
+            for k = 1:options.K
+                options.state(k).train.S = options.S;
+                options.state(k).train.Sind = options.Sind;
+                options.state(k).train.ndim = options.ndim;
+            end
+        end
     end
     if options.pcamar > 0 && ~isfield(options,'B')
         options.B = pcamar_decomp(data,T,options);
@@ -163,12 +171,13 @@ else
         [data,T] = embeddata(data,T,options.embeddedlags);
     end
     % PCA transform
-    if length(options.pca) > 1 || options.pca > 0  
+    if length(options.pca) > 1 || (options.pca > 0 && options.pca ~= 1)
         if isfield(options,'A')
             data.X = data.X - repmat(mean(data.X),size(data.X,1),1);
             data.X = data.X * options.A; 
         else
             [options.A,data.X] = highdim_pca(data.X,T,options.pca,0,0,0);
+            options.pca = size(options.A,2);
         end
         if options.standardise_pc == 1
             for i = 1:N
@@ -181,6 +190,13 @@ else
         options.S = ones(options.ndim);
         orders = formorders(options.order,options.orderoffset,options.timelag,options.exptimelag);
         options.Sind = formindexes(orders,options.S);
+        if isfield(options,'state') && isfield(options.state(1),'train')
+            for k = 1:options.K
+                options.state(k).train.S = options.S;
+                options.state(k).train.Sind = options.Sind;
+                options.state(k).train.ndim = options.ndim;
+            end
+        end
     end
     if options.pcamar > 0 && ~isfield(options,'B')
         options.B = pcamar_decomp(data,T,options);
@@ -248,10 +264,10 @@ else
         hmm0 = hmm_wr;
         residuals0 = residuals_wr;
         [hmm0,Gamma0,Xi0,fehist0] = hmmtrain(data,T,hmm0,GammaInit,residuals0,options.fehist);
-        if options.updateGamma==1 && fehist0(end)<fehist(end),
+        if options.updateGamma==1 && fehist0(end)<fehist(end)
             fehist = fehist0; hmm = hmm0;
             residuals = residuals0; Gamma = Gamma0; Xi = Xi0;
-        elseif options.updateGamma==0,
+        elseif options.updateGamma==0
             fehist = []; hmm = hmm0;
             residuals = []; Gamma = GammaInit; Xi = [];
         end
@@ -284,8 +300,5 @@ if gatherStats==1
     profsave(profile('info'),hmm.train.DirStats)
 end
 
-if options.pca > 0
-    hmm.train.A = options.A; 
-end
     
 end

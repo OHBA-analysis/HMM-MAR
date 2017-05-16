@@ -33,14 +33,14 @@ Gamma = cell(length(init_k),1);
 if options.useParallel % not very elegant
     parfor it=1:length(init_k)
         [Gamma{it},fehist(it)] = run_initialization(data,T,options,Sind,init_k(it));
-        if options.verbose,
+        if options.verbose
             fprintf('Init run %2d, %2d->%2d states, Free Energy = %f \n',it,init_k(it),size(Gamma{it},2),fehist(it));
         end
     end
 else
     for it=1:length(init_k)
         [Gamma{it},fehist(it)] = run_initialization(data,T,options,Sind,init_k(it));
-        if options.verbose,
+        if options.verbose
             fprintf('Init run %2d, %2d->%2d states, Free Energy = %f \n',it,init_k(it),size(Gamma{it},2),fehist(it));
         end
     end 
@@ -56,32 +56,32 @@ end
 end
 
 function [Gamma,fe] = run_initialization(data,T,options,Sind,init_k)
-    % INPUTS
-    % - data,T,options,Sind <same as hmmmar_init>
-    % - init_k is the number of states to use for this initialization
+% INPUTS
+% - data,T,options,Sind <same as hmmmar_init>
+% - init_k is the number of states to use for this initialization
 
-    % Need to adjust the worker dirichletdiags if testing smaller K values
-    if init_k < options.K 
-        p = options.DirichletDiag/(options.DirichletDiag + options.K - 1); % Probability of remaining in same state
-        f_prob = dirichletdiags.mean_lifetime(); % Function that returns the lifetime in steps given the probability
-        expected_lifetime =  f_prob(p)/options.Fs; % Expected number of steps given the probability
-        options.K = init_k;
-        options.DirichletDiag = dirichletdiags.get(expected_lifetime,options.Fs,options.K);
-    end
+% Need to adjust the worker dirichletdiags if testing smaller K values
+if init_k < options.K
+    p = options.DirichletDiag/(options.DirichletDiag + options.K - 1); % Probability of remaining in same state
+    f_prob = dirichletdiags.mean_lifetime(); % Function that returns the lifetime in steps given the probability
+    expected_lifetime =  f_prob(p)/options.Fs; % Expected number of steps given the probability
+    options.K = init_k;
+    options.DirichletDiag = dirichletdiags.get(expected_lifetime,options.Fs,options.K);
+end
 
-    data.C = data.C(:,1:options.K);
-    % Note - initGamma_random uses DD=1 so that there are lots of transition times, which
-    % helps the inference not get stuck in a local minimum. options.DirichletDiag is
-    % then used inside hmmtrain when computing the free energy
-    options.Gamma = initGamma_random(T-options.maxorder,options.K,1);
-    hmm=struct('train',struct());
-    hmm.K = options.K;
-    hmm.train = options; 
-    hmm.train.Sind = Sind; 
-    hmm.train.cyc = hmm.train.initcyc;
-    hmm.train.verbose = 0;
-    hmm = hmmhsinit(hmm);
-    [hmm,residuals]=obsinit(data,T,hmm,options.Gamma);
-    [~,Gamma,~,fehist] = hmmtrain(data,T,hmm,options.Gamma,residuals);
-    fe = fehist(end);
+data.C = data.C(:,1:options.K);
+% Note - initGamma_random uses DD=1 so that there are lots of transition times, which
+% helps the inference not get stuck in a local minimum. options.DirichletDiag is
+% then used inside hmmtrain when computing the free energy
+options.Gamma = initGamma_random(T-options.maxorder,options.K,1);
+hmm = struct('train',struct());
+hmm.K = options.K;
+hmm.train = options;
+hmm.train.Sind = Sind;
+hmm.train.cyc = hmm.train.initcyc;
+hmm.train.verbose = 0;
+hmm = hmmhsinit(hmm);
+[hmm,residuals]=obsinit(data,T,hmm,options.Gamma);
+[~,Gamma,~,fehist] = hmmtrain(data,T,hmm,options.Gamma,residuals);
+fe = fehist(end);
 end

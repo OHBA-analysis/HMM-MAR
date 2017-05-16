@@ -9,7 +9,7 @@ function hmm = hmmhsinit (hmm)
 % Author: Diego Vidaurre, OHBA, University of Oxford
 
 % Initialising the posteriors
-for k=1:hmm.K,
+for k=1:hmm.K
   % Initial state
   hmm.Dir_alpha(k)=1;
   hmm.Pi(k)=hmm.Dir_alpha(k)./hmm.K;
@@ -25,19 +25,19 @@ defhmmprior=struct('Dir2d_alpha',[],'Dir_alpha',[]);
   
 defhmmprior.Dir_alpha=ones(1,hmm.K);
 defhmmprior.Dir2d_alpha=ones(hmm.K);
-for k=1:hmm.K,
+for k=1:hmm.K
     defhmmprior.Dir2d_alpha(k,k) = hmm.train.DirichletDiag;
 end
 defhmmprior.Dir2d_alpha=hmm.train.PriorWeighting.*defhmmprior.Dir2d_alpha;
 % assigning default priors for hidden states
-if ~isfield(hmm,'prior'),
+if ~isfield(hmm,'prior')
   hmm.prior=defhmmprior;
 else
   % priors not specified are set to default
   hmmpriorlist=fieldnames(defhmmprior);
   fldname=fieldnames(hmm.prior);
   misfldname=find(~ismember(hmmpriorlist,fldname));
-  for i=1:length(misfldname),
+  for i=1:length(misfldname)
     priorval=getfield(defhmmprior,hmmpriorlist{i});
     hmm.prior=setfield(hmm.prior,hmmpriorlist{i},priorval);
   end

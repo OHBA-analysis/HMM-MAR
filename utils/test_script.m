@@ -5,12 +5,14 @@
 % gen data
 X = randn(2000,3); T = 250*ones(8,1); 
 B = rand(3);
-for i=1:4, 
+for i=1:4
     X((1:100)+sum(T(1:i-1)),:) = X((1:100)+sum(T(1:i-1)),:) * B; 
     for j=1:3
         X((1:250)+sum(T(1:i-1)),j) = smooth(X((1:250)+sum(T(1:i-1)),j),10);
     end
 end
+C = rand(3,10); 
+X = X * C;
 
 %%
 
@@ -19,6 +21,7 @@ options = struct();
 options.K = 2; 
 options.tol = 1e-7;
 options.cyc = 12;
+options.pca = 0.95;
 options.inittype = 'hmmmar';
 options.DirichletDiag = 10;
 options.initcyc = 4;
@@ -37,10 +40,10 @@ for covtype = {'full','diag','uniquefull','uniquediag'}
             options.covtype = covtype{1};
             options.order = order;
             options.zeromean = zeromean;
-            [hmm,Gamma] = hmmmar(X,T,options);
+            [hmm,Gamma,Xi,vpath] = hmmmar(X,T,options);
             if order==2 && (strcmp(covtype,'diag') || strcmp(covtype,'uniquediag'))
                 options.AR = 1;
-                [hmm,Gamma] = hmmmar(X,T,options);
+                [hmm,Gamma,Xi,vpath] = hmmmar(X,T,options);
                 options.AR = 0;
             end
         end
@@ -49,7 +52,7 @@ end
 
 % random initialization
 options.inittype = 'random';
-[hmm,Gamma] = hmmmar(X,T,options);
+[hmm,Gamma,Xi,vpath] = hmmmar(X,T,options);
 
 
 %% stochastic inference
@@ -64,7 +67,7 @@ options.initrep = 2;
 options.standardise = 1;
 options.verbose = 0; 
 options.useParallel = 0;
-options.AR = 0;
+options.pca = 2;
 
 options.BIGNbatch = 3;
 options.BIGNinitbatch = 3;
@@ -86,7 +89,7 @@ for covtype = {'full','diag'} %,'uniquefull','uniquediag'}
             options.covtype = covtype{1};
             options.order = order;
             options.zeromean = zeromean;
-            [hmm,Gamma] = hmmmar(X,T,options);
+            [hmm,Gamma,Xi,vpath] = hmmmar(X,T,options);
         end
     end
 end

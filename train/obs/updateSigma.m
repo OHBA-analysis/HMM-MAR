@@ -10,7 +10,7 @@ for k=1:K
     setstateoptions;
     if isempty(orders) || train.uniqueAR || ~isempty(train.prior), continue; end
     %shape
-    if train.symmetricprior,
+    if train.symmetricprior
         hmm.state(k).sigma.Gam_shape = hmm.state(k).prior.sigma.Gam_shape + length(orders);
         for n=1:ndim
             hmm.state(k).sigma.Gam_shape(n,n) = hmm.state(k).prior.sigma.Gam_shape(n,n) + 0.5*length(orders);
@@ -24,14 +24,14 @@ for k=1:K
     for n1=1:Q
         if any(S(n1,:)==1)
             for n2=find(S(n1,:)==1)
-                if train.symmetricprior && n1>n2,
+                if train.symmetricprior && n1>n2
                     continue;
                 end
                 index = n1 + (0:length(orders)-1)*Q + ~train.zeromean;
                 hmm.state(k).sigma.Gam_rate(n1,n2) = hmm.state(k).sigma.Gam_rate(n1,n2) + ...
                     0.5 * (hmm.state(k).W.Mu_W(index,n2)' * ...
                     ((hmm.state(k).alpha.Gam_shape ./ hmm.state(k).alpha.Gam_rate') .* hmm.state(k).W.Mu_W(index,n2)) );
-                if hmm.train.symmetricprior && n1~=n2,
+                if hmm.train.symmetricprior && n1~=n2
                     index = n2 + (0:length(orders)-1)*ndim + ~train.zeromean;
                     hmm.state(k).sigma.Gam_rate(n1,n2) = hmm.state(k).sigma.Gam_rate(n1,n2) + ...
                         0.5 * (hmm.state(k).W.Mu_W(index,n1)' * ...
