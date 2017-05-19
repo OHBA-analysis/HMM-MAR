@@ -23,7 +23,7 @@ else
     Gamma = Gamma > (2/3);
 end
 
-Intervals = cell(K,1);
+Intervals = cell(N,K);
 order = (sum(T)-size(Gamma,1))/length(T);
 
 for j=1:N
@@ -32,8 +32,8 @@ for j=1:N
     for k=1:K
         t = find(Gamma(ind,k)==1,1);
         if isempty(t), continue; end
-        lfk = aux_k(Gamma(ind(t:end),k),threshold);
-        Intervals{k} = [Intervals{k} lfk];
+        Intervals{j,k} = aux_k(Gamma(ind(t:end),k),threshold);
+        %Intervals{k} = [Intervals{k} lfk];
         %Gamma(ind,k) = g;
     end
 end

@@ -25,15 +25,15 @@ else
     Gamma = Gamma > (2/3);
 end
 
-LifeTimes = cell(K,1);
+LifeTimes = cell(N,K);
 order = (sum(T)-size(Gamma,1))/length(T);
 
 for j=1:N
     t0 = sum(T(1:j-1)) - (j-1)*order;
     ind = (1:T(j)-order) + t0;
     for k=1:K
-        lfk = aux_k(Gamma(ind,k),threshold);
-        LifeTimes{k} = [LifeTimes{k} lfk];
+        LifeTimes{j,k} = aux_k(Gamma(ind,k),threshold);
+        %LifeTimes{k} = [LifeTimes{k} lfk];
         %Gamma(ind,k) = g;
     end
 end
