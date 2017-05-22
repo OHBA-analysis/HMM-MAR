@@ -25,6 +25,7 @@ function [Xe,valid] = embedx (X,lags)
 % effects have been removed. The indices of the valid samples from X are
 % optionally output in the vector valid.
 %
+% Romesh Abeysuriya 2017
 % Author: Adam Baker, OHBA, University of Oxford
 
 
@@ -35,7 +36,7 @@ for l = 1:length(lags)
 end
 
 valid = true(size(X,1),1);
-valid(end-lags(end)+1:end) = 0;
-valid(1:abs(lags(1))) = 0;
+valid(end+min(lags)+1:end) = 0;
+valid(1:max(lags)) = 0;
 
 Xe = Xe(valid,:);
