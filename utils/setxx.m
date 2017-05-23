@@ -1,14 +1,14 @@
 K = length(hmm.state);
-if exist('Gamma','var')
+if exist('Gamma','var') && ~isempty(Gamma)
     XXGXX = cell(K,1);
 end
 if ~isfield(hmm.train,'multipleConf') || ~hmm.train.multipleConf
-    if ~exist('B','var'), 
+    if ~exist('B','var')
         if isfield(hmm.train,'B'), B = hmm.train.B;
         else B = []; 
         end
     end
-    if ~exist('V','var'), 
+    if ~exist('V','var')
         if isfield(hmm.train,'V'), V = hmm.train.V;
         else V = []; 
         end
@@ -30,7 +30,7 @@ if ~isfield(hmm.train,'multipleConf') || ~hmm.train.multipleConf
             end
         end
     end
-    if exist('Gamma','var')
+    if exist('Gamma','var') && ~isempty(Gamma)
         for k=1:K
             XXGXX{k} = (XX{1}' .* repmat(Gamma(:,k)',size(XX{1},2),1)) * XX{1};
         end

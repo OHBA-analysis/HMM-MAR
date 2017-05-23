@@ -18,8 +18,8 @@ function [hmm, residuals, W0] = obsinit (data,T,hmm,Gamma)
 if nargin<4, Gamma = []; end
 [residuals,W0] =  getresiduals(data.X,T,hmm.train.Sind,hmm.train.maxorder,hmm.train.order,...
     hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag,hmm.train.zeromean);
-hmm=initpriors(data.X,T,hmm,residuals);
-hmm=initpost(data.X,T,hmm,residuals,Gamma);
+hmm = initpriors(data.X,T,hmm,residuals);
+hmm = initpost(data.X,T,hmm,residuals,Gamma);
 
 end
 

@@ -1,10 +1,12 @@
 function [options,data] = checkoptions (options,data,T,cv)
 
 if isempty(strfind(which('pca'),matlabroot))
-    error('Function pca() seems to be other than Matlab''s own - you need to rmpath() it. Use ''rmpath(fileparts(which(''pca'')))''')
+    error(['Function pca() seems to be other than Matlab''s own - you need to rmpath() it. ' ...
+        'Use ''rmpath(fileparts(which(''pca'')))'''])
 end
 
 if ~isfield(options,'K'), error('K was not specified'); end
+if options.K<1, error('K must be higher than 0'); end
 if ~isstruct(data), data = struct('X',data); end
 if size(data.X,1)~=sum(T)
     error('Total time specified in T does not match the size of the data')
@@ -110,12 +112,17 @@ if ~isfield(options,'PriorWeighting'), options.PriorWeighting = 1; end
 if ~isfield(options,'dropstates'), options.dropstates = 1; end
 %if ~isfield(options,'whitening'), options.whitening = 0; end
 if ~isfield(options,'repetitions'), options.repetitions = 1; end
+if ~isfield(options,'updateObs'), options.updateObs = 1; end
 if ~isfield(options,'updateGamma'), options.updateGamma = 1; end
 if ~isfield(options,'decodeGamma'), options.decodeGamma = 1; end
 if ~isfield(options,'keepS_W'), options.keepS_W = 1; end
 if ~isfield(options,'useParallel')
     options.useParallel = (length(T)>1);
 end
+
+%if ~options.updateObs && ~isfield(options.state,'W') 
+%    error('If updateObs is 0, you need to specify the parameters of the states in options.state')
+%end
 
 if ~isfield(options,'useMEX') || options.useMEX==1
     options.useMEX = verifyMEX(); 
@@ -127,9 +134,9 @@ if options.maxorder+1 >= min(T)
    error('There is at least one trial that is too short for the specified order') 
 end
 
-if isempty(options.Gamma) && ~isempty(options.hmm)
-    error('Gamma must be provided in options if you want a warm restart')
-end
+% if isempty(options.Gamma) && ~isempty(options.hmm)
+%     error('Gamma must be provided in options if you want a warm restart')
+% end
 
 if ~strcmp(options.inittype,'random') && options.initrep == 0
     options.inittype = 'random';

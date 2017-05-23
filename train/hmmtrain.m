@@ -66,12 +66,12 @@ for cycle=1:hmm.train.cyc
             chgFrEn = mean( fehist(end:-1:(end-hmm.train.meancycstop+1)) - ...
                 fehist(end-1:-1:(end-hmm.train.meancycstop)) )  ...
                 / (fehist(1) - fehist(end));
-            if hmm.train.verbose, 
+            if hmm.train.verbose
                 fprintf('cycle %i free energy = %g, %s relative change = %g \n',...
                     cycle,fehist(end),strwin,chgFrEn); 
             end
             if (abs(chgFrEn) < hmm.train.tol) && cyc_to_go==0, break; end
-        elseif hmm.train.verbose, 
+        elseif hmm.train.verbose
             fprintf('cycle %i free energy = %g \n',cycle,fehist(end)); %&& cycle>1
         end
         if cyc_to_go>0, cyc_to_go = cyc_to_go - 1; end
@@ -83,13 +83,15 @@ for cycle=1:hmm.train.cyc
     %%%% M STEP
        
     % Observation model
-    hmm = obsupdate(T,Gamma,hmm,residuals,XX,XXGXX);
+    if hmm.train.updateObs
+        hmm = obsupdate(T,Gamma,hmm,residuals,XX,XXGXX);
+    end
     
-    if hmm.train.updateGamma,
+    if hmm.train.updateGamma
         % transition matrices and initial state
         hmm = hsupdate(Xi,Gamma,T,hmm);
     else
-        break % one is more than enough
+        break % one is enough
     end
 
 end

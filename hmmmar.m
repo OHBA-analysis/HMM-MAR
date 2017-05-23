@@ -136,14 +136,14 @@ if stochastic_learn
         options.V = pcapred_decomp(data,T,options);
     end
     
-    if isempty(options.Gamma) && isempty(options.hmm)
+    if isempty(options.Gamma) && isempty(options.hmm) % both unspecified
         [hmm,info] = hmmsinit(data,T,options);
         GammaInit = []; 
-    elseif isempty(options.Gamma) && ~isempty(options.hmm)
+    elseif isempty(options.Gamma) && ~isempty(options.hmm) % Gamma unspecified
         hmm = versCompatibilityFix(options.hmm);
         GammaInit = [];
         [hmm,info] = hmmsinith(data,T,options,hmm);
-    else % ~isempty(options.Gamma)
+    else % hmm unspecified 
         GammaInit = options.Gamma;
         options = rmfield(options,'Gamma');
         [hmm,info] = hmmsinitg(data,T,options,GammaInit);
@@ -208,12 +208,12 @@ else
     end    
     options.ndim = size(data.X,2);
 
-    if isempty(options.Gamma) && isempty(options.hmm)
+    if isempty(options.Gamma) && isempty(options.hmm) % both unspecified
         if options.K > 1
             Sind = options.Sind;
             if options.initrep>0 && ...
                     (strcmpi(options.inittype,'HMM-MAR') || strcmpi(options.inittype,'HMMMAR'))
-                options.Gamma = hmmmar_init(data,T,options,Sind);
+                GammaInit = hmmmar_init(data,T,options,Sind);
             elseif options.initrep>0 &&  strcmpi(options.inittype,'EM')
                 error('EM init is deprecated; use HMM-MAR initialisation instead')
                 %options.nu = sum(T)/200;
@@ -222,21 +222,20 @@ else
                 error('GMM init is deprecated; use HMM-MAR initialisation instead')
                 %options.Gamma = gmm_init(data,T,options);
             elseif strcmpi(options.inittype,'random') || options.initrep==0
-                options.Gamma = initGamma_random(T-options.maxorder,options.K,options.DirichletDiag);
+                GammaInit = initGamma_random(T-options.maxorder,options.K,options.DirichletDiag);
             else
                 error('Unknown init method')
             end
         else
             options.Gamma = ones(sum(T)-length(T)*options.maxorder,1);
+            GammaInit = options.Gamma;
         end
-        GammaInit = options.Gamma;
-        options = rmfield(options,'Gamma');
-    elseif isempty(options.Gamma) && ~isempty(options.hmm)
+    elseif isempty(options.Gamma) && ~isempty(options.hmm) % Gamma unspecified
         GammaInit = [];
-    else % ~isempty(options.Gamma)
+    else % hmm unspecified, or both specified
         GammaInit = options.Gamma;
-        options = rmfield(options,'Gamma');
     end
+    options = rmfield(options,'Gamma');
 
     % If initialization Gamma has fewer states than options.K, put those states back in
     % and renormalize
@@ -247,7 +246,8 @@ else
     end
 
     fehist = Inf;
-    if isempty(options.hmm) % Initialisation of the hmm
+    if isempty(options.hmm) % Initialisation of the hmm 
+        % GammaInit is required for obsinit, or for hmmtrain when updateGamma==0
         hmm_wr = struct('train',struct());
         hmm_wr.K = options.K;
         hmm_wr.train = options;
