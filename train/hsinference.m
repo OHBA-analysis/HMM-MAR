@@ -23,7 +23,7 @@ N = length(T);
 K = length(hmm.state);
 
 if ~isfield(hmm,'train')
-    if nargin<5 || isempty(options),
+    if nargin<5 || isempty(options)
         error('You must specify the field options if hmm.train is missing');
     end
     hmm.train = checkoptions(options,data.X,T,0);
@@ -33,14 +33,14 @@ order = hmm.train.maxorder;
 if iscell(data)
     data = cell2mat(data);
 end
-if ~isstruct(data),
-    data = struct('X',data); 
+if ~isstruct(data)
+    data = struct('X',data);
     data.C = NaN(size(data.X,1)-order*length(T),K);
 end
 
 if nargin<4 || isempty(residuals)
     ndim = size(data.X,2);
-    if ~isfield(hmm.train,'Sind'),
+    if ~isfield(hmm.train,'Sind')
         orders = formorders(hmm.train.order,hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag);
         hmm.train.Sind = formindexes(orders,hmm.train.S);
     end
@@ -67,12 +67,12 @@ B = cell(N,1);
 n_argout = nargout;
 
 ndim = size(residuals,2);
-S = hmm.train.S==1; 
+S = hmm.train.S==1;
 regressed = sum(S,1)>0;
 
 % Cache shared results for use in obslike
 for k = 1:K
-
+    
     setstateoptions;
     %hmm.cache = struct();
     hmm.cache.train{k} = train;
@@ -81,42 +81,42 @@ for k = 1:K
     hmm.cache.Sind{k} = Sind;
     hmm.cache.S{k} = S;
     hmm.cache.kk{k} = kk;
-
+    
     if k == 1 && strcmp(train.covtype,'uniquediag')
         ldetWishB=0;
         PsiWish_alphasum=0;
-        for n=1:ndim,
+        for n=1:ndim
             if ~regressed(n), continue; end
             ldetWishB=ldetWishB+0.5*log(hmm.Omega.Gam_rate(n));
             PsiWish_alphasum=PsiWish_alphasum+0.5*psi(hmm.Omega.Gam_shape);
-        end;
+        end
         C = hmm.Omega.Gam_shape ./ hmm.Omega.Gam_rate;
     elseif k == 1 && strcmp(train.covtype,'uniquefull')
         ldetWishB=0.5*logdet(hmm.Omega.Gam_rate(regressed,regressed));
         PsiWish_alphasum=0;
-        for n=1:sum(regressed),
-            PsiWish_alphasum=PsiWish_alphasum+psi(hmm.Omega.Gam_shape/2+0.5-n/2); 
-        end;
+        for n=1:sum(regressed)
+            PsiWish_alphasum=PsiWish_alphasum+psi(hmm.Omega.Gam_shape/2+0.5-n/2);
+        end
         PsiWish_alphasum=PsiWish_alphasum*0.5;
         C = hmm.Omega.Gam_shape * hmm.Omega.Gam_irate;
     elseif strcmp(train.covtype,'diag')
         ldetWishB=0;
         PsiWish_alphasum=0;
-        for n=1:ndim,
+        for n=1:ndim
             if ~regressed(n), continue; end
             ldetWishB=ldetWishB+0.5*log(hmm.state(k).Omega.Gam_rate(n));
             PsiWish_alphasum=PsiWish_alphasum+0.5*psi(hmm.state(k).Omega.Gam_shape);
-        end;
+        end
         C = hmm.state(k).Omega.Gam_shape ./ hmm.state(k).Omega.Gam_rate;
     elseif strcmp(train.covtype,'full')
         ldetWishB=0.5*logdet(hmm.state(k).Omega.Gam_rate(regressed,regressed));
         PsiWish_alphasum=0;
-        for n=1:sum(regressed),
-            PsiWish_alphasum=PsiWish_alphasum+0.5*psi(hmm.state(k).Omega.Gam_shape/2+0.5-n/2);  
-        end;
+        for n=1:sum(regressed)
+            PsiWish_alphasum=PsiWish_alphasum+0.5*psi(hmm.state(k).Omega.Gam_shape/2+0.5-n/2);
+        end
         C = hmm.state(k).Omega.Gam_shape * hmm.state(k).Omega.Gam_irate;
-    end  
-
+    end
+    
     hmm.cache.ldetWishB{k} = ldetWishB;
     hmm.cache.PsiWish_alphasum{k} = PsiWish_alphasum;
     hmm.cache.C{k} = C;
@@ -126,10 +126,10 @@ end
 
 
 if hmm.train.useParallel==1 && N>1
-            
+    
     % to duplicate this code is really ugly but there doesn't seem to be
-    % any other way - more Matlab's fault than mine 
-    parfor in=1:N 
+    % any other way - more Matlab's fault than mine
+    parfor in=1:N
         Bt = []; sc = [];
         t0 = sum(T(1:in-1)); s0 = t0 - order*(in-1);
         if order>0
@@ -149,11 +149,11 @@ if hmm.train.useParallel==1 && N>1
             if t>order+1
                 if isempty(no_c), slicer = (t-1):T(in); %slice = (t-order-1):T(in);
                 else slicer = (t-1):(no_c(1)+t-2); %slice = (t-order-1):(no_c(1)+t-2);
-                end;
+                end
             else
                 if isempty(no_c), slicer = t:T(in); %slice = (t-order):T(in);
                 else slicer = t:(no_c(1)+t-2); %slice = (t-order):(no_c(1)+t-2);
-                end;
+                end
             end
             XXt = cell(length(XX),1);
             for k=1:length(XX), XXt{k} = XX{k}(slicer + s0 - order,:); end
@@ -171,7 +171,7 @@ if hmm.train.useParallel==1 && N>1
                 if n_argout>=4, Bt = obslike([],hmm,R(slicer,:),XXt,hmm.cache); end
                 if n_argout==5, sc = ones(length(slicer),1); end
             end
-            if t>order+1,
+            if t>order+1
                 gammat = gammat(2:end,:);
             end
             xi = [xi; xit];
@@ -181,7 +181,7 @@ if hmm.train.useParallel==1 && N>1
             if n_argout>=5, scale = [scale; sc ]; end
             if isempty(no_c), break;
             else t = no_c(1)+t-1;
-            end;
+            end
         end
         Gamma{in} = gamma;
         Gammasum(in,:) = gammasum;
@@ -191,9 +191,9 @@ if hmm.train.useParallel==1 && N>1
     end
     
 else
-
+    
     for in=1:N % this is exactly the same than the code above but changing parfor by for
-       Bt = []; sc = [];
+        Bt = []; sc = [];
         t0 = sum(T(1:in-1)); s0 = t0 - order*(in-1);
         if order>0
             C = [zeros(order,K); data.C(s0+1:s0+T(in)-order,:)];
@@ -212,11 +212,11 @@ else
             if t>order+1
                 if isempty(no_c), slicer = (t-1):T(in); %slice = (t-order-1):T(in);
                 else slicer = (t-1):(no_c(1)+t-2); %slice = (t-order-1):(no_c(1)+t-2);
-                end;
+                end
             else
                 if isempty(no_c), slicer = t:T(in); %slice = (t-order):T(in);
                 else slicer = t:(no_c(1)+t-2); %slice = (t-order):(no_c(1)+t-2);
-                end;
+                end
             end
             XXt = cell(length(XX),1);
             for k=1:length(XX), XXt{k} = XX{k}(slicer + s0 - order,:); end
@@ -234,7 +234,7 @@ else
                 if nargout>=4, Bt = obslike([],hmm,R(slicer,:),XXt,hmm.cache); end
                 if nargout==5, sc = ones(length(slicer),1); end
             end
-            if t>order+1,
+            if t>order+1
                 gammat = gammat(2:end,:);
             end
             xi = [xi; xit];
@@ -302,7 +302,7 @@ end
 Gamma=(alpha.*beta);
 Gamma=Gamma(1+order:T,:);
 Gamma=rdiv(Gamma,rsum(Gamma));
- 
+
 Xi=zeros(T-1-order,K*K);
 for i=1+order:T-1
     t=P.*( alpha(i,:)' * (beta(i+1,:).*L(i+1,:)));

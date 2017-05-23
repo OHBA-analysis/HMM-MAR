@@ -83,12 +83,13 @@ for rep = 1:options.BIGinitrep
             end
         else
             options_copy = options;
-            options_copy = rmfield(options_copy,'BIGNbatch');
-            options_copy = rmfield(options_copy,'orders');
-            options_copy.pca = 0; % this has been done in loadfile.m
-            options_copy.embeddedlags = 0; % this has been done in loadfile.m
-            if length(Ti)==1, options_copy.useParallel = 0; end
-            [hmm_i,Gamma,Xi] = hmmmar(X,Ti,options_copy);
+            removesoptions;
+            options = rmfield(options,'orders');
+            options.pca = 0; % this has been done in loadfile.m
+            options.embeddedlags = 0; % this has been done in loadfile.m
+            if length(Ti)==1, options.useParallel = 0; end
+            [hmm_i,Gamma,Xi] = hmmmar(X,Ti,options);
+            options = options_copy;
             hmm_i.train.pca = options.pca; hmm_i.train.embeddedlags = options.embeddedlags;
             hmm_i.train.useParallel = options.useParallel;
         end

@@ -1,0 +1,15 @@
+options = rmfield(options,'BIGNbatch');
+if isfield(options,'BIGNinitbatch'),  options = rmfield(options,'BIGNinitbatch'); end
+if isfield(options,'BIGtol'),  options = rmfield(options,'BIGtol'); end 
+if isfield(options,'BIGcyc'),  options = rmfield(options,'BIGcyc'); end 
+if isfield(options,'BIGprior'),  options = rmfield(options,'BIGprior'); end
+if isfield(options,'BIGmincyc'),  options = rmfield(options,'BIGmincyc'); end
+if isfield(options,'BIGinitrep'),  options = rmfield(options,'BIGinitrep'); end
+if isfield(options,'BIGcomputeGamma'),  options = rmfield(options,'BIGcomputeGamma'); end
+if isfield(options,'BIGdecodeGamma'),  options = rmfield(options,'BIGdecodeGamma'); end
+if isfield(options,'BIGverbose'),  options = rmfield(options,'BIGverbose'); end
+if isfield(options,'BIGundertol_tostop'),  options = rmfield(options,'BIGundertol_tostop'); end
+if isfield(options,'BIGdelay'),  options = rmfield(options,'BIGdelay'); end
+if isfield(options,'BIGforgetrate'),  options = rmfield(options,'BIGforgetrate'); end
+if isfield(options,'BIGbase_weights'),  options = rmfield(options,'BIGbase_weights'); end
+if isfield(options,'BIGcycnobetter_tostop'),  options = rmfield(options,'BIGcycnobetter_tostop'); end

@@ -23,8 +23,10 @@ tacc = 0; tacc2 = 0;
 
 if length(hmm.train.embeddedlags)>1
     L = -min(hmm.train.embeddedlags) + max(hmm.train.embeddedlags);
+    maxorder = 0;
 else
     L = hmm.train.maxorder;
+    maxorder = hmm.train.maxorder; 
 end
 
 if type==0
@@ -39,22 +41,22 @@ for i = 1:N
     [X,XX,Y,Ti] = loadfile(Xin{i},T{i},hmm.train);
     XX_i = cell(1); XX_i{1} = XX;
     hmm_i = hmm;
-    t = (1:(sum(Ti)-length(Ti)*hmm.train.maxorder)) + tacc;
-    t2 = (1:(sum(Ti)-length(Ti)*(hmm.train.maxorder+1))) + tacc2;
+    hmm_i.train.embeddedlags = 0;
+    hmm_i.train.pca = 0;
+    if isfield(hmm_i.train,'BIGNbatch')
+        hmm_i.train = rmfield(hmm_i.train,'BIGNbatch');
+    end
+    t = (1:(sum(Ti)-length(Ti)*maxorder)) + tacc;
+    t2 = (1:(sum(Ti)-length(Ti)*(maxorder+1))) + tacc2;
     tacc = tacc + length(t); tacc2 = tacc2 + length(t2);
     if type==0
-        data = struct('X',X,'C',NaN(sum(Ti)-length(Ti)*hmm.train.maxorder,K));
+        data = struct('X',X,'C',NaN(sum(Ti)-length(Ti)*maxorder,K));
         [gamma,~,xi] = hsinference(data,Ti,hmm_i,Y,[],XX_i);
         checkGamma(gamma,Ti,hmm_i.train,i);
         Path(t,:) = single(gamma);
         Xi(t2,:,:) = xi;
     else
-        BIGNbatch = hmm.train.BIGNbatch;
-        hmm.train = rmfield(hmm.train,'BIGNbatch');
-        pca = hmm.train.pca; hmm.train.pca = 0; 
-        Path(t,:) = hmmdecode(X,Ti,hmm,type,Y);
-        hmm.train.pca = pca; 
-        hmm.train.BIGNbatch = BIGNbatch;
+        Path(t,:) = hmmdecode(X,Ti,hmm_i,type,Y);
     end
     
 end
