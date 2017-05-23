@@ -30,7 +30,8 @@ function hmm = initpriors(X,T,hmm,residuals)
 ndim = size(X,2);
 rangresiduals2 = (range(residuals)/2).^2;
 if isfield(hmm.train,'B'), Q = size(hmm.train.B,2); 
-else Q = ndim; end
+else Q = ndim; 
+end
 pcapred = hmm.train.pcapred>0;
 if pcapred, M = hmm.train.pcapred; end
 

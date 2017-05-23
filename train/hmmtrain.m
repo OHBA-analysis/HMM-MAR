@@ -97,7 +97,7 @@ for cycle=1:hmm.train.cyc
 end
 
 for k = 1:K
-    if isfield(hmm.state(k),'cache'),
+    if isfield(hmm.state(k),'cache')
         hmm.state(k) = rmfield(hmm.state(k),'cache');
     end
 end
@@ -105,7 +105,7 @@ end
 if hmm.train.verbose
     fprintf('Model: %d states, %d data samples, covariance: %s \n', ...
         K,sum(T),hmm.train.covtype);
-    if hmm.train.exptimelag>1,
+    if hmm.train.exptimelag>1
         fprintf('Exponential lapse: %g, order %g, offset %g \n', ...
             hmm.train.exptimelag,hmm.train.order,hmm.train.orderoffset)
     else
