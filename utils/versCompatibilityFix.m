@@ -35,4 +35,8 @@ if isfield(hmm.train,'state')
     hmm.train = rmfield(hmm.train,'state');
 end
 
+if ~isfield(hmm.train,'onpower')
+    hmm.train.onpower = 0;
+end
+
 end

@@ -1,4 +1,4 @@
-function onsets = getStateOnsets(vpath,T,Hz)
+function onsets = getStateOnsets(vpath,T,Hz,K)
 
 if size(vpath,2)>1 
    error('Viterbi path is needed') 
@@ -12,10 +12,11 @@ if iscell(T)
     end
     T = cell2mat(T);
 end
+T = T - (sum(T)-length(vpath))/length(T);
 
 N = length(T); 
 val = unique(vpath)';
-K = length(val);
+if nargin<4, K = length(val); end
 
 onsets = cell(N,K); 
 for n=1:N

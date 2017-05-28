@@ -102,7 +102,7 @@ if ~isfield(options,'initTestSmallerK'), options.initTestSmallerK = false; end
 % For hmmmar init type, if initTestSmallerK is true, initializations with smaller 
 % K will be tested up to specified K. See hmmmar_init.m
 if ~isfield(options,'initcyc'), options.initcyc = 100; end
-if ~isfield(options,'initrep'), options.initrep = 5; end
+if ~isfield(options,'initrep'), options.initrep = 4; end
 if ~isfield(options,'inittype'), options.inittype = 'hmmmar'; end 
 if ~isfield(options,'Gamma'), options.Gamma = []; end
 if ~isfield(options,'hmm'), options.hmm = []; end
