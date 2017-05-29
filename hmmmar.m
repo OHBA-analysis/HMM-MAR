@@ -167,7 +167,7 @@ if stochastic_learn
 else
     
     % Standardise data and control for ackward trials
-    data = standardisedata(data,T,options,standardise); 
+    data = standardisedata(data,T,options.standardise); 
     % Detrend data
     if options.detrend
        data = detrenddata(data,T); 
