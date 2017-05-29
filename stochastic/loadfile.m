@@ -30,6 +30,10 @@ end
 
 % Standardise data and control for ackward trials
 X = standardisedata(X,T,options.standardise);
+% Detrend data
+if options.detrend
+    X = detrenddata(X,T);
+end
 % Hilbert envelope
 if options.onpower
     X = rawsignal2power(X,T);
