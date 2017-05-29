@@ -1,5 +1,6 @@
 function [options,data] = checkoptions (options,data,T,cv)
 
+if nargin<4, cv = 0; end
 if isempty(strfind(which('pca'),matlabroot))
     error(['Function pca() seems to be other than Matlab''s own - you need to rmpath() it. ' ...
         'Use ''rmpath(fileparts(which(''pca'')))'''])
@@ -15,6 +16,7 @@ end
 % data options
 if ~isfield(options,'embeddedlags'), options.embeddedlags = 0; end
 if ~isfield(options,'pca'), options.pca = 0; end
+if ~isfield(options,'varimax'), options.varimax = 0; end
 if ~isfield(options,'pcamar'), options.pcamar = 0; end
 if ~isfield(options,'pcapred'), options.pcapred = 0; end
 if ~isfield(options,'vcomp') && options.pcapred>0, options.vcomp = 1; end

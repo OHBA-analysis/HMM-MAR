@@ -80,7 +80,7 @@ for k=1:K
             hmm.state(k).W.Mu_W(Sind(:,n),n) = (( permute(hmm.state(k).W.S_W(n,Sind(:,n),Sind(:,n)),[2 3 1]) * ...
                 Tfactor * (omega.Gam_shape / omega.Gam_rate(n)) * XX{kk}(:,Sind(:,n))') .* ...
                 repmat(Gamma(:,k)',sum(Sind(:,n)),1)) * residuals(:,n);
-        end;
+        end
         XW(:,:,k) = XX{kk} * hmm.state(k).W.Mu_W;
         
     else % this only works if all(S(:)==1);  any(S(:)~=1) is just not yet implemented 
