@@ -1,6 +1,7 @@
 function [X,XX,Y,T] = loadfile(file,T,options,XX_as_list)
 % load the file and optionally does (i) embedding and (ii) PCA
 if nargin<4, XX_as_list = 0; end
+if ~isfield(options,'downsample'), options.downsample = 0; end
 if iscell(file) % T needs to be cell too
     T = cell2mat(T);
     for j=1:length(file)
@@ -49,6 +50,11 @@ if isfield(options,'A')
     % Standardise principal components and control for ackward trials
     X = standardisedata(X,T,options.standardise_pc);
 end
+% Downsampling
+if options.downsample > 0
+    [X,T] = downsampledata(X,T,options.downsample,options.Fs);
+end
+
 if isfield(options,'B'), B = options.B;
 else B = []; end
 if isfield(options,'V'), V = options.V;

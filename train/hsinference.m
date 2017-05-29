@@ -222,6 +222,7 @@ else
             for k=1:length(XX), XXt{k} = XX{k}(slicer + s0 - order,:); end
             if isnan(C(t,1))
                 [gammat,xit,Bt,sc] = nodecluster(XXt,K,hmm,R(slicer,:));
+                if any(isnan(gammat(:))), keyboard; end
             else
                 gammat = zeros(length(slicer),K);
                 if t==order+1, gammat(1,:) = C(slicer(1),:); end
@@ -276,7 +277,12 @@ L(L<realmin) = realmin;
 
 if hmm.train.useMEX
     [Gamma, Xi, scale] = hidden_state_inference_mx(L, Pi, P, order);
-    return
+    if any(isnan(Gamma(:))) || any(isnan(Xi(:)))
+        clear Gamma Xi scale
+        warning('hidden_state_inference_mx file produce NaNs - will use Matlab''s code')
+    else
+        return
+    end
 end
 
 scale=zeros(T,1);
@@ -308,4 +314,5 @@ for i=1+order:T-1
     t=P.*( alpha(i,:)' * (beta(i+1,:).*L(i+1,:)));
     Xi(i-order,:)=t(:)'/sum(t(:));
 end
+
 end

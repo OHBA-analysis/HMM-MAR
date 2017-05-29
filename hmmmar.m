@@ -55,6 +55,13 @@ end
 % do some data checking and preparation
 if xor(iscell(data),iscell(T)), error('X and T must be cells, either both or none of them.'); end
 if stochastic_learn % data is a cell, either with strings or with matrices
+    if isstruct(data) 
+        if isfield(data,'C')
+            warning(['The use of semisupervised learning is not implemented for stochatic inference; ' ...
+                'removing data.C'])
+        end
+        data = data.X;
+    end
     if ~iscell(data)
        dat = cell(N,1); TT = cell(N,1);
        for i=1:N
@@ -204,6 +211,10 @@ else
                 options.state(k).train.ndim = options.ndim;
             end
         end
+    end
+    % Downsampling
+    if options.downsample > 0 
+       [data,T] = downsampledata(data,T,options.downsample,options.Fs); 
     end
     
     if options.pcamar > 0 && ~isfield(options,'B') 

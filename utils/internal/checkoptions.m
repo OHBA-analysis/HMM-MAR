@@ -21,8 +21,14 @@ if ~isfield(options,'pcamar'), options.pcamar = 0; end
 if ~isfield(options,'pcapred'), options.pcapred = 0; end
 if ~isfield(options,'vcomp') && options.pcapred>0, options.vcomp = 1; end
 if ~isfield(options,'detrend'), options.detrend = 0; end
+if ~isfield(options,'downsample'), options.downsample = 0; end
 if ~isfield(options,'standardise'), options.standardise = 1; end
-if ~isfield(options,'standardise_pc'), options.standardise_pc = 0; end  
+if ~isfield(options,'standardise_pc'), options.standardise_pc = 0; end
+
+if options.downsample > 0 && isfield(data,'C')
+    warning('The use of downsampling is currently not compatible with specifying data.C');
+    data = rmfield(data,'C');
+end
 
 if length(options.pca)==1 && options.pca == 0
     ndim = length(options.embeddedlags) * size(data.X,2);

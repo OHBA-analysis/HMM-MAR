@@ -3,30 +3,36 @@
 % That is: we won't update stuff to git without running this script first
 
 % gen data
-X = randn(2000,3); T = 250*ones(8,1); 
+X = randn(4000,3); T = 500*ones(8,1); 
 B = rand(3);
-for i=1:4
-    X((1:100)+sum(T(1:i-1)),:) = X((1:100)+sum(T(1:i-1)),:) * B; 
+for i=1:length(T)
+    X((1:250)+sum(T(1:i-1)),:) = X((1:250)+sum(T(1:i-1)),:) * B; 
     for j=1:3
-        X((1:250)+sum(T(1:i-1)),j) = smooth(X((1:250)+sum(T(1:i-1)),j),10);
+        X((1:500)+sum(T(1:i-1)),j) = smooth(X((1:500)+sum(T(1:i-1)),j),10);
     end
 end
 C = rand(3,10); 
 X = X * C;
+extreme = find(X(:) > 5*std(X(:)));
 
 %%
 
 % standard inference, hmmmar init
 options = struct();
 options.K = 2; 
-options.tol = 1e-7;
-options.cyc = 12;
+options.Fs = 200; 
 options.pca = 0.95;
+options.varimax = 0; 
+options.detrend = 1; 
+options.downsample = 100; 
 options.inittype = 'hmmmar';
 options.DirichletDiag = 10;
-options.initcyc = 4;
-options.initrep = 2;
 options.standardise = 1;
+options.standardise_pc = 1;
+options.cyc = 5;
+options.initcyc = 2;
+options.tol = 1e-7;
+options.initrep = 2;
 options.verbose = 0; 
 options.useParallel = 0; 
 
@@ -49,6 +55,58 @@ for covtype = {'full','diag','uniquefull','uniquediag'}
         end
     end
 end
+% Embedded HMM
+options.order = 0;
+options.zeromean = 1;
+options.covtype = 'full'; 
+options.embeddedlags = -2:2;
+options.pca = 6; 
+[hmm,Gamma,Xi,vpath] = hmmmar(X,T,options);
+options.embeddedlags = 0; 
+
+% random initialization
+options.inittype = 'random';
+[hmm,Gamma,Xi,vpath] = hmmmar(X,T,options);
+
+
+% Specifying data.C (semisupervised)
+data = struct(); 
+data.X = X;
+data.C = nan(length(X),2);
+for i=1:4
+    data.C((200:250)+sum(T(1:i-1)),1) = 0;
+    data.C((200:250)+sum(T(1:i-1)),2) = 1;
+end
+options.downsample = 0; 
+
+for covtype = {'full','diag','uniquefull','uniquediag'}
+    for order = [0 2]
+        for zeromean = [0 1]
+            if (strcmp(covtype,'uniquefull') || strcmp(covtype,'uniquediag')) ...
+                    && zeromean==1 && order==0
+                continue;
+            end
+            options.covtype = covtype{1};
+            options.order = order;
+            options.zeromean = zeromean;
+            [hmm,Gamma,Xi,vpath] = hmmmar(data,T,options);
+            if order==2 && (strcmp(covtype,'diag') || strcmp(covtype,'uniquediag'))
+                options.AR = 1;
+                [hmm,Gamma,Xi,vpath] = hmmmar(data,T,options);
+                options.AR = 0;
+            end
+        end
+    end
+end
+
+% Embedded HMM
+options.order = 0;
+options.zeromean = 1;
+options.covtype = 'full'; 
+options.embeddedlags = -2:2;
+options.pca = 6; 
+[hmm,Gamma,Xi,vpath] = hmmmar(X,T,options);
+%options.embeddedlags = 0; 
 
 % random initialization
 options.inittype = 'random';
@@ -58,21 +116,24 @@ options.inittype = 'random';
 %% stochastic inference
 options = struct();
 options.K = 2; 
-options.tol = 1e-7;
-options.cyc = 12;
-options.inittype = 'hmmmar';
-options.DirichletDiag = 10;
-options.initcyc = 4;
-options.initrep = 2;
+options.Fs = 200; 
 options.standardise = 1;
-options.verbose = 0; 
-options.useParallel = 0;
 options.pca = 2;
+options.varimax = 0; 
+options.detrend = 1; 
+options.downsample = 100; 
+options.verbose = 0;
+options.DirichletDiag = 10;
+options.cyc = 5;
+options.initcyc = 2;
+options.initrep = 2;
+options.tol = 1e-7;
+options.useParallel = 0;
 
 options.BIGNbatch = 3;
 options.BIGNinitbatch = 3;
 options.BIGtol = 1e-7;
-options.BIGcyc = 10;
+options.BIGcyc = 5;
 options.BIGundertol_tostop = 5;
 options.BIGdelay = 5; 
 options.BIGforgetrate = 0.7;
@@ -94,4 +155,11 @@ for covtype = {'full','diag'} %,'uniquefull','uniquediag'}
     end
 end
 
-
+% Embedded HMM
+options.order = 0;
+options.zeromean = 1;
+options.covtype = 'full'; 
+options.embeddedlags = -2:2;
+options.pca = 3; 
+[hmm,Gamma,Xi,vpath] = hmmmar(X,T,options);
+options.embeddedlags = 0; 

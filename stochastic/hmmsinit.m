@@ -31,6 +31,11 @@ else
     initial_hmm = [];
 end
 tp_less = max(options.embeddedlags) + max(-options.embeddedlags);
+if options.downsample > 0
+    downs_ratio = (options.downsample/options.Fs);
+else
+    downs_ratio = 1; 
+end
 
 % init sufficient statistics
 subj_m_init = zeros(npred,ndim,N,K);
@@ -87,6 +92,7 @@ for rep = 1:options.BIGinitrep
             options = rmfield(options,'orders');
             options.pca = 0; % this has been done in loadfile.m
             options.embeddedlags = 0; % this has been done in loadfile.m
+            options.downsample = 0; % done in loadfile.m
             if length(Ti)==1, options.useParallel = 0; end
             [hmm_i,Gamma,Xi] = hmmmar(X,Ti,options);
             options = options_copy;
@@ -112,7 +118,7 @@ for rep = 1:options.BIGinitrep
         tacc = 0; tacc2 = 0;
         for i=1:length(subset)
             subj = subset(i);
-            Tsubj = T{subj} - tp_less;
+            Tsubj = ceil(downs_ratio*(T{subj}-tp_less)); 
             for trial=1:length(Tsubj)
                 t = tacc + 1;
                 Dir_alpha_init(:,subj) = Dir_alpha_init(:,subj) + Gamma(t,:)';
@@ -126,7 +132,7 @@ for rep = 1:options.BIGinitrep
         % Reassigning ordering of the states according the closest hmm
         if ii==1
             assig = 1:K_i;
-            if K_i<K,
+            if K_i<K
                 warning('The first HMM run needs to return K states, you might want to start again..\n')
             end
             hmm_init = struct('train',hmm_i.train);
@@ -147,7 +153,7 @@ for rep = 1:options.BIGinitrep
         tacc = 0; 
         for i=1:length(subset)
             subj = subset(i);
-            Tsubj = T{subj} - tp_less;
+            Tsubj = ceil(downs_ratio*(T{subj}-tp_less)); 
             t = tacc + (1 : (sum(Tsubj)-length(Tsubj)*hmm_i.train.maxorder));
             tacc = tacc + length(t);
             for k=1:K_i
@@ -244,7 +250,7 @@ for rep = 1:options.BIGinitrep
         if pcaprec
             hmm_init = updateBeta(hmm_init);
         else
-            for k=1:K,
+            for k=1:K
                 hmm_init.state(k).alpha.Gam_shape = hmm_init.state(k).prior.alpha.Gam_shape;
                 hmm_init.state(k).alpha.Gam_rate = hmm_init.state(k).prior.alpha.Gam_rate;
             end

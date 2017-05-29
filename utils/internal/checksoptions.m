@@ -13,6 +13,7 @@ if ~isfield(options,'pcamar'), options.pcamar = 0; end
 if ~isfield(options,'pcapred'), options.pcapred = 0; end
 if ~isfield(options,'vcomp') && options.pcapred>0, options.vcomp = 1; end
 if ~isfield(options,'detrend'), options.detrend = 0; end
+if ~isfield(options,'downsample'), options.downsample = 0; end
 if ~isfield(options,'standardise'), options.standardise = 0; end %(options.pca>0);
 if ~isfield(options,'standardise_pc'), options.standardise_pc = 0; end  
 

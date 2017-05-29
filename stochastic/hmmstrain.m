@@ -43,6 +43,11 @@ nUsed = zeros(1,N);
 sampling_weights = options.BIGbase_weights;
 undertol = 0; count = 0;
 Tfactor = N/options.BIGNbatch; 
+if options.downsample > 0
+    downs_ratio = (options.downsample/options.Fs);
+else
+    downs_ratio = 1; 
+end
 
 % Stochastic learning
 for cycle = 2:options.BIGcyc
@@ -55,26 +60,13 @@ for cycle = 2:options.BIGcyc
         
     % read data for this batch
     Tbatch = []; Tbatch_list = cell(length(I),1);
-    for ii = 1:length(I), 
+    for ii = 1:length(I)
         i = I(ii); 
-        Tbatch = [Tbatch; (T{i}-tp_less)]; 
-        Tbatch_list{ii} = (T{i}-tp_less);
+        Tbatch = [Tbatch; ceil(downs_ratio*(T{i}-tp_less)) ]; 
+        Tbatch_list{ii} = ceil(downs_ratio*(T{i}-tp_less));
     end
     
     [X,XX,Y] = loadfile(Xin(I),T(I),options,1);
-    %X = zeros(sum(Tbatch),ndim);
-    %XX = cell(1); 
-    %XX{1} = zeros(sum(Tbatch)-length(Tbatch)*options.order,npred+(~options.zeromean));
-    %Y = zeros(sum(Tbatch)-length(Tbatch)*options.order,ndim);
-    %tacc = 0; t2acc = 0;
-    %for ii = 1:length(I)
-    %    i = I(ii);
-    %    [X_ii,XX_ii,Y_ii,T_ii]  = loadfile(Xin{i},T{i},options);
-    %    t = (1:sum(T_ii)) + tacc;
-    %    t2 = (1:(sum(T_ii)-length(T_ii)*options.order)) + t2acc;
-    %    X(t,:) = X_ii; XX{1}(t2,:) = XX_ii; Y(t2,:) = Y_ii;
-    %    tacc = tacc + sum(T_ii); t2acc = t2acc + sum(T_ii) - length(T_ii)*options.order;
-    %end
     
     % local parameters (Gamma, Xi, P, Pi, Dir2d_alpha and Dir_alpha),
     % and free energy relative these local parameters
@@ -207,7 +199,7 @@ end
 if options.BIGverbose
     fprintf('Model: %d states, %d subjects, batch size %d, covariance: %s \n', ...
         K,length(T),options.BIGNbatch,hmm.train.covtype);
-    if hmm.train.exptimelag>1,
+    if hmm.train.exptimelag>1
         fprintf('Exponential lapse: %g, order %g, offset %g \n', ...
             hmm.train.exptimelag,hmm.train.order,hmm.train.orderoffset)
     else

@@ -3,7 +3,7 @@ function checkGamma(Gamma,T,train,subj)
 if nargin<4, subj = 0; end
 
 Gamma = sum(Gamma,2);
-if any(isnan(Gamma)),
+if any(isnan(Gamma))
     t = find(isnan(Gamma),1);
     if train.order>1
         d = train.order;
