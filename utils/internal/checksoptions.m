@@ -12,9 +12,9 @@ if ~isfield(options,'varimax'), options.varimax = 0; end
 if ~isfield(options,'pcamar'), options.pcamar = 0; end
 if ~isfield(options,'pcapred'), options.pcapred = 0; end
 if ~isfield(options,'vcomp') && options.pcapred>0, options.vcomp = 1; end
+if ~isfield(options,'detrend'), options.detrend = 0; end
 if ~isfield(options,'standardise'), options.standardise = 0; end %(options.pca>0);
 if ~isfield(options,'standardise_pc'), options.standardise_pc = 0; end  
-
 
 if ~isfield(options,'K'), error('K was not specified'); end
 % Specific BigHMM options
@@ -50,7 +50,6 @@ if ~isfield(options,'initrep'), options.initrep = 3; end
 if ~isfield(options,'useParallel'), options.useParallel = 1; end
 if ~isfield(options,'uniqueAR'), options.uniqueAR = 0; end
 %if ~isfield(options,'crosstermsonly'), options.crosstermsonly = 0; end
-
 
 %if isfield(options,'S') && ~all(options.S(:)==1)
 %    error('S(i,j)<1 is not yet implemented for stochastic inference')

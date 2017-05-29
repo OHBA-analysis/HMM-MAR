@@ -44,12 +44,10 @@ if length(options.embeddedlags)>1
 end
 % PCA transform
 if isfield(options,'A')
-    X = X - repmat(mean(X),size(X,1),1); % must center
+    X = bsxfun(@minus,X,mean(X)); % must center
     X = X * options.A;
-    if options.standardise_pc == 1
-        X = X - repmat(mean(X),size(X,1),1);
-        X = X ./ repmat(std(X),size(X,1),1);
-    end
+    % Standardise principal components and control for ackward trials
+    X = standardisedata(X,T,options.standardise_pc);
 end
 if isfield(options,'B'), B = options.B;
 else B = []; end

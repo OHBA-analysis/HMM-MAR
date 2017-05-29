@@ -1,4 +1,4 @@
-function [A,B] = highdim_pca(X,T,d,embeddedlags,standardise,onpower,varimax)
+function [A,B] = highdim_pca(X,T,d,embeddedlags,standardise,onpower,varimax,detrend)
 % pca for potentially loads of subjects
 %
 % if X is a cell of things, uses SVD
@@ -17,11 +17,11 @@ function [A,B] = highdim_pca(X,T,d,embeddedlags,standardise,onpower,varimax)
 %
 % Author: Diego Vidaurre, University of Oxford (2016)
 
-if nargin<3, embeddedlags = 0; end
-if nargin<4, standardise = 1; end
-if nargin<5, onpower = 0; end
-if nargin<6, varimax = 0; end
-
+if nargin<4, embeddedlags = 0; end
+if nargin<5, standardise = 1; end
+if nargin<6, onpower = 0; end
+if nargin<7, varimax = 0; end
+if nargin<8, detrend = 0; end
 
 is_cell_strings = iscell(X) && ischar(X{1});
 is_cell_matrices = iscell(X) && ~ischar(X{1});
@@ -30,26 +30,21 @@ options.standardise = standardise;
 options.embeddedlags = embeddedlags;
 options.pca = 0; % PCA is done here!
 options.onpower = onpower;
+options.detrend = detrend;
 if isfield(options,'A'), options = rmfield(options,'A'); end
 
 if is_cell_strings || is_cell_matrices
     B = [];
     for i=1:length(X)
-        X_i = loadfile(X{i},T{i},options); % embedded is done here
-        X_i = X_i - repmat(mean(X_i),size(X_i,1),1); % must center
+        X_i = loadfile(X{i},T{i},options); % zscoring/embeddeding are done here
+        X_i = bsxfun(@minus,X_i,mean(X_i)); % must center
         if i==1, C = zeros(size(X_i,2)); end
         C = C + X_i' * X_i;
     end
     [A,e,~] = svd(C);
     e = diag(e);
 else
-    if standardise
-        if isstruct(X)
-            X.X = zscore(X.X);
-        else
-            X = zscore(X);
-        end
-    end
+    X = standardisedata(X,T,standardise);
     if options.onpower
         X = rawsignal2power(X,T);
     end

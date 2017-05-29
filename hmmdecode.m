@@ -60,25 +60,8 @@ if reproc % Adjust the data if necessary
     train = hmm.train;
     checkdata;
     data = data2struct(data,T,train);
-    % Standardise
-    if train.standardise == 1
-        for i = 1:N
-            t = (1:T(i)) + sum(T(1:i-1));
-            data.X(t,:) = data.X(t,:) - repmat(mean(data.X(t,:)),length(t),1);
-            sdx = std(data.X(t,:));
-            if any(sdx==0)
-                error('At least one of the trials/segments/subjects has variance equal to zero');
-            end
-            data.X(t,:) = data.X(t,:) ./ repmat(sdx,length(t),1);
-        end
-    else
-        for i = 1:N
-            t = (1:T(i)) + sum(T(1:i-1));
-            if any(std(data.X(t,:))==0)
-                error('At least one of the trials/segments/subjects has variance equal to zero');
-            end
-        end
-    end
+    % Standardise data and control for ackward trials
+    data = standardisedata(data,T,train.standardise);
     % Hilbert envelope
     if train.onpower
         data = rawsignal2power(data,T);
@@ -90,18 +73,13 @@ if reproc % Adjust the data if necessary
     % PCA transform
     if length(train.pca) > 1 || train.pca > 0
         if isfield(train,'A')
-            data.X = data.X - repmat(mean(data.X),size(data.X,1),1);
+            data.X = bsxfun(@minus,data.X,mean(data.X)); 
             data.X = data.X * train.A;
         else
-            [train.A,data.X] = highdim_pca(data.X,T,train.pca,0,0,0);
+            [train.A,data.X] = highdim_pca(data.X,T,train.pca,0,0,0,options.varimax,0);
         end
-        if train.standardise_pc == 1
-            for i = 1:N
-                t = (1:T(i)) + sum(T(1:i-1));
-                data.X(t,:) = data.X(t,:) - repmat(mean(data.X(t,:)),length(t),1);
-                data.X(t,:) = data.X(t,:) ./ repmat(std(data.X(t,:)),length(t),1);
-            end
-        end
+        % Standardise principal components and control for ackward trials
+        data = standardisedata(data,T,options.standardise_pc);
         train.ndim = size(train.A,2);
         train.S = ones(train.ndim);
         orders = formorders(train.order,train.orderoffset,train.timelag,train.exptimelag);

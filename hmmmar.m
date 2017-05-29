@@ -112,7 +112,8 @@ if stochastic_learn
     if length(options.pca) > 1 || (options.pca > 0 && options.pca ~= 1)
         if ~isfield(options,'A')
             options.A = highdim_pca(data,T,options.pca,...
-                options.embeddedlags,options.standardise,options.onpower,options.varimax);
+                options.embeddedlags,options.standardise,...
+                options.onpower,options.varimax,options.detrend);
             options.pca = size(options.A,2);
         end
         options.ndim = size(options.A,2);
@@ -166,12 +167,12 @@ if stochastic_learn
     
 else
     
-    % Standardise data and control for ackward trials
-    data = standardisedata(data,T,options.standardise); 
     % Detrend data
     if options.detrend
        data = detrenddata(data,T); 
     end
+    % Standardise data and control for ackward trials
+    data = standardisedata(data,T,options.standardise); 
     % Hilbert envelope
     if options.onpower
        data = rawsignal2power(data,T); 
@@ -183,19 +184,14 @@ else
     % PCA transform
     if length(options.pca) > 1 || (options.pca > 0 && options.pca ~= 1)
         if isfield(options,'A')
-            data.X = data.X - repmat(mean(data.X),size(data.X,1),1);
+            data.X = bsxfun(@minus,data.X,mean(data.X));   
             data.X = data.X * options.A; 
         else
-            [options.A,data.X] = highdim_pca(data.X,T,options.pca,0,0,0,options.varimax);
+            [options.A,data.X] = highdim_pca(data.X,T,options.pca,0,0,0,options.varimax,0);
             options.pca = size(options.A,2);
         end
-        if options.standardise_pc == 1
-            for i = 1:N
-                t = (1:T(i)) + sum(T(1:i-1));
-                data.X(t,:) = data.X(t,:) - repmat(mean(data.X(t,:)),length(t),1);
-                data.X(t,:) = data.X(t,:) ./ repmat(std(data.X(t,:)),length(t),1);
-            end
-        end
+        % Standardise principal components and control for ackward trials
+        data = standardisedata(data,T,options.standardise_pc);
         options.ndim = size(options.A,2);
         options.S = ones(options.ndim);
         orders = formorders(options.order,options.orderoffset,options.timelag,options.exptimelag);
@@ -209,6 +205,7 @@ else
             end
         end
     end
+    
     if options.pcamar > 0 && ~isfield(options,'B') 
         % PCA on the predictors of the MAR regression, per lag: X_t = \sum_i X_t-i * B_i * W_i + e
         options.B = pcamar_decomp(data,T,options);
