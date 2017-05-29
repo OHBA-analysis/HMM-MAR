@@ -80,24 +80,6 @@ else % data can be a cell or a matrix
     end
     checkdata;
     [options,data] = checkoptions(options,data,T,0);
-    if options.standardise == 1
-        for i = 1:N
-            t = (1:T(i)) + sum(T(1:i-1));
-            data.X(t,:) = data.X(t,:) - repmat(mean(data.X(t,:)),length(t),1);
-            sdx = std(data.X(t,:));
-            if any(sdx==0)
-                error('At least one of the trials/segments/subjects has variance equal to zero');
-            end
-            data.X(t,:) = data.X(t,:) ./ repmat(sdx,length(t),1);
-        end
-    else
-        for i = 1:N
-            t = (1:T(i)) + sum(T(1:i-1));
-            if any(std(data.X(t,:))==0)
-                error('At least one of the trials/segments/subjects has variance equal to zero');
-            end
-        end
-    end
 end
 
 ver = version('-release');
@@ -130,7 +112,7 @@ if stochastic_learn
     if length(options.pca) > 1 || (options.pca > 0 && options.pca ~= 1)
         if ~isfield(options,'A')
             options.A = highdim_pca(data,T,options.pca,...
-                options.embeddedlags,options.standardise,options.onpower);
+                options.embeddedlags,options.standardise,options.onpower,options.varimax);
             options.pca = size(options.A,2);
         end
         options.ndim = size(options.A,2);
@@ -147,9 +129,13 @@ if stochastic_learn
         end
     end
     if options.pcamar > 0 && ~isfield(options,'B')
+        % PCA on the predictors of the MAR regression, per lag: X_t = \sum_i X_t-i * B_i * W_i + e
         options.B = pcamar_decomp(data,T,options);
     end
     if options.pcapred > 0 && ~isfield(options,'V')
+        % PCA on the predictors of the MAR regression, together: 
+        % Y = X * V * W + e, where X contains all the lagged predictors
+        % So, unlike B, V draws from the temporal dimension and not only spatial
         options.V = pcapred_decomp(data,T,options);
     end
     
@@ -180,6 +166,8 @@ if stochastic_learn
     
 else
     
+    % Standardise data and control for ackward trials
+    data = detrenddata(data,T,options,standardise); 
     % Hilbert envelope
     if options.onpower
        data = rawsignal2power(data,T); 
@@ -194,7 +182,7 @@ else
             data.X = data.X - repmat(mean(data.X),size(data.X,1),1);
             data.X = data.X * options.A; 
         else
-            [options.A,data.X] = highdim_pca(data.X,T,options.pca,0,0,0);
+            [options.A,data.X] = highdim_pca(data.X,T,options.pca,0,0,0,options.varimax);
             options.pca = size(options.A,2);
         end
         if options.standardise_pc == 1
@@ -217,10 +205,14 @@ else
             end
         end
     end
-    if options.pcamar > 0 && ~isfield(options,'B')
+    if options.pcamar > 0 && ~isfield(options,'B') 
+        % PCA on the predictors of the MAR regression, per lag: X_t = \sum_i X_t-i * B_i * W_i + e
         options.B = pcamar_decomp(data,T,options);
     end
     if options.pcapred > 0 && ~isfield(options,'V')
+        % PCA on the predictors of the MAR regression, together: 
+        % Y = X * V * W + e, where X contains all the lagged predictors
+        % So, unlike B, V draws from the temporal dimension and not only spatial
         options.V = pcapred_decomp(data,T,options);
     end    
     options.ndim = size(data.X,2);
