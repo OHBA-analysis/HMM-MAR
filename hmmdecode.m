@@ -58,7 +58,7 @@ end
 
 if reproc % Adjust the data if necessary
     train = hmm.train;
-    checkdata;
+    checkdatacell;
     data = data2struct(data,T,train);
     % Standardise data and control for ackward trials
     data = standardisedata(data,T,train.standardise);

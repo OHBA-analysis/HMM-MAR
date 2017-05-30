@@ -47,7 +47,7 @@ else
     T0 = T;
 end
 
-checkdata;
+checkdatacell;
 
 if isstruct(data)
     data = data.X;

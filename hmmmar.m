@@ -85,7 +85,7 @@ else % data can be a cell or a matrix
         if size(T,1)==1, T = T'; end
         T = cell2mat(T);
     end
-    checkdata;
+    checkdatacell;
     [options,data] = checkoptions(options,data,T,0);
 end
 

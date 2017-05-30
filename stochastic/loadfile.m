@@ -6,8 +6,22 @@ if iscell(file) % T needs to be cell too
     T = cell2mat(T);
     for j=1:length(file)
         if ischar(file{j})
-            if ~isempty(strfind(file{j},'.mat')), load(file{j},'X');
-            else X = dlmread(file{j});
+            if ~isempty(strfind(file{j},'.mat'))
+                load(file{j},'X');
+            elseif ~isempty(strfind(file{j},'.txt'))
+                X = dlmread(file{j});
+            else
+                try
+                    D = spm_eeg_load(file{j});
+                    X = permute(D(:,:,:),[2 3 1]); clear D
+                    X = reshape(X,[size(X,1)*size(X,2) size(X,3)]);
+                catch 
+                    if ~exist('spm_eeg_load','file')
+                        error('spm_eeg_load() function not found - is SPM in the path?')
+                    else
+                        error('Incorrect data format - input files must be .mat, .txt or an SPM file');
+                    end
+                end
             end
         else
             X = file{j};
@@ -21,8 +35,22 @@ if iscell(file) % T needs to be cell too
     X = Xc; clear Xc 
 else
     if ischar(file)
-        if ~isempty(strfind(file,'.mat')), load(file,'X');
-        else X = dlmread(file);
+        if ~isempty(strfind(file,'.mat'))
+            load(file,'X');
+        elseif ~isempty(strfind(file,'.txt'))
+            X = dlmread(file);
+        else
+            try
+                D = spm_eeg_load(file);
+                X = permute(D(:,:,:),[2 3 1]); clear D
+                X = reshape(X,[size(X,1)*size(X,2) size(X,3)]);
+            catch
+                if ~exist('spm_eeg_load','file')
+                    error('spm_eeg_load() function not found - is SPM in the path?')
+                else
+                    error('Incorrect data format - input files must be .mat, .txt or an SPM file');
+                end
+            end
         end
     else
         X = file;
