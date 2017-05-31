@@ -21,6 +21,7 @@ if ~isfield(options,'standardise_pc'), options.standardise_pc = 0; end
 
 
 if ~isempty(options.filter)
+    if length(options.filter)~=2, error('options.filter must contain 2 numbers of being empty'); end
    if (options.filter(1)==0 && isinf(options.filter(2)))
        warning('The specified filter does not do anything - Ignoring.')
        options.filter = [];

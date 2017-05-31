@@ -29,13 +29,14 @@ if ~isfield(options,'standardise'), options.standardise = 1; end
 if ~isfield(options,'standardise_pc'), options.standardise_pc = 0; end
 
 if ~isempty(options.filter)
-   if (options.filter(1)==0 && isinf(options.filter(2)))
-       warning('The specified filter does not do anything - Ignoring.')
-       options.filter = [];
-   elseif (options.filter(2) < options.Fs/2) && options.order >= 1
-       warning(['The lowpass cutoff frequency is lower than the Nyquist frequency - ' ... 
-           'This is discouraged for a MAR model'])
-   end
+    if length(options.filter)~=2, error('options.filter must contain 2 numbers of being empty'); end
+    if (options.filter(1)==0 && isinf(options.filter(2)))
+        warning('The specified filter does not do anything - Ignoring.')
+        options.filter = [];
+    elseif (options.filter(2) < options.Fs/2) && options.order >= 1
+        warning(['The lowpass cutoff frequency is lower than the Nyquist frequency - ' ...
+            'This is discouraged for a MAR model'])
+    end
 end
 
 if options.downsample > 0 && isfield(data,'C')
