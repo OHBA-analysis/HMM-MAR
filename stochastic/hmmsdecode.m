@@ -56,7 +56,7 @@ for i = 1:N
         Path(t,:) = single(gamma);
         Xi(t2,:,:) = xi;
     else
-        Path(t,:) = hmmdecode(X,Ti,hmm_i,type,Y);
+        Path(t,:) = hmmdecode(X,Ti,hmm_i,type,Y,0);
     end
     
 end

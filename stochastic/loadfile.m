@@ -1,5 +1,5 @@
 function [X,XX,Y,T] = loadfile(file,T,options,XX_as_list)
-% load the file and optionally does (i) embedding and (ii) PCA
+% load the file and does some optional preprocessing
 if nargin<4, XX_as_list = 0; end
 if ~isfield(options,'downsample'), options.downsample = 0; end
 if iscell(file) % T needs to be cell too
@@ -27,12 +27,16 @@ else
     end
 end
 
-% Standardise data and control for ackward trials
-X = standardisedata(X,T,options.standardise);
+% Filtering
+if ~isempty(options.filter)
+    X = filterdata(X,T,options.Fs,options.filter);
+end
 % Detrend data
 if options.detrend
     X = detrenddata(X,T);
 end
+% Standardise data and control for ackward trials
+X = standardisedata(X,T,options.standardise);
 % Hilbert envelope
 if options.onpower
     X = rawsignal2power(X,T);

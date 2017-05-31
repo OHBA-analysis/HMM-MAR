@@ -1,15 +1,15 @@
 function data = data2struct(data,T,options)
 
 if length(options.embeddedlags)>1
-   L = -min(options.embeddedlags) + max(options.embeddedlags);
+    L = -min(options.embeddedlags) + max(options.embeddedlags);
 else
     L = options.maxorder;
 end
 
 if ~isstruct(data), data = struct('X',data); end
 if ~isfield(data,'C')
-    if options.K>1, data.C = NaN(size(data.X,1)-L*length(T),options.K); 
-    else data.C = ones(size(data.X,1)-L*length(T),1); 
+    if options.K>1, data.C = NaN(size(data.X,1)-L*length(T),options.K);
+    else data.C = ones(size(data.X,1)-L*length(T),1);
     end
 elseif size(data.C,1)==sum(T) && L>0 % we need to trim C
     ind = [];

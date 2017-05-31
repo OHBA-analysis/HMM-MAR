@@ -60,6 +60,14 @@ if reproc % Adjust the data if necessary
     train = hmm.train;
     checkdatacell;
     data = data2struct(data,T,train);
+    % Filtering
+    if ~isempty(train.filter)
+        data = filterdata(data,T,train.Fs,train.filter);
+    end
+    % Detrend data
+    if train.detrend
+        data = detrenddata(data,T);
+    end
     % Standardise data and control for ackward trials
     data = standardisedata(data,T,train.standardise);
     % Hilbert envelope
@@ -76,7 +84,7 @@ if reproc % Adjust the data if necessary
             data.X = bsxfun(@minus,data.X,mean(data.X)); 
             data.X = data.X * train.A;
         else
-            [train.A,data.X] = highdim_pca(data.X,T,train.pca,0,0,0,options.varimax,0);
+            [train.A,data.X] = highdim_pca(data.X,T,train.pca,0,0,0,options.varimax);
         end
         % Standardise principal components and control for ackward trials
         data = standardisedata(data,T,options.standardise_pc);
@@ -84,6 +92,10 @@ if reproc % Adjust the data if necessary
         train.S = ones(train.ndim);
         orders = formorders(train.order,train.orderoffset,train.timelag,train.exptimelag);
         train.Sind = formindexes(orders,train.S);
+    end
+    % Downsampling
+    if options.downsample > 0
+        [data,T] = downsampledata(data,T,options.downsample,options.Fs);
     end
 end
 

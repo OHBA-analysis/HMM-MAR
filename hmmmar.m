@@ -120,7 +120,8 @@ if stochastic_learn
         if ~isfield(options,'A')
             options.A = highdim_pca(data,T,options.pca,...
                 options.embeddedlags,options.standardise,...
-                options.onpower,options.varimax,options.detrend);
+                options.onpower,options.varimax,options.detrend,...
+                options.filter,options.Fs);
             options.pca = size(options.A,2);
         end
         options.ndim = size(options.A,2);
@@ -174,6 +175,10 @@ if stochastic_learn
     
 else
     
+    % Filtering
+    if ~isempty(options.filter)
+       data = filterdata(data,T,options.Fs,options.filter);
+    end
     % Detrend data
     if options.detrend
        data = detrenddata(data,T); 
@@ -194,7 +199,7 @@ else
             data.X = bsxfun(@minus,data.X,mean(data.X));   
             data.X = data.X * options.A; 
         else
-            [options.A,data.X] = highdim_pca(data.X,T,options.pca,0,0,0,options.varimax,0);
+            [options.A,data.X] = highdim_pca(data.X,T,options.pca,0,0,0,options.varimax);
             options.pca = size(options.A,2);
         end
         % Standardise principal components and control for ackward trials

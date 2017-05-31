@@ -14,16 +14,29 @@ if size(data.X,1)~=sum(T)
 end
 
 % data options
+if ~isfield(options,'Fs'), options.Fs = 1; end
+if ~isfield(options,'onpower'), options.onpower = 0; end
 if ~isfield(options,'embeddedlags'), options.embeddedlags = 0; end
 if ~isfield(options,'pca'), options.pca = 0; end
 if ~isfield(options,'varimax'), options.varimax = 0; end
 if ~isfield(options,'pcamar'), options.pcamar = 0; end
 if ~isfield(options,'pcapred'), options.pcapred = 0; end
 if ~isfield(options,'vcomp') && options.pcapred>0, options.vcomp = 1; end
+if ~isfield(options,'filter'), options.filter = []; end
 if ~isfield(options,'detrend'), options.detrend = 0; end
 if ~isfield(options,'downsample'), options.downsample = 0; end
 if ~isfield(options,'standardise'), options.standardise = 1; end
 if ~isfield(options,'standardise_pc'), options.standardise_pc = 0; end
+
+if ~isempty(options.filter)
+   if (options.filter(1)==0 && isinf(options.filter(2)))
+       warning('The specified filter does not do anything - Ignoring.')
+       options.filter = [];
+   elseif (options.filter(2) < options.Fs/2) && options.order >= 1
+       warning(['The lowpass cutoff frequency is lower than the Nyquist frequency - ' ... 
+           'This is discouraged for a MAR model'])
+   end
+end
 
 if options.downsample > 0 && isfield(data,'C')
     warning('The use of downsampling is currently not compatible with specifying data.C');
@@ -100,8 +113,6 @@ end
 data = data2struct(data,T,options);
 
 % training options
-if ~isfield(options,'Fs'), options.Fs = 1; end
-if ~isfield(options,'onpower'), options.onpower = 0; end
 if ~isfield(options,'cyc'), options.cyc = 1000; end
 if ~isfield(options,'tol'), options.tol = 1e-5; end
 if ~isfield(options,'meancycstop'), options.meancycstop = 1; end

@@ -2,7 +2,7 @@ if ~isempty(strfind(fsub,'.mat'))
     load(fsub,'X');
 elseif ~isempty(strfind(fsub,'.txt'))
     X = dlmread(fsub);
-else
+else % no extension - assumed to be an SPM file
     try
         D = spm_eeg_load(fsub);
         X = permute(D(:,:,:),[2 3 1]); clear D

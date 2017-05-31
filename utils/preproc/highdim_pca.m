@@ -1,4 +1,4 @@
-function [A,B] = highdim_pca(X,T,d,embeddedlags,standardise,onpower,varimax,detrend)
+function [A,B] = highdim_pca(X,T,d,embeddedlags,standardise,onpower,varimax,detrend,filter,Fs)
 % pca for potentially loads of subjects
 %
 % if X is a cell of things, uses SVD
@@ -18,14 +18,19 @@ function [A,B] = highdim_pca(X,T,d,embeddedlags,standardise,onpower,varimax,detr
 % Author: Diego Vidaurre, University of Oxford (2016)
 
 if nargin<4, embeddedlags = 0; end
-if nargin<5, standardise = 1; end
+if nargin<5, standardise = 0; end
 if nargin<6, onpower = 0; end
 if nargin<7, varimax = 0; end
 if nargin<8, detrend = 0; end
+if nargin<9, filter = []; end
+if nargin<10, Fs = 1; end
+
 
 is_cell_strings = iscell(X) && ischar(X{1});
 is_cell_matrices = iscell(X) && ~ischar(X{1});
 options = struct();
+options.filter = filter; 
+options.Fs = Fs; 
 options.standardise = standardise;
 options.embeddedlags = embeddedlags;
 options.pca = 0; % PCA is done here!
