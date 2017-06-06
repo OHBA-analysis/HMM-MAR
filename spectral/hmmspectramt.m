@@ -62,7 +62,7 @@ else
     if isstruct(data), data = data.X; end
     ndim = size(data,2); T = double(T);
     options = checkoptions_spectra(options,ndim,T);
-    if nargin<3 || isempty(Gamma),
+    if nargin<3 || isempty(Gamma)
         Gamma = ones(sum(T),1);
     end
     if options.standardise == 1
@@ -80,7 +80,7 @@ else
     % remove the exceeding part of X (with no attached Gamma)
     if order>0
         data2 = zeros(sum(T)-length(T)*order,ndim);
-        for in = 1:length(T),
+        for in = 1:length(T)
             t0 = sum(T(1:in-1)); t00 = sum(T(1:in-1)) - (in-1)*order;
             data2(t00+1:t00+T(in)-order,:) = data(t0+1+order:t0+T(in),:);
         end
@@ -118,7 +118,7 @@ for k=1:K
             X = loadfile_mt(data{in},T{in},options);
             if order>0
                 X2 = zeros(sum(T{in})-length(T{in})*order,ndim);
-                for inn = 1:length(T{in}),
+                for inn = 1:length(T{in})
                     t0_star = sum(T{in}(1:inn-1)); t00_star = sum(T{in}(1:inn-1)) - (inn-1)*order;
                     X2(t00_star+1:t00_star+T{in}(inn)-order,:) = X(t0_star+1+order:t0_star+T{in}(inn),:);
                 end
@@ -137,9 +137,9 @@ for k=1:K
             if sum(Gamma(ind_gamma,k))<1, c = c + 1; continue; end
             Xki = X(ind_X,:) .* repmat(Gamma(ind_gamma,k),1,ndim);
             Nwins=round(TT(c)/options.win); % pieces are going to be included as windows only if long enough
-            for iwin=1:Nwins,
+            for iwin=1:Nwins
                 ranget = (iwin-1)*options.win+1:iwin*options.win;
-                if ranget(end)>TT(c),
+                if ranget(end)>TT(c)
                     nzeros = ranget(end) - TT(c);
                     nzeros2 = floor(double(nzeros)/2) * ones(2,1);
                     if sum(nzeros2)<nzeros, nzeros2(1) = nzeros2(1)+1; end
@@ -151,14 +151,14 @@ for k=1:K
                 end
                 J=mtfftc(Xwin,tapers,nfft,Fs); % use detrend on X?
                 sumgamma((c-1)*ntapers+(1:ntapers)) = sumgamma((c-1)*ntapers+(1:ntapers)) + sum(Gamma(ind_gamma(ranget),k)); 
-                for tp=1:ntapers,
+                for tp=1:ntapers
                     Jik=J(findx,tp,:);
                     for j=1:ndim
                         %for l=1:ndim
                         %    psdc(:,j,l,(in-1)*ntapers+tp) = psdc(:,j,l,(in-1)*ntapers+tp) + ...
                         %        conj(Jik(:,1,j)).*Jik(:,1,l)  / double(Nwins);
                         %end
-                        for l=j:ndim,
+                        for l=j:ndim
                             psdc(:,j,l,(c-1)*ntapers+tp) = psdc(:,j,l,(c-1)*ntapers+tp) + ...
                                 conj(Jik(:,1,j)).*Jik(:,1,l) / double(Nwins);
                             if l~=j
@@ -181,7 +181,7 @@ for k=1:K
     end
     psd = mean(psdc,4); ipsd = zeros(Nf,ndim,ndim);
     
-    for ff=1:Nf, 
+    for ff=1:Nf
         if rcond(permute(psd(ff,:,:),[3 2 1]))>1e-10
             ipsd(ff,:,:) = pinv(permute(psd(ff,:,:),[3 2 1])); 
         else
@@ -193,8 +193,8 @@ for k=1:K
     coh = []; pcoh = []; phase = []; pdc = [];
     if (options.to_do(1)==1) && ndim>1
         coh = zeros(Nf,ndim,ndim); phase = zeros(Nf,ndim,ndim);
-        for j=1:ndim,
-            for l=1:ndim,
+        for j=1:ndim
+            for l=1:ndim
                 cjl = psd(:,j,l)./sqrt(psd(:,j,j) .* psd(:,l,l));
                 coh(:,j,l) = abs(cjl); 
                 cjlp = -ipsd(:,j,l)./sqrt(ipsd(:,j,j) .* ipsd(:,l,l));
@@ -212,29 +212,29 @@ for k=1:K
         [psderr,coherr,pcoherr,pdcerr,sdphase] = spectrerr(psdc,[],coh,pcoh,pdc,options);
     end
     
-    if options.rlowess,
-        for j=1:ndim,
+    if options.rlowess
+        for j=1:ndim
             psd(:,j,j) = mslowess(f', psd(:,j,j));
             if options.p>0
                 psderr(1,:,j,j) = mslowess(f', squeeze(psderr(1,:,j,j))');
                 psderr(2,:,j,j) = mslowess(f', squeeze(psderr(2,:,j,j))');
             end
-            for l=1:ndim,
-                if (options.to_do(1)==1),
+            for l=1:ndim
+                if (options.to_do(1)==1)
                     coh(:,j,l) = mslowess(f', coh(:,j,l));
                     pcoh(:,j,l) = mslowess(f', pcoh(:,j,l));
                 end
-                if (options.to_do(2)==1),
+                if (options.to_do(2)==1)
                     pdc(:,j,l) = mslowess(f', pdc(:,j,l));
                 end
                 if options.p>0
-                    if (options.to_do(1)==1),
+                    if (options.to_do(1)==1)
                         coherr(1,:,j,l) = mslowess(f', squeeze(coherr(1,:,j,l))');
                         coherr(2,:,j,l) = mslowess(f', squeeze(coherr(2,:,j,l))');
                         pcoherr(1,:,j,l) = mslowess(f', squeeze(pcoherr(1,:,j,l))');
                         pcoherr(2,:,j,l) = mslowess(f', squeeze(pcoherr(2,:,j,l))');
                     end
-                    if (options.to_do(2)==1),
+                    if (options.to_do(2)==1)
                         pdcerr(1,:,j,l) = mslowess(f', squeeze(pdcerr(1,:,j,l))');
                         pdcerr(2,:,j,l) = mslowess(f', squeeze(pdcerr(2,:,j,l))');
                     end
@@ -338,24 +338,24 @@ function J=mtfftc(data,tapers,nfft,Fs)
 %
 % From Chronux
 
-if nargin < 4; error('Need all input arguments'); end;
+if nargin < 4; error('Need all input arguments'); end
 dtmp=[];
-if isstruct(data);
+if isstruct(data)
     C=length(data);
-    if C==1;
+    if C==1
         fnames=fieldnames(data);
         eval(['dtmp=data.' fnames{1} ';'])
         data=dtmp(:);
     end
 else
     [N,C]=size(data);
-    if N==1 || C==1;
+    if N==1 || C==1
         data=data(:);
-    end;
-end;
+    end
+end
 [NC,C]=size(data); % size of data
 [NK, K]=size(tapers); % size of tapers
-if NK~=NC; error('length of tapers is incompatible with length of data'); end;
+if NK~=NC; error('length of tapers is incompatible with length of data'); end
 tapers=tapers(:,:,ones(1,C)); % add channel indices to tapers
 data=data(:,:,ones(1,K)); % add taper indices to data
 data=permute(data,[1 3 2]); % reshape data to get dimensions to match those of tapers

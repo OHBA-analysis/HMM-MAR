@@ -10,9 +10,9 @@ for k = 1:K
             rho * hmm_noisy.state(k).W.Mu_W;
         hmm.state(k).W.iS_W = (1-rho) * hmm.state(k).W.iS_W + ...
             rho * hmm_noisy.state(k).W.iS_W;
-        if strcmp(hmm.train.covtype,'full') || strcmp(hmm.train.covtype,'uniquefull')
+        if length(size(hmm.state(k).W.S_W))==2  % full, uniquefull, uniqueAR or 1 dimension  
             hmm.state(k).W.S_W = inv(hmm.state(k).W.iS_W);
-        else
+        else % diag or uniquediag
             for n = 1:size(hmm.state(k).W.S_W,1)
                 hmm.state(k).W.S_W(n,Sind(:,n),Sind(:,n)) = ...
                     inv(permute(hmm.state(k).W.iS_W(n,Sind(:,n),Sind(:,n)),[2 3 1]));

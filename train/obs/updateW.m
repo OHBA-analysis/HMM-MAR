@@ -83,7 +83,7 @@ for k=1:K
         end
         XW(:,:,k) = XX{kk} * hmm.state(k).W.Mu_W;
         
-    else % this only works if all(S(:)==1);  any(S(:)~=1) is just not yet implemented 
+    else % full or unique full - this only works if all(S(:)==1); any(S(:)~=1) is just not yet implemented 
         if pcapred
             mlW = (( XXGXX{k} \ XX{kk}') .* repmat(Gamma(:,k)',(~train.zeromean)+M,1) * residuals)';
         else

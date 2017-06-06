@@ -13,14 +13,14 @@ if ~isfield(options,'completelags'), options.completelags = 0; end
 if ~isfield(options,'rlowess'), options.rlowess = 0; end
 if ~isfield(options,'numIterations'), options.numIterations = 100; end
 if ~isfield(options,'tol'), options.tol = 1e-18; end
-if ~isfield(options,'pad'), options.pad = 0; end;
-if ~isfield(options,'Fs'), options.Fs=1; end;
-if ~isfield(options,'fpass'),  options.fpass=[options.Fs/200 options.Fs/2]; end;
+if ~isfield(options,'pad'), options.pad = 0; end
+if ~isfield(options,'Fs'), options.Fs=1; end
+if ~isfield(options,'fpass'),  options.fpass=[options.Fs/200 options.Fs/2]; end
 mfs = max(options.Fs/200, options.fpass(1));
 if ~isfield(options,'win'),  options.win = min(4*options.Fs/mfs, min(T));  end
-if ~isfield(options,'tapers'), options.tapers = [4 7]; end;
+if ~isfield(options,'tapers'), options.tapers = [4 7]; end
 if ~isfield(options,'standardise'), options.standardise = 1; end
-if ~isfield(options,'to_do'), 
+if ~isfield(options,'to_do')
     if ndim>1, options.to_do = ones(2,1); 
     else options.to_do = zeros(2,1); 
     end
@@ -32,7 +32,7 @@ end
 
 % MAR 
 % if ~isfield(options,'loadings'), options.loadings=eye(ndim); end;
-if ~isfield(options,'Nf'),  options.Nf=256; end;
+if ~isfield(options,'Nf'),  options.Nf=256; end
 if ~isfield(options,'MLestimation'), options.MLestimation = 1; end
 if ~isfield(options,'completelags'), options.completelags = 0; end
 
@@ -48,7 +48,7 @@ if strcmp(options.level,'subject') && options.p>0
 end
 
 if nargout==2
-    if ~isfield(options,'Gamma'),
+    if ~isfield(options,'Gamma')
         Gamma = ones(sum(T),1);
     else
         Gamma = options.Gamma;
