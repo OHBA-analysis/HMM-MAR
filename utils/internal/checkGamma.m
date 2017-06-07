@@ -1,10 +1,9 @@
-function checkGamma(Gamma,T,train,subj)
+function status = checkGamma(Gamma,T,train,subj)
 
 if nargin<4, subj = 0; end
 
-Gamma = sum(Gamma,2);
-if any(isnan(Gamma))
-    t = find(isnan(Gamma),1);
+if any(isnan(sum(Gamma,2)))
+    t = find(isnan(sum(Gamma,2)),1);
     if train.order>1
         d = train.order;
         Td = T-d;
@@ -29,5 +28,7 @@ if any(isnan(Gamma))
 	error('Issue of precision')
 end
 
+K = size(Gamma,2);
+status = (all(max(Gamma)<0.6) && all(min(Gamma)>(1/K/2)));
 
 end

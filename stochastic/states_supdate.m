@@ -10,7 +10,8 @@ for k = 1:K
             rho * hmm_noisy.state(k).W.Mu_W;
         hmm.state(k).W.iS_W = (1-rho) * hmm.state(k).W.iS_W + ...
             rho * hmm_noisy.state(k).W.iS_W;
-        if length(size(hmm.state(k).W.S_W))==2  % full, uniquefull, uniqueAR or 1 dimension  
+        if length(size(hmm.state(k).W.S_W))==2 && ... % full, uniquefull, uniqueAR or 1 dimension 
+               size(hmm.state(k).W.S_W,1)==size(hmm.state(k).W.S_W,2)
             hmm.state(k).W.S_W = inv(hmm.state(k).W.iS_W);
         else % diag or uniquediag
             for n = 1:size(hmm.state(k).W.S_W,1)

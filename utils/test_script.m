@@ -56,6 +56,15 @@ for covtype = {'full','diag','uniquefull','uniquediag'}
         end
     end
 end
+
+
+% One channel
+options.order = 2;
+options.pca = 0; 
+options.covtype = 'diag'; 
+options.embeddedlags = 0;
+[hmm,Gamma,Xi,vpath] = hmmmar(X(:,1),T,options);
+
 % Embedded HMM
 options.order = 0;
 options.zeromean = 1;
@@ -64,6 +73,9 @@ options.embeddedlags = -2:2;
 options.pca = 6; 
 [hmm,Gamma,Xi,vpath] = hmmmar(X,T,options);
 options.embeddedlags = 0; 
+
+
+
 
 % random initialization
 options.inittype = 'random';
@@ -156,6 +168,13 @@ for covtype = {'full','diag'} %,'uniquefull','uniquediag'}
         end
     end
 end
+
+% One channel
+options.order = 2;
+options.pca = 0; 
+options.covtype = 'diag'; 
+options.embeddedlags = 0;
+[hmm,Gamma,Xi,vpath] = hmmmar(X(:,1),T,options);
 
 % Embedded HMM
 options.order = 0;

@@ -37,7 +37,15 @@ for cycle=1:hmm.train.cyc
         if hmm.K>1 || cycle==1
             % state inference
             [Gamma,~,Xi] = hsinference(data,T,hmm,residuals,[],XX);
-            checkGamma(Gamma,T,hmm.train);
+            status = checkGamma(Gamma,T,hmm.train);
+            % check local minima
+            while status == 1
+                hmm = hmmperturb(hmm);
+                warning('Stuck in bad local minima - perturbing the model and retrying...')
+                [Gamma,~,Xi] = hsinference(data,T,hmm,residuals,[],XX);
+                status = checkGamma(Gamma,T,hmm.train);
+            end
+            
             % any state to remove?
             [as,hmm,Gamma,Xi] = getactivestates(hmm,Gamma,Xi);
             if hmm.train.dropstates

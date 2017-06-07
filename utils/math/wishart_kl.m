@@ -18,19 +18,19 @@ function [D] = wishart_kl (B_q,B_p,alpha_q,alpha_p)
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-if nargin<4,
+if nargin<4
   error('Incorrect number of input arguements');
-end;
+end
 
-if size(B_q)~=size(B_p),
+if size(B_q)~=size(B_p)
   error('Distributions must have equal dimensions');
-end;
+end
 
 K=size(B_p,1);
 
 try
     Lq = -logdet(B_q,'chol');
-catch excp,
+catch excp
     disp('Probably, part of your time series has no information and can be removed.')
     disp('For example, check if there are segments such that data(during_segment,:) == 0')
     error('Error computing the inverse of the covariance matrix.')
