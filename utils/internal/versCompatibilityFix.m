@@ -38,5 +38,15 @@ end
 if ~isfield(hmm.train,'onpower')
     hmm.train.onpower = 0;
 end
+if ~isfield(hmm.train,'filter')
+    hmm.train.filter = [];
+end
+if ~isfield(hmm.train,'detrend')
+    hmm.train.detrend = 0;
+end
+if ~isfield(hmm.train,'downsample')
+    hmm.train.downsample = 0;
+end
+
 
 end
