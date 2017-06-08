@@ -39,11 +39,13 @@ for cycle=1:hmm.train.cyc
             [Gamma,~,Xi] = hsinference(data,T,hmm,residuals,[],XX);
             status = checkGamma(Gamma,T,hmm.train);
             % check local minima
+            epsilon = 1;
             while status == 1
-                hmm = hmmperturb(hmm);
+                hmm = hmmperturb(hmm,epsilon);
                 warning('Stuck in bad local minima - perturbing the model and retrying...')
                 [Gamma,~,Xi] = hsinference(data,T,hmm,residuals,[],XX);
                 status = checkGamma(Gamma,T,hmm.train);
+                epsilon = epsilon * 2;
             end
             
             % any state to remove?
