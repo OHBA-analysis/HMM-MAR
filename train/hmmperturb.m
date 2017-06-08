@@ -21,17 +21,12 @@ for k = 1:K
         end
     else % if there is no regression coeff / mean , perturbe the noise cov mat
         if size(hmm.state(k).Omega.Gam_rate,1) == 1 % diagonal
-            hmm.state(k).Omega.Gam_rate = hmm.state(k).Omega.Gam_rate + ...
-                epsilon * 0.01 * randn(size(hmm.state(k).Omega.Gam_rate)) .*  ...
-                hmm.state(k).Omega.Gam_rate; 
-            hmm.state(k).Omega.Gam_rate = max(hmm.state(k).Omega.Gam_rate,0.0001);
+            r = randn(size(hmm.state(k).Omega.Gam_rate));
+            hmm.state(k).Omega.Gam_rate = hmm.state(k).Omega.Gam_rate + epsilon * 0.01 * r.^2;
         else
             ndim = length(hmm.state(k).Omega.Gam_rate);
-            for n = 1:ndim
-                hmm.state(k).Omega.Gam_rate(n,n) = ...
-                    epsilon * 0.01 * randn(1) .* hmm.state(k).Omega.Gam_rate(n,n);
-                hmm.state(k).Omega.Gam_rate(n,n) = max(hmm.state(k).Omega.Gam_rate(n,n),0.0001);
-            end
+            r = randn(ndim,1); 
+            hmm.state(k).Omega.Gam_rate = hmm.state(k).Omega.Gam_rate + epsilon * 0.01 * (r' * r); 
         end
     end
 
