@@ -47,10 +47,12 @@ for covtype = {'full','diag','uniquefull','uniquediag'}
             options.covtype = covtype{1};
             options.order = order;
             options.zeromean = zeromean;
-            [hmm,Gamma,Xi,vpath] = hmmmar(X,T,options);
+            [hmm,Gamma,Xi,vpath,~,~,fe] = hmmmar(X,T,options); 
+            fe2 = hmmfe(X,T,hmm); %(fe(end)-fe2)/fe2
             if order==2 && (strcmp(covtype,'diag') || strcmp(covtype,'uniquediag'))
                 options.AR = 1;
-                [hmm,Gamma,Xi,vpath] = hmmmar(X,T,options);
+                [hmm,Gamma,Xi,vpath,~,~,fe] = hmmmar(X,T,options);
+                fe2 = hmmfe(X,T,hmm); %(fe(end)-fe2)/fe2
                 options.AR = 0;
             end
         end
@@ -63,7 +65,8 @@ options.order = 2;
 options.pca = 0; 
 options.covtype = 'diag'; 
 options.embeddedlags = 0;
-[hmm,Gamma,Xi,vpath] = hmmmar(X(:,1),T,options);
+[hmm,Gamma,Xi,vpath,~,~,fe] = hmmmar(X(:,1),T,options);
+fe2 = hmmfe(X(:,1),T,hmm); %(fe(end)-fe2)/fe2
 
 % Embedded HMM
 options.order = 0;
@@ -71,7 +74,8 @@ options.zeromean = 1;
 options.covtype = 'full'; 
 options.embeddedlags = -2:2;
 options.pca = 6; 
-[hmm,Gamma,Xi,vpath] = hmmmar(X,T,options);
+[hmm,Gamma,Xi,vpath,~,~,fe] = hmmmar(X,T,options);
+fe2 = hmmfe(X,T,hmm); %(fe(end)-fe2)/fe2
 options.embeddedlags = 0; 
 
 
@@ -79,8 +83,8 @@ options.embeddedlags = 0;
 
 % random initialization
 options.inittype = 'random';
-[hmm,Gamma,Xi,vpath] = hmmmar(X,T,options);
-
+[hmm,Gamma,Xi,vpath,~,~,fe] = hmmmar(X,T,options);
+fe2 = hmmfe(X,T,hmm);% (fe(end)-fe2)/fe2
 
 % Specifying data.C (semisupervised)
 data = struct(); 
@@ -102,10 +106,12 @@ for covtype = {'full','diag','uniquefull','uniquediag'}
             options.covtype = covtype{1};
             options.order = order;
             options.zeromean = zeromean;
-            [hmm,Gamma,Xi,vpath] = hmmmar(data,T,options);
+            [hmm,Gamma,Xi,vpath,~,~,fe] = hmmmar(data,T,options);
+            fe2 = hmmfe(X,T,hmm); %(fe(end)-fe2)/fe2
             if order==2 && (strcmp(covtype,'diag') || strcmp(covtype,'uniquediag'))
                 options.AR = 1;
-                [hmm,Gamma,Xi,vpath] = hmmmar(data,T,options);
+                [hmm,Gamma,Xi,vpath,~,~,fe] = hmmmar(data,T,options);
+                fe2 = hmmfe(X,T,hmm); %(fe(end)-fe2)/fe2
                 options.AR = 0;
             end
         end
@@ -118,15 +124,20 @@ options.zeromean = 1;
 options.covtype = 'full'; 
 options.embeddedlags = -2:2;
 options.pca = 6; 
-[hmm,Gamma,Xi,vpath] = hmmmar(X,T,options);
+[hmm,Gamma,Xi,vpath,~,~,fe] = hmmmar(X,T,options);
+fe2 = hmmfe(X,T,hmm); %(fe(end)-fe2)/fe2
 %options.embeddedlags = 0; 
 
 % random initialization
 options.inittype = 'random';
-[hmm,Gamma,Xi,vpath] = hmmmar(X,T,options);
+[hmm,Gamma,Xi,vpath,~,~,fe] = hmmmar(X,T,options);
+fe2 = hmmfe(X,T,hmm); %(fe(end)-fe2)/fe2
 
 
 %% stochastic inference
+
+disp('*** STOCHASTIC LEARNING***')
+
 options = struct();
 options.K = 2; 
 options.Fs = 200; 
@@ -164,7 +175,9 @@ for covtype = {'full','diag'} %,'uniquefull','uniquediag'}
             options.covtype = covtype{1};
             options.order = order;
             options.zeromean = zeromean;
-            [hmm,Gamma,Xi,vpath] = hmmmar(X,T,options);
+            [hmm,Gamma,Xi,vpath,~,~,fe] = hmmmar(X,T,options);
+            fe2 = hmmfe(X,T,hmm); %(fe(end)-fe2)/fe2
+            if isnan((fe(end)-fe2)/fe2), error('NaN'); end
         end
     end
 end
@@ -174,7 +187,9 @@ options.order = 2;
 options.pca = 0; 
 options.covtype = 'diag'; 
 options.embeddedlags = 0;
-[hmm,Gamma,Xi,vpath] = hmmmar(X(:,1),T,options);
+[hmm,Gamma,Xi,vpath,~,~,fe] = hmmmar(X(:,1),T,options);
+fe2 = hmmfe(X(:,1),T,hmm); %(fe(end)-fe2)/fe2
+if isnan((fe(end)-fe2)/fe2), error('NaN'); end
 
 % Embedded HMM
 options.order = 0;
@@ -182,5 +197,6 @@ options.zeromean = 1;
 options.covtype = 'full'; 
 options.embeddedlags = -2:2;
 options.pca = 3; 
-[hmm,Gamma,Xi,vpath] = hmmmar(X,T,options);
-options.embeddedlags = 0; 
+[hmm,Gamma,Xi,vpath,~,~,fe] = hmmmar(X,T,options);
+fe2 = hmmfe(X,T,hmm); %(fe(end)-fe2)/fe2
+if isnan((fe(end)-fe2)/fe2), error('NaN'); end
