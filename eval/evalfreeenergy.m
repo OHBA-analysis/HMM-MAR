@@ -6,7 +6,7 @@ function [FrEn,avLL] = evalfreeenergy(X,T,Gamma,Xi,hmm,residuals,XX,todo)
 % T            length of series
 % Gamma        probability of states conditioned on data
 % Xi           joint probability of past and future states conditioned on data
-% hmm          data structure
+% hmm          hmm structure
 % residuals    in case we train on residuals, the value of those.
 %
 % OUTPUT
@@ -326,3 +326,5 @@ if todo(2)==1
 end
 
 FrEn=[-Entr -savLL -avLLGamma +KLdivTran +KLdiv];
+
+end

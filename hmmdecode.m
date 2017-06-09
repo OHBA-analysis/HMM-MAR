@@ -1,4 +1,4 @@
-function [Path,Xi] = hmmdecode(data,T,hmm,type,residuals,reproc)
+function [Path,Xi] = hmmdecode(data,T,hmm,type,residuals,preproc)
 %
 % State time course and Viterbi decoding for hmm
 % The algorithm is run for the whole data set, including those whose class
@@ -22,7 +22,7 @@ function [Path,Xi] = hmmdecode(data,T,hmm,type,residuals,reproc)
 
 if nargin<4, type = 0; end
 if nargin<5, residuals = []; end
-if nargin<6, reproc = 1; end
+if nargin<6, preproc = 1; end
 
 stochastic_learn = isfield(hmm.train,'BIGNbatch') && hmm.train.BIGNbatch < length(T);
 N = length(T);
@@ -56,7 +56,7 @@ if iscell(T)
     T = cell2mat(T);
 end
 
-if reproc % Adjust the data if necessary
+if preproc % Adjust the data if necessary
     train = hmm.train;
     checkdatacell;
     data = data2struct(data,T,train);
@@ -100,7 +100,7 @@ if reproc % Adjust the data if necessary
 end
 
 if type==0
-   [Path,Xi] = hsinference(data,T,hmm,residuals); 
+   [Path,~,Xi] = hsinference(data,T,hmm,residuals); 
    return
 end
 
