@@ -90,13 +90,21 @@ for rep = 1:options.BIGinitrep
             options_copy = options;
             removesoptions;
             options = rmfield(options,'orders');
-            options.pca = 0; % this has been done in loadfile.m
-            options.embeddedlags = 0; % this has been done in loadfile.m
+            options.pca = 0; % done in loadfile.m
+            options.embeddedlags = 0; % done in loadfile.m
+            options.filter = [];
+            options.detrend = 0; 
+            options.onpower = 0; 
             options.downsample = 0; % done in loadfile.m
             if length(Ti)==1, options.useParallel = 0; end
             [hmm_i,Gamma,Xi] = hmmmar(X,Ti,options);
             options = options_copy;
-            hmm_i.train.pca = options.pca; hmm_i.train.embeddedlags = options.embeddedlags;
+            hmm_i.train.pca = options.pca; 
+            hmm_i.train.embeddedlags = options.embeddedlags;
+            hmm_i.train.filter = options.filter;
+            hmm_i.train.detrend = options.detrend;
+            hmm_i.train.onpower = options.onpower;
+            hmm_i.train.downsample = options.downsample;
             hmm_i.train.useParallel = options.useParallel;
         end
         if ii==1 % get priors

@@ -29,11 +29,17 @@ else
     maxorder = hmm.train.maxorder; 
 end
 
-if type==0
-    Path = zeros(sum(TT)-length(TT)*L,K,'single');
-    Xi = zeros(sum(TT)-length(TT)*(L+1),K,K,'single');
+if hmm.train.downsample > 0
+    downs_ratio = (hmm.train.downsample/hmm.train.Fs);
 else
-    Path = zeros(sum(TT)-length(TT)*L,1,'single');
+    downs_ratio = 1;
+end
+
+if type==0
+    Path = zeros(downs_ratio * (sum(TT)-length(TT)*L),K,'single');
+    Xi = zeros(downs_ratio * (sum(TT)-length(TT)*(L+1)),K,K,'single');
+else
+    Path = zeros(downs_ratio * (sum(TT)-length(TT)*L),1,'single');
     Xi = [];
 end
 
