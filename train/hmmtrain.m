@@ -42,7 +42,7 @@ for cycle=1:hmm.train.cyc
             epsilon = 1;
             while status == 1
                 hmm = hmmperturb(hmm,epsilon);
-                warning('Stuck in bad local minima - perturbing the model and retrying...')
+                disp('Stuck in bad local minima - perturbing the model and retrying...')
                 [Gamma,~,Xi] = hsinference(data,T,hmm,residuals,[],XX);
                 status = checkGamma(Gamma,T,hmm.train);
                 epsilon = epsilon * 2;
