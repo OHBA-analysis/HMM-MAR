@@ -31,6 +31,7 @@ else
     N = length(T);
 end
 
+% is this going to be using the stochastic learning scheme? 
 stochastic_learn = isfield(options,'BIGNbatch') && ...
     (options.BIGNbatch < N && options.BIGNbatch > 0);
 options = checkspelling(options);

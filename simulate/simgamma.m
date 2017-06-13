@@ -15,6 +15,8 @@ function Gamma = simgamma(T,P,Pi,nrep)
 %
 % Author: Diego Vidaurre, OHBA, University of Oxford
 
+rng('shuffle') % make this "truly" random
+
 N = length(T); K = length(Pi);
 if nargin<4, nrep = 1; end
 

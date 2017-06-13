@@ -4,6 +4,8 @@ function Gamma = initGamma_random(T,K,D)
 %
 % Author: Romesh Abeysuriya, University of Oxford (2017)
 
+rng('shuffle') % make this "truly" random
+
 % Form transition probability matrix
 P = (D-1)*eye(K)+ones(K);
 P = bsxfun(@rdivide,P,sum(P,2));
@@ -31,7 +33,7 @@ else
         gamma = zeros(T(tr),K);
         gamma(1,:) = mnrnd(1,ones(1,K)*1/K);
         for t=2:T(tr)
-            gamma(t,:) = mnrnd(1,P(find(gamma(t-1,:)==1),:));
+            gamma(t,:) = mnrnd(1,P(gamma(t-1,:)==1,:));
         end
         gamma = gamma + 0.0001 * rand(T(tr),K);
         t0 = sum(T(1:tr-1)); t1 = sum(T(1:tr));
