@@ -33,6 +33,4 @@ for k = 1:K
 
 end
 
-
-
 end
