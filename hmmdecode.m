@@ -20,9 +20,9 @@ function [Path,Xi] = hmmdecode(data,T,hmm,type,residuals,preproc)
 
 % Author: Diego Vidaurre, OHBA, University of Oxford
 
-if nargin<4, type = 0; end
+if nargin<4 || isempty(type), type = 0; end
 if nargin<5, residuals = []; end
-if nargin<6, preproc = 1; end
+if nargin<6 || isempty(preproc), preproc = 1; end
 
 stochastic_learn = isfield(hmm.train,'BIGNbatch') && hmm.train.BIGNbatch < length(T);
 N = length(T);
