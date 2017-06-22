@@ -25,8 +25,8 @@ N = length(T); K = length(hmm.state);
 ndim = size(hmm.state(1).W.Mu_W,2); 
 
 if nargin<3, Gamma = []; end
-if nargin<4, nrep = 10; end
-if nargin<5, trim = 0; end
+if nargin<4 || isempty(nrep), nrep = 10; end
+if nargin<5 || isempty(trim), trim = 0; end
 if nargin<6, X0 = []; end
 if nargin<7, sim_state_tcs_only=0; end
     
@@ -36,8 +36,10 @@ if ~isfield(hmm.train,'orderoffset'), hmm.train.orderoffset = 0; end
 if ~isfield(hmm.train,'S'), hmm.train.S = ones(ndim); end
 if ~isfield(hmm.train,'multipleConf'), hmm.train.multipleConf = 0; end
 
-if isempty(Gamma), % Gamma is not provided, so we simulate it too
+if isempty(Gamma) && K>1 % Gamma is not provided, so we simulate it too
     Gamma = simgamma(T,hmm.P,hmm.Pi,nrep);
+elseif isempty(Gamma) && K==1
+    Gamma = ones(sum(T),1);
 end
 
 X = [];
@@ -75,7 +77,7 @@ if ~sim_state_tcs_only
                 for i=1:length(orders)
                     o = orders(i);
                     XX(1,(1:ndim) + (i-1)*ndim) = Xin(t-o,:);
-                end;
+                end
                 if ~hmm.train.zeromean
                     XX = [1 XX];
                 end
@@ -86,7 +88,7 @@ if ~sim_state_tcs_only
     end
 end
 
-if trim>0,
+if trim>0
     Gamma0 = []; X0 = [];  
     for in=1:N
         t0 = sum(T(1:in-1)) + 1; t1 = sum(T(1:in));
