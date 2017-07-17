@@ -7,3 +7,5 @@ The example.m file provides some basic demonstration of the toolbox functionalit
 For more detailed description and simulations, please refer to 
 
 Diego Vidaurre, Andrew J. Quinn, Adam P. Baker, David Dupret, Alvaro Tejero-Cantero and Mark W. Woolrich _Spectrally resolved fast transient brain states in electrophysiological data._ NeuroImage. Volume 126, 1 February 2016, Pages 81–95.
+
+Diego Vidaurre, Romesh Abeysuriya, Robert Becker, Andrew J. Quinn, F. Alfaro-Almagro, S.M Smith and Mark W. Woolrich _Discovering dynamic brain networks from big data in rest and task._ NeuroImage. June 2017  
