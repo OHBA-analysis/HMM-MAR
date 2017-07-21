@@ -1,5 +1,11 @@
 if ~isempty(strfind(fsub,'.mat'))
-    load(fsub,'X');
+    dat = load(fsub);
+    if isfield(dat,'X')
+        X = dat.X;
+    else
+        X = getfield(d,char(fieldnames(dat)));
+    end
+    clear d
 elseif ~isempty(strfind(fsub,'.txt'))
     X = dlmread(fsub);
 else % no extension - assumed to be an SPM file
