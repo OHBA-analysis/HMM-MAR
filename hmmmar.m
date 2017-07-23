@@ -116,13 +116,25 @@ end
 
 if stochastic_learn
     
+    % get PCA pre-embedded loadings
+    if length(options.pca_spatial) > 1 || (options.pca_spatial > 0 && options.pca_spatial ~= 1)
+        if ~isfield(options,'As')
+            options.As = highdim_pca(data,T,options.pca_spatial,...
+                0,options.standardise,...
+                options.onpower,0,options.detrend,...
+                options.filter,options.Fs);
+            options.pca_spatial = size(options.As,2);
+        end
+    else 
+        options.As = [];
+    end    
     % get PCA loadings 
     if length(options.pca) > 1 || (options.pca > 0 && options.pca ~= 1)
         if ~isfield(options,'A')
             options.A = highdim_pca(data,T,options.pca,...
                 options.embeddedlags,options.standardise,...
                 options.onpower,options.varimax,options.detrend,...
-                options.filter,options.Fs);
+                options.filter,options.Fs,options.As);
             options.pca = size(options.A,2);
         end
         options.ndim = size(options.A,2);
@@ -190,6 +202,17 @@ else
     if options.onpower
        data = rawsignal2power(data,T); 
     end
+    
+    % pre-embedded PCA transform
+    if length(options.pca_spatial) > 1 || (options.pca_spatial > 0 && options.pca_spatial ~= 1)
+        if isfield(options,'As')
+            data.X = bsxfun(@minus,data.X,mean(data.X));   
+            data.X = data.X * options.As; 
+        else
+            [options.As,data.X] = highdim_pca(data.X,T,options.pca_spatial,0,0,0,0);
+            options.pca_spatial = size(options.As,2);
+        end
+    end    
     % Embedding
     if length(options.embeddedlags) > 1  
         [data,T] = embeddata(data,T,options.embeddedlags);
@@ -318,6 +341,7 @@ else
     
 end
 
+hmm.train = rmfield(hmm.train,'grouping'); 
 status = checkGamma(Gamma,T,hmm.train);
 if status==1
     warning(['It seems that the inference was trapped in a local minima; ' ...

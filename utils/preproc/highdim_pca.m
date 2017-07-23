@@ -1,4 +1,4 @@
-function [A,B] = highdim_pca(X,T,d,embeddedlags,standardise,onpower,varimax,detrend,filter,Fs)
+function [A,B] = highdim_pca(X,T,d,embeddedlags,standardise,onpower,varimax,detrend,filter,Fs,As)
 % pca for potentially loads of subjects
 %
 % if X is a cell of things, uses SVD
@@ -24,7 +24,11 @@ if nargin<7, varimax = 0; end
 if nargin<8, detrend = 0; end
 if nargin<9, filter = []; end
 if nargin<10, Fs = 1; end
+if nargin<11, As = []; end
 
+if length(embeddedlags)>1, msg = '(embedded)';
+else, msg = ''; 
+end
 
 is_cell_strings = iscell(X) && ischar(X{1});
 is_cell_matrices = iscell(X) && ~ischar(X{1});
@@ -37,6 +41,7 @@ options.pca = 0; % PCA is done here!
 options.onpower = onpower;
 options.detrend = detrend;
 if isfield(options,'A'), options = rmfield(options,'A'); end
+if ~isempty(As), options.As = As; end
 
 if is_cell_strings || is_cell_matrices
     B = [];
@@ -85,9 +90,11 @@ end
 A = A(:,1:ncomp);
 if varimax
     A = rotatefactors(A);
-    fprintf('Working in PCA/Varimax space, with %d components... \n',ncomp)
+    fprintf('Working in PCA/Varimax %s space, with %d components. \n',msg,ncomp)
+    fprintf('(explained variance = %1f)  \n',e(ncomp))
 else
-    fprintf('Working in PCA space, with %d components... \n',ncomp)
+    fprintf('Working in PCA %s space, with %d components. \n',msg,ncomp)
+    fprintf('(explained variance = %1f)  \n',e(ncomp))
 end
 
 if ~isempty(B)
