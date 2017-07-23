@@ -1,4 +1,4 @@
-function hmm = hmmhsinit (hmm)
+function hmm = hmmhsinit(hmm)
 % Initialise variables related to the Markov chain
 %
 % hmm		hmm data structure
@@ -8,23 +8,37 @@ function hmm = hmmhsinit (hmm)
 %
 % Author: Diego Vidaurre, OHBA, University of Oxford
 
-% Initialising the posteriors
-for k=1:hmm.K
-  % Initial state
-  hmm.Dir_alpha(k)=1;
-  hmm.Pi(k)=hmm.Dir_alpha(k)./hmm.K;
-  % State transitions
-  hmm.Dir2d_alpha(k,:)=ones(1,hmm.K);
-  hmm.Dir2d_alpha(k,k)=hmm.train.DirichletDiag; 
-  hmm.Dir2d_alpha(k,:) = hmm.train.PriorWeighting.*hmm.Dir2d_alpha(k,:);
-  hmm.P(k,:)=hmm.Dir2d_alpha(k,:)./sum(hmm.Dir2d_alpha(k,:),2);
+if isfield(hmm.train,'grouping')
+    Q = length(unique(hmm.train.grouping));
+else
+    Q = 1;
+end
+
+% Initial state
+if Q==1
+    hmm.Dir_alpha = ones(1,hmm.K);
+    hmm.Pi = ones(1,hmm.K) ./ hmm.K;
+else
+    hmm.Dir_alpha = ones(hmm.K,Q);
+    hmm.Pi = ones(hmm.K,Q) ./ hmm.K;    
+end
+
+% State transitions
+hmm.Dir2d_alpha = ones(hmm.K,hmm.K,Q);
+hmm.P = ones(hmm.K,hmm.K,Q);
+for i = 1:Q
+    for k = 1:hmm.K
+        hmm.Dir2d_alpha(k,k,i) = hmm.train.DirichletDiag;
+        hmm.Dir2d_alpha(k,:,i) = hmm.train.PriorWeighting .* hmm.Dir2d_alpha(k,:,i);
+        hmm.P(k,:,i) = hmm.Dir2d_alpha(k,:,i) ./ sum(hmm.Dir2d_alpha(k,:,i));
+    end
 end
 
 % define P-priors
 defhmmprior=struct('Dir2d_alpha',[],'Dir_alpha',[]);
-  
+
 defhmmprior.Dir_alpha=ones(1,hmm.K);
-defhmmprior.Dir2d_alpha=ones(hmm.K);
+defhmmprior.Dir2d_alpha=ones(hmm.K,hmm.K);
 for k=1:hmm.K
     defhmmprior.Dir2d_alpha(k,k) = hmm.train.DirichletDiag;
 end

@@ -1,4 +1,4 @@
-function fe = hmmfe(data,T,hmm,Gamma,Xi,preproc)
+function fe = hmmfe(data,T,hmm,Gamma,Xi,preproc,grouping)
 % Computes the Free Energy of an HMM 
 %
 % INPUT
@@ -14,11 +14,14 @@ function fe = hmmfe(data,T,hmm,Gamma,Xi,preproc)
 %
 % Author: Diego Vidaurre, OHBA, University of Oxford (2017)
 
-if nargin < 6, preproc = 1; end 
+if nargin<6 || isempty(preproc), preproc = 1; end 
+if nargin<7 , grouping = ones(length(T),1); end
+if size(grouping,1)==1,  grouping = grouping'; end
 
 if isstruct(data), data = data.X; end
 
 options = hmm.train;
+hmm.train.grouping = grouping;
 
 stochastic_learn = isfield(options,'BIGNbatch') && ...
     (options.BIGNbatch < length(T) && options.BIGNbatch > 0);

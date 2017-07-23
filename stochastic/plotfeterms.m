@@ -1,8 +1,8 @@
 function [] = plotfeterms(feterms,cycrange)
 if nargin<2, cycrange = 1:size(feterms.loglik,2); end
-f1 = -sum(feterms.loglik,1); % 1 x cyc 
+f1 = -sum(feterms.loglik,1); % 1 x cyc
 f2 = squeeze(sum(feterms.subjfe,1)); % 3 x cyc
-f3 = feterms.statekl; 
+f3 = feterms.statekl;
 F = [f1(1,cycrange); f2(:,cycrange); f3(1,cycrange)];
 subplot(2,1,1)
 plot(cycrange,sum(F,1),'k','LineWidth',4);

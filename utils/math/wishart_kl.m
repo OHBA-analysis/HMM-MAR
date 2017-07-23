@@ -19,7 +19,7 @@ function [D] = wishart_kl (B_q,B_p,alpha_q,alpha_p)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 if nargin<4
-  error('Incorrect number of input arguements');
+  error('Incorrect number of input arguments');
 end
 
 if size(B_q)~=size(B_p)

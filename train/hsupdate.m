@@ -14,31 +14,71 @@ function hmm = hsupdate(Xi,Gamma,T,hmm)
 %
 % Author: Diego Vidaurre, OHBA, University of Oxford
 
-
+if isfield(hmm.train,'grouping')
+    Q = length(unique(hmm.train.grouping));
+else
+    Q = 1;
+end
 N = length(T); K = hmm.K;
 [~,order] = formorders(hmm.train.order,hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag);
 % transition matrix
-sxi = squeeze(sum(Xi,1));   % counts over time
-
-hmm.Dir2d_alpha = sxi + hmm.prior.Dir2d_alpha;
+if Q>1
+    hmm.Dir2d_alpha = zeros(K,K,Q);
+    hmm.P = zeros(K,K,Q);
+    for i = 1:Q
+        hmm.Dir2d_alpha(:,:,i) = hmm.prior.Dir2d_alpha;
+    end
+    order = hmm.train.maxorder;
+    for n = 1:N
+        i = hmm.train.grouping(n);
+        t = (1:T(n)-1-order) + sum(T(1:n-1)) - (order+1)*(n-1) ;
+        hmm.Dir2d_alpha(:,:,i) = hmm.Dir2d_alpha(:,:,i) + squeeze(sum(Xi(t,:,:)));
+    end
+else
+    hmm.Dir2d_alpha = squeeze(sum(Xi)) + hmm.prior.Dir2d_alpha;
+    hmm.P = zeros(K,K);
+end
 %PsiSum=psi(sum(hmm.Dir2d_alpha(:),1));
-for j = 1:K
-    PsiSum = psi(sum(hmm.Dir2d_alpha(j,:)));
-    for i=1:K
-        hmm.P(j,i) = exp(psi(hmm.Dir2d_alpha(j,i))-PsiSum);
-    end;
-    hmm.P(j,:) = hmm.P(j,:) ./ sum(hmm.P(j,:));
+for i = 1:Q
+    for j = 1:K
+        PsiSum = psi(sum(hmm.Dir2d_alpha(j,:,i)));
+        for k=1:K
+            hmm.P(j,k,i) = exp(psi(hmm.Dir2d_alpha(j,k,i))-PsiSum);
+        end
+        hmm.P(j,:,i) = hmm.P(j,:,i) ./ sum(hmm.P(j,:,i));
+    end
 end
 
 % initial state
-hmm.Dir_alpha = hmm.prior.Dir_alpha;
-for in = 1:N
-    t = sum(T(1:in-1)) - order*(in-1) + 1;
-    hmm.Dir_alpha = hmm.Dir_alpha+Gamma(t,:);
+if Q==1, hmm.Dir_alpha = hmm.prior.Dir_alpha;
+else, hmm.Dir_alpha = repmat(hmm.prior.Dir_alpha',[1 Q]); 
 end
-PsiSum = psi(sum(hmm.Dir_alpha,2));
-for i = 1:K
-    hmm.Pi(i) = exp(psi(hmm.Dir_alpha(i))-PsiSum);
+for n = 1:N
+    i = hmm.train.grouping(n);
+    t = sum(T(1:n-1)) - order*(n-1) + 1;
+    if Q==1 
+        hmm.Dir_alpha = hmm.Dir_alpha + Gamma(t,:);
+    else
+        hmm.Dir_alpha(:,i) = hmm.Dir_alpha(:,i) + Gamma(t,:)';
+    end
 end
-hmm.Pi = hmm.Pi ./ sum(hmm.Pi);
 
+if Q==1
+    hmm.Pi = zeros(1,K);
+    PsiSum = psi(sum(hmm.Dir_alpha));
+    for k = 1:K
+        hmm.Pi(k) = exp(psi(hmm.Dir_alpha(k))-PsiSum);
+    end
+    hmm.Pi = hmm.Pi ./ sum(hmm.Pi);
+else
+    hmm.Pi = zeros(K,Q);
+    for i = 1:Q
+        PsiSum = psi(sum(hmm.Dir_alpha(:,i)));
+        for k = 1:K
+            hmm.Pi(k,i) = exp(psi(hmm.Dir_alpha(k,i))-PsiSum);
+        end
+        hmm.Pi(:,i) = hmm.Pi(:,i) ./ sum(hmm.Pi(:,i));
+    end
+end
+
+end

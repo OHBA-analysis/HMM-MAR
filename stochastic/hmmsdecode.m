@@ -49,6 +49,7 @@ for i = 1:N
     hmm_i = hmm;
     hmm_i.train.embeddedlags = 0;
     hmm_i.train.pca = 0;
+    hmm_i.train.pca_spatial = 0;
     if isfield(hmm_i.train,'BIGNbatch')
         hmm_i.train = rmfield(hmm_i.train,'BIGNbatch');
     end

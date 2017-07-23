@@ -91,6 +91,7 @@ for rep = 1:options.BIGinitrep
             removesoptions;
             options = rmfield(options,'orders');
             options.pca = 0; % done in loadfile.m
+            options.pca_spatial = 0;
             options.embeddedlags = 0; % done in loadfile.m
             options.filter = [];
             options.detrend = 0; 
@@ -100,6 +101,7 @@ for rep = 1:options.BIGinitrep
             [hmm_i,Gamma,Xi] = hmmmar(X,Ti,options);
             options = options_copy;
             hmm_i.train.pca = options.pca; 
+            hmm_i.train.pca_spatial = options.pca_spatial;
             hmm_i.train.embeddedlags = options.embeddedlags;
             hmm_i.train.filter = options.filter;
             hmm_i.train.detrend = options.detrend;

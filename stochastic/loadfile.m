@@ -37,9 +37,15 @@ if options.detrend
 end
 % Standardise data and control for ackward trials
 X = standardisedata(X,T,options.standardise);
+    
 % Hilbert envelope
 if options.onpower
     X = rawsignal2power(X,T);
+end
+% PCA transform (before embedded, i.e. drawing only from space corr)
+if isfield(options,'As')
+    X = bsxfun(@minus,X,mean(X)); % must center
+    X = X * options.As;
 end
 % Embedding
 if length(options.embeddedlags)>1

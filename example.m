@@ -27,9 +27,9 @@ for k = 1:K
 end
 
 hmmtrue.P = ones(K,K) + StatePermanency * eye(K); %rand(K,K);
-for j=1:K,
+for j=1:K
     hmmtrue.P(j,:)=hmmtrue.P(j,:)./sum(hmmtrue.P(j,:));
-end;
+end
 hmmtrue.Pi = ones(1,K); %rand(1,K);
 hmmtrue.Pi = hmmtrue.Pi./sum(hmmtrue.Pi);
 
@@ -41,7 +41,7 @@ for d=1:ndim, X(:,d) = smooth(X(:,d)); end % introduce some time dependencies
 options = struct();
 options.K = 2; 
 options.covtype = 'diag'; % model just variance of the noise
-options.order = 6; % MAR order 6
+options.order = 1; % MAR order 1
 options.zeromean = 0; % model the mean
 options.tol = 1e-8;
 options.cyc = 25;

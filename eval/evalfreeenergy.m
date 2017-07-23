@@ -32,7 +32,7 @@ else
     ndim = size(hmm.state(1).Omega.Gam_rate,2);
 end
 if isfield(hmm.train,'B'), Q = size(hmm.train.B,2);
-else Q = ndim; end
+else, Q = ndim; end
 pcapred = hmm.train.pcapred>0;
 if pcapred, M = hmm.train.pcapred; end
 
@@ -175,9 +175,13 @@ if todo(5)==1
                         hs.Omega.Gam_rate(n),hs.prior.Omega.Gam_rate(n));
                 end
             case 'full'
+                try
                 OmegaKL = wishart_kl(hs.Omega.Gam_rate(regressed,regressed),...
                     hs.prior.Omega.Gam_rate(regressed,regressed), ...
                     hs.Omega.Gam_shape,hs.prior.Omega.Gam_shape);
+                catch
+                    keyboard
+                end
         end
         
         if pcapred

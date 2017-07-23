@@ -18,6 +18,7 @@ if ~isfield(options,'Fs'), options.Fs = 1; end
 if ~isfield(options,'onpower'), options.onpower = 0; end
 if ~isfield(options,'embeddedlags'), options.embeddedlags = 0; end
 if ~isfield(options,'pca'), options.pca = 0; end
+if ~isfield(options,'pca_spatial'), options.pca_spatial = 0; end
 if ~isfield(options,'varimax'), options.varimax = 0; end
 if ~isfield(options,'pcamar'), options.pcamar = 0; end
 if ~isfield(options,'pcapred'), options.pcapred = 0; end
@@ -27,6 +28,9 @@ if ~isfield(options,'detrend'), options.detrend = 0; end
 if ~isfield(options,'downsample'), options.downsample = 0; end
 if ~isfield(options,'standardise'), options.standardise = 1; end
 if ~isfield(options,'standardise_pc'), options.standardise_pc = 0; end
+if ~isfield(options,'grouping') || isempty(options.grouping)
+    options.grouping = ones(length(T),1); 
+end  
 
 if ~isempty(options.filter)
     if length(options.filter)~=2, error('options.filter must contain 2 numbers of being empty'); end
@@ -51,6 +55,12 @@ elseif options.pca(1) < 1
 else
     ndim = options.pca;
 end
+
+if length(options.embeddedlags)==1 && options.pca_spatial>0
+   warning('pca_spatial only applies when using embedded lags; use pca instead')
+   options.pca_spatial = 0;
+end
+
 if ~isfield(options,'S') 
     if options.pcamar>0, options.S = ones(options.pcamar,ndim);
     else options.S = ones(ndim); 
@@ -58,6 +68,8 @@ if ~isfield(options,'S')
 elseif (size(data.X,2)~=size(options.S,1)) || (size(data.X,2)~=size(options.S,2))
     error('Dimensions of S are incorrect; must be a square matrix of size nchannels by nchannels')
 end
+
+if size(options.grouping,1)==1,  options.grouping = options.grouping'; end
 
 options = checkMARparametrization(options,[],ndim); copyopt = options;
 
@@ -144,8 +156,13 @@ end
 %    error('If updateObs is 0, you need to specify the parameters of the states in options.state')
 %end
 
-if ~isfield(options,'useMEX') || options.useMEX==1
-    options.useMEX = verifyMEX(); 
+if (~isfield(options,'useMEX') || options.useMEX==1) && length(unique(options.grouping))==1
+    options.useMEX = verifyMEX();
+elseif isfield(options,'useMEX') && options.useMEX==1 && length(unique(options.grouping))>1
+    warning('useMEX is not implemented when options.grouping is specified')
+    options.useMEX = 0; 
+else
+    options.useMEX = 0; 
 end
 
 if ~isfield(options,'verbose'), options.verbose = 1; end

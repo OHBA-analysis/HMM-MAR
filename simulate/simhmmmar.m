@@ -1,4 +1,4 @@
-function [X,T,Gamma] = simhmmmar(T,hmm,Gamma,nrep,trim,X0,sim_state_tcs_only)
+function [X,T,Gamma] = simhmmmar(T,hmm,Gamma,nrep,trim,X0,sim_state_tcs_only,grouping)
 %
 % Simulate data from the HMM-MAR
 %
@@ -29,6 +29,7 @@ if nargin<4 || isempty(nrep), nrep = 10; end
 if nargin<5 || isempty(trim), trim = 0; end
 if nargin<6, X0 = []; end
 if nargin<7, sim_state_tcs_only=0; end
+if nargin<8, grouping=[]; end
     
 if ~isfield(hmm.train,'timelag'), hmm.train.timelag = 1; end
 if ~isfield(hmm.train,'exptimelag'), hmm.train.exptimelag = 1; end
@@ -37,7 +38,7 @@ if ~isfield(hmm.train,'S'), hmm.train.S = ones(ndim); end
 if ~isfield(hmm.train,'multipleConf'), hmm.train.multipleConf = 0; end
 
 if isempty(Gamma) && K>1 % Gamma is not provided, so we simulate it too
-    Gamma = simgamma(T,hmm.P,hmm.Pi,nrep);
+    Gamma = simgamma(T,hmm.P,hmm.Pi,nrep,grouping);
 elseif isempty(Gamma) && K==1
     Gamma = ones(sum(T),1);
 end
@@ -58,19 +59,19 @@ if ~sim_state_tcs_only
                 hmm.state(k).train.exptimelag);
         end
     end
-    for in=1:N
-        t0 = sum(T(1:in-1)) + 1; t1 = sum(T(1:in));
+    for n = 1:N
+        t0 = sum(T(1:n-1)) + 1; t1 = sum(T(1:n));
         if isempty(X0)
-            Xin = simgauss(T(in),hmm,Gamma(t0:t1,:));
+            Xin = simgauss(T(n),hmm,Gamma(t0:t1,:));
             start = hmm.train.maxorder + 1; 
         else
-            Xin = zeros(T(in),ndim);
+            Xin = zeros(T(n),ndim);
             start = size(X0,1);
-            Xin(1:start,:) = X0(:,:,in);
-            Xin(start+1:end,:) = simgauss(T(in)-start,hmm,Gamma(t0+start:t1,:));
+            Xin(1:start,:) = X0(:,:,n);
+            Xin(start+1:end,:) = simgauss(T(n)-start,hmm,Gamma(t0+start:t1,:));
             start = start + 1; 
         end
-        for t=start:T(in)
+        for t=start:T(n)
             for k=1:K
                 setstateoptions;
                 XX = zeros(1,length(orders)*ndim);
@@ -90,13 +91,13 @@ end
 
 if trim>0
     Gamma0 = []; X0 = [];  
-    for in=1:N
-        t0 = sum(T(1:in-1)) + 1; t1 = sum(T(1:in));
+    for n=1:N
+        t0 = sum(T(1:n-1)) + 1; t1 = sum(T(1:n));
         Gamma0 = [Gamma0; Gamma(t0+trim:t1,:)];
         if ~sim_state_tcs_only
             X0 = [X0; X(t0+trim:t1,:)];
         end
-        T(in) = T(in) - trim;
+        T(n) = T(n) - trim;
     end
     Gamma = Gamma0; 
     if ~sim_state_tcs_only

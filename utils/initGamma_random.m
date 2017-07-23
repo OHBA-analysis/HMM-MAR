@@ -4,6 +4,7 @@ function Gamma = initGamma_random(T,K,D)
 %
 % Author: Romesh Abeysuriya, University of Oxford (2017)
 
+rng('default')
 rng('shuffle') % make this "truly" random
 
 % Form transition probability matrix

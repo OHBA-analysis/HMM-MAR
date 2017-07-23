@@ -22,7 +22,7 @@ function [P,Pi] = getTransProbMats (data,T,hmm,Masks,Gamma,Xi,residuals)
 % Author: Diego Vidaurre, OHBA, University of Oxford
 
 if nargin<6
-    if ~isfield(data,'C'),
+    if ~isfield(data,'C')
         if hmm.K>1, data.C = NaN(size(data.X,1),hmm.K);
         else data.C = ones(size(data.X,1),1);
         end
@@ -45,23 +45,25 @@ end
 N = length(T);
 np = length(Masks);
 P = cell(1,np); Pi = cell(1,np);
+% we do not care about the grouping imposed in the inference
+if isfield(hmm.train,'grouping'), hmm.train = rmfield(hmm.train,'grouping'); end
 
 for im = 1:np
     %fprintf('Mask %d \n',im)
     mask = Masks{im};
     T0 = []; Gamma0 = []; Xi0 = [];
-    for i=1:N
-        t0 = sum(T(1:i-1)); t1 = sum(T(1:i));
+    for n = 1:N
+        t0 = sum(T(1:n-1)); t1 = sum(T(1:n));
         ind_ix = mask(mask>=t0+1 & mask<=t1); % the ones belonging to this trial
         if length(ind_ix)<=(order+2), continue; end
         T0 = [T0; length(ind_ix)];
         ind_ig = ind_ix(ind_ix>=t0+order+1);
-        ind_ig = ind_ig - i*order;
+        ind_ig = ind_ig - n*order;
         Gamma0 = cat(1,Gamma0,Gamma(ind_ig,:));
-        ind_ixi = ind_ig(1:end-1) - (i-1);
+        ind_ixi = ind_ig(1:end-1) - (n-1);
         Xi0 = cat(1,Xi0,Xi(ind_ixi,:,:));
     end
-    hmm0=hsupdate(Xi0,Gamma0,T0,hmm);
+    hmm0 = hsupdate(Xi0,Gamma0,T0,hmm);
     P{im} = hmm0.P; Pi{im} = hmm0.Pi;
 end
 

@@ -158,7 +158,7 @@ if hmm.train.useParallel==1 && N>1
             XXt = cell(length(XX),1);
             for k=1:length(XX), XXt{k} = XX{k}(slicer + s0 - order,:); end
             if isnan(C(t,1))
-                [gammat,xit,Bt,sc] = nodecluster(XXt,K,hmm,R(slicer,:));
+                [gammat,xit,Bt,sc] = nodecluster(XXt,K,hmm,R(slicer,:),in);
             else
                 gammat = zeros(length(slicer),K);
                 if t==order+1, gammat(1,:) = C(slicer(1),:); end
@@ -221,7 +221,7 @@ else
             XXt = cell(length(XX),1);
             for k=1:length(XX), XXt{k} = XX{k}(slicer + s0 - order,:); end
             if isnan(C(t,1))
-                [gammat,xit,Bt,sc] = nodecluster(XXt,K,hmm,R(slicer,:));
+                [gammat,xit,Bt,sc] = nodecluster(XXt,K,hmm,R(slicer,:),in);
                 if any(isnan(gammat(:))), keyboard; end
             else
                 gammat = zeros(length(slicer),K);
@@ -264,18 +264,23 @@ B  = cell2mat(B);
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [Gamma,Xi,L,scale] = nodecluster(XX,K,hmm,residuals)
+function [Gamma,Xi,L,scale] = nodecluster(XX,K,hmm,residuals,n)
 % inference using normal foward backward propagation
 
 order = hmm.train.maxorder;
 T = size(residuals,1) + order;
-P = hmm.P;
-Pi = hmm.Pi;
+
+if isfield(hmm.train,'grouping') && length(unique(hmm.train.grouping))>1
+    i = hmm.train.grouping(n); 
+    P = hmm.P(:,:,i); Pi = hmm.Pi(:,i)'; 
+else 
+    P = hmm.P; Pi = hmm.Pi;
+end
 
 L = obslike([],hmm,residuals,XX,hmm.cache);
 L(L<realmin) = realmin;
 
-if hmm.train.useMEX
+if hmm.train.useMEX 
     [Gamma, Xi, scale] = hidden_state_inference_mx(L, Pi, P, order);
     if any(isnan(Gamma(:))) || any(isnan(Xi(:)))
         clear Gamma Xi scale
@@ -307,7 +312,7 @@ for i=T-1:-1:1+order
 end
 Gamma=(alpha.*beta);
 Gamma=Gamma(1+order:T,:);
-Gamma=rdiv(Gamma,rsum(Gamma));
+Gamma=rdiv(Gamma,sum(Gamma,2));
 
 Xi=zeros(T-1-order,K*K);
 for i=1+order:T-1

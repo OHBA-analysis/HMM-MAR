@@ -16,6 +16,11 @@ function [mcv,cv] = cvhmmmar(data,T,options)
 
 
 [options,data] = checkoptions(options,data,T,1);
+if ~all(options.grouping==1)
+    warning('grouping option is not yet implemented in cvhmmmar')
+    options.grouping = ones(length(T),1); 
+end
+    
 options.verbose = options.cvverbose;
 options.dropstates = 0;
 options.updateGamma = options.K>1;

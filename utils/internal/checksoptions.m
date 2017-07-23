@@ -8,6 +8,7 @@ N = length(T);
 if ~isfield(options,'Fs'), options.Fs = 1; end
 if ~isfield(options,'embeddedlags'), options.embeddedlags = 0; end
 if ~isfield(options,'pca'), options.pca = 0; end
+if ~isfield(options,'pca_spatial'), options.pca_spatial = 0; end
 if ~isfield(options,'varimax'), options.varimax = 0; end
 if ~isfield(options,'pcamar'), options.pcamar = 0; end
 if ~isfield(options,'pcapred'), options.pcapred = 0; end
@@ -17,8 +18,15 @@ if ~isfield(options,'filter'), options.filter = []; end
 if ~isfield(options,'detrend'), options.detrend = 0; end
 if ~isfield(options,'downsample'), options.downsample = 0; end
 if ~isfield(options,'standardise'), options.standardise = 1; end %(options.pca>0);
-if ~isfield(options,'standardise_pc'), options.standardise_pc = 0; end  
-
+if ~isfield(options,'standardise_pc'), options.standardise_pc = 0; end 
+if ~isfield(options,'grouping') || isempty(options.grouping)
+    options.grouping = ones(length(T),1); 
+elseif ~all(options.grouping==1)
+    warning('grouping option is not yet implemented for stochastic learning')
+    options.grouping = ones(length(T),1); 
+else
+    options.grouping = ones(length(T),1); 
+end  
 
 if ~isempty(options.filter)
     if length(options.filter)~=2, error('options.filter must contain 2 numbers of being empty'); end
@@ -30,6 +38,13 @@ if ~isempty(options.filter)
            'This is discouraged for a MAR model'])
    end
 end
+
+if length(options.embeddedlags)==1 && options.pca_spatial>0
+   warning('pca_spatial only applies when using embedded lags; use pca instead')
+   options.pca_spatial = 0;
+end
+
+if size(options.grouping,1)==1,  options.grouping = options.grouping'; end
 
 if ~isfield(options,'K'), error('K was not specified'); end
 % Specific BigHMM options

@@ -36,6 +36,8 @@ options.tol = 1e-7;
 options.initrep = 2;
 options.verbose = 0; 
 options.useParallel = 0; 
+%options.grouping = [1 1 1 1 2 2 2 2];
+
 
 for covtype = {'full','diag','uniquefull','uniquediag'}
     for order = [0 2]
@@ -48,11 +50,19 @@ for covtype = {'full','diag','uniquefull','uniquediag'}
             options.order = order;
             options.zeromean = zeromean;
             [hmm,Gamma,Xi,vpath,~,~,fe] = hmmmar(X,T,options); 
-            fe2 = hmmfe(X,T,hmm); %(fe(end)-fe2)/fe2
+            if isfield(options,'grouping')
+                fe2 = hmmfe(X,T,hmm,[],[],[],options.grouping); %(fe(end)-fe2)/fe2
+            else
+                fe2 = hmmfe(X,T,hmm); %(fe(end)-fe2)/fe2
+            end
             if order==2 && (strcmp(covtype,'diag') || strcmp(covtype,'uniquediag'))
                 options.AR = 1;
                 [hmm,Gamma,Xi,vpath,~,~,fe] = hmmmar(X,T,options);
-                fe2 = hmmfe(X,T,hmm); %(fe(end)-fe2)/fe2
+                if isfield(options,'grouping')
+                    fe2 = hmmfe(X,T,hmm,[],[],[],options.grouping); %(fe(end)-fe2)/fe2
+                else
+                    fe2 = hmmfe(X,T,hmm); %(fe(end)-fe2)/fe2
+                end
                 options.AR = 0;
             end
         end
@@ -66,25 +76,35 @@ options.pca = 0;
 options.covtype = 'diag'; 
 options.embeddedlags = 0;
 [hmm,Gamma,Xi,vpath,~,~,fe] = hmmmar(X(:,1),T,options);
-fe2 = hmmfe(X(:,1),T,hmm); %(fe(end)-fe2)/fe2
+if isfield(options,'grouping')
+    fe2 = hmmfe(X(:,1),T,hmm,[],[],[],options.grouping); %(fe(end)-fe2)/fe2
+else
+    fe2 = hmmfe(X(:,1),T,hmm); %(fe(end)-fe2)/fe2
+end
 
 % Embedded HMM
 options.order = 0;
 options.zeromean = 1;
 options.covtype = 'full'; 
 options.embeddedlags = -2:2;
-options.pca = 6; 
+options.pca = 6;
 [hmm,Gamma,Xi,vpath,~,~,fe] = hmmmar(X,T,options);
-fe2 = hmmfe(X,T,hmm); %(fe(end)-fe2)/fe2
+if isfield(options,'grouping')
+    fe2 = hmmfe(X,T,hmm,[],[],[],options.grouping); %(fe(end)-fe2)/fe2
+else
+    fe2 = hmmfe(X,T,hmm); %(fe(end)-fe2)/fe2
+end
+
 options.embeddedlags = 0; 
-
-
-
 
 % random initialization
 options.inittype = 'random';
 [hmm,Gamma,Xi,vpath,~,~,fe] = hmmmar(X,T,options);
-fe2 = hmmfe(X,T,hmm);% (fe(end)-fe2)/fe2
+if isfield(options,'grouping')
+    fe2 = hmmfe(X,T,hmm,[],[],[],options.grouping); %(fe(end)-fe2)/fe2
+else
+    fe2 = hmmfe(X,T,hmm); %(fe(end)-fe2)/fe2
+end
 
 % Specifying data.C (semisupervised)
 data = struct(); 
@@ -107,11 +127,19 @@ for covtype = {'full','diag','uniquefull','uniquediag'}
             options.order = order;
             options.zeromean = zeromean;
             [hmm,Gamma,Xi,vpath,~,~,fe] = hmmmar(data,T,options);
-            fe2 = hmmfe(X,T,hmm); %(fe(end)-fe2)/fe2
+            if isfield(options,'grouping')
+                fe2 = hmmfe(X,T,hmm,[],[],[],options.grouping); %(fe(end)-fe2)/fe2
+            else
+                fe2 = hmmfe(X,T,hmm); %(fe(end)-fe2)/fe2
+            end
             if order==2 && (strcmp(covtype,'diag') || strcmp(covtype,'uniquediag'))
                 options.AR = 1;
                 [hmm,Gamma,Xi,vpath,~,~,fe] = hmmmar(data,T,options);
-                fe2 = hmmfe(X,T,hmm); %(fe(end)-fe2)/fe2
+                if isfield(options,'grouping')
+                    fe2 = hmmfe(X,T,hmm,[],[],[],options.grouping); %(fe(end)-fe2)/fe2
+                else
+                    fe2 = hmmfe(X,T,hmm); %(fe(end)-fe2)/fe2
+                end
                 options.AR = 0;
             end
         end
@@ -125,13 +153,21 @@ options.covtype = 'full';
 options.embeddedlags = -2:2;
 options.pca = 6; 
 [hmm,Gamma,Xi,vpath,~,~,fe] = hmmmar(X,T,options);
-fe2 = hmmfe(X,T,hmm); %(fe(end)-fe2)/fe2
+if isfield(options,'grouping')
+    fe2 = hmmfe(X,T,hmm,[],[],[],options.grouping); %(fe(end)-fe2)/fe2
+else
+    fe2 = hmmfe(X,T,hmm); %(fe(end)-fe2)/fe2
+end
 %options.embeddedlags = 0; 
 
 % random initialization
 options.inittype = 'random';
 [hmm,Gamma,Xi,vpath,~,~,fe] = hmmmar(X,T,options);
-fe2 = hmmfe(X,T,hmm); %(fe(end)-fe2)/fe2
+if isfield(options,'grouping')
+    fe2 = hmmfe(X,T,hmm,[],[],[],options.grouping); %(fe(end)-fe2)/fe2
+else
+    fe2 = hmmfe(X,T,hmm); %(fe(end)-fe2)/fe2
+end
 
 
 %% stochastic inference
@@ -154,6 +190,7 @@ options.initcyc = 2;
 options.initrep = 2;
 options.tol = 1e-7;
 options.useParallel = 0;
+%options.grouping = [1 1 1 1 1 1 1 1];
 
 options.BIGNbatch = 3;
 options.BIGNinitbatch = 3;
@@ -176,7 +213,11 @@ for covtype = {'full','diag'} %,'uniquefull','uniquediag'}
             options.order = order;
             options.zeromean = zeromean;
             [hmm,Gamma,Xi,vpath,~,~,fe] = hmmmar(X,T,options);
-            fe2 = hmmfe(X,T,hmm); %(fe(end)-fe2)/fe2
+            if isfield(options,'grouping')
+                fe2 = hmmfe(X,T,hmm,[],[],[],options.grouping); %(fe(end)-fe2)/fe2
+            else
+                fe2 = hmmfe(X,T,hmm); %(fe(end)-fe2)/fe2
+            end
             if isnan((fe(end)-fe2)/fe2), error('NaN'); end
         end
     end
@@ -188,15 +229,23 @@ options.pca = 0;
 options.covtype = 'diag'; 
 options.embeddedlags = 0;
 [hmm,Gamma,Xi,vpath,~,~,fe] = hmmmar(X(:,1),T,options);
-fe2 = hmmfe(X(:,1),T,hmm); %(fe(end)-fe2)/fe2
+if isfield(options,'grouping')
+    fe2 = hmmfe(X(:,1),T,hmm,[],[],[],options.grouping); %(fe(end)-fe2)/fe2
+else
+    fe2 = hmmfe(X(:,1),T,hmm); %(fe(end)-fe2)/fe2
+end
 if isnan((fe(end)-fe2)/fe2), error('NaN'); end
 
 % Embedded HMM
 options.order = 0;
 options.zeromean = 1;
-options.covtype = 'full'; 
+options.covtype = 'full';
 options.embeddedlags = -2:2;
-options.pca = 3; 
+options.pca = 3;
 [hmm,Gamma,Xi,vpath,~,~,fe] = hmmmar(X,T,options);
-fe2 = hmmfe(X,T,hmm); %(fe(end)-fe2)/fe2
+if isfield(options,'grouping')
+    fe2 = hmmfe(X,T,hmm,[],[],[],options.grouping); %(fe(end)-fe2)/fe2
+else
+    fe2 = hmmfe(X,T,hmm); %(fe(end)-fe2)/fe2
+end
 if isnan((fe(end)-fe2)/fe2), error('NaN'); end

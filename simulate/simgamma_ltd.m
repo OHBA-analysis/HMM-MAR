@@ -1,4 +1,4 @@
-function Gamma = simgamma_ltd(T,P,Pi,rate,L,refractory_period)
+function Gamma = simgamma_ltd(T,P,Pi,rate,L,refractory_period,grouping)
 %
 % Simulate state time courses with longer-than-markov time dependencies
 %
@@ -28,18 +28,25 @@ N = length(T); K = length(Pi);
 if nargin<4, rate = 2; end
 if nargin<5, L = 10; end 
 if nargin<6, refractory_period = 2; end 
+if nargin<7, grouping = []; end
 
 Gamma = zeros(sum(T),K);
 weights = gampdf(0:L-1,1,rate)'; 
 weights = weights / sum(weights);
 weights = weights(end:-1:1);
 
-for in=1:N
-    Gammai = zeros(T(in),K);
-    if any(Pi==1)
-        Gammai(1,Pi==1) = 1;
+for n = 1:N
+    if ~isempty(grouping)
+        i = grouping(n);
+        Pn = P(:,:,i); Pin = Pi(:,i)';
     else
-        Gammai(1,:) = mnrnd(1,Pi);
+        Pn = P; Pin = Pi;
+    end    
+    Gammai = zeros(T(n),K);
+    if any(Pin==1)
+        Gammai(1,Pin==1) = 1;
+    else
+        Gammai(1,:) = mnrnd(1,Pin);
     end
     last_ch = Inf; 
     for t=2:L 
@@ -53,22 +60,22 @@ for in=1:N
                 g = sum(repmat(weights(end-t+2:end,1),1,K) .* Gammai(1:t-1,:));
             end
             g = g / sum(g);
-            Gammai(t,:) = mnrnd(1,g*P);
+            Gammai(t,:) = mnrnd(1,g*Pn);
             if any(Gammai(t,:)~=Gammai(t-1,:)), last_ch = 1; end
             Gammai(t,:) = Gammai(t,:) / sum(Gammai(t,:));   
         end
     end
-    for t=L+1:T(in)
+    for t=L+1:T(n)
         if last_ch < refractory_period
             Gammai(t,:) = Gammai(t-1,:);
             last_ch = last_ch + 1;
         else
             g = sum(repmat(weights,1,K) .* Gammai(t-L:t-1,:));
-            Gammai(t,:) = mnrnd(1,g*P);
+            Gammai(t,:) = mnrnd(1,g*Pn);
             if any(Gammai(t,:)~=Gammai(t-1,:)), last_ch = 1; end
         end
     end
-    t = (1:T(in)) + sum(T(1:in-1));
+    t = (1:T(n)) + sum(T(1:n-1));
     Gamma(t,:) = Gammai;
 end
 

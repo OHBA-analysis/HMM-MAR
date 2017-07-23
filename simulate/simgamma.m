@@ -1,4 +1,4 @@
-function Gamma = simgamma(T,P,Pi,nrep)
+function Gamma = simgamma(T,P,Pi,nrep,grouping)
 %
 % Simulate data from the HMM-MAR
 %
@@ -15,6 +15,7 @@ function Gamma = simgamma(T,P,Pi,nrep)
 %
 % Author: Diego Vidaurre, OHBA, University of Oxford
 
+if nargin<5, grouping = []; end
 rng('shuffle') % make this "truly" random
 
 N = length(T); K = length(Pi);
@@ -22,19 +23,25 @@ if nargin<4, nrep = 1; end
 
 Gamma = zeros(sum(T),K);
 
-for in=1:N
-    Gammai = zeros(T(in),K);
-    if any(Pi==1)
-        Gammai(1,Pi==1) = 1;
+for n = 1:N
+    if ~isempty(grouping)
+        i = grouping(n);
+        Pn = P(:,:,i); Pin = Pi(:,i)';
     else
-        Gammai(1,:) = mnrnd(nrep,Pi);
+        Pn = P; Pin = Pi;
+    end
+    Gammai = zeros(T(n),K);
+    if any(Pin==1)
+        Gammai(1,Pin==1) = 1;
+    else
+        Gammai(1,:) = mnrnd(nrep,Pin);
         if nrep>1, Gammai(1,:) = Gammai(1,:) / sum(Gammai(1,:)); end
     end
-    for t=2:T(in)
-        Gammai(t,:) = mnrnd(nrep,Gammai(t-1,:) * P);
+    for t=2:T(n)
+        Gammai(t,:) = mnrnd(nrep,Gammai(t-1,:) * Pn);
         if nrep>1,  Gammai(t,:) = Gammai(t,:) / sum(Gammai(t,:)); end
     end
-    t = (1:T(in)) + sum(T(1:in-1));
+    t = (1:T(n)) + sum(T(1:n-1));
     Gamma(t,:) = Gammai;
 end
 

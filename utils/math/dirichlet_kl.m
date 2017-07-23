@@ -7,13 +7,13 @@ function [D] = dirichlet_kl(alpha_q,alpha_p)
 %         prod_{i=1}^k Gamma(alpha_i)
 %              
 
-if nargin<2,
+if nargin<2
   error('Incorrect number of input arguments');
-end;
+end
 
-if length(alpha_q)~=length(alpha_p),
+if length(alpha_q)~=length(alpha_p)
   error('Distributions must have equal dimensions');
-end;
+end
 
 D = gammaln(sum(alpha_q)) - gammaln(sum(alpha_p)) - sum(gammaln(alpha_q)) + sum(gammaln(alpha_p)) + ...
     (alpha_q - alpha_p) * (psi(alpha_q) - psi(sum(alpha_q)))';
