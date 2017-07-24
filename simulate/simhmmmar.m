@@ -71,20 +71,22 @@ if ~sim_state_tcs_only
             Xin(start+1:end,:) = simgauss(T(n)-start,hmm,Gamma(t0+start:t1,:));
             start = start + 1; 
         end
-        for t=start:T(n)
-            for k=1:K
-                setstateoptions;
-                XX = zeros(1,length(orders)*ndim);
-                for i=1:length(orders)
-                    o = orders(i);
-                    XX(1,(1:ndim) + (i-1)*ndim) = Xin(t-o,:);
+        if ~hmm.train.zeromean || hmm.train.maxorder > 0
+            for t=start:T(n)
+                for k=1:K
+                    setstateoptions;
+                    XX = zeros(1,length(orders)*ndim);
+                    for i=1:length(orders)
+                        o = orders(i);
+                        XX(1,(1:ndim) + (i-1)*ndim) = Xin(t-o,:);
+                    end
+                    if ~hmm.train.zeromean
+                        XX = [1 XX];
+                    end
+                    Xin(t,:) = Xin(t,:) + Gamma(t,k) * XX * hmm.state(k).W.Mu_W;
                 end
-                if ~hmm.train.zeromean
-                    XX = [1 XX];
-                end
-                Xin(t,:) = Xin(t,:) + Gamma(t,k) * XX * hmm.state(k).W.Mu_W;
             end
-        end   
+        end
         X = [X; Xin];
     end
 end
