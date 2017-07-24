@@ -18,6 +18,7 @@ X = loadfile(Xin{1},T{1},options); ndim = size(X,2);
 subjfe_init = zeros(N,3);
 loglik_init = zeros(N,1);
 pcaprec = options.pcapred>0;
+S = options.S==1; regressed = sum(S,1)>0;
 if pcaprec
     npred = options.pcapred + (~options.zeromean);
 else
@@ -73,7 +74,7 @@ for i = 1:N
     end
     % get the sufficient stats
     Gamma = GammaInit((1:size(Y,1))+tsum,:); tsum = tsum + size(Y,1);
-    for k=1:K,
+    for k=1:K
         XG = XX' .* repmat(Gamma(:,k)',size(XX,2),1);
         subj_m_init(:,:,k) = subj_m_init(:,:,k) + XG * Y;
         subj_gram_init(:,:,k) = subj_gram_init(:,:,k) + XG * XX;
@@ -117,7 +118,7 @@ for i = 1:N
             else
                 e = Y.^2;
             end
-            subj_err_init(1,:,k) = subj_err_init(1,:,k) + sum( repmat(Gamma(:,k),1,ndim) .* e ) / 2;
+            subj_err_init(1,regressed,k) = subj_err_init(1,regressed,k) + sum( repmat(Gamma(:,k),1,ndim) .* e(:,regressed) ) / 2;
             subj_time_init(k) = subj_time_init(k) + sum(Gamma(:,k)) / 2;
         elseif strcmp(options.covtype,'full')
             if ~isempty(hmm.state(k).W.Mu_W)
@@ -133,7 +134,7 @@ for i = 1:N
             else
                 e = Y.^2;
             end
-            subj_err_init = subj_err_init + sum( repmat(Gamma(:,k),1,ndim) .* e ) / 2;
+            subj_err_init(regressed) = subj_err_init(regressed) + sum( repmat(Gamma(:,k),1,ndim) .* e(:,regressed) ) / 2;
             subj_time_init = subj_time_init + sum(Gamma(:,k)) / 2;
         else
             if ~isempty(hmm.state(k).W.Mu_W)
@@ -180,7 +181,7 @@ if ~isempty(options.orders)
     if pcaprec
         hmm = updateBeta(hmm);
     else
-        for k=1:K,
+        for k=1:K
             hmm.state(k).alpha.Gam_shape = hmm.state(k).prior.alpha.Gam_shape;
             hmm.state(k).alpha.Gam_rate = hmm.state(k).prior.alpha.Gam_rate;
         end
@@ -193,7 +194,7 @@ end
 tsum = 0; 
 for i = 1:N
     Ti = T{i} - hmm.train.order;
-    if length(options.embeddedlags)>1, 
+    if length(options.embeddedlags)>1
         Ti = Ti - (max(options.embeddedlags) + max(-options.embeddedlags));
     end
     Gamma = GammaInit((1:Ti)+tsum,:); tsum = tsum + Ti;
@@ -290,7 +291,7 @@ for k=1:hmm.K
             defstateprior(k).alpha.Gam_rate = 0.1*ones(1,length(orders));
         end
     end
-    if ~train.zeromean,
+    if ~train.zeromean
         defstateprior(k).Mean = struct('Mu',[],'iS',[]);
         defstateprior(k).Mean.Mu = zeros(ndim,1);
         defstateprior(k).Mean.S = rangresiduals2';
@@ -315,26 +316,26 @@ elseif strcmp(hmm.train.covtype,'uniquediag')
 end
 
 % assigning default priors for observation models
-if ~isfield(hmm,'state') || ~isfield(hmm.state,'prior'),
-    for k=1:hmm.K,
+if ~isfield(hmm,'state') || ~isfield(hmm.state,'prior')
+    for k=1:hmm.K
         hmm.state(k).prior=defstateprior(k);
-    end;
+    end
 else
-    for k=1:hmm.K,
+    for k=1:hmm.K
         % prior not specified are set to default
         statepriorlist=fieldnames(defstateprior(k));
         fldname=fieldnames(hmm.state(k).prior);
         misfldname=find(~ismember(statepriorlist,fldname));
-        for i=1:length(misfldname),
+        for i=1:length(misfldname)
             priorval=getfield(defstateprior(k),statepriorlist{i});
             hmm.state(k).prior=setfield(hmm.state,k,'prior',statepriorlist{i}, ...
                 priorval);
-        end;
-    end;
+        end
+    end
 end
 
 % moving the state options for convenience
-for k=1:hmm.K,
+for k=1:hmm.K
    if isfield(hmm.train,'state') && isfield(hmm.train.state(k),'train') ...
            && ~isempty(hmm.train.state(k).train)
        hmm.state(k).train = hmm.train.state(k).train;
