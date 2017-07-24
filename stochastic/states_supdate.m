@@ -27,8 +27,6 @@ for k = 1:K
         if strcmp(hmm_noisy.train.covtype,'full') || strcmp(hmm_noisy.train.covtype,'uniquefull')
             hmm.state(k).Omega.Gam_irate(regressed,regressed) = ...
                 inv(hmm.state(k).Omega.Gam_rate(regressed,regressed));
-        else
-            hmm.state(k).Omega.Gam_irate(regressed) = 1 ./ hmm.state(k).Omega.Gam_rate(regressed);
         end
     elseif update==3 && isfield(hmm_noisy.state(1),'sigma')
         hmm.state(k).sigma.Gam_rate = (1-rho) * hmm.state(k).sigma.Gam_rate + ...

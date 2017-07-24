@@ -16,6 +16,7 @@ X = loadfile(Xin{1},T{1},options); ndim = size(X,2);
 subjfe_init = zeros(N,3);
 loglik_init = zeros(N,1);
 pcaprec = options.pcapred>0;
+S = options.S==1; regressed = sum(S,1)>0;
 if isfield(options,'B') && ~isempty(options.B)
     npred = length(options.orders)*size(options.B,2) + (~options.zeromean);
 elseif pcaprec
@@ -176,8 +177,8 @@ for rep = 1:options.BIGinitrep
                     subj_time_init(subj,assig(k)) = hmm_i.state(k).Omega.Gam_shape - ...
                         hmm_i.state(k).prior.Omega.Gam_shape;
                 elseif strcmp(options.covtype,'diag')
-                    subj_err_init(:,subj,assig(k)) = hmm_i.state(k).Omega.Gam_rate' - ...
-                        hmm_i.state(k).prior.Omega.Gam_rate';
+                    subj_err_init(regressed,subj,assig(k)) = hmm_i.state(k).Omega.Gam_rate(regressed)' - ...
+                        hmm_i.state(k).prior.Omega.Gam_rate(regressed)';
                     subj_time_init(subj,assig(k)) = hmm_i.state(k).Omega.Gam_shape - ...
                         hmm_i.state(k).prior.Omega.Gam_shape;
                 end

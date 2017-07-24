@@ -81,7 +81,7 @@ hmm.train.Sind = Sind;
 hmm.train.cyc = hmm.train.initcyc;
 hmm.train.verbose = 0;
 hmm = hmmhsinit(hmm);
-[hmm,residuals]=obsinit(data,T,hmm,options.Gamma);
+[hmm,residuals] = obsinit(data,T,hmm,options.Gamma);
 [~,Gamma,~,fehist] = hmmtrain(data,T,hmm,options.Gamma,residuals);
 fe = fehist(end);
 end
