@@ -37,7 +37,6 @@ if options.detrend
 end
 % Standardise data and control for ackward trials
 X = standardisedata(X,T,options.standardise);
-    
 % Hilbert envelope
 if options.onpower
     X = rawsignal2power(X,T);
@@ -61,6 +60,20 @@ end
 % Downsampling
 if options.downsample > 0
     [X,T] = downsampledata(X,T,options.downsample,options.Fs);
+end
+% Data transformation for crosstermsonly==1
+if isfield(options,'crosstermsonly') && options.crosstermsonly
+    ndim = size(X,2); 
+    Ttmp = T;
+    T = T + 1;
+    Xtmp = zeros(sum(T),2*ndim);
+    for n=1:length(T)
+        t1 = (1:T(n)) + sum(T(1:n-1));
+        t2 = (1:Ttmp(n)) + sum(Ttmp(1:n-1));
+        Xtmp(t1(2:end),1:ndim) = X(t2,:);
+        Xtmp(t1(1:end-1),(ndim+1):end) = X(t2,:);
+    end
+    X = Xtmp; 
 end
 
 if isfield(options,'B'), B = options.B;

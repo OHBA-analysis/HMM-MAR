@@ -98,6 +98,7 @@ for rep = 1:options.BIGinitrep
             options.detrend = 0; 
             options.onpower = 0; 
             options.downsample = 0; % done in loadfile.m
+            options.crosstermsonly = 0;
             if length(Ti)==1, options.useParallel = 0; end
             [hmm_i,Gamma,Xi] = hmmmar(X,Ti,options);
             options = options_copy;
@@ -109,6 +110,8 @@ for rep = 1:options.BIGinitrep
             hmm_i.train.onpower = options.onpower;
             hmm_i.train.downsample = options.downsample;
             hmm_i.train.useParallel = options.useParallel;
+            hmm_i.train.crosstermsonly = options.crosstermsonly;
+
         end
         if ii==1 % get priors
             Dir2d_alpha_prior = hmm_i.prior.Dir2d_alpha;
@@ -191,6 +194,9 @@ for rep = 1:options.BIGinitrep
                 hmm_i.Omega.Gam_shape - hmm_i.prior.Omega.Gam_shape;
             hmm_init.Omega.Gam_rate = hmm_init.Omega.Gam_rate + ...
                 hmm_i.Omega.Gam_rate - hmm_i.prior.Omega.Gam_rate;
+            if strcmp(options.covtype,'uniquediag')
+                hmm_init.Omega.Gam_rate(~regressed) = 0;
+            end
         end
         % updating the hmm
         for k = 1:K_i

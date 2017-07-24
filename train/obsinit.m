@@ -134,7 +134,7 @@ function hmm = initpost(X,T,hmm,residuals,Gamma)
 Tres = sum(T) - length(T)*hmm.train.maxorder;
 ndim = size(X,2);
 K = hmm.K;
-S = hmm.train.S==1; regressed = sum(S,1)>0;
+S = hmm.train.S==1; regressed = sum(S)>0;
 hmm.train.active = ones(1,K);
 if isfield(hmm.train,'B'), B = hmm.train.B; Q = size(B,2);
 else Q = ndim; end
@@ -257,6 +257,7 @@ else % state dependent
             else
                 e = residuals(:,regressed).^2;
             end
+            hmm.state(k).Omega.Gam_rate = zeros(1,ndim);
             hmm.state(k).Omega.Gam_rate(regressed) = hmm.state(k).prior.Omega.Gam_rate(regressed) + ...
                 sum( repmat(Gamma(:,k),1,sum(regressed)) .* e ) / 2;
             hmm.state(k).Omega.Gam_shape = hmm.state(k).prior.Omega.Gam_shape + Gammasum(k) / 2;

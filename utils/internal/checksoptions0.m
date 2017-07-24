@@ -1,7 +1,6 @@
-function options = checksoptions (options,T,data)
-% It checks options that are necessary in order to preprocess the data,
-% and options that are relative to the stochastic inference.
-% Later on, checkoptions will deal with options more specifically
+function options = checksoptions (options,T)
+
+% Right now the option S is not implemented for stochastic learning
 
 N = length(T);
 
@@ -42,7 +41,7 @@ if ~isempty(options.filter)
    end
 end
 
-if isfield(options,'crosstermsonly') && options.crosstermsonly
+if options.crosstermsonly
     if isfield(options,'S') 
         warning('S will be ignored with crosstermonly=1'); 
     end
@@ -60,25 +59,15 @@ if isfield(options,'crosstermsonly') && options.crosstermsonly
     end
     if isfield(options,'covtype') && ~strcmp(options.covtype,'uniquediag')
         warning('covtype will be ignored with crosstermonly=1'); 
-    end 
-    options.crosstermsonly = 0;
-    X = loadfile(data{1},T{1},options); ndim = size(X,2);
-    options.crosstermsonly = 1;
+    end    
+    options.covtype = 'uniquediag';
     options.S = - ones(2*ndim);
     options.S(ndim+(1:ndim),1:ndim) = ones(ndim) - 2*eye(ndim);
-    options.order = 1;  
+    options.order = 1; 
     options.zeromean = 1; 
     options.embeddedlags = 0; 
     options.pca = 0;
-    options.covtype = 'uniquediag';
-else
-    if ~isfield(options,'S')
-        if options.pcamar>0, options.S = ones(options.pcamar,ndim);
-        else, options.S = ones(ndim);
-        end
-    elseif (size(data.X,2)~=size(options.S,1)) || (size(data.X,2)~=size(options.S,2))
-        error('Dimensions of S are incorrect; must be a square matrix of size nchannels by nchannels')
-    end 
+    ndim = 2 * ndim; 
 end
 
 if length(options.embeddedlags)==1 && options.pca_spatial>0
@@ -121,12 +110,11 @@ if ~isfield(options,'initcyc'), options.initcyc = 5; end
 if ~isfield(options,'initrep'), options.initrep = 3; end
 if ~isfield(options,'useParallel'), options.useParallel = 1; end
 if ~isfield(options,'uniqueAR'), options.uniqueAR = 0; end
+%if ~isfield(options,'crosstermsonly'), options.crosstermsonly = 0; end
 
 %if isfield(options,'S') && ~all(options.S(:)==1)
 %    error('S(i,j)<1 is not yet implemented for stochastic inference')
 %end
-
-
 
 options.dropstates = 0; 
 options.verbose = 0; % shut up the individual hmmmar output
@@ -135,6 +123,5 @@ if options.order>0
 else
     options.orders = [];
 end
-
 
 end

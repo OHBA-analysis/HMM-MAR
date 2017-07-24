@@ -77,8 +77,12 @@ if stochastic_learn % data is a cell, either with strings or with matrices
        end 
        data = dat; T = TT; clear dat TT
     end
-    options = checksoptions(options,T);
-else % data can be a cell or a matrix 
+    if isfield(options,'crosstermsonly') && options.crosstermsonly
+        options = checksoptions(options,T,data);
+    else
+        options = checksoptions(options,T);
+    end
+else % data can be a cell or a matrix
     if iscell(T)
         for i = 1:length(T)
             if size(T{i},1)==1, T{i} = T{i}'; end
@@ -160,7 +164,7 @@ if stochastic_learn
         % So, unlike B, V draws from the temporal dimension and not only spatial
         options.V = pcapred_decomp(data,T,options);
     end
-    
+     
     if isempty(options.Gamma) && isempty(options.hmm) % both unspecified
         [hmm,info] = hmmsinit(data,T,options);
         GammaInit = []; 
@@ -202,7 +206,6 @@ else
     if options.onpower
        data = rawsignal2power(data,T); 
     end
-    
     % pre-embedded PCA transform
     if length(options.pca_spatial) > 1 || (options.pca_spatial > 0 && options.pca_spatial ~= 1)
         if isfield(options,'As')
@@ -256,7 +259,23 @@ else
         % So, unlike B, V draws from the temporal dimension and not only spatial
         options.V = pcapred_decomp(data,T,options);
     end    
+    
+    % Data transformation for crosstermsonly==1
     options.ndim = size(data.X,2);
+    if options.crosstermsonly
+        Ttmp = T;
+        T = T + 1;
+        X = zeros(sum(T),2*options.ndim);
+        for n=1:N
+            t1 = (1:T(n)) + sum(T(1:n-1));
+            t2 = (1:Ttmp(n)) + sum(Ttmp(1:n-1));
+            X(t1(2:end),1:options.ndim) = data.X(t2,:);
+            X(t1(1:end-1),(options.ndim+1):end) = data.X(t2,:);
+        end
+        data.X = X; clear X
+        options.ndim = 2 * options.ndim;
+    end
+    options.crosstermsonly = 0; % so that recursive calls to hmmmar do not mess up
 
     if isempty(options.Gamma) && isempty(options.hmm) % both unspecified
         if options.K > 1

@@ -28,6 +28,8 @@ if ~isfield(options,'detrend'), options.detrend = 0; end
 if ~isfield(options,'downsample'), options.downsample = 0; end
 if ~isfield(options,'standardise'), options.standardise = 1; end
 if ~isfield(options,'standardise_pc'), options.standardise_pc = 0; end
+if ~isfield(options,'crosstermsonly'), options.crosstermsonly = 0; end
+
 if ~isfield(options,'grouping') || isempty(options.grouping)
     options.grouping = ones(length(T),1); 
 end  
@@ -56,30 +58,46 @@ else
     ndim = options.pca;
 end
 
-if length(options.embeddedlags)==1 && options.pca_spatial>0
-   warning('pca_spatial only applies when using embedded lags; use pca instead')
-   options.pca_spatial = 0;
-end
-
-if ~isfield(options,'S') 
-    if options.pcamar>0, options.S = ones(options.pcamar,ndim);
-    else options.S = ones(ndim); 
+if options.crosstermsonly
+    if isfield(options,'S') 
+        warning('S will be ignored with crosstermonly=1'); 
     end
-elseif (size(data.X,2)~=size(options.S,1)) || (size(data.X,2)~=size(options.S,2))
-    error('Dimensions of S are incorrect; must be a square matrix of size nchannels by nchannels')
+    if isfield(options,'order') && options.order~=0 
+        warning('order (and all MAR parameters) will be ignored with crosstermonly=1'); 
+    end
+    if isfield(options,'zeromean') && options.zeromean~=1
+        warning('zeromean will be ignored with crosstermonly=1'); 
+    end
+    if isfield(options,'embeddedlags') && length(options.embeddedlags)>1
+        warning('embeddedlags will be ignored with crosstermonly=1'); 
+    end    
+    if isfield(options,'pca') && options.pca~=0
+        warning('pca will be ignored with crosstermonly=1');  
+    end
+    if isfield(options,'covtype') && ~strcmp(options.covtype,'uniquediag')
+        warning('covtype will be ignored with crosstermonly=1'); 
+    end    
+    options.S = - ones(2*ndim);
+    options.S(ndim+(1:ndim),1:ndim) = ones(ndim) - 2*eye(ndim);
+    options.order = 1; options.maxorder = 1; 
+    options.zeromean = 1; 
+    options.embeddedlags = 0; 
+    options.pca = 0;
+    options.covtype = 'uniquediag';
+    ndim = 2 * ndim;
+else
+    if ~isfield(options,'S')
+        if options.pcamar>0, options.S = ones(options.pcamar,ndim);
+        else, options.S = ones(ndim);
+        end
+    elseif (size(data.X,2)~=size(options.S,1)) || (size(data.X,2)~=size(options.S,2))
+        error('Dimensions of S are incorrect; must be a square matrix of size nchannels by nchannels')
+    end 
 end
 
 if size(options.grouping,1)==1,  options.grouping = options.grouping'; end
 
 options = checkMARparametrization(options,[],ndim); copyopt = options;
-
-% if options.crosstermsonly
-%     options.covtype = 'uniquediag';
-%     options.S = - ones(2*ndim);
-%     options.S(1:ndim,1:ndim) = ones(ndim) - 2*eye(ndim);
-%     options.order = 1; 
-%     options.zeromean = 1; 
-% end
 
 options.multipleConf = isfield(options,'state');
 if options.multipleConf && options.pcamar>0
@@ -91,9 +109,9 @@ end
 if options.multipleConf && length(options.embeddedlags)>1 
     error('Multiple configurations are not compatible with embeddedlags');
 end
-% if options.multipleConf && options.crosstermsonly 
-%     error('Multiple configurations are not compatible with crosstermsonly')
-% end
+if options.multipleConf && options.crosstermsonly 
+    error('Multiple configurations are not compatible with crosstermsonly')
+end
 if options.pcamar>0 && options.pcapred>0
     error('Options pcamar and pcapred are not compatible')
 end
@@ -156,12 +174,12 @@ end
 %    error('If updateObs is 0, you need to specify the parameters of the states in options.state')
 %end
 
-if (~isfield(options,'useMEX') || options.useMEX==1) && length(unique(options.grouping))==1
+if isfield(options,'useMEX') && options.useMEX==1 && length(unique(options.grouping))==1
     options.useMEX = verifyMEX();
 elseif isfield(options,'useMEX') && options.useMEX==1 && length(unique(options.grouping))>1
     warning('useMEX is not implemented when options.grouping is specified')
     options.useMEX = 0; 
-else
+else % ~isfield(options,'useMEX')
     options.useMEX = 0; 
 end
 
@@ -239,6 +257,7 @@ if isfield(options,'AR') && options.AR == 1
    %    warning('Because you specified AR=1, S will be overwritten')
    %end
    options.S = -1*ones(ndim) + 2*eye(ndim);  
+   S = -1*ones(ndim) + 2*eye(ndim);  
 end
 
 if isfield(options,'pcamar') && options.pcamar>0 
@@ -255,7 +274,12 @@ if isfield(options,'pcapred') && options.pcapred>0
     end
     if isfield(options,'uniqueAR') && options.uniqueAR==1, error('pcapred cannot be >0 if uniqueAR is set to 0'); end
 end
-if ~isfield(options,'covtype') && ndim==1, options.covtype = 'diag'; 
+if length(options.embeddedlags)==1 && options.pca_spatial>0
+   warning('pca_spatial only applies when using embedded lags; use pca instead')
+   options.pca_spatial = 0;
+end
+if ~isfield(options,'covtype') && (ndim==1 || ~isempty(S) || (isfield(options,'S') && ~isempty(options.S)) )
+    options.covtype = 'diag'; 
 elseif ~isfield(options,'covtype') && ndim>1, options.covtype = 'full'; 
 elseif (strcmp(options.covtype,'full') || strcmp(options.covtype,'uniquefull')) && ndim==1
     warning('Covariance can only be diag or uniquediag if data has only one channel')
@@ -294,6 +318,9 @@ if ~isfield(options,'S')
     end
 elseif nargin>=2 && ~isempty(S) && any(S(:)~=options.S(:))
     error('S has to be equal across states')
+end
+if options.zeromean==0 && any(sum(options.S)==0)
+    warning('Ignoring mean for channels for which all columns of S are zero')
 end
 if options.uniqueAR==1 && any(S(:)~=1)
     warning('S has no effect if uniqueAR=1')

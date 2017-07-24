@@ -64,7 +64,9 @@ for cycle = 2:options.BIGcyc
         i = I(ii); 
         Tbatch = [Tbatch; ceil(downs_ratio*(T{i}-tp_less)) ]; 
         Tbatch_list{ii} = ceil(downs_ratio*(T{i}-tp_less));
+        if options.crosstermsonly==1, Tbatch_list{ii} = Tbatch_list{ii} + 1; end
     end
+    if options.crosstermsonly==1, Tbatch = Tbatch + 1; end
     
     [X,XX,Y] = loadfile(Xin(I),T(I),options,1);
     

@@ -2,6 +2,8 @@ function data = data2struct(data,T,options)
 
 if length(options.embeddedlags)>1
     L = -min(options.embeddedlags) + max(options.embeddedlags);
+elseif options.crosstermsonly
+    L = 0; 
 else
     L = options.maxorder;
 end
@@ -24,5 +26,6 @@ elseif size(data.C,1)==sum(T) && L>0 % we need to trim C
     data.C = data.C(ind,:);
     %warning('C has more rows than it should; the first rows of each trial will be discarded\n')
 end
+
 
 end
