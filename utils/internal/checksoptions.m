@@ -1,4 +1,4 @@
-function options = checksoptions (options,T,data)
+function options = checksoptions (options,data,T)
 % It checks options that are necessary in order to preprocess the data,
 % and options that are relative to the stochastic inference.
 % Later on, checkoptions will deal with options more specifically

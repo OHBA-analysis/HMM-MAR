@@ -51,7 +51,7 @@ if length(options.embeddedlags)>1
     [X,T] = embeddata(X,T,options.embeddedlags);
 end
 % PCA transform
-if isfield(options,'A')
+if isfield(options,'A') && ~isempty(options.A)
     X = bsxfun(@minus,X,mean(X)); % must center
     X = X * options.A;
     % Standardise principal components and control for ackward trials

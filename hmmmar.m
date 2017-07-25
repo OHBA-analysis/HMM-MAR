@@ -77,11 +77,7 @@ if stochastic_learn % data is a cell, either with strings or with matrices
        end 
        data = dat; T = TT; clear dat TT
     end
-    if isfield(options,'crosstermsonly') && options.crosstermsonly
-        options = checksoptions(options,T,data);
-    else
-        options = checksoptions(options,T);
-    end
+    options = checksoptions(options,data,T);
 else % data can be a cell or a matrix
     if iscell(T)
         for i = 1:length(T)
@@ -127,9 +123,9 @@ if stochastic_learn
                 0,options.standardise,...
                 options.onpower,0,options.detrend,...
                 options.filter,options.Fs);
-            options.pca_spatial = size(options.As,2);
         end
-    else 
+        options.pca_spatial = size(options.As,2);
+    else
         options.As = [];
     end    
     % get PCA loadings 
@@ -141,19 +137,34 @@ if stochastic_learn
                 options.filter,options.Fs,options.As);
             options.pca = size(options.A,2);
         end
-        options.ndim = size(options.A,2);
-        options.S = ones(options.ndim);
-        orders = formorders(options.order,options.orderoffset,options.timelag,options.exptimelag); 
-        options.Sind = formindexes(orders,options.S);
-        if ~options.zeromean, options.Sind = [true(1,size(options.Sind,2)); options.Sind]; end
-        if isfield(options,'state') && isfield(options.state(1),'train')
-            for k = 1:options.K
-                options.state(k).train.S = options.S;
-                options.state(k).train.Sind = options.Sind;
-                options.state(k).train.ndim = options.ndim;
-            end
-        end
+    else
+        options.As = [];
     end
+    if isfield(options,'A') && ~isempty(options.A)
+        options.ndim = size(options.A,2);
+    elseif isfield(options,'As') && ~isempty(options.As)
+        options.ndim = size(options.As,2);
+    else
+        X = loadfile(data{1},T{1},options); 
+        options.ndim = size(X,2);
+    end
+    % Set up S
+    if ~isfield(options,'S')
+        options.S = ones(options.ndim);
+    elseif (options.ndim~=size(options.S,1)) || (options.ndim~=size(options.S,2))
+        error('Dimensions of S are incorrect; must be a square matrix of size nchannels by nchannels')
+    end
+    orders = formorders(options.order,options.orderoffset,options.timelag,options.exptimelag);
+    options.Sind = formindexes(orders,options.S);
+    if ~options.zeromean, options.Sind = [true(1,size(options.Sind,2)); options.Sind]; end
+    %if isfield(options,'state') && isfield(options.state(1),'train')
+    %    for k = 1:options.K
+    %        options.state(k).train.S = options.S;
+    %        options.state(k).train.Sind = options.Sind;
+    %        options.state(k).train.ndim = options.ndim;
+    %    end
+    %end
+    
     if options.pcamar > 0 && ~isfield(options,'B')
         % PCA on the predictors of the MAR regression, per lag: X_t = \sum_i X_t-i * B_i * W_i + e
         options.B = pcamar_decomp(data,T,options);
