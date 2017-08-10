@@ -4,7 +4,7 @@
 
 % gen data
 X = randn(4000,3); T = 500*ones(8,1); 
-B = rand(3);
+B = rand(3);  
 for i=1:length(T)
     X((1:250)+sum(T(1:i-1)),:) = X((1:250)+sum(T(1:i-1)),:) * B; 
     for j=1:3
@@ -36,7 +36,7 @@ options.tol = 1e-7;
 options.initrep = 2;
 options.verbose = 0; 
 options.useParallel = 0; 
-%options.grouping = [1 1 1 1 2 2 2 2];
+options.grouping = [1 1 1 1 2 2 2 2];
 
 
 for covtype = {'full','diag','uniquefull','uniquediag'}
@@ -81,6 +81,7 @@ if isfield(options,'grouping')
 else
     fe2 = hmmfe(X(:,1),T,hmm); %(fe(end)-fe2)/fe2
 end
+
 
 % Embedded HMM
 options.order = 0;
@@ -169,6 +170,27 @@ else
     fe2 = hmmfe(X,T,hmm); %(fe(end)-fe2)/fe2
 end
 
+%% 
+% crosstermsonly
+options = struct();
+options.K = 2; 
+options.Fs = 200; 
+options.varimax = 0;
+options.filter = [];
+options.detrend = 1; 
+options.downsample = 100; 
+options.inittype = 'hmmmar';
+options.DirichletDiag = 10;
+options.standardise = 1;
+options.cyc = 5;
+options.initcyc = 2;
+options.tol = 1e-7;
+options.initrep = 2;
+options.verbose = 0; 
+options.useParallel = 0; 
+options.crosstermsonly = 1; 
+
+[hmm,Gamma,Xi,vpath,~,~,fe] = hmmmar(X,T,options);
 
 %% stochastic inference
 
@@ -191,6 +213,7 @@ options.initrep = 2;
 options.tol = 1e-7;
 options.useParallel = 0;
 %options.grouping = [1 1 1 1 1 1 1 1];
+options.grouping = [1 1 1 1 2 2 2 2];
 
 options.BIGNbatch = 3;
 options.BIGNinitbatch = 3;
@@ -236,6 +259,17 @@ else
 end
 if isnan((fe(end)-fe2)/fe2), error('NaN'); end
 
+% Using S
+options.S = - ones(10);
+options.S(6:10,1:5) = ones(5) - 2*eye(5);
+options.order = 2;
+options.pca = 0; 
+options.covtype = 'diag'; 
+options.embeddedlags = 0;
+options.zeromean = 1; 
+[hmm,Gamma,Xi,vpath,~,~,fe] = hmmmar(X,T,options);
+options = rmfield(options,'S');
+
 % Embedded HMM
 options.order = 0;
 options.zeromean = 1;
@@ -249,3 +283,34 @@ else
     fe2 = hmmfe(X,T,hmm); %(fe(end)-fe2)/fe2
 end
 if isnan((fe(end)-fe2)/fe2), error('NaN'); end
+
+%% 
+% crosstermsonly
+options = struct();
+options.K = 2; 
+options.Fs = 200; 
+options.varimax = 0;
+options.filter = [];
+options.detrend = 1; 
+options.downsample = 100; 
+options.inittype = 'hmmmar';
+options.DirichletDiag = 10;
+options.standardise = 1;
+options.cyc = 5;
+options.initcyc = 2;
+options.tol = 1e-7;
+options.initrep = 2;
+options.verbose = 0; 
+options.useParallel = 0; 
+options.crosstermsonly = 1; 
+
+options.BIGNbatch = 3;
+options.BIGNinitbatch = 3;
+options.BIGtol = 1e-7;
+options.BIGcyc = 5;
+options.BIGundertol_tostop = 5;
+options.BIGdelay = 5; 
+options.BIGforgetrate = 0.7;
+options.BIGbase_weights = 0.9;
+
+[hmm,Gamma,Xi,vpath,~,~,fe] = hmmmar(X * randn(10,3),T,options);
