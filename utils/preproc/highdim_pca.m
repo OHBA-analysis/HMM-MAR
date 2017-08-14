@@ -1,4 +1,5 @@
-function [A,B] = highdim_pca(X,T,d,embeddedlags,standardise,onpower,varimax,detrend,filter,Fs,As)
+function [A,B,e] = highdim_pca(X,T,d,embeddedlags,...
+    standardise,onpower,varimax,detrend,filter,Fs,As)
 % pca for potentially loads of subjects
 %
 % if X is a cell of things, uses SVD
@@ -42,12 +43,14 @@ options.onpower = onpower;
 options.detrend = detrend;
 if isfield(options,'A'), options = rmfield(options,'A'); end
 if ~isempty(As), options.As = As; end
+verbose = 1; 
 
 if is_cell_strings || is_cell_matrices
     B = [];
     for i=1:length(X)
         X_i = loadfile(X{i},T{i},options); % zscoring/embeddeding are done here
         X_i = bsxfun(@minus,X_i,mean(X_i)); % must center
+        if isempty(d), d = size(X_i,2); verbose = 0; end
         if i==1, C = zeros(size(X_i,2)); end
         C = C + X_i' * X_i;
     end
@@ -62,8 +65,10 @@ else
         X = embeddata(X,T,options.embeddedlags);
     end
     if isstruct(X)
+        if isempty(d), d = size(X.X,2); verbose = 0; end
         [A,B,e] = pca(X.X,'Centered',true);
     else
+        if isempty(d), d = size(X,2); verbose = 0; end
         [A,B,e] = pca(X,'Centered',true);
     end
 end
@@ -88,13 +93,15 @@ if ncomp > size(A,2)
 end
 
 A = A(:,1:ncomp);
-if varimax
-    A = rotatefactors(A);
-    fprintf('Working in PCA/Varimax %s space, with %d components. \n',msg,ncomp)
-    fprintf('(explained variance = %1f)  \n',e(ncomp))
-else
-    fprintf('Working in PCA %s space, with %d components. \n',msg,ncomp)
-    fprintf('(explained variance = %1f)  \n',e(ncomp))
+if verbose
+    if varimax
+        A = rotatefactors(A);
+        fprintf('Working in PCA/Varimax %s space, with %d components. \n',msg,ncomp)
+        fprintf('(explained variance = %1f)  \n',e(ncomp))
+    else
+        fprintf('Working in PCA %s space, with %d components. \n',msg,ncomp)
+        fprintf('(explained variance = %1f)  \n',e(ncomp))
+    end
 end
 
 if ~isempty(B)
