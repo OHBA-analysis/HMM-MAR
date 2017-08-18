@@ -1,7 +1,11 @@
 function [hmm,XW] = updateW(hmm,Gamma,residuals,XX,XXGXX,Tfactor)
 
 K = length(hmm.state); ndim = hmm.train.ndim;
-XW = zeros(size(XX{1},1),ndim,K);
+if ~isempty(hmm.state(1).W.Mu_W)
+    XW = zeros(size(XX{1},1),ndim,K);
+else
+    XW = [];
+end
 if nargin<6, Tfactor = 1; end
 if isfield(hmm.train,'B'), Q = size(hmm.train.B,2);
 else Q = ndim; end

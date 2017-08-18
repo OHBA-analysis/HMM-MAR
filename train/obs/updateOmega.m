@@ -16,7 +16,11 @@ if strcmp(hmm.train.covtype,'uniquediag') && hmm.train.uniqueAR
         if hmm.train.multipleConf, kk = k;
         else kk = 1;
         end
-        XWk = XW(:,:,k);
+        if ~isempty(XW)
+            XWk = XW(:,:,k);
+        else
+            XWk = zeros(size(residuals));
+        end
         e = (residuals - XWk).^2;
         swx2 = zeros(Tres,ndim);
         for n=1:ndim
@@ -33,7 +37,11 @@ elseif strcmp(hmm.train.covtype,'uniquediag')
     hmm.Omega.Gam_rate(regressed) = hmm.prior.Omega.Gam_rate(regressed);
     for k=1:K
         setstateoptions;
-        XWk = XW(:,:,k);
+        if ~isempty(XW)
+            XWk = XW(:,:,k);
+        else
+            XWk = zeros(size(residuals));
+        end
         e = (residuals(:,regressed) - XWk(:,regressed)).^2;
         swx2 = zeros(Tres,ndim);
         if ~isempty(hmm.state(k).W.Mu_W)
@@ -56,7 +64,11 @@ elseif strcmp(hmm.train.covtype,'uniquefull')
     hmm.Omega.Gam_rate(regressed,regressed) = hmm.prior.Omega.Gam_rate(regressed,regressed);
     for k=1:K
         setstateoptions;
-        XWk = XW(:,:,k);
+        if ~isempty(XW)
+            XWk = XW(:,:,k);
+        else
+            XWk = zeros(size(residuals));
+        end
         e = (residuals(:,regressed) - XWk(:,regressed));
         e = (e' .* repmat(Gamma(:,k)',sum(regressed),1)) * e;
         swx2 =  zeros(ndim,ndim);
@@ -65,8 +77,8 @@ elseif strcmp(hmm.train.covtype,'uniquefull')
                 for n2=find(regressed)
                     if n2<n1, continue, end
                     if hmm.train.pcapred>0
-                        index1 = (0:hmm.train.pcapred+(~train.zeromean)-1) * ndim + n1;
-                        index2 = (0:hmm.train.pcapred+(~train.zeromean)-1) * ndim + n2;
+                        index1 = (0:hmm.train.pcapred+(~hmm.train.zeromean)-1) * ndim + n1;
+                        index2 = (0:hmm.train.pcapred+(~hmm.train.zeromean)-1) * ndim + n2;
                     else
                         index1 = (0:length(orders)*Q+(~hmm.train.zeromean)-1) * ndim + n1;
                         index2 = (0:length(orders)*Q+(~hmm.train.zeromean)-1) * ndim + n2;
@@ -155,8 +167,13 @@ else % state dependent
                     end
                 end
             end
-            hmm.state(k).Omega.Gam_rate(regressed,regressed) = hmm.state(k).prior.Omega.Gam_rate(regressed,regressed) + ...
-                Tfactor * (e + swx2(regressed,regressed));
+            if hmm.train.firsteigv
+                [V,D] = svd(Tfactor * e);
+                hmm.state(k).Omega.Gam_rate = sum(diag(D)) * (V(:,1) * V(:,1)') + hmm.state(k).prior.Omega.Gam_rate;
+            else
+                hmm.state(k).Omega.Gam_rate(regressed,regressed) = hmm.state(k).prior.Omega.Gam_rate(regressed,regressed) + ...
+                    Tfactor * (e + swx2(regressed,regressed));
+            end
             hmm.state(k).Omega.Gam_irate(regressed,regressed) = inv(hmm.state(k).Omega.Gam_rate(regressed,regressed));
             hmm.state(k).Omega.Gam_shape = hmm.state(k).prior.Omega.Gam_shape + Tfactor * Gammasum(k);
         end
