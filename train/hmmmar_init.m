@@ -30,7 +30,7 @@ end
 fehist = inf(length(init_k),1);
 Gamma = cell(length(init_k),1);
 
-if options.useParallel % not very elegant
+if options.useParallel && length(init_k) > 1 % not very elegant
     parfor it=1:length(init_k)
         [Gamma{it},fehist(it)] = run_initialization(data,T,options,Sind,init_k(it));
         if options.verbose
