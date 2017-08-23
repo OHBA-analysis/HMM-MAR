@@ -19,6 +19,7 @@ if ~isfield(options,'onpower'), options.onpower = 0; end
 if ~isfield(options,'embeddedlags'), options.embeddedlags = 0; end
 if ~isfield(options,'pca'), options.pca = 0; end
 if ~isfield(options,'pca_spatial'), options.pca_spatial = 0; end
+if ~isfield(options,'firsteigv'), options.firsteigv = 0; end
 if ~isfield(options,'varimax'), options.varimax = 0; end
 if ~isfield(options,'pcamar'), options.pcamar = 0; end
 if ~isfield(options,'pcapred'), options.pcapred = 0; end
@@ -93,6 +94,19 @@ else
     elseif (size(data.X,2)~=size(options.S,1)) || (size(data.X,2)~=size(options.S,2))
         error('Dimensions of S are incorrect; must be a square matrix of size nchannels by nchannels')
     end 
+end
+
+if ~strcmp(options.covtype,'full') && options.firsteigv
+    error('firsteigv can only be used for covtype=full')
+end
+if options.zeromean==0 && options.firsteigv
+    error('firsteigv can only be used for zeromean=1')
+end
+if options.order > 1 && options.firsteigv
+    error('firsteigv can only be used for order=0')
+end
+if options.pca>0 && options.firsteigv
+    error('firsteigv and pca are not compatible')
 end
 
 if size(options.grouping,1)==1,  options.grouping = options.grouping'; end

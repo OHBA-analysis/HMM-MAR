@@ -212,8 +212,8 @@ options.initcyc = 2;
 options.initrep = 2;
 options.tol = 1e-7;
 options.useParallel = 0;
-%options.grouping = [1 1 1 1 1 1 1 1];
-options.grouping = [1 1 1 1 2 2 2 2];
+options.grouping = [1 1 1 1 1 1 1 1];
+%options.grouping = [1 1 1 1 2 2 2 2];
 
 options.BIGNbatch = 3;
 options.BIGNinitbatch = 3;

@@ -75,6 +75,9 @@ if isfield(options,'crosstermsonly') && options.crosstermsonly
     end
     X = Xtmp; 
 end
+if isfield(options,'firsteigv') && options.firsteigv
+    
+end
 
 if isfield(options,'B'), B = options.B;
 else B = []; end

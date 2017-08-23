@@ -100,6 +100,7 @@ for rep = 1:options.BIGinitrep
             options.onpower = 0; 
             options.downsample = 0; % done in loadfile.m
             options.crosstermsonly = 0;
+            options.grouping = [];
             if length(Ti)==1, options.useParallel = 0; end
             [hmm_i,Gamma,Xi] = hmmmar(X,Ti,options);
             options = options_copy;
@@ -112,7 +113,7 @@ for rep = 1:options.BIGinitrep
             hmm_i.train.downsample = options.downsample;
             hmm_i.train.useParallel = options.useParallel;
             hmm_i.train.crosstermsonly = options.crosstermsonly;
-
+            hmm_i.train.grouping = options.grouping;
         end
         if ii==1 % get priors
             Dir2d_alpha_prior = hmm_i.prior.Dir2d_alpha;

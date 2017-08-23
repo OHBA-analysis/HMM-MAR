@@ -10,6 +10,7 @@ if ~isfield(options,'Fs'), options.Fs = 1; end
 if ~isfield(options,'embeddedlags'), options.embeddedlags = 0; end
 if ~isfield(options,'pca'), options.pca = 0; end
 if ~isfield(options,'pca_spatial'), options.pca_spatial = 0; end
+if ~isfield(options,'firsteigv'), options.firsteigv = 0; end
 if ~isfield(options,'varimax'), options.varimax = 0; end
 if ~isfield(options,'pcamar'), options.pcamar = 0; end
 if ~isfield(options,'pcapred'), options.pcapred = 0; end
@@ -71,6 +72,19 @@ if isfield(options,'crosstermsonly') && options.crosstermsonly
     options.embeddedlags = 0; 
     options.pca = 0;
     options.covtype = 'uniquediag';
+end
+
+if ~strcmp(options.covtype,'full') && options.firsteigv
+    error('firsteigv can only be used for covtype=full')
+end
+if options.zeromean==0 && options.firsteigv
+    error('firsteigv can only be used for zeromean=1')
+end
+if options.order > 1 && options.firsteigv
+    error('firsteigv can only be used for order=0')
+end
+if options.pca>0 && options.firsteigv
+    error('firsteigv and pca are not compatible')
 end
 
 if length(options.embeddedlags)==1 && options.pca_spatial>0

@@ -57,9 +57,19 @@ if is_cell_strings || is_cell_matrices
     [A,e,~] = svd(C);
     e = diag(e);
 else
+    if ~isempty(options.filter)
+        X = filterdata(X,T,options.Fs,options.filter);
+    end
+    if options.detrend
+        X = detrenddata(X,T);
+    end
     X = standardisedata(X,T,standardise);
     if options.onpower
         X = rawsignal2power(X,T);
+    end
+    if isfield(options,'As') && ~isempty(options.As)
+        X = bsxfun(@minus,X,mean(X)); % must center
+        X = X * options.As;
     end
     if length(embeddedlags)>1
         X = embeddata(X,T,options.embeddedlags);
