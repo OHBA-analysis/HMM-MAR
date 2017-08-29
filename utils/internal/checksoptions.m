@@ -114,6 +114,7 @@ if ~isfield(options,'initial_hmm'), options.initial_hmm = []; end
 options.BIGbase_weights = options.BIGbase_weights * ones(1,N);
 if ~isfield(options,'Gamma'), options.Gamma = []; end
 if ~isfield(options,'hmm'), options.hmm = []; end
+if options.BIGdelay > 1, warning('BIGdelay can only be 1 in this version.'); options.BIGdelay = 1; end
 
 % HMM-MAR options
 if ~isfield(options,'zeromean'), options.zeromean = 0; end
