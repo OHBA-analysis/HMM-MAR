@@ -96,7 +96,7 @@ if size(options.grouping,1)==1,  options.grouping = options.grouping'; end
 
 if ~isfield(options,'K'), error('K was not specified'); end
 % Specific BigHMM options
-if ~isfield(options,'BIGNinitbatch'), options.BIGNinitbatch = 1; end
+if ~isfield(options,'BIGNinitbatch'), options.BIGNinitbatch = options.BIGNbatch; end
 if ~isfield(options,'BIGprior'), options.BIGprior = []; end
 if ~isfield(options,'BIGcyc'), options.BIGcyc = 200; end
 if ~isfield(options,'BIGmincyc'), options.BIGmincyc = 10; end
