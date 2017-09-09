@@ -364,10 +364,10 @@ J=fft(data_proj,nfft)/Fs;   % fft of projected data
 end
 
 function X = loadfile_mt(f,T,options)
+
 if ischar(f)
-    if ~isempty(strfind(f,'.mat')), load(f,'X');
-    else X = dlmread(f);
-    end
+    fsub = f;
+    loadfile_sub;
 else
     X = f;
 end
