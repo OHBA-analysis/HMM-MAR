@@ -74,7 +74,7 @@ if ~sim_state_tcs_only
         if ~hmm.train.zeromean || hmm.train.maxorder > 0
             for t=start:T(n)
                 for k=1:K
-                    setstateoptions;
+                    orders = hmm.state(k).train.orders;
                     XX = zeros(1,length(orders)*ndim);
                     for i=1:length(orders)
                         o = orders(i);
