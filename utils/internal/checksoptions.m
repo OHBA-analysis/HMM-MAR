@@ -20,7 +20,7 @@ if ~isfield(options,'filter'), options.filter = []; end
 if ~isfield(options,'detrend'), options.detrend = 0; end
 if ~isfield(options,'downsample'), options.downsample = 0; end
 if ~isfield(options,'standardise'), options.standardise = 1; end %(options.pca>0);
-if ~isfield(options,'standardise_pc'), options.standardise_pc = 0; end 
+if ~isfield(options,'standardise_pc'), options.standardise_pc = length(options.embeddedlags)>1; end 
 if ~isfield(options,'crosstermsonly'), options.crosstermsonly = 0; end
 
 if ~isfield(options,'grouping') || isempty(options.grouping)
