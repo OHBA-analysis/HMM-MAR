@@ -1,4 +1,4 @@
-function Gamma = initGamma_random(T,K,D)
+function Gamma = initGamma_random(T,K,D,Pstructure)
 % Return a Gamma timecourse corresponding to random transitions with a given
 % dirichletdiag (i.e. the transition probability prior)
 %
@@ -9,6 +9,7 @@ rng('shuffle') % make this "truly" random
 
 % Form transition probability matrix
 P = (D-1)*eye(K)+ones(K);
+if nargin==4, P(~Pstructure) = 0; end
 P = bsxfun(@rdivide,P,sum(P,2));
 
 % Use hmmgenerate() if appropriate toolbox is installed
