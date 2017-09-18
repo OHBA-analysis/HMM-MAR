@@ -29,7 +29,16 @@ function fit = hmmspectramar(data,T,hmm,Gamma,options)
 %
 % Author: Diego Vidaurre, OHBA, University of Oxford (2014)
 
-if ~isfield(options,'MLestimation'), options.MLestimation = 1 ; end
+if nargin < 5, options = struct(); end
+if nargin < 4, Gamma = []; end
+
+if hmm.train.downsample~=0
+    options.Fs = hmm.train.downsample;
+else
+    options.Fs = hmm.train.Fs;
+end
+    
+if ~isfield(options,'MLestimation'), options.MLestimation = ~isempty(Gamma) ; end
 
 if options.MLestimation && isempty(Gamma)
     error('If MLestimation=1, you need to supply Gamma')
@@ -82,7 +91,7 @@ else
     hmm.train.orderoffset = 0;
     hmm.train.timelag = 1; 
     hmm.train.exptimelag = 0; 
-    if isfield(options,'zeromean'), 
+    if isfield(options,'zeromean') 
         hmm.train.zeromean = options.zeromean; 
     else
         hmm.train.zeromean = 1; 
@@ -98,7 +107,7 @@ if options.MLestimation
        d = supposed_order-options.order;
        X2 = zeros(sum(T)-length(T)*d,ndim);
        T2 = T - d; 
-       for in = 1:length(T),
+       for in = 1:length(T)
            ind1 = sum(T(1:in-1)) + ( (d+1):T(in) );
            ind2 = sum(T2(1:in-1)) + (1:T2(in));
            X2(ind2,:) = data(ind1,:); 
@@ -107,7 +116,7 @@ if options.MLestimation
    elseif supposed_order < options.order % trim Gamma
        d = options.order-supposed_order;
        Gamma2 = zeros(sum(T)-length(T)*options.order,K);
-       for in = 1:length(T),
+       for in = 1:length(T)
            ind1 = sum(T(1:in-1)) - supposed_order*(in-1) + ( (d+1):(T(in)-supposed_order) );
            ind2 = sum(T(1:in-1)) - options.order*(in-1) + ( 1:(T(in)-options.order) );
            Gamma2(ind2,:) = Gamma(ind1,:);
@@ -137,7 +146,7 @@ N = length(T0);
 Gammasum = zeros(N,K);
 
 if options.p==0
-    if strcmp(options.level,'group'), 
+    if strcmp(options.level,'group')
         NN = 1; 
     else
         NN = N;
@@ -162,10 +171,10 @@ end
 if options.MLestimation
     if size(T,1)==1, T=T'; end
     hmm0 = hmm;
-    if isfield(hmm0.train,'B'), 
+    if isfield(hmm0.train,'B')
         hmm0.train = rmfield(hmm0.train,'B'); 
     end
-    if isfield(hmm0.train,'V'), 
+    if isfield(hmm0.train,'V')
         hmm0.train = rmfield(hmm0.train,'V'); 
     end
     if options.standardise == 1
@@ -222,7 +231,7 @@ for j=1:NN
                 
         setstateoptions;
         W = zeros(length(orders),ndim,ndim);
-        for i=1:length(orders),
+        for i=1:length(orders)
             %W(i,:,:) = loadings *  hmm.state(k).W.Mu_W(~zeromean + ((1:ndim) + (i-1)*ndim),:) * loadings' ;
             W(i,:,:) = hmm.state(k).W.Mu_W(~train.zeromean + ((1:ndim) + (i-1)*ndim),:);
         end
@@ -249,9 +258,9 @@ for j=1:NN
         
         % Get Power Spectral Density matrix and PDC for state K
         
-        for ff=1:options.Nf,
+        for ff=1:options.Nf
             A = zeros(ndim);
-            for i=1:length(orders),
+            for i=1:length(orders)
                 o = orders(i);
                 A = A + permute(W(i,:,:),[2 3 1]) * exp(-1i*w(ff)*o);
             end
@@ -262,8 +271,8 @@ for j=1:NN
                          
             % Get PDC
             if options.to_do(2)==1 && ndim>1
-                for n=1:ndim,
-                    for l=1:ndim,
+                for n=1:ndim
+                    for l=1:ndim
                         pdcc(ff,n,l,j,k) = sqrt(preckd(n)) * abs(af_tmp(n,l)) / ...
                             sqrt( preckd * (abs(af_tmp(:,l)).^2) );
                     end
@@ -272,8 +281,8 @@ for j=1:NN
         end
         
         if strcmp(options.level,'subject') && options.to_do(1)==1 && ndim>1
-            for n=1:ndim,
-                for l=1:ndim,
+            for n=1:ndim
+                for l=1:ndim
                     rkj=psdc(:,n,l,j,k)./(sqrt(psdc(:,n,n,j,k)).*sqrt(psdc(:,l,l,j,k)));
                     cohc(:,n,l,j,k)=abs(rkj);
                     pcoh(:,n,l,j,k)=-ipsdc(:,n,l,j,k)./(sqrt(ipsdc(:,n,n,j,k)).*sqrt(ipsdc(:,l,l,j,k)));
@@ -306,7 +315,7 @@ for k=1:K
         end
     end
     fit.state(k).ipsd = zeros(options.Nf,ndim,ndim);
-    for ff=1:options.Nf,
+    for ff=1:options.Nf
         fit.state(k).ipsd(ff,:,:) = inv(permute(fit.state(k).psd(ff,:,:),[3 2 1]));
     end
     fit.state(k).f = freqs;
@@ -354,7 +363,7 @@ for k=1:K
     for n=1:ndim, fit.state(k).psd(:,n,n) = abs(fit.state(k).psd(:,n,n)); end
     if options.p>0
         fit.state(k).psderr = (1/options.Fs) * fit.state(k).psderr;  
-        for n=1:ndim, 
+        for n=1:ndim
             fit.state(k).psderr(1,:,n,n) = abs(fit.state(k).psderr(1,:,n,n));
             fit.state(k).psderr(2,:,n,n) = abs(fit.state(k).psderr(2,:,n,n));
         end
