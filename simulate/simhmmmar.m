@@ -47,7 +47,7 @@ elseif isempty(Gamma) && K==1
 end
 if size(Gamma,1) ~= sum(T), error('Gamma should have sum(T) rows'); end
 
-X = zeros(sum(T)-N*hmm.train.maxorder,ndim);
+X = zeros(sum(T),ndim);
 ind = false(sum(T),1);
 hmm0 = hmm; hmm0.train.zeromean = 1; 
 
@@ -92,9 +92,7 @@ if ~sim_state_tcs_only
             end
         end
         ind(t0+hmm.train.maxorder : t1) = true;
-        t0 = sum(T(1:n-1)) + 1 - (n-1)*hmm.train.maxorder; 
-        t1 = sum(T(1:n)) - n*hmm.train.maxorder; 
-        X(t0:t1,:) = Xin(d+1+hmm.train.maxorder:end,:);
+        X(t0:t1,:) = Xin(d+1:end,:);
     end
 end
 
