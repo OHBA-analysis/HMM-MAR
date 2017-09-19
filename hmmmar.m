@@ -122,7 +122,7 @@ if stochastic_learn
             options.As = highdim_pca(data,T,options.pca_spatial,...
                 0,options.standardise,...
                 options.onpower,0,options.detrend,...
-                options.filter,options.Fs);
+                options.filter,options.leakagecorr,options.Fs);
         end
         options.pca_spatial = size(options.As,2);
     else
@@ -134,7 +134,7 @@ if stochastic_learn
             options.A = highdim_pca(data,T,options.pca,...
                 options.embeddedlags,options.standardise,...
                 options.onpower,options.varimax,options.detrend,...
-                options.filter,options.Fs,options.As);
+                options.filter,options.leakagecorr,options.Fs,options.As);
             options.pca = size(options.A,2);
         end
     else
@@ -220,6 +220,10 @@ else
     end
     % Standardise data and control for ackward trials
     data = standardisedata(data,T,options.standardise); 
+    % Leakage correction
+    if options.leakagecorr ~= 0 
+        data = leakcorr(data,T,options.leakagecorr);
+    end
     % Hilbert envelope
     if options.onpower
        data = rawsignal2power(data,T); 
@@ -230,7 +234,7 @@ else
             data.X = bsxfun(@minus,data.X,mean(data.X));   
             data.X = data.X * options.As; 
         else
-            [options.As,data.X] = highdim_pca(data.X,T,options.pca_spatial,0,0,0,0);
+            [options.As,data.X] = highdim_pca(data.X,T,options.pca_spatial);
             options.pca_spatial = size(options.As,2);
         end
     end    

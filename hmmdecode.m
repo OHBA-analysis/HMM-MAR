@@ -86,18 +86,21 @@ if preproc % Adjust the data if necessary
     end
     % Standardise data and control for ackward trials
     data = standardisedata(data,T,train.standardise);
+    % Leakage correction
+    if train.leakagecorr ~= 0 
+        data = leakcorr(data,T,train.leakagecorr);
+    end
     % Hilbert envelope
     if train.onpower
         data = rawsignal2power(data,T);
     end
-    
     % pre-embedded  PCA transform
     if length(train.pca_spatial) > 1 || train.pca_spatial > 0
         if isfield(train,'As')
             data.X = bsxfun(@minus,data.X,mean(data.X)); 
             data.X = data.X * train.As;
         else
-            [train.As,data.X] = highdim_pca(data.X,T,train.pca_spatial,0,0,0,0);
+            [train.As,data.X] = highdim_pca(data.X,T,train.pca_spatial);
         end
     end    
     % Embedding

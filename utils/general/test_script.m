@@ -220,7 +220,7 @@ options.BIGNinitbatch = 3;
 options.BIGtol = 1e-7;
 options.BIGcyc = 5;
 options.BIGundertol_tostop = 5;
-options.BIGdelay = 5; 
+options.BIGdelay = 1; 
 options.BIGforgetrate = 0.7;
 options.BIGbase_weights = 0.9;
     
@@ -309,7 +309,7 @@ options.BIGNinitbatch = 3;
 options.BIGtol = 1e-7;
 options.BIGcyc = 5;
 options.BIGundertol_tostop = 5;
-options.BIGdelay = 5; 
+options.BIGdelay = 1; 
 options.BIGforgetrate = 0.7;
 options.BIGbase_weights = 0.9;
 

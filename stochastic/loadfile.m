@@ -37,6 +37,10 @@ if options.detrend
 end
 % Standardise data and control for ackward trials
 X = standardisedata(X,T,options.standardise);
+% Leakage correction
+if options.leakagecorr ~= 0
+    X = leakcorr(X,T,options.leakagecorr);
+end
 % Hilbert envelope
 if options.onpower
     X = rawsignal2power(X,T);

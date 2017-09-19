@@ -19,6 +19,7 @@ if ~isfield(options,'onpower'), options.onpower = 0; end
 if ~isfield(options,'filter'), options.filter = []; end
 if ~isfield(options,'detrend'), options.detrend = 0; end
 if ~isfield(options,'downsample'), options.downsample = 0; end
+if ~isfield(options,'leakagecorr'), options.leakagecorr = 0; end
 if ~isfield(options,'standardise'), options.standardise = 1; end %(options.pca>0);
 if ~isfield(options,'standardise_pc'), options.standardise_pc = length(options.embeddedlags)>1; end 
 if ~isfield(options,'crosstermsonly'), options.crosstermsonly = 0; end
@@ -114,7 +115,7 @@ if ~isfield(options,'initial_hmm'), options.initial_hmm = []; end
 options.BIGbase_weights = options.BIGbase_weights * ones(1,N);
 if ~isfield(options,'Gamma'), options.Gamma = []; end
 if ~isfield(options,'hmm'), options.hmm = []; end
-if options.BIGdelay > 1, warning('BIGdelay can only be 1 in this version.'); options.BIGdelay = 1; end
+if options.BIGdelay > 1, warning('BIGdelay is recommended to be 1.'); end
 
 % HMM-MAR options
 if ~isfield(options,'zeromean'), options.zeromean = 0; end

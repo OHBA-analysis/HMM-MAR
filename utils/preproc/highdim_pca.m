@@ -1,5 +1,5 @@
 function [A,B,e] = highdim_pca(X,T,d,embeddedlags,...
-    standardise,onpower,varimax,detrend,filter,Fs,As)
+    standardise,onpower,varimax,detrend,filter,leakagecorr,Fs,As)
 % pca for potentially loads of subjects
 %
 % if X is a cell of things, uses SVD
@@ -24,8 +24,9 @@ if nargin<6, onpower = 0; end
 if nargin<7, varimax = 0; end
 if nargin<8, detrend = 0; end
 if nargin<9, filter = []; end
-if nargin<10, Fs = 1; end
-if nargin<11, As = []; end
+if nargin<10, leakagecorr = 0; end
+if nargin<11, Fs = 1; end
+if nargin<12, As = []; end
 
 if length(embeddedlags)>1, msg = '(embedded)';
 else, msg = ''; 
@@ -41,6 +42,8 @@ options.embeddedlags = embeddedlags;
 options.pca = 0; % PCA is done here!
 options.onpower = onpower;
 options.detrend = detrend;
+options.leakagecorr = leakagecorr;
+
 if isfield(options,'A'), options = rmfield(options,'A'); end
 if ~isempty(As), options.As = As; end
 verbose = 1; 
@@ -64,6 +67,9 @@ else
         X = detrenddata(X,T);
     end
     X = standardisedata(X,T,standardise);
+    if options.leakagecorr ~= 0
+        X = leakcorr(X,T,options.leakagecorr);
+    end
     if options.onpower
         X = rawsignal2power(X,T);
     end

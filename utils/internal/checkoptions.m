@@ -27,13 +27,26 @@ if ~isfield(options,'vcomp') && options.pcapred>0, options.vcomp = 1; end
 if ~isfield(options,'filter'), options.filter = []; end
 if ~isfield(options,'detrend'), options.detrend = 0; end
 if ~isfield(options,'downsample'), options.downsample = 0; end
+if ~isfield(options,'leakagecorr'), options.leakagecorr = 0; end
 if ~isfield(options,'standardise'), options.standardise = 1; end
 if ~isfield(options,'standardise_pc'), options.standardise_pc = length(options.embeddedlags)>1; end
 if ~isfield(options,'crosstermsonly'), options.crosstermsonly = 0; end
-
+% Trans prob mat related options
 if ~isfield(options,'grouping') || isempty(options.grouping)
     options.grouping = ones(length(T),1); 
 end  
+if ~isfield(options,'Pstructure')
+    options.Pstructure = true(options.K);
+else
+    if any(size(options.Pstructure)~=options.K)
+        error('The dimensions of options.Pstructure are incorrect')
+    end
+    if any(sum(options.Pstructure,1)==0) || any(sum(options.Pstructure,2)==0)
+       error('No state can have an entire row or column set to zero in Pstructure') 
+    end
+    for k = 1:options.K, options.Pstructure(k,k) = 1; end
+    options.Pstructure = (options.Pstructure~=0);
+end
 
 if ~isempty(options.filter)
     if length(options.filter)~=2, error('options.filter must contain 2 numbers of being empty'); end
@@ -51,6 +64,13 @@ if options.downsample > 0 && isfield(data,'C')
     data = rmfield(data,'C');
 end
 
+if options.leakagecorr ~= 0
+    tmp = which('ROInets.closest_orthogonal_matrix');
+    if isempty(tmp)
+       error('For leakage correction, ROInets must be in path') 
+    end
+end
+
 if length(options.pca)==1 && options.pca == 0
     ndim = length(options.embeddedlags) * size(data.X,2);
 elseif options.pca(1) < 1
@@ -58,6 +78,8 @@ elseif options.pca(1) < 1
 else
     ndim = options.pca;
 end
+
+if size(options.grouping,1)==1,  options.grouping = options.grouping'; end
 
 if options.crosstermsonly
     if isfield(options,'S') 
@@ -86,12 +108,16 @@ if options.crosstermsonly
     options.pca = 0;
     options.covtype = 'uniquediag';
     ndim = 2 * ndim;
-else
+end
+    
+options = checkMARparametrization(options,[],ndim); copyopt = options;
+
+if ~options.crosstermsonly
     if ~isfield(options,'S')
         if options.pcamar>0, options.S = ones(options.pcamar,ndim);
         else, options.S = ones(ndim);
         end
-    elseif (size(data.X,2)~=size(options.S,1)) || (size(data.X,2)~=size(options.S,2))
+    elseif (ndim~=size(options.S,1)) || (ndim~=size(options.S,2))
         error('Dimensions of S are incorrect; must be a square matrix of size nchannels by nchannels')
     end 
 end
@@ -108,10 +134,6 @@ end
 if options.pca>0 && options.firsteigv
     error('firsteigv and pca are not compatible')
 end
-
-if size(options.grouping,1)==1,  options.grouping = options.grouping'; end
-
-options = checkMARparametrization(options,[],ndim); copyopt = options;
 
 options.multipleConf = isfield(options,'state');
 if options.multipleConf && options.pcamar>0
