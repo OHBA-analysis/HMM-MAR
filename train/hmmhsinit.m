@@ -15,30 +15,39 @@ else
 end
 
 % Initial state
+kk = hmm.train.Pistructure;
 if Q==1
-    hmm.Dir_alpha = ones(1,hmm.K);
-    hmm.Pi = ones(1,hmm.K) ./ hmm.K;
+    hmm.Dir_alpha = zeros(1,hmm.K);
+    hmm.Dir_alpha(kk) = 1;
+    hmm.Pi = zeros(1,hmm.K);
+    hmm.Pi(kk) = ones(1,sum(kk)) / sum(kk);
 else
-    hmm.Dir_alpha = ones(hmm.K,Q);
-    hmm.Pi = ones(hmm.K,Q) ./ hmm.K;    
+    hmm.Dir_alpha = zeros(hmm.K,Q);
+    hmm.Dir_alpha(kk,:) = 1;
+    hmm.Pi = zeros(hmm.K,Q);
+    hmm.Pi(kk,:) = ones(sum(kk),Q) / sum(kk);
 end
 
 % State transitions
-hmm.Dir2d_alpha = ones(hmm.K,hmm.K,Q);
-hmm.P = ones(hmm.K,hmm.K,Q);
+hmm.Dir2d_alpha = zeros(hmm.K,hmm.K,Q);
+hmm.P = zeros(hmm.K,hmm.K,Q);
 for i = 1:Q
     for k = 1:hmm.K
+        kk = hmm.train.Pstructure(k,:);
+        hmm.Dir2d_alpha(k,kk,i) = 1; 
         hmm.Dir2d_alpha(k,k,i) = hmm.train.DirichletDiag;
-        hmm.Dir2d_alpha(k,:,i) = hmm.train.PriorWeighting .* hmm.Dir2d_alpha(k,:,i);
-        hmm.P(k,:,i) = hmm.Dir2d_alpha(k,:,i) ./ sum(hmm.Dir2d_alpha(k,:,i));
+        hmm.Dir2d_alpha(k,kk,i) = hmm.train.PriorWeighting .* hmm.Dir2d_alpha(k,kk,i);
+        hmm.P(k,kk,i) = hmm.Dir2d_alpha(k,kk,i) ./ sum(hmm.Dir2d_alpha(k,kk,i));
     end
 end
 
 % define P-priors
 defhmmprior=struct('Dir2d_alpha',[],'Dir_alpha',[]);
 
-defhmmprior.Dir_alpha=ones(1,hmm.K);
-defhmmprior.Dir2d_alpha=ones(hmm.K,hmm.K);
+defhmmprior.Dir_alpha = ones(1,hmm.K);
+defhmmprior.Dir_alpha(~hmm.train.Pistructure) = 0; 
+defhmmprior.Dir2d_alpha = ones(hmm.K);
+defhmmprior.Dir2d_alpha(~hmm.train.Pstructure) = 0; 
 for k=1:hmm.K
     defhmmprior.Dir2d_alpha(k,k) = hmm.train.DirichletDiag;
 end
