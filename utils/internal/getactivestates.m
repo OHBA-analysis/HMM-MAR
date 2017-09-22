@@ -58,6 +58,11 @@ if hmm.train.dropstates==1
         hmm.Dir_alpha = hmm.Dir_alpha(is_active);
         hmm.Pi = hmm.Pi(is_active);
     end
+    hmm.train.Pstructure = hmm.train.Pstructure(is_active,is_active);
+    hmm.train.Pistructure = hmm.train.Pistructure(is_active);
+    if all(hmm.train.Pistructure==0)
+       error('All states with Pistructure = true have been kicked out')
+    end
     Xi = Xi(:,is_active,is_active);
     hmm.train.active = ones(1,sum(is_active));
     % Renormalize 

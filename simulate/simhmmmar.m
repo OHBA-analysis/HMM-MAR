@@ -39,7 +39,6 @@ if hmm.train.maxorder > 0, d = 500;
 else, d = 0;
 end
 
-
 if isempty(Gamma) && K>1 % Gamma is not provided, so we simulate it too
     Gamma = simgamma(T,hmm.P,hmm.Pi,nrep,grouping);
 elseif isempty(Gamma) && K==1

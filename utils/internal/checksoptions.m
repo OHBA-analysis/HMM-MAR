@@ -4,6 +4,7 @@ function options = checksoptions (options,data,T)
 % Later on, checkoptions will deal with options more specifically
 
 N = length(T);
+if ~isfield(options,'K'), error('K was not specified'); end
 
 % data options
 if ~isfield(options,'Fs'), options.Fs = 1; end
@@ -33,15 +34,29 @@ else
     options.grouping = ones(length(T),1); 
 end  
 
+% Check integrity of preproc parameters
 if ~isempty(options.filter)
     if length(options.filter)~=2, error('options.filter must contain 2 numbers of being empty'); end
-   if (options.filter(1)==0 && isinf(options.filter(2)))
-       warning('The specified filter does not do anything - Ignoring.')
-       options.filter = [];
-   elseif (options.filter(2) < options.Fs/2) && options.order >= 1
-       warning(['The lowpass cutoff frequency is lower than the Nyquist frequency - ' ... 
-           'This is discouraged for a MAR model'])
-   end
+    if (options.filter(1)==0 && isinf(options.filter(2)))
+        warning('The specified filter does not do anything - Ignoring.')
+        options.filter = [];
+    elseif (options.filter(2) < options.Fs/2) && options.order >= 1
+        warning(['The lowpass cutoff frequency is lower than the Nyquist frequency - ' ...
+            'This is discouraged for a MAR model'])
+    end
+end
+if options.downsample > 0 && isfield(data,'C')
+    warning('The use of downsampling is currently not compatible with specifying data.C');
+    data = rmfield(data,'C');
+end
+if options.downsample > options.Fs
+   warning('Data is going to be upsampled') 
+end
+if options.leakagecorr ~= 0
+    tmp = which('ROInets.closest_orthogonal_matrix');
+    if isempty(tmp)
+       error('For leakage correction, ROInets must be in path') 
+    end
 end
 
 if isfield(options,'crosstermsonly') && options.crosstermsonly
@@ -95,7 +110,6 @@ end
 
 if size(options.grouping,1)==1,  options.grouping = options.grouping'; end
 
-if ~isfield(options,'K'), error('K was not specified'); end
 % Specific BigHMM options
 if ~isfield(options,'BIGNinitbatch'), options.BIGNinitbatch = options.BIGNbatch; end
 if ~isfield(options,'BIGprior'), options.BIGprior = []; end
@@ -117,7 +131,7 @@ if ~isfield(options,'Gamma'), options.Gamma = []; end
 if ~isfield(options,'hmm'), options.hmm = []; end
 if options.BIGdelay > 1, warning('BIGdelay is recommended to be 1.'); end
 
-% HMM-MAR options
+% MAR parameters
 if ~isfield(options,'zeromean'), options.zeromean = 0; end
 if ~isfield(options,'covtype'), options.covtype = 'full'; end
 if ~isfield(options,'order'), options.order = 0; end
@@ -134,9 +148,14 @@ if ~isfield(options,'uniqueAR'), options.uniqueAR = 0; end
 %    error('S(i,j)<1 is not yet implemented for stochastic inference')
 %end
 
-
-
-options.dropstates = 0; 
+% Drop states? 
+if ~isfield(options,'dropstates')
+    options.dropstates = 0;
+elseif options.droptstates==1
+    warning('With stochastic learning, dropstates is set to 0')
+    options.dropstates = 0;
+end
+    
 options.verbose = 0; % shut up the individual hmmmar output
 if options.order>0
     [options.orders,options.order] = formorders(options.order,options.orderoffset,options.timelag,options.exptimelag);

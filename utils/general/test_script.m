@@ -36,7 +36,8 @@ options.tol = 1e-7;
 options.initrep = 2;
 options.verbose = 0; 
 options.useParallel = 0; 
-options.grouping = [1 1 1 1 2 2 2 2];
+options.grouping = [1 1 1 1 1 1 1 1]; 
+%options.grouping = [1 1 1 1 2 2 2 2];
 
 
 for covtype = {'full','diag','uniquefull','uniquediag'}

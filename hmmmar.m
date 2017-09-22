@@ -1,4 +1,4 @@
-function [hmm, Gamma, Xi, vpath, GammaInit, residuals, fehist, feterms, rho] = ...
+ function [hmm, Gamma, Xi, vpath, GammaInit, residuals, fehist, feterms, rho] = ...
     hmmmar (data,T,options)
 % Main function to train the HMM-MAR model, compute the Viterbi path and,
 % if requested, obtain the cross-validated sum of prediction quadratic errors.
@@ -324,7 +324,8 @@ else
                 error('GMM init is deprecated; use HMM-MAR initialisation instead')
                 %options.Gamma = gmm_init(data,T,options);
             elseif strcmpi(options.inittype,'random') || options.initrep==0
-                GammaInit = initGamma_random(T-options.maxorder,options.K,options.DirichletDiag);
+                GammaInit = initGamma_random(T-options.maxorder,options.K,...
+                    options.DirichletDiag,options.Pstructure,options.Pistructure);
             else
                 error('Unknown init method')
             end

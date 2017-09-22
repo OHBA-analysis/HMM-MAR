@@ -1,11 +1,11 @@
 function [options,data] = checkoptions (options,data,T,cv)
 
+% Basic checks
 if nargin<4, cv = 0; end
 if isempty(strfind(which('pca'),matlabroot))
     error(['Function pca() seems to be other than Matlab''s own - you need to rmpath() it. ' ...
         'Use ''rmpath(fileparts(which(''pca'')))'''])
 end
-
 if ~isfield(options,'K'), error('K was not specified'); end
 if options.K<1, error('K must be higher than 0'); end
 if ~isstruct(data), data = struct('X',data); end
@@ -47,7 +47,26 @@ else
     for k = 1:options.K, options.Pstructure(k,k) = 1; end
     options.Pstructure = (options.Pstructure~=0);
 end
+if ~isfield(options,'Pistructure')
+    options.Pistructure = true(1,options.K);
+else
+    if length(options.Pistructure) ~=options.K 
+        error('The dimensions of options.Pistructure are incorrect')
+    end
+    options.Pistructure = (options.Pistructure~=0);
+end
+% Drop states? 
+if ~isfield(options,'dropstates')
+    if any(~options.Pstructure), options.dropstates = 0;
+    else, options.dropstates = 1; end
+else
+    if options.dropstates == 1 && any(~options.Pstructure)
+        warning('If Pstructure  has zeros, dropstates must be zero')
+        options.dropstates = 0;
+    end
+end
 
+% Check integrity of preproc parameters
 if ~isempty(options.filter)
     if length(options.filter)~=2, error('options.filter must contain 2 numbers of being empty'); end
     if (options.filter(1)==0 && isinf(options.filter(2)))
@@ -58,19 +77,19 @@ if ~isempty(options.filter)
             'This is discouraged for a MAR model'])
     end
 end
-
 if options.downsample > 0 && isfield(data,'C')
     warning('The use of downsampling is currently not compatible with specifying data.C');
     data = rmfield(data,'C');
 end
-
+if options.downsample > options.Fs
+   warning('Data is going to be upsampled') 
+end
 if options.leakagecorr ~= 0
     tmp = which('ROInets.closest_orthogonal_matrix');
     if isempty(tmp)
        error('For leakage correction, ROInets must be in path') 
     end
 end
-
 if length(options.pca)==1 && options.pca == 0
     ndim = length(options.embeddedlags) * size(data.X,2);
 elseif options.pca(1) < 1
@@ -80,7 +99,6 @@ else
 end
 
 if size(options.grouping,1)==1,  options.grouping = options.grouping'; end
-
 if options.crosstermsonly
     if isfield(options,'S') 
         warning('S will be ignored with crosstermonly=1'); 
@@ -110,6 +128,7 @@ if options.crosstermsonly
     ndim = 2 * ndim;
 end
     
+% MAR parameters
 options = checkMARparametrization(options,[],ndim); copyopt = options;
 
 if ~options.crosstermsonly
@@ -152,7 +171,6 @@ if options.pcamar>0 && options.pcapred>0
     error('Options pcamar and pcapred are not compatible')
 end
 
-
 if options.multipleConf
     options.maxorder = 0;
 else
@@ -179,9 +197,10 @@ end
 
 data = data2struct(data,T,options);
 
-% training options
+% Inference parameters
 if ~isfield(options,'cyc'), options.cyc = 1000; end
 if ~isfield(options,'tol'), options.tol = 1e-5; end
+if ~isfield(options,'verbose'), options.verbose = 1; end
 if ~isfield(options,'meancycstop'), options.meancycstop = 1; end
 if ~isfield(options,'cycstogoafterevent'), options.cycstogoafterevent = 20; end
 if ~isfield(options,'initTestSmallerK'), options.initTestSmallerK = false; end 
@@ -195,8 +214,6 @@ if ~isfield(options,'hmm'), options.hmm = []; end
 if ~isfield(options,'fehist'), options.fehist = []; end
 if ~isfield(options,'DirichletDiag'), options.DirichletDiag = 10; end
 if ~isfield(options,'PriorWeighting'), options.PriorWeighting = 1; end
-if ~isfield(options,'dropstates'), options.dropstates = 1; end
-%if ~isfield(options,'whitening'), options.whitening = 0; end
 if ~isfield(options,'repetitions'), options.repetitions = 1; end
 if ~isfield(options,'updateObs'), options.updateObs = 1; end
 if ~isfield(options,'updateGamma'), options.updateGamma = 1; end
@@ -205,11 +222,7 @@ if ~isfield(options,'keepS_W'), options.keepS_W = 1; end
 if ~isfield(options,'useParallel')
     options.useParallel = (length(T)>1);
 end
-
-%if ~options.updateObs && ~isfield(options.state,'W') 
-%    error('If updateObs is 0, you need to specify the parameters of the states in options.state')
-%end
-
+% Use MEX?
 if isfield(options,'useMEX') && options.useMEX==1 && length(unique(options.grouping))==1
     options.useMEX = verifyMEX();
 elseif isfield(options,'useMEX') && options.useMEX==1 && length(unique(options.grouping))>1
@@ -219,21 +232,14 @@ else % ~isfield(options,'useMEX')
     options.useMEX = 0; 
 end
 
-if ~isfield(options,'verbose'), options.verbose = 1; end
-
+% Further checks
 if options.maxorder+1 >= min(T)
    error('There is at least one trial that is too short for the specified order') 
 end
-
-% if isempty(options.Gamma) && ~isempty(options.hmm)
-%     error('Gamma must be provided in options if you want a warm restart')
-% end
-
 if ~strcmp(options.inittype,'random') && options.initrep == 0
     options.inittype = 'random';
     warning('Non random init was set, but initrep==0')
 end
-
 if options.K~=size(data.C,2), error('Matrix data.C should have K columns'); end
 if options.K>1 && options.updateGamma == 0 && isempty(options.Gamma)
     warning('Gamma is unspecified, so updateGamma was set to 1');  options.updateGamma = 1; 
@@ -245,6 +251,7 @@ if options.updateGamma == 0 && options.repetitions>1
     error('If Gamma is not going to be updated, repetitions>1 is unnecessary')
 end
 
+% Check precomputed state time courses
 if ~isempty(options.Gamma)
     if length(options.embeddedlags)>1
         if (size(options.Gamma,1) ~= (sum(T) - length(options.embeddedlags) + 1 )) || ...
@@ -264,6 +271,7 @@ if (length(T) == 1 && options.initrep==1) && options.useParallel == 1
     options.useParallel = 0;
 end
 
+% CV options
 if cv==1
     if ~isfield(options,'cvfolds'), options.cvfolds = length(T); end
     if ~isfield(options,'cvrep'), options.cvrep = 1; end

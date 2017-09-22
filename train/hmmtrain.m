@@ -71,6 +71,7 @@ for cycle=1:hmm.train.cyc
 
         %%%% Free energy computation
         fehist(end+1) = sum(evalfreeenergy(data.X,T,Gamma,Xi,hmm,residuals,XX));
+        if isnan(fehist(end)), keyboard; end
         strwin = ''; if hmm.train.meancycstop>1, strwin = 'windowed'; end
         if cycle>(hmm.train.meancycstop+1) 
             chgFrEn = mean( fehist(end:-1:(end-hmm.train.meancycstop+1)) - ...

@@ -32,10 +32,11 @@ if Q>1
     for n = 1:N
         i = hmm.train.grouping(n);
         t = (1:T(n)-1-order) + sum(T(1:n-1)) - (order+1)*(n-1) ;
-        hmm.Dir2d_alpha(:,:,i) = hmm.Dir2d_alpha(:,:,i) + squeeze(sum(Xi(t,:,:)));
+        s = permute(sum(Xi(t,:,:)),[2 3 1]);
+        hmm.Dir2d_alpha(:,:,i) = hmm.Dir2d_alpha(:,:,i) + s;
     end
 else
-    hmm.Dir2d_alpha = squeeze(sum(Xi)) + hmm.prior.Dir2d_alpha;
+    hmm.Dir2d_alpha = permute(sum(Xi),[2 3 1]) + hmm.prior.Dir2d_alpha;
     hmm.P = zeros(K,K);
 end
 %PsiSum=psi(sum(hmm.Dir2d_alpha(:),1));
@@ -43,6 +44,7 @@ for i = 1:Q
     for j = 1:K
         PsiSum = psi(sum(hmm.Dir2d_alpha(j,:,i)));
         for k=1:K
+            if ~hmm.train.Pstructure(j,k), continue; end
             hmm.P(j,k,i) = exp(psi(hmm.Dir2d_alpha(j,k,i))-PsiSum);
         end
         hmm.P(j,:,i) = hmm.P(j,:,i) ./ sum(hmm.P(j,:,i));
@@ -67,6 +69,7 @@ if Q==1
     hmm.Pi = zeros(1,K);
     PsiSum = psi(sum(hmm.Dir_alpha));
     for k = 1:K
+        if ~hmm.train.Pistructure(k), continue; end
         hmm.Pi(k) = exp(psi(hmm.Dir_alpha(k))-PsiSum);
     end
     hmm.Pi = hmm.Pi ./ sum(hmm.Pi);
@@ -75,6 +78,7 @@ else
     for i = 1:Q
         PsiSum = psi(sum(hmm.Dir_alpha(:,i)));
         for k = 1:K
+            if ~hmm.train.Pistructure(k), continue; end
             hmm.Pi(k,i) = exp(psi(hmm.Dir_alpha(k,i))-PsiSum);
         end
         hmm.Pi(:,i) = hmm.Pi(:,i) ./ sum(hmm.Pi(:,i));

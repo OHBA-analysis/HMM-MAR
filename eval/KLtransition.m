@@ -8,17 +8,21 @@ end
 % KL divergence for the transition and initial probabilities
 if Q > 1
     for i = 1:Q
-        KLdiv = KLdiv + dirichlet_kl(hmm.Dir_alpha(:,i)',hmm.prior.Dir_alpha);
+        kk = hmm.train.Pistructure;
+        KLdiv = KLdiv + dirichlet_kl(hmm.Dir_alpha(kk,i)',hmm.prior.Dir_alpha(kk));
     end
 else 
-    KLdiv = KLdiv + dirichlet_kl(hmm.Dir_alpha,hmm.prior.Dir_alpha);
+    if ~all(hmm.Dir_alpha==hmm.prior.Dir_alpha)
+        KLdiv = KLdiv + dirichlet_kl(hmm.Dir_alpha,hmm.prior.Dir_alpha);
+    end
 end
 % KL-divergence for transition prob
 K = size(hmm.Dir_alpha,1);
 for i = 1:Q
     for k = 1:K
-        KLdiv = KLdiv + dirichlet_kl(hmm.Dir2d_alpha(k,:,i),hmm.prior.Dir2d_alpha(k,:));
+        kk = hmm.train.Pstructure(k,:);
+        KLdiv = KLdiv + dirichlet_kl(hmm.Dir2d_alpha(k,kk,i),hmm.prior.Dir2d_alpha(k,kk));
     end
 end
-
+if isnan(KLdiv),keyboard;end
 end
