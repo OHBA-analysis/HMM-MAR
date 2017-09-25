@@ -310,12 +310,15 @@ else
     end
     options.crosstermsonly = 0; % so that recursive calls to hmmmar do not mess up
 
+    if isfield(options,'fehist'), fehistInit = options.fehist;
+    else, fehistInit = [];
+    end
     if isempty(options.Gamma) && isempty(options.hmm) % both unspecified
         if options.K > 1
             Sind = options.Sind;
             if options.initrep>0 && ...
                     (strcmpi(options.inittype,'HMM-MAR') || strcmpi(options.inittype,'HMMMAR'))
-                GammaInit = hmmmar_init(data,T,options,Sind);
+                [GammaInit,fehistInit] = hmmmar_init(data,T,options,Sind);
             elseif options.initrep>0 &&  strcmpi(options.inittype,'EM')
                 error('EM init is deprecated; use HMM-MAR initialisation instead')
                 %options.nu = sum(T)/200;
@@ -348,7 +351,6 @@ else
         GammaInit = bsxfun(@rdivide,GammaInit,sum(GammaInit,2));
     end
 
-    fehist = Inf;
     if isempty(options.hmm) % Initialisation of the hmm 
         % GammaInit is required for obsinit, or for hmmtrain when updateGamma==0
         hmm_wr = struct('train',struct());
@@ -365,10 +367,11 @@ else
             hmm_wr.train.orderoffset,hmm_wr.train.timelag,hmm_wr.train.exptimelag,hmm_wr.train.zeromean);
     end
     
+    fehist = Inf; 
     for it=1:options.repetitions
         hmm0 = hmm_wr;
         residuals0 = residuals_wr;
-        [hmm0,Gamma0,Xi0,fehist0] = hmmtrain(data,T,hmm0,GammaInit,residuals0,options.fehist);
+        [hmm0,Gamma0,Xi0,fehist0] = hmmtrain(data,T,hmm0,GammaInit,residuals0,fehistInit);
         if options.updateGamma==1 && fehist0(end)<fehist(end)
             fehist = fehist0; hmm = hmm0;
             residuals = residuals0; Gamma = Gamma0; Xi = Xi0;

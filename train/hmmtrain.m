@@ -23,9 +23,7 @@ function [hmm,Gamma,Xi,fehist] = hmmtrain(data,T,hmm,Gamma,residuals,fehist)
 %
 % Author: Diego Vidaurre, OHBA, University of Oxford
 
-if nargin<6, fehist=[];
-elseif ~isempty(fehist), fprintf('Restarting at cycle %d \n',length(fehist)+1);
-end
+if nargin<6, fehist=[]; end
 cyc_to_go = 0;
 setxx;
 
@@ -71,7 +69,6 @@ for cycle=1:hmm.train.cyc
 
         %%%% Free energy computation
         fehist(end+1) = sum(evalfreeenergy(data.X,T,Gamma,Xi,hmm,residuals,XX));
-        if isnan(fehist(end)), keyboard; end
         strwin = ''; if hmm.train.meancycstop>1, strwin = 'windowed'; end
         if cycle>(hmm.train.meancycstop+1) 
             chgFrEn = mean( fehist(end:-1:(end-hmm.train.meancycstop+1)) - ...

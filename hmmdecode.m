@@ -9,7 +9,7 @@ function [Path,Xi] = hmmdecode(data,T,hmm,type,residuals,preproc,grouping)
 %                             or just a matrix containing the time series
 % T             length of series
 % hmm           hmm data structure
-% type          0, state time courses; 1, viterbi path
+% type          0, state time courses (default); 1, viterbi path
 % residuals     in case we train on residuals, the value of those (optional)
 %
 % OUTPUT

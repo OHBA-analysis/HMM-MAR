@@ -1,4 +1,4 @@
-function Gamma = hmmmar_init(data,T,options,Sind)
+function [Gamma,fehist] = hmmmar_init(data,T,options,Sind)
 %
 % Initialise the hidden Markov chain using HMM-MAR
 %
@@ -27,35 +27,40 @@ else % Standard behaviour, test specified K options.initrep times
     init_k = options.K*ones(1,options.initrep);
 end
 
-fehist = inf(length(init_k),1);
+felast = zeros(length(init_k),1);
+fehist = cell(length(init_k),1);
 Gamma = cell(length(init_k),1);
 
 if options.useParallel && length(init_k) > 1 % not very elegant
     parfor it=1:length(init_k)
-        [Gamma{it},fehist(it)] = run_initialization(data,T,options,Sind,init_k(it));
+        [Gamma{it},fehist{it}] = run_initialization(data,T,options,Sind,init_k(it));
+        felast(it) = fehist{it}(end);
         if options.verbose
             fprintf('Init run %2d, %2d->%2d states, Free Energy = %f \n',it,init_k(it),size(Gamma{it},2),fehist(it));
         end
     end
 else
     for it=1:length(init_k)
-        [Gamma{it},fehist(it)] = run_initialization(data,T,options,Sind,init_k(it));
+        [Gamma{it},fehist{it}] = run_initialization(data,T,options,Sind,init_k(it));
+        felast(it) = fehist{it}(end);
         if options.verbose
-            fprintf('Init run %2d, %2d->%2d states, Free Energy = %f \n',it,init_k(it),size(Gamma{it},2),fehist(it));
+            fprintf('Init run %2d, %2d->%2d states, Free Energy = %f \n',...
+                it,init_k(it),size(Gamma{it},2),felast(it));
         end
     end 
 end
 
-[fmin,s] = min(fehist);
+[fe,s] = min(felast);
 Gamma = Gamma{s};
+fehist = fehist{s};
 
 if options.verbose
-    fprintf('%i-th was the best iteration with FE=%f \n',s,fmin)
+    fprintf('%i-th was the best iteration with FE=%f \n',s,fe)
 end
 
 end
 
-function [Gamma,fe] = run_initialization(data,T,options,Sind,init_k)
+function [Gamma,fehist] = run_initialization(data,T,options,Sind,init_k)
 % INPUTS
 % - data,T,options,Sind <same as hmmmar_init>
 % - init_k is the number of states to use for this initialization
@@ -84,5 +89,5 @@ hmm.train.verbose = 0;
 hmm = hmmhsinit(hmm);
 [hmm,residuals] = obsinit(data,T,hmm,options.Gamma);
 [~,Gamma,~,fehist] = hmmtrain(data,T,hmm,options.Gamma,residuals);
-fe = fehist(end);
+%fe = fehist(end);
 end
