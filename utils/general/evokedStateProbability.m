@@ -33,24 +33,35 @@ order =  (sum(T) - size(Gamma,1)) / length(T);
 K = size(Gamma,2);
 halfwin = (window-1)/2; 
 evokedGamma = zeros(window,K);
-count = 0; 
+count = zeros(window,1); 
 t = (-halfwin : halfwin)';
 t = t / Fs;
 
 for j = 1:length(T) % iterate through subjects/trials/segments
-    ind1 = sum(T(1:j-1)) + (order+1:T(j));
-    ind2 = sum(T(1:j-1)) - (j-1)*order + (1:T(j)-order);
-    stim_j = stimulus(ind1);
-    Gamma_j = Gamma(ind2,:);
+    jj1 = sum(T(1:j-1)) + (order+1:T(j));
+    jj2 = sum(T(1:j-1)) - (j-1)*order + (1:T(j)-order);
+    Tj = T(j)-order;
+    stim_j = stimulus(jj1);
+    Gamma_j = Gamma(jj2,:);
     events = find(stim_j)';
     for i = events
-        if (i-halfwin)>0 && (i+halfwin)<=size(Gamma_j,1)
-            evokedGamma =  evokedGamma + Gamma_j(i - halfwin : i + halfwin,:);
-            count = count + 1; 
-        end
+        ind = true(window,1);
+        if i-halfwin-1<0, ind(1:halfwin-i+1) = false; end
+        if i+halfwin>Tj, e = i+halfwin-Tj; ind(end-e+1:end) = false; end
+        t1 = max(1,i-halfwin); t2 = min(Tj,i+halfwin);
+        try
+        evokedGamma(ind,:) = evokedGamma(ind,:) + Gamma_j(t1:t2,:);
+        catch, keyboard; end
+        count(ind) = count(ind) + 1; 
+        %if (i-halfwin)>0 && (i+halfwin)<=size(Gamma_j,1)
+        %    evokedGamma =  evokedGamma + Gamma_j(i - halfwin : i + halfwin,:);
+        %    if any(isnan(evokedGamma(:))), keyboard; end
+        %    count = count + 1; 
+        %end
     end
 end
 
-evokedGamma = evokedGamma / count;
+jj = count>0;
+evokedGamma(jj,:) = evokedGamma(jj,:) ./ repmat(count(jj),1,K);
 
 end
