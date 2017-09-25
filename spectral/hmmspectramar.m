@@ -32,10 +32,15 @@ function fit = hmmspectramar(data,T,hmm,Gamma,options)
 if nargin < 5, options = struct(); end
 if nargin < 4, Gamma = []; end
 
-if hmm.train.downsample~=0
-    options.Fs = hmm.train.downsample;
+if ~isempty(hmm)
+    train = hmm.train; 
 else
-    options.Fs = hmm.train.Fs;
+    train = options;
+end
+if isfield(train,'downsample') && train.downsample~=0
+    options.Fs = train.downsample;
+else
+    options.Fs = train.Fs;
 end
     
 if ~isfield(options,'MLestimation'), options.MLestimation = ~isempty(Gamma) ; end
