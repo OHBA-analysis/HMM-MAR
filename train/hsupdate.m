@@ -55,8 +55,9 @@ end
 if Q==1, hmm.Dir_alpha = hmm.prior.Dir_alpha;
 else, hmm.Dir_alpha = repmat(hmm.prior.Dir_alpha',[1 Q]); 
 end
+i = 1; 
 for n = 1:N
-    i = hmm.train.grouping(n);
+    if Q > 1, i = hmm.train.grouping(n); end
     t = sum(T(1:n-1)) - order*(n-1) + 1;
     if Q==1 
         hmm.Dir_alpha = hmm.Dir_alpha + Gamma(t,:);

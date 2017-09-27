@@ -49,6 +49,8 @@ np = length(Masks);
 P = cell(1,np); Pi = cell(1,np);
 % we do not care about the grouping imposed in the inference
 if isfield(hmm.train,'grouping'), hmm.train = rmfield(hmm.train,'grouping'); end
+if ~isfield(hmm.train,'Pstructure'), hmm.train.Pstructure = true(hmm.K); end
+if ~isfield(hmm.train,'Pistructure'), hmm.train.Pistructure = true(1,hmm.K); end
 
 for im = 1:np
     %fprintf('Mask %d \n',im)
@@ -65,6 +67,7 @@ for im = 1:np
         ind_ixi = ind_ig(1:end-1) - (n-1);
         Xi0 = cat(1,Xi0,Xi(ind_ixi,:,:));
     end
+    if isempty(Gamma0), keyboard; end
     hmm0 = hsupdate(Xi0,Gamma0,T0,hmm);
     P{im} = hmm0.P; Pi{im} = hmm0.Pi;
 end

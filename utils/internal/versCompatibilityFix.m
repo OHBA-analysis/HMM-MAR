@@ -34,7 +34,6 @@ end
 if isfield(hmm.train,'state')
     hmm.train = rmfield(hmm.train,'state');
 end
-
 if ~isfield(hmm.train,'onpower')
     hmm.train.onpower = 0;
 end
@@ -47,6 +46,17 @@ end
 if ~isfield(hmm.train,'downsample')
     hmm.train.downsample = 0;
 end
+if ~isfield(hmm.train,'leakagecorr')
+    hmm.train.leakagecorr = 0;
+end
+if ~isfield(hmm.train,'Pstructure')
+    hmm.train.Pstructure = true(hmm.K);
+end
+if ~isfield(hmm.train,'Pistructure')
+    hmm.train.Pistructure = true(1,hmm.K);
+end
+
+
 
 
 end
