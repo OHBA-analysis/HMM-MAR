@@ -9,10 +9,10 @@ function [P,Pi] = getMaskedTransProbMats (data,T,hmm,Masks,Gamma,Xi,residuals)
 % data          observations - a struct with X (time series) and C (classes)
 % T             Number of time points for each time series
 % hmm           An hmm structure 
-% Masks          A cell where each element is a vector containing the
-%               indexes for which we wish to compute the LMTPM; indexes are
-%               with respect to the data (not the state time courses, which
-%               are typically shorter)
+% Masks         A cell where each element is a vector containing the indexes
+%               (e.g. [1001:2000]) for which we wish to compute the LMTPM;  are
+%               indexes with respect to the data (not the state time courses, 
+%               which are typically shorter)
 % Gamma         State courses (optional)
 % Xi            Joint Prob. of child and parent states given the data (optional)
 % residuals     in case we train on residuals, the value of those (optional)
@@ -67,7 +67,7 @@ for im = 1:np
         ind_ixi = ind_ig(1:end-1) - (n-1);
         Xi0 = cat(1,Xi0,Xi(ind_ixi,:,:));
     end
-    if isempty(Gamma0), keyboard; end
+    if isempty(Gamma0), error('Invalid mask?'); end
     hmm0 = hsupdate(Xi0,Gamma0,T0,hmm);
     P{im} = hmm0.P; Pi{im} = hmm0.Pi;
 end
