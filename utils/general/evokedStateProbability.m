@@ -21,7 +21,8 @@ if mod(window,2)==0
     window = window + 1; 
 end
 if size(stimulus,1)==1, stimulus = stimulus'; end
-if sum(T)~=length(stimulus) || size(stimulus,2)>1
+if (sum(T)~=length(stimulus) || size(stimulus,2)>1) && ...
+        (size(Gamma,1)~=length(stimulus) || size(stimulus,2)>1)
     error('Argument stim was wrong dimensions - it needs to has the same elements as sum(T)')
 end
 
@@ -41,7 +42,11 @@ for j = 1:length(T) % iterate through subjects/trials/segments
     jj1 = sum(T(1:j-1)) + (order+1:T(j));
     jj2 = sum(T(1:j-1)) - (j-1)*order + (1:T(j)-order);
     Tj = T(j)-order;
-    stim_j = stimulus(jj1);
+    if size(stimulus,1) == size(Gamma,1)
+        stim_j = stimulus(jj2);
+    else
+        stim_j = stimulus(jj1);
+    end
     Gamma_j = Gamma(jj2,:);
     events = find(stim_j)';
     for i = events
@@ -49,9 +54,7 @@ for j = 1:length(T) % iterate through subjects/trials/segments
         if i-halfwin-1<0, ind(1:halfwin-i+1) = false; end
         if i+halfwin>Tj, e = i+halfwin-Tj; ind(end-e+1:end) = false; end
         t1 = max(1,i-halfwin); t2 = min(Tj,i+halfwin);
-        try
         evokedGamma(ind,:) = evokedGamma(ind,:) + Gamma_j(t1:t2,:);
-        catch, keyboard; end
         count(ind) = count(ind) + 1; 
         %if (i-halfwin)>0 && (i+halfwin)<=size(Gamma_j,1)
         %    evokedGamma =  evokedGamma + Gamma_j(i - halfwin : i + halfwin,:);
