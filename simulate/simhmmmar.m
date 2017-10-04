@@ -69,7 +69,7 @@ if ~sim_state_tcs_only
             Gamma0 = simgamma(d,hmm.P,hmm.Pi,nrep,grouping);
             X0 = simgauss(d,hmm0,Gamma0); % no mean in the innovation signal
         else % sampling Gaussian
-            X0 = [];
+            X0 = []; Gamma0 = [];
         end
         start = hmm.train.maxorder + 1;
         Xin = [X0; simgauss(T(n),hmm,Gamma(t0:t1,:))]; 
