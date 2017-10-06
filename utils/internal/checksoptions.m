@@ -90,9 +90,7 @@ if isfield(options,'crosstermsonly') && options.crosstermsonly
     options.covtype = 'uniquediag';
 end
 
-if ~strcmp(options.covtype,'full') && options.firsteigv
-    error('firsteigv can only be used for covtype=full')
-end
+
 if options.zeromean==0 && options.firsteigv
     error('firsteigv can only be used for zeromean=1')
 end
@@ -143,6 +141,10 @@ if ~isfield(options,'initcyc'), options.initcyc = 5; end
 if ~isfield(options,'initrep'), options.initrep = 3; end
 if ~isfield(options,'useParallel'), options.useParallel = 1; end
 if ~isfield(options,'uniqueAR'), options.uniqueAR = 0; end
+
+if ~strcmp(options.covtype,'full') && options.firsteigv
+    error('firsteigv can only be used for covtype=full')
+end
 
 %if isfield(options,'S') && ~all(options.S(:)==1)
 %    error('S(i,j)<1 is not yet implemented for stochastic inference')
