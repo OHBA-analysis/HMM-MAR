@@ -14,6 +14,9 @@ function fe = hmmfe(data,T,hmm,Gamma,Xi,preproc,grouping)
 %
 % Author: Diego Vidaurre, OHBA, University of Oxford (2017)
 
+% to fix potential compatibility issues with previous versions
+hmm = versCompatibilityFix(hmm); 
+
 if nargin<6 || isempty(preproc), preproc = 1; end 
 if nargin<7 , grouping = ones(length(T),1); end
 if size(grouping,1)==1,  grouping = grouping'; end

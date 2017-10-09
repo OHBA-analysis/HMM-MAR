@@ -20,6 +20,9 @@ function [Path,Xi] = hmmdecode(data,T,hmm,type,residuals,preproc,grouping)
 
 % Author: Diego Vidaurre, OHBA, University of Oxford
 
+% to fix potential compatibility issues with previous versions
+hmm = versCompatibilityFix(hmm); 
+
 if nargin<4 || isempty(type), type = 0; end
 if nargin<5, residuals = []; end
 if nargin<6 || isempty(preproc), preproc = 1; end
