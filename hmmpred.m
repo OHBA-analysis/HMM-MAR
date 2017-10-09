@@ -20,6 +20,9 @@ function [responseY,responseR,Gamma] = hmmpred(X,T,hmm,Gamma,residuals,actstates
 %
 % Author: Diego Vidaurre, OHBA, University of Oxford
 
+% to fix potential compatibility issues with previous versions
+hmm = versCompatibilityFix(hmm); 
+
 if nargin<7 || isempty(grouping) 
     if isfield(hmm.train,'grouping')
         grouping = hmm.train.grouping;
