@@ -1,5 +1,7 @@
 function FO = fractionalOccupancy (Gamma,T,is_vpath)
 % computes de fractional occupancy for each trial
+%
+% Author: Diego Vidaurre, OHBA, University of Oxford (2016)
 
 if nargin<3, is_vpath = (size(Gamma,2)==1 && all(rem(Gamma,1)==0)); end
 if iscell(T)
