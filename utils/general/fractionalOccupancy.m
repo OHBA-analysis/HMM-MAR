@@ -20,7 +20,7 @@ if is_vpath % viterbi path
     end
 else
     K = size(Gamma,2); 
-    Gamma = Gamma > (2/3);
+    %Gamma = Gamma > (2/3);
 end
 
 FO = zeros(N,K);
