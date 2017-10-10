@@ -36,7 +36,8 @@ if options.useParallel && length(init_k) > 1 % not very elegant
         [Gamma{it},fehist{it}] = run_initialization(data,T,options,Sind,init_k(it));
         felast(it) = fehist{it}(end);
         if options.verbose
-            fprintf('Init run %2d, %2d->%2d states, Free Energy = %f \n',it,init_k(it),size(Gamma{it},2),fehist(it));
+            fprintf('Init run %2d, %2d->%2d states, Free Energy = %f \n',...
+                it,init_k(it),size(Gamma{it},2),felast(it));
         end
     end
 else
