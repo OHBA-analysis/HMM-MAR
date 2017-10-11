@@ -1,8 +1,8 @@
 function [evokedGamma,t] = evokedStateProbability(stimulus,T,Gamma,window,Fs,downsample)
-% Gets the evoked state relative to a stimulus
+% Gets the evoked state relative to a stimulus 
 %
 % INPUT
-% stim          A (time x 1 = sum(T) x 1) boolean indicating when the stimulus occurs 
+% stim          A (time x 1 = sum(T) x 1) boolean indicating when the stimulus occurs
 % T             Length of series
 % Gamma         State time course
 % Window        Window length, in seconds, to be plotted around the stimulus
