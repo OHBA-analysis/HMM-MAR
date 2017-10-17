@@ -316,7 +316,7 @@ else
     if isempty(options.Gamma) && isempty(options.hmm) % both unspecified
         if options.K > 1
             Sind = options.Sind;
-            if options.initrep>0 && ...
+            if options.initrep>0 && options.initcyc>0
                     (strcmpi(options.inittype,'HMM-MAR') || strcmpi(options.inittype,'HMMMAR'))
                 [GammaInit,fehistInit] = hmmmar_init(data,T,options,Sind);
             elseif options.initrep>0 &&  strcmpi(options.inittype,'EM')
@@ -326,7 +326,7 @@ else
             elseif options.initrep>0 && strcmpi(options.inittype,'GMM')
                 error('GMM init is deprecated; use HMM-MAR initialisation instead')
                 %options.Gamma = gmm_init(data,T,options);
-            elseif strcmpi(options.inittype,'random') || options.initrep==0
+            elseif strcmpi(options.inittype,'random') || options.initrep==0 || options.initcyc==0
                 GammaInit = initGamma_random(T-options.maxorder,options.K,...
                     options.DirichletDiag,options.Pstructure,options.Pistructure);
             else

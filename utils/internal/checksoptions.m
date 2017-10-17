@@ -139,6 +139,13 @@ if ~isfield(options,'exptimelag'), options.exptimelag = 0; end
 if ~isfield(options,'cyc'), options.cyc = 15; end
 if ~isfield(options,'initcyc'), options.initcyc = 5; end
 if ~isfield(options,'initrep'), options.initrep = 3; end
+if ~isfield(options,'inittype') 
+    if options.initcyc>0 && options.initrep>0 
+        options.inittype = 'hmmmar';
+    else
+        options.inittype = 'random';
+    end
+end
 if ~isfield(options,'useParallel'), options.useParallel = 1; end
 if ~isfield(options,'uniqueAR'), options.uniqueAR = 0; end
 

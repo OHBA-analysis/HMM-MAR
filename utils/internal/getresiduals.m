@@ -20,7 +20,7 @@ N = length(T);
 [~,order] = formorders(order,orderoffset,timelag,exptimelag);
 
 if any(Sind(:)==0) 
-    if isempty(W),
+    if isempty(W)
         [W,~,~,residuals] = mlmar(X,T,Sind==0,maxorder,order,orderoffset,timelag,exptimelag,zeromean);
     else
         [~,~,~,residuals] = mlmar(X,T,Sind==0,maxorder,order,orderoffset,timelag,exptimelag,zeromean,W);

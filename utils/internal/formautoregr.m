@@ -15,26 +15,25 @@ else M = size(V,2); end
 
 if M==0
     if single_format
-        XX = zeros(sum(T)-length(T)*maxorder,length(orders)*Q+(~zeromean),'single');
+        XX = zeros(sum(T)-N*maxorder,length(orders)*Q+(~zeromean),'single');
     else
-        XX = zeros(sum(T)-length(T)*maxorder,length(orders)*Q+(~zeromean));
+        XX = zeros(sum(T)-N*maxorder,length(orders)*Q+(~zeromean));
     end
 else
     if single_format
-        XX = zeros(sum(T)-length(T)*maxorder,M+(~zeromean),'single');
+        XX = zeros(sum(T)-N*maxorder,M+(~zeromean),'single');
     else
-        XX = zeros(sum(T)-length(T)*maxorder,M+(~zeromean));
+        XX = zeros(sum(T)-N*maxorder,M+(~zeromean));
     end
 end
 if nargout==2
-    Y = zeros(sum(T)-length(T)*maxorder,ndim);
+    Y = zeros(sum(T)-N*maxorder,ndim);
 end
 
 t_cumulative = cumsum([0;T(:)]);
 for in=1:N
     t0 = t_cumulative(in); 
     s0 = t0 - maxorder*(in-1);
-
     if nargout==2
         Y(s0+1:s0+T(in)-maxorder,:) = X(t0+maxorder+1:t0+T(in),:);
     end
