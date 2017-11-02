@@ -13,9 +13,6 @@ if strcmp(hmm.train.covtype,'uniquediag') && hmm.train.uniqueAR
     % all are AR and there's a single covariance matrix
     hmm.Omega.Gam_rate(k) = hmm.prior.Omega.Gam_rate;
     for k=1:K
-        if hmm.train.multipleConf, kk = k;
-        else kk = 1;
-        end
         if ~isempty(XW)
             XWk = XW(:,:,k);
         else
@@ -24,9 +21,9 @@ if strcmp(hmm.train.covtype,'uniquediag') && hmm.train.uniqueAR
         e = (residuals - XWk).^2;
         swx2 = zeros(Tres,ndim);
         for n=1:ndim
-            ind = n:ndim:size(XX{kk},2);
-            tmp = XX{kk}(:,ind) * hmm.state(k).W.S_W;
-            swx2(:,n) = sum(tmp .* XX{kk}(:,ind),2);
+            ind = n:ndim:size(XX,2);
+            tmp = XX(:,ind) * hmm.state(k).W.S_W;
+            swx2(:,n) = sum(tmp .* XX(:,ind),2);
         end
         hmm.Omega.Gam_rate = hmm.Omega.Gam_rate + ...
             0.5 * Tfactor * sum( repmat(Gamma(:,k),1,ndim) .* (e + swx2) );
@@ -48,11 +45,11 @@ elseif strcmp(hmm.train.covtype,'uniquediag')
             for n=1:ndim
                 if ~regressed(n), continue; end
                 if ndim==1
-                    tmp = XX{kk}(:,Sind(:,n)) * hmm.state(k).W.S_W;
+                    tmp = XX(:,Sind(:,n)) * hmm.state(k).W.S_W;
                 else
-                    tmp = XX{kk}(:,Sind(:,n)) * permute(hmm.state(k).W.S_W(n,Sind(:,n),Sind(:,n)),[2 3 1]);
+                    tmp = XX(:,Sind(:,n)) * permute(hmm.state(k).W.S_W(n,Sind(:,n),Sind(:,n)),[2 3 1]);
                 end
-                swx2(:,n) = sum(tmp .* XX{kk}(:,Sind(:,n)),2);
+                swx2(:,n) = sum(tmp .* XX(:,Sind(:,n)),2);
             end
         end
         hmm.Omega.Gam_rate(regressed) = hmm.Omega.Gam_rate(regressed) + ...
@@ -107,8 +104,8 @@ else % state dependent
             e = (residuals - XWk).^2;
             swx2 = zeros(Tres,ndim);
             for n=1:ndim
-                ind = n:ndim:size(XX{kk},2);
-                swx2(:,n) = sum(XX{kk}(:,ind) * hmm.state(k).W.S_W .* XX{kk}(:,ind),2);
+                ind = n:ndim:size(XX,2);
+                swx2(:,n) = sum(XX(:,ind) * hmm.state(k).W.S_W .* XX(:,ind),2);
             end
             hmm.state(k).Omega.Gam_rate = hmm.state(k).prior.Omega.Gam_rate + ...
                 0.5 * Tfactor * sum( repmat(Gamma(:,k),1,ndim) .* (e + swx2) );
@@ -121,11 +118,11 @@ else % state dependent
                 for n=1:ndim
                     if ~regressed(n), continue; end
                     if ndim==1
-                        swx2(:,n) = sum(XX{kk}(:,Sind(:,n)) * hmm.state(k).W.S_W(Sind(:,n),Sind(:,n)) ...
-                            .* XX{kk}(:,Sind(:,n)),2);
+                        swx2(:,n) = sum(XX(:,Sind(:,n)) * hmm.state(k).W.S_W(Sind(:,n),Sind(:,n)) ...
+                            .* XX(:,Sind(:,n)),2);
                     else
-                        swx2(:,n) = sum(XX{kk}(:,Sind(:,n)) * permute(hmm.state(k).W.S_W(n,Sind(:,n),Sind(:,n)),[2 3 1]) ...
-                            .* XX{kk}(:,Sind(:,n)),2);
+                        swx2(:,n) = sum(XX(:,Sind(:,n)) * permute(hmm.state(k).W.S_W(n,Sind(:,n),Sind(:,n)),[2 3 1]) ...
+                            .* XX(:,Sind(:,n)),2);
                     end
                 end
             end

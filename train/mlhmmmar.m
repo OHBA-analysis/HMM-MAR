@@ -152,28 +152,28 @@ else
     for k=1:K
         setstateoptions;        
         if hmm.train.uniqueAR
-            XY = zeros(size(XX{kk},1)*ndim,1);
-            XGX = zeros(size(XX{kk},2)/ndim,size(XX{kk},2)/ndim);
+            XY = zeros(size(XX,1)*ndim,1);
+            XGX = zeros(size(XX,2)/ndim,size(XX,2)/ndim);
             for n=1:ndim
-                ind = n:ndim:size(XX{kk},2);
+                ind = n:ndim:size(XX,2);
                 iomegan = omega.Gam_shape / omega.Gam_rate(n);
                 XGX = XGX + iomegan * XXGXX{k}(ind,ind);
-                XY = XY + (iomegan * XX{kk}(:,ind)' .* repmat(Gamma(:,k)',sum(ind),1)) * Y(:,n);
+                XY = XY + (iomegan * XX(:,ind)' .* repmat(Gamma(:,k)',sum(ind),1)) * Y(:,n);
             end
             hmm.state(k).W.Mu_W = XGX \ XY;
-            predk = XX{kk} * repmat(hmm.state(k).W.Mu_W,1,ndim);
+            predk = XX * repmat(hmm.state(k).W.Mu_W,1,ndim);
         elseif all(S(:)==1)
-            hmm.state(k).W.Mu_W = pinv(XX{kk} .* repmat(sqrt(Gamma(:,k)),1,size(XX{kk},2))) ...
+            hmm.state(k).W.Mu_W = pinv(XX .* repmat(sqrt(Gamma(:,k)),1,size(XX,2))) ...
                 * ( repmat(sqrt(Gamma(:,k)),1,size(Y,2)) .* Y);
-            predk = XX{kk} * hmm.state(k).W.Mu_W;
+            predk = XX * hmm.state(k).W.Mu_W;
         else
-            hmm.state(k).W.Mu_W = zeros(size(XX{kk},1),ndim);
+            hmm.state(k).W.Mu_W = zeros(size(XX,1),ndim);
             for n=1:ndim
                 if ~regressed(n), continue; end
-                hmm.state(k).W.Mu_W(Sind(:,n),n) = pinv(XX{kk}(:,Sind(:,n)) .* ...
+                hmm.state(k).W.Mu_W(Sind(:,n),n) = pinv(XX(:,Sind(:,n)) .* ...
                     repmat(sqrt(Gamma(:,k)),1,sum(Sind(:,n)))) * Y(:,n);
             end
-            predk = XX{kk} * hmm.state(k).W.Mu_W;
+            predk = XX * hmm.state(k).W.Mu_W;
         end
         
         pred = pred + repmat(Gamma(:,k),1,ndim) .* predk;

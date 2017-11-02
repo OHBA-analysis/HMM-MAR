@@ -139,7 +139,7 @@ if stochastic_learn
     fe = fe + sum(evalfreeenergy([],Tmat,Gamma,Xi,hmm,[],[],[1 0 1 0 1]));
     tacc = 0; tacc2 = 0; fell = 0;
     for i = 1:1:length(T)
-        [X,XX,residuals,Ti] = loadfile(data{i},T{i},options,1);
+        [X,XX,residuals,Ti] = loadfile(data{i},T{i},options);
         t = (1:(sum(Ti)-length(Ti)*maxorder)) + tacc;
         t2 = (1:(sum(Ti)-length(Ti)*(maxorder+1))) + tacc2;
         tacc = tacc + length(t); tacc2 = tacc2 + length(t2);

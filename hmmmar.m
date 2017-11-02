@@ -77,7 +77,6 @@ if stochastic_learn % data is a cell, either with strings or with matrices
        end 
        data = dat; T = TT; clear dat TT
     end
-    options = checksoptions(options,data,T);
 else % data can be a cell or a matrix
     if iscell(T)
         for i = 1:length(T)
@@ -87,8 +86,8 @@ else % data can be a cell or a matrix
         T = cell2mat(T);
     end
     checkdatacell;
-    [options,data] = checkoptions(options,data,T,0);
 end
+[options,data] = checkoptions(options,data,T,0);
 
 ver = version('-release');
 oldMatlab = ~isempty(strfind(ver,'2010')) || ~isempty(strfind(ver,'2010')) ...
@@ -137,6 +136,10 @@ if stochastic_learn
                 options.filter,options.leakagecorr,options.Fs,options.As);
             options.pca = size(options.A,2);
         end
+        options.ndim = size(options.A,2);
+        options.S = ones(options.ndim);
+        options.Sind = formindexes(options.orders,options.S);
+        if ~options.zeromean, options.Sind = [true(1,size(options.Sind,2)); options.Sind]; end
     else
         options.As = [];
     end
@@ -155,22 +158,6 @@ if stochastic_learn
         X = loadfile(data{1},T{1},options); 
         options.ndim = size(X,2);
     end
-    % Set up S
-    if ~isfield(options,'S')
-        options.S = ones(options.ndim);
-    elseif (options.ndim~=size(options.S,1)) || (options.ndim~=size(options.S,2))
-        error('Dimensions of S are incorrect; must be a square matrix of size nchannels by nchannels')
-    end
-    orders = formorders(options.order,options.orderoffset,options.timelag,options.exptimelag);
-    options.Sind = formindexes(orders,options.S);
-    if ~options.zeromean, options.Sind = [true(1,size(options.Sind,2)); options.Sind]; end
-    %if isfield(options,'state') && isfield(options.state(1),'train')
-    %    for k = 1:options.K
-    %        options.state(k).train.S = options.S;
-    %        options.state(k).train.Sind = options.Sind;
-    %        options.state(k).train.ndim = options.ndim;
-    %    end
-    %end
     
     if options.pcamar > 0 && ~isfield(options,'B')
         % PCA on the predictors of the MAR regression, per lag: X_t = \sum_i X_t-i * B_i * W_i + e
@@ -259,16 +246,10 @@ else
         data = standardisedata(data,T,options.standardise_pc);
         options.ndim = size(options.A,2);
         options.S = ones(options.ndim);
-        orders = formorders(options.order,options.orderoffset,options.timelag,options.exptimelag);
-        options.Sind = formindexes(orders,options.S);
+        options.Sind = formindexes(options.orders,options.S);
         if ~options.zeromean, options.Sind = [true(1,size(options.Sind,2)); options.Sind]; end
-        if isfield(options,'state') && isfield(options.state(1),'train')
-            for k = 1:options.K
-                options.state(k).train.S = options.S;
-                options.state(k).train.Sind = options.Sind;
-                options.state(k).train.ndim = options.ndim;
-            end
-        end
+    else
+        options.ndim = size(data.X,2);
     end
     % Downsampling
     if options.downsample > 0 
@@ -297,23 +278,6 @@ else
         options.V = pcapred_decomp(data,T,options);
     end    
     
-    % Data transformation for crosstermsonly==1
-    options.ndim = size(data.X,2);
-    if options.crosstermsonly
-        Ttmp = T;
-        T = T + 1;
-        X = zeros(sum(T),2*options.ndim);
-        for n=1:N
-            t1 = (1:T(n)) + sum(T(1:n-1));
-            t2 = (1:Ttmp(n)) + sum(Ttmp(1:n-1));
-            X(t1(2:end),1:options.ndim) = data.X(t2,:);
-            X(t1(1:end-1),(options.ndim+1):end) = data.X(t2,:);
-        end
-        data.X = X; clear X
-        options.ndim = 2 * options.ndim;
-    end
-    options.crosstermsonly = 0; % so that recursive calls to hmmmar do not mess up
-
     if isfield(options,'fehist'), fehistInit = options.fehist;
     else, fehistInit = [];
     end

@@ -45,7 +45,7 @@ if stochastic_learn % data is a cell, either with strings or with matrices
        end 
        data = dat; T = TT; clear dat TT
     end
-    options = checksoptions(options,data,T);
+    options = checkoptions(options,data,T);
 else % data can be a cell or a matrix
     if iscell(T)
         for i = 1:length(T)

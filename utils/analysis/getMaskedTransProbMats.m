@@ -38,11 +38,7 @@ if nargin<6
     [Gamma,~,Xi]=hsinference(data,T,hmm,residuals);    
 end
 
-if ~hmm.train.multipleConf
-    [~,order] = formorders(hmm.train.order,hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag);
-else
-    order = hmm.train.maxorder;
-end
+order = hmm.train.maxorder;
 
 N = length(T);
 np = length(Masks);

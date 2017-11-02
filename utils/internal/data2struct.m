@@ -2,8 +2,6 @@ function data = data2struct(data,T,options)
 
 if length(options.embeddedlags)>1
     L = -min(options.embeddedlags) + max(options.embeddedlags);
-elseif options.crosstermsonly
-    L = 0; 
 else
     L = options.maxorder;
 end

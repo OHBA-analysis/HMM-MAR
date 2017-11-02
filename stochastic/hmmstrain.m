@@ -64,31 +64,29 @@ for cycle = 2:options.BIGcyc
         i = I(ii); 
         Tbatch = [Tbatch; ceil(downs_ratio*(T{i}-tp_less)) ]; 
         Tbatch_list{ii} = ceil(downs_ratio*(T{i}-tp_less));
-        if options.crosstermsonly==1, Tbatch_list{ii} = Tbatch_list{ii} + 1; end
     end
-    if options.crosstermsonly==1, Tbatch = Tbatch + 1; end
     
-    [X,XX,Y] = loadfile(Xin(I),T(I),options,1);
+    [X,XX,Y] = loadfile(Xin(I),T(I),options);
     
     % local parameters (Gamma, Xi, P, Pi, Dir2d_alpha and Dir_alpha),
     % and free energy relative these local parameters
     tacc = 0; t2acc = 0;
     Gamma = cell(options.BIGNbatch,1); Xi = cell(options.BIGNbatch,1);
-    XXGXX = cell(K,1);  
-    for k=1:K, XXGXX{k} = zeros(size(XX{1},2)); end
+    XXGXX = cell(K,1);
+    for k=1:K, XXGXX{k} = zeros(size(XX,2)); end
     for ii = 1:length(I)
-        i = I(ii); 
-        t = (1:sum(Tbatch_list{ii})) + tacc; 
+        i = I(ii);
+        t = (1:sum(Tbatch_list{ii})) + tacc;
         t2 = (1:(sum(Tbatch_list{ii})-length(Tbatch_list{ii})*options.order)) + t2acc;
         tacc = tacc + sum(Tbatch_list{ii}); 
         t2acc = t2acc + sum(Tbatch_list{ii}) - length(Tbatch_list{ii})*options.order;
         data = struct('X',X(t,:),'C',NaN(sum(Tbatch_list{ii})-length(Tbatch_list{ii})*options.order,K));
-        XX_i = cell(1); XX_i{1} = XX{1}(t2,:); Y_i = Y(t2,:);
+        XX_i = XX(t2,:); Y_i = Y(t2,:);
         hmm_i = hmm;
         [Gamma{ii},~,Xi{ii}] = hsinference(data,Tbatch_list{ii},hmm_i,Y_i,[],XX_i); % state time courses
         checkGamma(Gamma{ii},Tbatch_list{ii},hmm_i.train,i);
         for k=1:K
-            XXGXX{k} = XXGXX{k} + (XX_i{1}' .* repmat(Gamma{ii}(:,k)',size(XX_i{1},2),1)) * XX_i{1};
+            XXGXX{k} = XXGXX{k} + (XX_i' .* repmat(Gamma{ii}(:,k)',size(XX_i,2),1)) * XX_i;
         end
         % update transition probabilities
         Dir_alpha(:,i) = 0;

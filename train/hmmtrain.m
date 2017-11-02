@@ -34,7 +34,9 @@ for cycle=1:hmm.train.cyc
         %%%% E step
         if hmm.K>1 || cycle==1
             % state inference
+            try
             [Gamma,~,Xi] = hsinference(data,T,hmm,residuals,[],XX);
+            catch, keyboard; end
             status = checkGamma(Gamma,T,hmm.train);
             % check local minima
             epsilon = 1;

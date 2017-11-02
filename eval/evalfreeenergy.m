@@ -261,14 +261,14 @@ if todo(2)==1
             C = hs.Omega.Gam_shape * hs.Omega.Gam_irate;
             avLL = avLL + Gamma(:,k) * (-ltpi-ldetWishB+PsiWish_alphasum);
         end
-        meand = zeros(size(XX{kk},1),sum(regressed)); % mean distance
+        meand = zeros(size(XX,1),sum(regressed)); % mean distance
         if train.uniqueAR
             for n=1:ndim
-                ind = n:ndim:size(XX{kk},2);
-                meand(:,n) = XX{kk}(:,ind) * hs.W.Mu_W;
+                ind = n:ndim:size(XX,2);
+                meand(:,n) = XX(:,ind) * hs.W.Mu_W;
             end
         elseif ~isempty(hs.W.Mu_W)
-            meand = XX{kk} * hs.W.Mu_W(:,regressed);
+            meand = XX * hs.W.Mu_W(:,regressed);
         end
         d = residuals(:,regressed) - meand;
         if strcmp(train.covtype,'diag') || strcmp(train.covtype,'uniquediag')
@@ -287,17 +287,17 @@ if todo(2)==1
                     for n=1:ndim
                         if ~regressed(n), continue; end
                         if train.uniqueAR
-                            ind = n:ndim:size(XX{kk},2);
+                            ind = n:ndim:size(XX,2);
                             NormWishtrace = NormWishtrace + 0.5 * C(n) * ...
-                                sum( (XX{kk}(:,ind) * hs.W.S_W) .* XX{kk}(:,ind), 2);
+                                sum( (XX(:,ind) * hs.W.S_W) .* XX(:,ind), 2);
                         elseif ndim==1
                             NormWishtrace = NormWishtrace + 0.5 * C(n) * ...
-                                sum( (XX{kk}(:,Sind(:,n)) * hs.W.S_W) ...
-                                .* XX{kk}(:,Sind(:,n)), 2);
+                                sum( (XX(:,Sind(:,n)) * hs.W.S_W) ...
+                                .* XX(:,Sind(:,n)), 2);
                         else
                             NormWishtrace = NormWishtrace + 0.5 * C(n) * ...
-                                sum( (XX{kk}(:,Sind(:,n)) * permute(hs.W.S_W(n,Sind(:,n),Sind(:,n)),[2 3 1])) ...
-                                .* XX{kk}(:,Sind(:,n)), 2);
+                                sum( (XX(:,Sind(:,n)) * permute(hs.W.S_W(n,Sind(:,n),Sind(:,n)),[2 3 1])) ...
+                                .* XX(:,Sind(:,n)), 2);
                         end
                     end
                     
@@ -313,12 +313,12 @@ if todo(2)==1
                         for n1=1:ndim
                             if ~regressed(n1), continue; end
                             index1 = I + n1; index1 = index1(Sind(:,n1));
-                            tmp = (XX{kk}(:,Sind(:,n1)) * hs.W.S_W(index1,:));
+                            tmp = (XX(:,Sind(:,n1)) * hs.W.S_W(index1,:));
                             for n2=1:ndim
                                 if ~regressed(n2), continue; end
                                 index2 = I + n2; index2 = index2(Sind(:,n2));
                                 NormWishtrace = NormWishtrace + 0.5 * C(n1,n2) * ...
-                                    sum( tmp(:,index2) .* XX{kk}(:,Sind(:,n2)),2);
+                                    sum( tmp(:,index2) .* XX(:,Sind(:,n2)),2);
                             end
                         end
                     end

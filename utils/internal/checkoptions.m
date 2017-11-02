@@ -12,9 +12,13 @@ if ~isfield(options,'order')
     warning('order was not specified - it will be set to 0'); 
 end
 if options.K<1, error('K must be higher than 0'); end
-if ~isstruct(data), data = struct('X',data); end
-if size(data.X,1)~=sum(T)
-    error('Total time specified in T does not match the size of the data')
+stochastic_learning = isfield(options,'BIGNbatch') && ...
+    (options.BIGNbatch < length(T) && options.BIGNbatch > 0);
+if ~stochastic_learning
+    if ~isstruct(data), data = struct('X',data); end
+    if size(data.X,1)~=sum(T)
+        error('Total time specified in T does not match the size of the data')
+    end
 end
 
 % data options
@@ -37,11 +41,71 @@ if ~isfield(options,'standardise'), options.standardise = 1; end
 if ~isfield(options,'standardise_pc') 
     options.standardise_pc = length(options.embeddedlags)>1; 
 end
-if ~isfield(options,'crosstermsonly'), options.crosstermsonly = 0; end
+
+% stochastic options
+if stochastic_learning
+    if ~isfield(options,'BIGNinitbatch'), options.BIGNinitbatch = options.BIGNbatch; end
+    if ~isfield(options,'BIGprior'), options.BIGprior = []; end
+    if ~isfield(options,'BIGcyc'), options.BIGcyc = 200; end
+    if ~isfield(options,'BIGmincyc'), options.BIGmincyc = 10; end
+    if ~isfield(options,'BIGundertol_tostop'), options.BIGundertol_tostop = 5; end
+    if ~isfield(options,'BIGcycnobetter_tostop'), options.BIGcycnobetter_tostop = 20; end
+    if ~isfield(options,'BIGtol'), options.BIGtol = 1e-5; end
+    if ~isfield(options,'BIGinitrep'), options.BIGinitrep = 1; end
+    if ~isfield(options,'BIGforgetrate'), options.BIGforgetrate = 0.9; end
+    if ~isfield(options,'BIGdelay'), options.BIGdelay = 1; end
+    if ~isfield(options,'BIGbase_weights'), options.BIGbase_weights = 0.95; end % < 1 will promote democracy
+    if ~isfield(options,'BIGcomputeGamma'), options.BIGcomputeGamma = 1; end
+    if ~isfield(options,'BIGdecodeGamma'), options.BIGdecodeGamma = 1; end
+    if ~isfield(options,'BIGverbose'), options.BIGverbose = 1; end
+    if ~isfield(options,'initial_hmm'), options.initial_hmm = []; end
+    options.BIGbase_weights = options.BIGbase_weights * ones(1,length(T));
+    if ~isfield(options,'Gamma'), options.Gamma = []; end
+    if ~isfield(options,'hmm'), options.hmm = []; end
+    if options.BIGdelay > 1, warning('BIGdelay is recommended to be 1.'); end
+end
+
+% non-stochastic training options
+if stochastic_learning
+    if ~isfield(options,'cyc'), options.cyc = 15; end
+    if ~isfield(options,'initcyc'), options.initcyc = 5; end
+    if ~isfield(options,'initrep'), options.initrep = 3; end
+    if ~isfield(options,'verbose'), options.verbose = 0; end
+    if ~isfield(options,'useParallel'), options.useParallel = 1; end
+else
+    if ~isfield(options,'cyc'), options.cyc = 500; end
+    if ~isfield(options,'initcyc'), options.initcyc = 100; end
+    if ~isfield(options,'initrep'), options.initrep = 4; end
+    if ~isfield(options,'verbose'), options.verbose = 1; end
+    % the rest of the stuff will get assigned in the recursive calls
+    if ~isfield(options,'tol'), options.tol = 1e-5; end
+    if ~isfield(options,'meancycstop'), options.meancycstop = 1; end
+    if ~isfield(options,'cycstogoafterevent'), options.cycstogoafterevent = 20; end
+    if ~isfield(options,'initTestSmallerK'), options.initTestSmallerK = false; end
+    if ~isfield(options,'inittype')
+        if options.initcyc>0 && options.initrep>0
+            options.inittype = 'hmmmar';
+        else
+            options.inittype = 'random';
+        end
+    end
+    if ~strcmp(options.inittype,'random') && options.initrep == 0
+        options.inittype = 'random';
+        warning('Non random init was set, but initrep==0')
+    end
+    if ~isfield(options,'useParallel')
+        options.useParallel = (length(T)>1);
+    end
+end
+
 % Trans prob mat related options
 if ~isfield(options,'grouping') || isempty(options.grouping)
+    options.grouping = ones(length(T),1);
+elseif ~all(options.grouping==1) && stochastic_learning
+    warning('grouping option is not yet implemented for stochastic learning')
     options.grouping = ones(length(T),1); 
 end  
+if size(options.grouping,1)==1,  options.grouping = options.grouping'; end
 if ~isfield(options,'Pstructure')
     options.Pstructure = true(options.K);
 else
@@ -62,13 +126,17 @@ else
     end
     options.Pistructure = (options.Pistructure~=0);
 end
+
 % Drop states? 
 if ~isfield(options,'dropstates')
     if any(~options.Pstructure), options.dropstates = 0;
-    else, options.dropstates = 1; end
+    else, options.dropstates = ~stochastic_learning; end
 else
     if options.dropstates == 1 && any(~options.Pstructure)
         warning('If Pstructure  has zeros, dropstates must be zero')
+        options.dropstates = 0;
+    elseif options.dropstates == 1 && stochastic_learning 
+        warning('With stochastic learning, dropstates is set to 0')
         options.dropstates = 0;
     end
 end
@@ -115,7 +183,11 @@ if options.leida
        error('Option leida and embeddedlags are not compatible')
    end
 end
-if length(options.pca)==1 && options.pca == 0
+
+if stochastic_learning
+    X = loadfile(data{1},T{1},options); 
+    ndim = size(X,2);
+elseif length(options.pca)==1 && options.pca == 0
     ndim = length(options.embeddedlags) * size(data.X,2);
 elseif options.pca(1) < 1
     ndim = size(data.X,2); % temporal assignment
@@ -123,123 +195,19 @@ else
     ndim = options.pca;
 end
 
-if size(options.grouping,1)==1,  options.grouping = options.grouping'; end
-if options.crosstermsonly
-    if isfield(options,'S') 
-        warning('S will be ignored with crosstermonly=1'); 
-    end
-    if isfield(options,'order') && options.order~=0 
-        warning('order (and all MAR parameters) will be ignored with crosstermonly=1'); 
-    end
-    if isfield(options,'zeromean') && options.zeromean~=1
-        warning('zeromean will be ignored with crosstermonly=1'); 
-    end
-    if isfield(options,'embeddedlags') && length(options.embeddedlags)>1
-        warning('embeddedlags will be ignored with crosstermonly=1'); 
-    end    
-    if isfield(options,'pca') && options.pca~=0
-        warning('pca will be ignored with crosstermonly=1');  
-    end
-    if isfield(options,'covtype') && ~strcmp(options.covtype,'uniquediag')
-        warning('covtype will be ignored with crosstermonly=1'); 
-    end    
-    options.S = - ones(2*ndim);
-    options.S(ndim+(1:ndim),1:ndim) = ones(ndim) - 2*eye(ndim);
-    options.order = 1; options.maxorder = 1; 
-    options.zeromean = 1; 
-    options.embeddedlags = 0; 
-    options.pca = 0;
-    options.covtype = 'uniquediag';
-    ndim = 2 * ndim;
-end
-    
 % MAR parameters
-options = checkMARparametrization(options,[],ndim); copyopt = options;
+options = checkMARparametrization(options,ndim);  
 
-if ~options.crosstermsonly
-    if ~isfield(options,'S')
-        if options.pcamar>0, options.S = ones(options.pcamar,ndim);
-        else, options.S = ones(ndim);
-        end
-    elseif (ndim~=size(options.S,1)) || (ndim~=size(options.S,2))
-        error('Dimensions of S are incorrect; must be a square matrix of size nchannels by nchannels')
-    end 
+if ~stochastic_learning
+    data = data2struct(data,T,options);
 end
 
-if ~strcmp(options.covtype,'full') && options.firsteigv
-    error('firsteigv can only be used for covtype=full')
-end
-if options.zeromean==0 && options.firsteigv
-    error('firsteigv can only be used for zeromean=1')
-end
-if options.order > 1 && options.firsteigv
-    error('firsteigv can only be used for order=0')
-end
-if options.pca>0 && options.firsteigv
-    error('firsteigv and pca are not compatible')
+if stochastic_learning  
+    % the rest will be dealt with in the recursive calls
+    return
 end
 
-options.multipleConf = isfield(options,'state');
-if options.multipleConf && options.pcamar>0
-    error('Multiple configurations are not compatible with pcamar>0');
-end
-if options.multipleConf && options.pcapred>0
-    error('Multiple configurations are not compatible with pcapred>0');
-end
-if options.multipleConf && length(options.embeddedlags)>1 
-    error('Multiple configurations are not compatible with embeddedlags');
-end
-if options.multipleConf && options.crosstermsonly 
-    error('Multiple configurations are not compatible with crosstermsonly')
-end
-if options.pcamar>0 && options.pcapred>0
-    error('Options pcamar and pcapred are not compatible')
-end
-
-if options.multipleConf
-    options.maxorder = 0;
-else
-    [options.orders,options.maxorder] = ...
-        formorders(options.order,options.orderoffset,options.timelag,options.exptimelag);
-end
-
-if ~isfield(options,'state') || isempty(options.state)
-    for k = 1:options.K
-        options.state(k) = struct();
-    end
-end
-for k = 1:options.K
-    if isfield(options.state(k),'train') && ~isempty(options.state(k).train)
-        options.state(k).train = checkMARparametrization(options.state(k).train,options.S,ndim);
-    else
-        options.state(k).train = copyopt;
-    end
-    train =  options.state(k).train;
-    [options.state(k).train.orders,order] = ...
-        formorders(train.order,train.orderoffset,train.timelag,train.exptimelag);
-    options.maxorder = max(options.maxorder,order);
-end
-
-data = data2struct(data,T,options);
-
-% Inference parameters
-if ~isfield(options,'cyc'), options.cyc = 1000; end
-if ~isfield(options,'tol'), options.tol = 1e-5; end
-if ~isfield(options,'verbose'), options.verbose = 1; end
-if ~isfield(options,'meancycstop'), options.meancycstop = 1; end
-if ~isfield(options,'cycstogoafterevent'), options.cycstogoafterevent = 20; end
-if ~isfield(options,'initTestSmallerK'), options.initTestSmallerK = false; end 
-% For hmmmar init type, if initTestSmallerK is true, initializations with smaller 
-% K will be tested up to specified K. See hmmmar_init.m
-if ~isfield(options,'initcyc'), options.initcyc = 100; end
-if ~isfield(options,'initrep'), options.initrep = 4; end
-if ~isfield(options,'inittype') 
-    if options.initcyc>0 && options.initrep>0 
-        options.inittype = 'hmmmar';
-    else
-        options.inittype = 'random';
-    end
-end
+% Some hmm model options unrelated to the observational model
 if ~isfield(options,'Gamma'), options.Gamma = []; end
 if ~isfield(options,'hmm'), options.hmm = []; end
 if ~isfield(options,'fehist'), options.fehist = []; end
@@ -250,9 +218,7 @@ if ~isfield(options,'updateObs'), options.updateObs = 1; end
 if ~isfield(options,'updateGamma'), options.updateGamma = 1; end
 if ~isfield(options,'decodeGamma'), options.decodeGamma = 1; end
 if ~isfield(options,'keepS_W'), options.keepS_W = 1; end
-if ~isfield(options,'useParallel')
-    options.useParallel = (length(T)>1);
-end
+
 % Use MEX?
 if isfield(options,'useMEX') && options.useMEX==1 && length(unique(options.grouping))==1
     options.useMEX = verifyMEX();
@@ -266,10 +232,6 @@ end
 % Further checks
 if options.maxorder+1 >= min(T)
    error('There is at least one trial that is too short for the specified order') 
-end
-if ~strcmp(options.inittype,'random') && options.initrep == 0
-    options.inittype = 'random';
-    warning('Non random init was set, but initrep==0')
 end
 if options.K~=size(data.C,2), error('Matrix data.C should have K columns'); end
 if options.K>1 && options.updateGamma == 0 && isempty(options.Gamma)
@@ -317,18 +279,14 @@ end
 end
 
 
-function options = checkMARparametrization(options,S,ndim)
+function options = checkMARparametrization(options,ndim)
 
 if isfield(options,'embeddedlags') && length(options.embeddedlags)>1 && options.order>0 
     error('Order needs to be zero for multiple embedded lags')
 end
 if isfield(options,'AR') && options.AR == 1
     if options.order == 0, error('Option AR cannot be 1 if order==0'); end
-   %if isfield(options,'S'), 
-   %    warning('Because you specified AR=1, S will be overwritten')
-   %end
-   options.S = -1*ones(ndim) + 2*eye(ndim);  
-   S = -1*ones(ndim) + 2*eye(ndim);  
+    options.S = -1*ones(ndim) + 2*eye(ndim);
 end
 
 if isfield(options,'pcamar') && options.pcamar>0 
@@ -351,8 +309,7 @@ if length(options.embeddedlags)==1 && options.pca_spatial>0
 end
 if ~isfield(options,'covtype') && options.leida 
     options.covtype = 'uniquediag'; 
-elseif ~isfield(options,'covtype') && (ndim==1 || ~isempty(S) || ...
-        (isfield(options,'S') && ~isempty(options.S)) )
+elseif ~isfield(options,'covtype') && (ndim==1 || (isfield(options,'S') && ~isempty(options.S) && ~all(options.S==1)))
     options.covtype = 'diag'; 
 elseif ~isfield(options,'covtype') && ndim>1, options.covtype = 'full'; 
 elseif (strcmp(options.covtype,'full') || strcmp(options.covtype,'uniquefull')) && ndim==1
@@ -380,26 +337,21 @@ if (options.order>0) && (options.timelag<1) && (options.exptimelag<=1)
     error('if order>0 then you should specify either timelag>=1 or exptimelag>=1')
 end
 if ~isfield(options,'S')
-    if nargin>=2 && ~isempty(S)
-        if (length(options.pca)==1 && options.pca==0) || all(S(:))==1
-            options.S = S;
-        else
-            warning('S cannot have elements different from 1 if PCA is going to be used')
-            options.S = ones(size(S));
-        end
-    else
-        options.S = ones(ndim);
-    end
-elseif nargin>=2 && ~isempty(S) && any(S(:)~=options.S(:))
-    error('S has to be equal across states')
+    options.S = ones(ndim);
+elseif (ndim~=size(options.S,1)) || (ndim~=size(options.S,2))
+    error('Dimensions of S are incorrect; must be a square matrix of size nchannels by nchannels')
+elseif any(options.S(:)~=1) && ...
+        length(options.pca_spatial) > 1 || (options.pca_spatial > 0 && options.pca_spatial ~= 1)
+    warning('S cannot have elements different from 1 if PCA is going to be used')
+    options.S = ones(size(options.S));
 end
 if options.zeromean==0 && any(sum(options.S)==0)
     warning('Ignoring mean for channels for which all columns of S are zero')
 end
-if options.uniqueAR==1 && any(S(:)~=1)
+if options.uniqueAR==1 && any(options.S(:)~=1)
     warning('S has no effect if uniqueAR=1')
 end
-if (strcmp(options.covtype,'full') || strcmp(options.covtype,'uniquefull')) && any(S(:)~=1)
+if (strcmp(options.covtype,'full') || strcmp(options.covtype,'uniquefull')) && any(options.S(:)~=1)
    error('Using S with elements different from zero is only implemented for covtype=diag/uniquediag')
 end
 
@@ -444,6 +396,28 @@ else
     options.Sind = formindexes(orders,options.S);
 end
 if ~options.zeromean, options.Sind = [true(1,ndim); options.Sind]; end
+
+if ~strcmp(options.covtype,'full') && options.firsteigv
+    error('firsteigv can only be used for covtype=full')
+end
+if options.zeromean==0 && options.firsteigv
+    error('firsteigv can only be used for zeromean=1')
+end
+if options.order > 1 && options.firsteigv
+    error('firsteigv can only be used for order=0')
+end
+if options.pca>0 && options.firsteigv
+    error('firsteigv and pca are not compatible')
+end
+if options.pcamar>0 && options.pcapred>0
+    error('Options pcamar and pcapred are not compatible')
+end
+if ~isfield(options,'orders') || ~isfield(options,'maxorder')
+    [options.orders,options.maxorder] = ...
+        formorders(options.order,options.orderoffset,options.timelag,options.exptimelag);
+end
+
+
 end
 
 

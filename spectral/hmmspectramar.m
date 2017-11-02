@@ -90,7 +90,6 @@ else
     end
     hmm.train.order = options.order; 
     hmm.train.maxorder = options.order; 
-    hmm.train.multipleConf = 0;
     hmm.train.uniqueAR = 0;
     hmm.train.covtype = 'diag';
     hmm.train.orderoffset = 0;

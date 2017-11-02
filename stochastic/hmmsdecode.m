@@ -45,7 +45,6 @@ end
 
 for i = 1:N
     [X,XX,Y,Ti] = loadfile(Xin{i},T{i},hmm.train);
-    XX_i = cell(1); XX_i{1} = XX;
     hmm_i = hmm;
     hmm_i.train.embeddedlags = 0;
     hmm_i.train.pca = 0;
@@ -58,7 +57,7 @@ for i = 1:N
     tacc = tacc + length(t); tacc2 = tacc2 + length(t2);
     if type==0
         data = struct('X',X,'C',NaN(sum(Ti)-length(Ti)*maxorder,K));
-        [gamma,~,xi] = hsinference(data,Ti,hmm_i,Y,[],XX_i);
+        [gamma,~,xi] = hsinference(data,Ti,hmm_i,Y,[],XX);
         checkGamma(gamma,Ti,hmm_i.train,i);
         Path(t,:) = single(gamma);
         Xi(t2,:,:) = xi;

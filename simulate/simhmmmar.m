@@ -32,7 +32,6 @@ if ~isfield(hmm.train,'timelag'), hmm.train.timelag = 1; end
 if ~isfield(hmm.train,'exptimelag'), hmm.train.exptimelag = 1; end
 if ~isfield(hmm.train,'orderoffset'), hmm.train.orderoffset = 0; end
 if ~isfield(hmm.train,'S'), hmm.train.S = ones(ndim); end
-if ~isfield(hmm.train,'multipleConf'), hmm.train.multipleConf = 0; end
 if ~isfield(hmm.train,'maxorder'), hmm.train.maxorder = hmm.train.order; end
 
 if hmm.train.maxorder > 0, d = 500;

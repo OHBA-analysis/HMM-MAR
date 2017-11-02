@@ -36,7 +36,7 @@ if length(options.embeddedlags)>1
 end
 
 mcv = 0; if options.cvmode>2, mcv = [0 0]; end
-if length(options.cvfolds)==1,
+if length(options.cvfolds)==1
     options.cvfolds = crossvalind('Kfold', length(T), options.cvfolds);
 end
 nfolds = max(options.cvfolds);
@@ -81,10 +81,7 @@ for fold=1:nfolds
       
     for it=1:options.cvrep
         if options.verbose, fprintf('CV fold %d, repetition %d \n',fold,it); end
-        
-        if isfield(options,'multipleConf')
-            options = rmfield(options,'multipleConf');
-        end
+
         if isfield(options,'orders')
             options = rmfield(options,'orders');
         end
@@ -96,7 +93,7 @@ for fold=1:nfolds
         hmmtr.train.maxorder = maxorder;
                
         % test
-        if fe<Fe,
+        if fe<Fe
             Fe = fe;
             residualste =  getresiduals(datate.X,Tte,hmmtr.train.Sind,hmmtr.train.maxorder,hmmtr.train.order,...
                 hmmtr.train.orderoffset,hmmtr.train.timelag,hmmtr.train.exptimelag,hmmtr.train.zeromean,W0tr);

@@ -20,7 +20,7 @@ else
 end
 
 K=hmm.K;
-if nargin<4 || isempty(XX)
+if nargin<4 || size(XX,1)==0
     [T,ndim]=size(X);
     setxx; % build XX and get orders
 else
@@ -77,8 +77,6 @@ for k=1:K
         train = cache.train{k};
         orders = cache.orders{k};
         Sind = cache.Sind{k};
-        kk = cache.kk{k};
-
         ldetWishB = cache.ldetWishB{k};
         PsiWish_alphasum  = cache.PsiWish_alphasum{k};
         C = cache.C{k};
@@ -107,16 +105,16 @@ for k=1:K
         end
     end
         
-    meand = zeros(size(XX{kk},1),sum(regressed));
+    meand = zeros(size(XX,1),sum(regressed));
     if train.uniqueAR
         for n=1:ndim
-            ind = n:ndim:size(XX{kk},2);
-            meand(:,n) = XX{kk}(:,ind) * hmm.state(k).W.Mu_W;
+            ind = n:ndim:size(XX,2);
+            meand(:,n) = XX(:,ind) * hmm.state(k).W.Mu_W;
         end
     elseif do_normwishtrace
-        meand = XX{kk} * hmm.state(k).W.Mu_W(:,regressed);
+        meand = XX * hmm.state(k).W.Mu_W(:,regressed);
     end
-    d = residuals(:,regressed) - meand;    
+    d = residuals(:,regressed) - meand;
     if strcmp(train.covtype,'diag') || strcmp(train.covtype,'uniquediag')
         Cd = bsxfun(@times,C(regressed).',d.');
     else
@@ -135,17 +133,17 @@ for k=1:K
                 for n=1:ndim
                     if ~regressed(n), continue; end
                     if train.uniqueAR
-                        ind = n:ndim:size(XX{kk},2);
+                        ind = n:ndim:size(XX,2);
                         NormWishtrace = NormWishtrace + 0.5 * C(n) * ...
-                            sum( (XX{kk}(:,ind) * hmm.state(k).W.S_W) .* XX{kk}(:,ind), 2);
+                            sum( (XX(:,ind) * hmm.state(k).W.S_W) .* XX(:,ind), 2);
                     elseif ndim==1
                         NormWishtrace = NormWishtrace + 0.5 * C(n) * ...
-                            sum( (XX{kk}(:,Sind(:,n)) * hmm.state(k).W.S_W) ...
-                            .* XX{kk}(:,Sind(:,n)), 2);
+                            sum( (XX(:,Sind(:,n)) * hmm.state(k).W.S_W) ...
+                            .* XX(:,Sind(:,n)), 2);
                     else
                         NormWishtrace = NormWishtrace + 0.5 * C(n) * ...
-                            sum( (XX{kk}(:,Sind(:,n)) * permute(hmm.state(k).W.S_W(n,Sind(:,n),Sind(:,n)),[2 3 1])) ...
-                            .* XX{kk}(:,Sind(:,n)), 2);
+                            sum( (XX(:,Sind(:,n)) * permute(hmm.state(k).W.S_W(n,Sind(:,n),Sind(:,n)),[2 3 1])) ...
+                            .* XX(:,Sind(:,n)), 2);
                     end
                 end
                 
@@ -161,12 +159,12 @@ for k=1:K
                     for n1=1:ndim
                         if ~regressed(n1), continue; end
                         index1 = I + n1; index1 = index1(Sind(:,n1)); 
-                        tmp = (XX{kk}(:,Sind(:,n1)) * hmm.state(k).W.S_W(index1,:));
+                        tmp = (XX(:,Sind(:,n1)) * hmm.state(k).W.S_W(index1,:));
                         for n2=1:ndim
                             if ~regressed(n2), continue; end
                             index2 = I + n2; index2 = index2(Sind(:,n2));
                             NormWishtrace = NormWishtrace + 0.5 * C(n1,n2) * ...
-                                sum( tmp(:,index2) .* XX{kk}(:,Sind(:,n2)),2);
+                                sum( tmp(:,index2) .* XX(:,Sind(:,n2)),2);
                         end
                     end
                 end

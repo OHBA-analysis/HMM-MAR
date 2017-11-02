@@ -72,7 +72,6 @@ regressed = sum(S,1)>0;
 
 % Cache shared results for use in obslike
 for k = 1:K
-    
     setstateoptions;
     %hmm.cache = struct();
     hmm.cache.train{k} = train;
@@ -80,8 +79,6 @@ for k = 1:K
     hmm.cache.orders{k} = orders;
     hmm.cache.Sind{k} = Sind;
     hmm.cache.S{k} = S;
-    hmm.cache.kk{k} = kk;
-    
     if k == 1 && strcmp(train.covtype,'uniquediag')
         ldetWishB=0;
         PsiWish_alphasum=0;
@@ -129,7 +126,7 @@ if hmm.train.useParallel==1 && N>1
     
     % to duplicate this code is really ugly but there doesn't seem to be
     % any other way - more Matlab's fault than mine
-    parfor in=1:N
+    parfor in = 1:N
         Bt = []; sc = [];
         t0 = sum(T(1:in-1)); s0 = t0 - order*(in-1);
         if order>0
@@ -155,8 +152,7 @@ if hmm.train.useParallel==1 && N>1
                 else slicer = t:(no_c(1)+t-2); %slice = (t-order):(no_c(1)+t-2);
                 end
             end
-            XXt = cell(length(XX),1);
-            for k=1:length(XX), XXt{k} = XX{k}(slicer + s0 - order,:); end
+            XXt = XX(slicer + s0 - order,:); 
             if isnan(C(t,1))
                 [gammat,xit,Bt,sc] = nodecluster(XXt,K,hmm,R(slicer,:),in);
             else
@@ -180,7 +176,7 @@ if hmm.train.useParallel==1 && N>1
             if n_argout>=4, ll = ll + sum(sum(log(Bt(order+1:end,:)) .* gammat,2)); end
             if n_argout>=5, scale = [scale; sc ]; end
             if isempty(no_c), break;
-            else t = no_c(1)+t-1;
+            else, t = no_c(1)+t-1;
             end
         end
         Gamma{in} = gamma;
@@ -218,8 +214,7 @@ else
                 else slicer = t:(no_c(1)+t-2); %slice = (t-order):(no_c(1)+t-2);
                 end
             end
-            XXt = cell(length(XX),1);
-            for k=1:length(XX), XXt{k} = XX{k}(slicer + s0 - order,:); end
+            XXt = XX(slicer + s0 - order,:);
             if isnan(C(t,1))
                 [gammat,xit,Bt,sc] = nodecluster(XXt,K,hmm,R(slicer,:),in);
                 if any(isnan(gammat(:))), keyboard; end
@@ -277,7 +272,9 @@ else
     P = hmm.P; Pi = hmm.Pi;
 end
 
+try
 L = obslike([],hmm,residuals,XX,hmm.cache);
+catch, keyboard; end
 L(L<realmin) = realmin;
 
 if hmm.train.useMEX 

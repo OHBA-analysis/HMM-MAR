@@ -156,9 +156,9 @@ for k=1:K
             XY = zeros(npred+(~train.zeromean),1);
             XGX = zeros(npred+(~train.zeromean));
             for n=1:ndim
-                ind = n:ndim:size(XX{kk},2);
+                ind = n:ndim:size(XX,2);
                 XGX = XGX + XXGXX{k}(ind,ind);
-                XY = XY + (XX{kk}(:,ind)' .* repmat(Gamma(:,k)',length(ind),1)) * residuals(:,n);
+                XY = XY + (XX(:,ind)' .* repmat(Gamma(:,k)',length(ind),1)) * residuals(:,n);
             end
             if ~isempty(train.prior)
                 hmm.state(k).W.S_W = inv(train.prior.iS + XGX);
@@ -179,13 +179,13 @@ for k=1:K
                 hmm.state(k).W.iS_W(n,Sind(:,n),Sind(:,n)) = XXGXX{k}(Sind(:,n),Sind(:,n)) + 0.01*eye(sum(Sind(:,n))) ;
                 hmm.state(k).W.S_W(n,Sind(:,n),Sind(:,n)) = inv(permute(hmm.state(k).W.iS_W(n,Sind(:,n),Sind(:,n)),[2 3 1]));
                 hmm.state(k).W.Mu_W(Sind(:,n),n) = (( permute(hmm.state(k).W.S_W(n,Sind(:,n),Sind(:,n)),[2 3 1])...
-                    * XX{kk}(:,Sind(:,n))') .* repmat(Gamma(:,k)',sum(Sind(:,n)),1)) * residuals(:,n);
+                    * XX(:,Sind(:,n))') .* repmat(Gamma(:,k)',sum(Sind(:,n)),1)) * residuals(:,n);
             end
         else
             gram = kron(XXGXX{k},eye(ndim));
             hmm.state(k).W.iS_W = gram + 0.01*eye(size(gram,1));
             hmm.state(k).W.S_W = inv( hmm.state(k).W.iS_W );
-            hmm.state(k).W.Mu_W = (( XXGXX{k} \ XX{kk}' ) .* repmat(Gamma(:,k)',(~train.zeromean)+npred,1)) * residuals;
+            hmm.state(k).W.Mu_W = (( XXGXX{k} \ XX' ) .* repmat(Gamma(:,k)',(~train.zeromean)+npred,1)) * residuals;
         end
     end
 end
@@ -194,13 +194,10 @@ end
 if strcmp(hmm.train.covtype,'uniquediag') && hmm.train.uniqueAR
     hmm.Omega.Gam_rate = hmm.prior.Omega.Gam_rate;
     for k=1:K
-        if hmm.train.multipleConf, kk = k;
-        else kk = 1;
-        end
         XW = zeros(size(XX,1),ndim);
         for n=1:ndim
-            ind = n:ndim:size(XX{kk},2);
-            XW(:,n) = XX{kk}(:,ind) * hmm.state(k).W.Mu_W;
+            ind = n:ndim:size(XX,2);
+            XW(:,n) = XX(:,ind) * hmm.state(k).W.Mu_W;
         end
         e = (residuals - XW).^2;
         hmm.Omega.Gam_rate = hmm.Omega.Gam_rate + ...
@@ -214,7 +211,7 @@ elseif strcmp(hmm.train.covtype,'uniquediag')
     hmm.Omega.Gam_rate(regressed) = hmm.prior.Omega.Gam_rate(regressed);
     for k=1:hmm.K
         if ~isempty(hmm.state(k).W.Mu_W(:,regressed))
-            e = residuals(:,regressed) - XX{kk} * hmm.state(k).W.Mu_W(:,regressed);
+            e = residuals(:,regressed) - XX * hmm.state(k).W.Mu_W(:,regressed);
         else
             e = residuals(:,regressed);
         end
@@ -228,7 +225,7 @@ elseif strcmp(hmm.train.covtype,'uniquefull')
     hmm.Omega.Gam_rate(regressed,regressed) = hmm.prior.Omega.Gam_rate(regressed,regressed);
     for k=1:hmm.K
         if ~isempty(hmm.state(k).W.Mu_W(:,regressed))
-            e = residuals(:,regressed) - XX{kk} * hmm.state(k).W.Mu_W(:,regressed);
+            e = residuals(:,regressed) - XX * hmm.state(k).W.Mu_W(:,regressed);
         else
             e = residuals(:,regressed);
         end
@@ -241,10 +238,10 @@ else % state dependent
     for k=1:K
         setstateoptions;
         if train.uniqueAR
-            XW = zeros(size(XX{kk},1),ndim);
+            XW = zeros(size(XX,1),ndim);
             for n=1:ndim
-                ind = n:ndim:size(XX{kk},2);
-                XW(:,n) = XX{kk}(:,ind) * hmm.state(k).W.Mu_W;
+                ind = n:ndim:size(XX,2);
+                XW(:,n) = XX(:,ind) * hmm.state(k).W.Mu_W;
             end
             e = (residuals - XW).^2;
             hmm.state(k).Omega.Gam_rate = hmm.state(k).prior.Omega.Gam_rate + ...
@@ -253,7 +250,7 @@ else % state dependent
             
         elseif strcmp(train.covtype,'diag')
             if ~isempty(hmm.state(k).W.Mu_W)
-                e = (residuals(:,regressed) - XX{kk} * hmm.state(k).W.Mu_W(:,regressed)).^2;
+                e = (residuals(:,regressed) - XX * hmm.state(k).W.Mu_W(:,regressed)).^2;
             else
                 e = residuals(:,regressed).^2;
             end
@@ -264,7 +261,7 @@ else % state dependent
             
         else % full
             if ~isempty(hmm.state(k).W.Mu_W)
-                e = residuals(:,regressed) - XX{kk} * hmm.state(k).W.Mu_W(:,regressed);
+                e = residuals(:,regressed) - XX * hmm.state(k).W.Mu_W(:,regressed);
             else
                 e = residuals(:,regressed);
             end

@@ -163,13 +163,8 @@ end
 if ~isfield(hmm,'P')
     hmm = hmmhsinit(hmm);
 end
-    
-if ~hmm.train.multipleConf
-    [~,order] = formorders(hmm.train.order,hmm.train.orderoffset,...
-        hmm.train.timelag,hmm.train.exptimelag);
-else
-    order = hmm.train.maxorder;
-end
+   
+order = hmm.train.maxorder;
 
 if hmm.train.useParallel==1 && N>1
     

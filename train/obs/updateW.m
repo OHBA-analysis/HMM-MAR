@@ -2,7 +2,7 @@ function [hmm,XW] = updateW(hmm,Gamma,residuals,XX,XXGXX,Tfactor)
 
 K = length(hmm.state); ndim = hmm.train.ndim;
 if ~isempty(hmm.state(1).W.Mu_W)
-    XW = zeros(size(XX{1},1),ndim,K);
+    XW = zeros(size(XX,1),ndim,K);
 else
     XW = [];
 end
@@ -26,10 +26,10 @@ for k=1:K
         XY = zeros(npred+(~train.zeromean),1);
         XGX = zeros(npred+(~train.zeromean));
         for n=1:ndim
-            ind = n:ndim:size(XX{kk},2);
+            ind = n:ndim:size(XX,2);
             iomegan = omega.Gam_shape / omega.Gam_rate(n);
             XGX = XGX + iomegan * XXGXX{k}(ind,ind);
-            XY = XY + (iomegan * XX{kk}(:,ind)' .* repmat(Gamma(:,k)',length(ind),1)) * residuals(:,n);
+            XY = XY + (iomegan * XX(:,ind)' .* repmat(Gamma(:,k)',length(ind),1)) * residuals(:,n);
         end
         if ~isempty(train.prior)
             hmm.state(k).W.S_W = inv(train.prior.iS + XGX);
@@ -52,8 +52,8 @@ for k=1:K
             hmm.state(k).W.Mu_W = Tfactor * hmm.state(k).W.S_W * XY; % order by 1
         end        
         for n=1:ndim
-            ind = n:ndim:size(XX{kk},2);
-            XW(:,n,k) = XX{kk}(:,ind) * hmm.state(k).W.Mu_W;
+            ind = n:ndim:size(XX,2);
+            XW(:,n,k) = XX(:,ind) * hmm.state(k).W.Mu_W;
         end
         
     elseif strcmp(train.covtype,'diag') || strcmp(train.covtype,'uniquediag')
@@ -82,16 +82,16 @@ for k=1:K
             hmm.state(k).W.S_W(n,Sind(:,n),Sind(:,n)) = ...
                 inv(permute(hmm.state(k).W.iS_W(n,Sind(:,n),Sind(:,n)),[2 3 1]));
             hmm.state(k).W.Mu_W(Sind(:,n),n) = (( permute(hmm.state(k).W.S_W(n,Sind(:,n),Sind(:,n)),[2 3 1]) * ...
-                Tfactor * (omega.Gam_shape / omega.Gam_rate(n)) * XX{kk}(:,Sind(:,n))') .* ...
+                Tfactor * (omega.Gam_shape / omega.Gam_rate(n)) * XX(:,Sind(:,n))') .* ...
                 repmat(Gamma(:,k)',sum(Sind(:,n)),1)) * residuals(:,n);
         end
-        XW(:,:,k) = XX{kk} * hmm.state(k).W.Mu_W;
+        XW(:,:,k) = XX * hmm.state(k).W.Mu_W;
         
     else % full or unique full - this only works if all(S(:)==1); any(S(:)~=1) is just not yet implemented 
         if pcapred
-            mlW = (( XXGXX{k} \ XX{kk}') .* repmat(Gamma(:,k)',(~train.zeromean)+M,1) * residuals)';
+            mlW = (( XXGXX{k} \ XX') .* repmat(Gamma(:,k)',(~train.zeromean)+M,1) * residuals)';
         else
-            mlW = (( XXGXX{k} \ XX{kk}') .* repmat(Gamma(:,k)',...
+            mlW = (( XXGXX{k} \ XX') .* repmat(Gamma(:,k)',...
                 (~train.zeromean)+Q*length(orders),1) * residuals)';
         end
         regterm = [];
@@ -122,7 +122,7 @@ for k=1:K
         else
             hmm.state(k).W.Mu_W = reshape(muW,ndim,~train.zeromean+Q*length(orders))';
         end
-        XW(:,:,k) = XX{kk} * hmm.state(k).W.Mu_W;
+        XW(:,:,k) = XX * hmm.state(k).W.Mu_W;
     end
     
 end

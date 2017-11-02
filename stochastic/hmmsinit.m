@@ -99,7 +99,6 @@ for rep = 1:options.BIGinitrep
             options.detrend = 0; 
             options.onpower = 0; 
             options.downsample = 0; % done in loadfile.m
-            options.crosstermsonly = 0;
             options.grouping = [];
             if length(Ti)==1, options.useParallel = 0; end
             [hmm_i,Gamma,Xi] = hmmmar(X,Ti,options);
@@ -112,7 +111,6 @@ for rep = 1:options.BIGinitrep
             hmm_i.train.onpower = options.onpower;
             hmm_i.train.downsample = options.downsample;
             hmm_i.train.useParallel = options.useParallel;
-            hmm_i.train.crosstermsonly = options.crosstermsonly;
             hmm_i.train.grouping = options.grouping;
         end
         if ii==1 % get priors
@@ -223,11 +221,6 @@ for rep = 1:options.BIGinitrep
         end
     end
     
-    % state options
-    for k=1:K
-        hmm_init.state(k).train = hmm_i.state(k).train;
-    end
-    
     % adjust prior
     if rep==1
         if isempty(options.BIGprior)
@@ -287,9 +280,8 @@ for rep = 1:options.BIGinitrep
     hmm_init_i = hmm_init;
     for i = 1:N
         [X,XX,Y,Ti] = loadfile(Xin{i},T{i},options);
-        XX_i = cell(1); XX_i{1} = XX;
         data = struct('X',X,'C',NaN(size(XX,1),K));
-        [Gamma,~,Xi,l] = hsinference(data,Ti,hmm_init_i,Y,[],XX_i);
+        [Gamma,~,Xi,l] = hsinference(data,Ti,hmm_init_i,Y,[],XX);
         checkGamma(Gamma,Ti,hmm_init_i.train,i);
         subjfe_init(i,1:2) = evalfreeenergy([],Ti,Gamma,Xi,hmm_init_i,[],[],[1 0 1 0 0]); % Gamma entropy&LL
         loglik_init(i) = sum(l);

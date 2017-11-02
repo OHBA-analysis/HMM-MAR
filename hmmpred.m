@@ -88,26 +88,17 @@ end
 
 setxx; % build XX 
 
-responseR = zeros(size(XX{1},1), ndim);
-responseY = zeros(size(XX{1},1), ndim);
+responseR = zeros(size(XX,1), ndim);
+responseY = zeros(size(XX,1), ndim);
 for k=1:K
-    if hmm.train.multipleConf
-        kk = k;
-        if isfield(hmm.state(k),'train') && hmm.state(k).train.uniqueAR
-            W = repmat(hmm.state(k).W.Mu_W,1,ndim);
-        else
-            W = hmm.state(k).W.Mu_W;
-        end
-    else
-        kk = 1; W = hmm.state(k).W.Mu_W;
-    end
+    W = hmm.state(k).W.Mu_W;
     if actstates(k)
-        responseR = responseR + repmat(Gamma(:,acstates1==k),1,ndim) .*  (XX{kk} * W);
+        responseR = responseR + repmat(Gamma(:,acstates1==k),1,ndim) .*  (XX * W);
     end
     if isempty(Wgl)
         responseY = responseR;
     else
-        responseY = responseR + XX{kk} * Wgl;
+        responseY = responseR + XX * Wgl;
     end
 end
 

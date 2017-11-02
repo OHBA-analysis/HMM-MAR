@@ -16,8 +16,6 @@ function [Gamma,fehist] = hmmmar_init(data,T,options,Sind)
 if ~isfield(options,'maxorder')
     [~,order] = formorders(options.order,options.orderoffset,options.timelag,options.exptimelag);
     options.maxorder = order; 
-else 
-    order = options.maxorder;
 end
 
 if options.initTestSmallerK % Run two initializations for each K less than requested K, plus options.initrep K
