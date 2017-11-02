@@ -11,7 +11,7 @@ function [X,flips] = aligntotask(X,T,events,window)
 % INPUTS
 % X             time series, or alternatively an (unflipped) array of
 %                   autocorrelation matrices (ndim x ndim x no.lags x no. trials),
-%                   as computed for example by getCovMats()
+%                   as computed for example by getFuncConn()
 % T             length of series
 % events         a vector with the positions of each time the event happens in the data a (time by 1) 
 %               logical vector indicating when the evoked response is happening. 

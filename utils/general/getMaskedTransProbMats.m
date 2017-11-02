@@ -1,5 +1,5 @@
 function [P,Pi] = getMaskedTransProbMats (data,T,hmm,Masks,Gamma,Xi,residuals)
-% obtain local Markov transitive probability matrices (LMTPM) for each of the masks
+% Obtain local Markov transitive probability matrices (LMTPM) for each of the masks
 % specified by the variable masks (see description of parameters).
 % The matrices include state persistency probabilities 
 % (see getTransProbs.m to obtain just the transition probabilities) 
@@ -21,7 +21,7 @@ function [P,Pi] = getMaskedTransProbMats (data,T,hmm,Masks,Gamma,Xi,residuals)
 % P             A cell where each element is a LMTPM, computed for the
 %               indexes in the corresponding element of Masks
 %
-% Author: Diego Vidaurre, OHBA, University of Oxford
+% Author: Diego Vidaurre, OHBA, University of Oxford (2017)
 
 if nargin<6
     if ~isfield(data,'C')

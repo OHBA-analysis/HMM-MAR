@@ -7,7 +7,7 @@ function [flips,scorepath,covmats_unflipped] = findflip(X,T,options)
 % INPUTS
 % X             time series, or alternatively an (unflipped) array of
 %                   autocorrelation matrices (ndim x ndim x no.lags x no. trials),
-%                   as computed for example by getCovMats()
+%                   as computed for example by getFuncConn()
 % T             length of series
 % options:
 %  maxlag        max lag to consider 
@@ -56,7 +56,7 @@ else
             X(ind,:) = X(ind,:) ./ repmat(sd,T(n),1);
         end
     end
-    covmats_unflipped = getCovMats(X,T,options.maxlag,options.partial);
+    covmats_unflipped = getFuncConn(X,T,options.maxlag,options.partial);
 end
 
 score = -Inf;
