@@ -97,6 +97,10 @@ if preproc % Adjust the data if necessary
     if train.onpower
         data = rawsignal2power(data,T);
     end
+    % Leading Phase Eigenvectors
+    if train.leida
+        data = leadingPhEigenvector(data,T);
+    end
     % pre-embedded  PCA transform
     if length(train.pca_spatial) > 1 || train.pca_spatial > 0
         if isfield(train,'As')

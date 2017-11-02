@@ -75,6 +75,10 @@ if preproc && ~stochastic_learn
     if options.onpower
         data = rawsignal2power(data,T);
     end
+    % Leading Phase Eigenvectors
+    if options.leida
+        data = leadingPhEigenvector(data,T);
+    end
     % Embedding
     if length(options.embeddedlags)>1
         [data,T] = embeddata(data,T,options.embeddedlags);

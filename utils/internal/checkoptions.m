@@ -7,6 +7,10 @@ if isempty(strfind(which('pca'),matlabroot))
         'Use ''rmpath(fileparts(which(''pca'')))'''])
 end
 if ~isfield(options,'K'), error('K was not specified'); end
+if ~isfield(options,'order')
+    options.order = 0;
+    warning('order was not specified - it will be set to 0'); 
+end
 if options.K<1, error('K must be higher than 0'); end
 if ~isstruct(data), data = struct('X',data); end
 if size(data.X,1)~=sum(T)
@@ -16,6 +20,7 @@ end
 % data options
 if ~isfield(options,'Fs'), options.Fs = 1; end
 if ~isfield(options,'onpower'), options.onpower = 0; end
+if ~isfield(options,'leida'), options.leida = 0; end
 if ~isfield(options,'embeddedlags'), options.embeddedlags = 0; end
 if ~isfield(options,'pca'), options.pca = 0; end
 if ~isfield(options,'pca_spatial'), options.pca_spatial = 0; end
@@ -29,7 +34,9 @@ if ~isfield(options,'detrend'), options.detrend = 0; end
 if ~isfield(options,'downsample'), options.downsample = 0; end
 if ~isfield(options,'leakagecorr'), options.leakagecorr = 0; end
 if ~isfield(options,'standardise'), options.standardise = 1; end
-if ~isfield(options,'standardise_pc'), options.standardise_pc = length(options.embeddedlags)>1; end
+if ~isfield(options,'standardise_pc') 
+    options.standardise_pc = length(options.embeddedlags)>1; 
+end
 if ~isfield(options,'crosstermsonly'), options.crosstermsonly = 0; end
 % Trans prob mat related options
 if ~isfield(options,'grouping') || isempty(options.grouping)
@@ -89,6 +96,24 @@ if options.leakagecorr ~= 0
     if isempty(tmp)
        error('For leakage correction, ROInets must be in path') 
     end
+end
+if options.leida
+   if options.onpower
+       error('Options leida and onpower are not compatible')
+   end
+   if options.order > 0
+       error('Option leida and order > 0 are not compatible')
+   end   
+   if options.pca > 0
+       error('Options leida and pca are not compatible')
+   end
+   if isfield(options,'covtype') && ...
+           (strcmp(options.covtype,'full') || strcmp(options.covtype,'diag'))
+       error('When using leida, covtype cannot be full or diag')
+   end
+   if length(options.embeddedlags) > 1
+       error('Option leida and embeddedlags are not compatible')
+   end
 end
 if length(options.pca)==1 && options.pca == 0
     ndim = length(options.embeddedlags) * size(data.X,2);
@@ -294,10 +319,6 @@ end
 
 function options = checkMARparametrization(options,S,ndim)
 
-if ~isfield(options,'order')
-    options.order = 0;
-    warning('order was not specified - it will be set to 0'); 
-end
 if isfield(options,'embeddedlags') && length(options.embeddedlags)>1 && options.order>0 
     error('Order needs to be zero for multiple embedded lags')
 end
@@ -328,18 +349,21 @@ if length(options.embeddedlags)==1 && options.pca_spatial>0
    warning('pca_spatial only applies when using embedded lags; use pca instead')
    options.pca_spatial = 0;
 end
-if ~isfield(options,'covtype') && (ndim==1 || ~isempty(S) || (isfield(options,'S') && ~isempty(options.S)) )
+if ~isfield(options,'covtype') && options.leida 
+    options.covtype = 'uniquediag'; 
+elseif ~isfield(options,'covtype') && (ndim==1 || ~isempty(S) || ...
+        (isfield(options,'S') && ~isempty(options.S)) )
     options.covtype = 'diag'; 
 elseif ~isfield(options,'covtype') && ndim>1, options.covtype = 'full'; 
 elseif (strcmp(options.covtype,'full') || strcmp(options.covtype,'uniquefull')) && ndim==1
     warning('Covariance can only be diag or uniquediag if data has only one channel')
     if strcmp(options.covtype,'full'), options.covtype = 'diag';
-    else options.covtype = 'uniquediag';
+    else, options.covtype = 'uniquediag';
     end
 end
 if ~isfield(options,'zeromean')
     if options.order>0, options.zeromean = 1; 
-    else options.zeromean = 0;
+    else, options.zeromean = 0;
     end
 end
 if ~isfield(options,'timelag'), options.timelag = 1; end

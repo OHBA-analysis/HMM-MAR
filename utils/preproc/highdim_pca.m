@@ -41,6 +41,7 @@ options.standardise = standardise;
 options.embeddedlags = embeddedlags;
 options.pca = 0; % PCA is done here!
 options.onpower = onpower;
+options.leida = 0;
 options.detrend = detrend;
 options.leakagecorr = leakagecorr;
 
@@ -72,6 +73,9 @@ else
     end
     if options.onpower
         X = rawsignal2power(X,T);
+    end
+    if options.leida
+        X = leadingPhEigenvector(X,T);
     end
     if isfield(options,'As') && ~isempty(options.As)
         X = bsxfun(@minus,X,mean(X)); % must center

@@ -45,6 +45,10 @@ end
 if options.onpower
     X = rawsignal2power(X,T);
 end
+% Leading Phase Eigenvectors
+if options.leida
+    X = leadingPhEigenvector(X,T);
+end
 % PCA transform (before embedded, i.e. drawing only from space corr)
 if isfield(options,'As') && ~isempty(options.As)
     X = bsxfun(@minus,X,mean(X)); % must center

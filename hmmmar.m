@@ -228,6 +228,10 @@ else
     if options.onpower
        data = rawsignal2power(data,T); 
     end
+    % Leading Phase Eigenvectors 
+    if options.leida
+        data = leadingPhEigenvector(data,T);
+    end
     % pre-embedded PCA transform
     if length(options.pca_spatial) > 1 || (options.pca_spatial > 0 && options.pca_spatial ~= 1)
         if isfield(options,'As')
@@ -316,7 +320,7 @@ else
     if isempty(options.Gamma) && isempty(options.hmm) % both unspecified
         if options.K > 1
             Sind = options.Sind;
-            if options.initrep>0 && options.initcyc>0
+            if options.initrep>0 && options.initcyc>0 && ...
                     (strcmpi(options.inittype,'HMM-MAR') || strcmpi(options.inittype,'HMMMAR'))
                 [GammaInit,fehistInit] = hmmmar_init(data,T,options,Sind);
             elseif options.initrep>0 &&  strcmpi(options.inittype,'EM')

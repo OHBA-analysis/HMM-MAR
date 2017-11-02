@@ -5,6 +5,10 @@ function options = checksoptions (options,data,T)
 
 N = length(T);
 if ~isfield(options,'K'), error('K was not specified'); end
+if ~isfield(options,'order')
+    options.order = 0;
+    warning('order was not specified - it will be set to 0'); 
+end
 
 % data options
 if ~isfield(options,'Fs'), options.Fs = 1; end
@@ -17,6 +21,7 @@ if ~isfield(options,'pcamar'), options.pcamar = 0; end
 if ~isfield(options,'pcapred'), options.pcapred = 0; end
 if ~isfield(options,'vcomp') && options.pcapred>0, options.vcomp = 1; end
 if ~isfield(options,'onpower'), options.onpower = 0; end
+if ~isfield(options,'leida'), options.leida = 0; end
 if ~isfield(options,'filter'), options.filter = []; end
 if ~isfield(options,'detrend'), options.detrend = 0; end
 if ~isfield(options,'downsample'), options.downsample = 0; end
@@ -57,6 +62,24 @@ if options.leakagecorr ~= 0
     if isempty(tmp)
        error('For leakage correction, ROInets must be in path') 
     end
+end
+if options.leida
+   if options.onpower
+       error('Options leida and onpower are not compatible')
+   end
+   if options.order > 0
+       error('Option leida and order > 0 are not compatible')
+   end   
+   if options.pca > 0
+       error('Options leida and pca are not compatible')
+   end
+   if isfield(options,'covtype') && ...
+           (strcmp(options.covtype,'full') || strcmp(options.covtype,'diag'))
+       error('When using leida, covtype cannot be full or diag')
+   end
+   if length(options.embeddedlags) > 1
+       error('Option leida and embeddedlags are not compatible')
+   end
 end
 
 if isfield(options,'crosstermsonly') && options.crosstermsonly
@@ -130,9 +153,18 @@ if ~isfield(options,'hmm'), options.hmm = []; end
 if options.BIGdelay > 1, warning('BIGdelay is recommended to be 1.'); end
 
 % MAR parameters
-if ~isfield(options,'zeromean'), options.zeromean = 0; end
-if ~isfield(options,'covtype'), options.covtype = 'full'; end
-if ~isfield(options,'order'), options.order = 0; end
+if ~isfield(options,'zeromean')
+    if options.order>0, options.zeromean = 1; 
+    else, options.zeromean = 0;
+    end
+end
+if ~isfield(options,'covtype') && options.leida 
+    options.covtype = 'uniquediag'; 
+elseif ~isfield(options,'covtype') && (~isempty(S) || ...
+        (isfield(options,'S') && ~isempty(options.S)) )
+    options.covtype = 'diag'; 
+elseif ~isfield(options,'covtype'), options.covtype = 'full'; 
+end
 if ~isfield(options,'orderoffset'), options.orderoffset = 0; end
 if ~isfield(options,'timelag'), options.timelag = 1; end
 if ~isfield(options,'exptimelag'), options.exptimelag = 0; end

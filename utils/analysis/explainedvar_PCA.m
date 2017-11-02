@@ -94,6 +94,10 @@ else
     if options.onpower
         data = rawsignal2power(data,T);
     end
+    % Leading Phase Eigenvectors
+    if options.leida
+        data = leadingPhEigenvector(data,T);
+    end
     % pre-embedded PCA transform
     if length(options.pca_spatial) > 1 || (options.pca_spatial > 0 && options.pca_spatial ~= 1)
         if isfield(options,'As')
