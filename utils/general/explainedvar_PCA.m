@@ -1,4 +1,4 @@
-function e = evpca(data,T,options)
+function e = explainedvar_PCA(data,T,options)
 % Performs preprocessing on the data, performs PCA,
 % and returns the explained variance for each PCA component. 
 % This is useful to inspect the rank of the data and decide the number of
