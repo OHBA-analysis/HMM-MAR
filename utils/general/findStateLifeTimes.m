@@ -1,11 +1,20 @@
-function LifeTimes = findStateLifeTimes (Gamma,T,threshold,is_vpath)
+function LifeTimes = findStateLifeTimes (Gamma,T,threshold,threshold_Gamma)
 % find the state life times for the state time courses of one state
-% Gamma needs to be (time by 1), and the sum of T be equal to size(Gamma,1)
-% is_vpath (optional) indicates whether Gamma is viterbi path or a
-% probabilistic assignment
+% Gamma can be the probabilistic state time courses (time by states),
+%   which can contain the probability of all states or a subset of them,
+%   or the Viterbi path (time by 1). 
+% In the first case, threshold_Gamma is used to define when a state is active. 
+% The parameter threshold is used to discard visits that are too
+%   short (deemed to be spurious); these are discarded when they are shorter than 
+%   'threshold' time points
+% LifeTimes is then a cell (subjects by states), where each element is a
+%   vector of life times
+%
+% Diego Vidaurre, OHBA, University of Oxford (2016)
 
-if nargin<3, threshold = 0 ; end
-if nargin<4, is_vpath = (size(Gamma,2)==1 && all(rem(Gamma,1)==0)); end
+is_vpath = (size(Gamma,2)==1 && all(rem(Gamma,1)==0));
+if nargin<3, threshold = 0; end
+if nargin<4, threshold_Gamma = (2/3); end
 if iscell(T)
     for i = 1:length(T)
         if size(T{i},1)==1, T{i} = T{i}'; end
@@ -22,7 +31,7 @@ if is_vpath % viterbi path
     end
 else
     K = size(Gamma,2); 
-    Gamma = Gamma > (2/3);
+    Gamma = Gamma > threshold_Gamma;
 end
 
 LifeTimes = cell(N,K);
@@ -33,8 +42,6 @@ for j=1:N
     ind = (1:T(j)-order) + t0;
     for k=1:K
         LifeTimes{j,k} = aux_k(Gamma(ind,k),threshold);
-        %LifeTimes{k} = [LifeTimes{k} lfk];
-        %Gamma(ind,k) = g;
     end
 end
 

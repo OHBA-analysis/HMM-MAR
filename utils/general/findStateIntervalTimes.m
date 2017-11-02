@@ -13,8 +13,8 @@ function Intervals = findStateIntervalTimes (Gamma,T,threshold,threshold_Gamma)
 % Diego Vidaurre, OHBA, University of Oxford (2016)
 
 is_vpath = (size(Gamma,2)==1 && all(rem(Gamma,1)==0)); % is a viterbi path?
-if nargin<3, threshold = 0 ; end
-if nargin<4, threshold_Gamma = (2/3) ; end
+if nargin<3, threshold = 0; end
+if nargin<4, threshold_Gamma = (2/3); end
 
 if iscell(T)
     for i = 1:length(T)
