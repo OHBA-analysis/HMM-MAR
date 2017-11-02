@@ -1,5 +1,6 @@
-function Intervals = findStateIntervalTimes (Gamma,T,threshold,threshold_Gamma)
-% find the interval times for the state time courses of one state
+function intervals = getStateIntervalTimes (Gamma,T,threshold,threshold_Gamma)
+% Computes the interval times for the state time courses  
+% 
 % Gamma can be the probabilistic state time courses (time by states),
 %   which can contain the probability of all states or a subset of them,
 %   or the Viterbi path (time by 1). 
@@ -35,7 +36,7 @@ else
     Gamma = Gamma > threshold_Gamma;
 end
 
-Intervals = cell(N,K);
+intervals = cell(N,K);
 order = (sum(T)-size(Gamma,1))/length(T);
 
 for j=1:N
@@ -44,11 +45,11 @@ for j=1:N
     for k=1:K
         t = find(Gamma(ind,k)==1,1);
         if isempty(t), continue; end
-        Intervals{j,k} = aux_k(Gamma(ind(t:end),k),threshold);
+        intervals{j,k} = aux_k(Gamma(ind(t:end),k),threshold);
     end
 end
 
-if length(Intervals)==1, Intervals = Intervals{1}; end
+if length(intervals)==1, intervals = intervals{1}; end
 
 end
 

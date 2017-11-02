@@ -1,4 +1,8 @@
 function PSD = project_PSD(hmm,Gamma,X,T,A,bands,options)
+% Projects a spectral estimation for the hmm from PCA space to original space
+%
+% Author: Diego Vidaurre, University of Oxford (2016)
+
 
 ndim = size(A,1);
 nbands = size(bands,1);

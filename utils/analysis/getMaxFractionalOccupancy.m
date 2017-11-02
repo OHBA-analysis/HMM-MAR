@@ -1,4 +1,4 @@
-function maxFO = maxFractionalOccupancy(Gamma,T)
+function maxFO = getMaxFractionalOccupancy(Gamma,T)
 % Finds the maximum fractional occupancy for each subject/trial.
 % This is a useful statistic to diagnose whether the HMM solution is
 % "mixing well" or states are assigned to describe entire subjects (in

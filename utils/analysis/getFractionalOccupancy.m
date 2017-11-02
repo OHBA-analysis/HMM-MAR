@@ -1,4 +1,4 @@
-function FO = fractionalOccupancy (Gamma,T,dim)
+function FO = getFractionalOccupancy (Gamma,T,dim)
 % computes de fractional occupancy  
 % - across trials if dim==1 (i.e. FO is time by no.states)
 % - across time if dim==2 (i.e. FO is no.trials by no.states)

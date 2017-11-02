@@ -1,5 +1,6 @@
-function LifeTimes = findStateLifeTimes (Gamma,T,threshold,threshold_Gamma)
-% find the state life times for the state time courses of one state
+function LifeTimes = getStateLifeTimes (Gamma,T,threshold,threshold_Gamma)
+% Computes the state life times for the state time courses  
+%
 % Gamma can be the probabilistic state time courses (time by states),
 %   which can contain the probability of all states or a subset of them,
 %   or the Viterbi path (time by 1). 

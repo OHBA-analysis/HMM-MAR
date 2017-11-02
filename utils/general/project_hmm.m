@@ -1,10 +1,13 @@
 function hmmproj = project_hmm(hmm,A,B,V)
+% Projects an hmm estimation from PCA space to original space
 % A : standard PCA
 % B : PCA on MAR (per order)
 % V : PCA on regressors (all orders)
 % using the matrix A/B/V 
 % it projects the HMM-MAR parameters to the space spanned by A/B/V
 % it ignores the covariance of W, just operates on the mean (I need to implement this) 
+%
+% Author: Diego Vidaurre, University of Oxford (2016)
 
 if nargin<4, V = []; end
 if nargin<3, B = []; end
