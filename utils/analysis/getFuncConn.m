@@ -21,4 +21,5 @@ else
     covmat = hmm.state(k).Omega.Gam_rate / (hmm.state(k).Omega.Gam_shape-ndim-1);
 end
 corrmat = corrcov(covmat);
+
 end

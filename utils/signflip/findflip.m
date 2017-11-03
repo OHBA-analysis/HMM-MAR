@@ -7,7 +7,7 @@ function [flips,scorepath,covmats_unflipped] = findflip(X,T,options)
 % INPUTS
 % X             time series, or alternatively an (unflipped) array of
 %                   autocorrelation matrices (ndim x ndim x no.lags x no. trials),
-%                   as computed for example by getFuncConn()
+%                   as computed for example by getCovMats()
 % T             length of series
 % options:
 %  maxlag        max lag to consider 
@@ -50,13 +50,13 @@ else
             ind = (1:T(n)) + sum(T(1:n-1));
             X(ind,:) = X(ind,:) - repmat(mean(X(ind,:)),T(n),1);
             sd = std(X(ind,:));
-            if any(sd==0), 
+            if any(sd==0) 
                 error('At least one channel in at least one trial has variance equal to 0')
             end
             X(ind,:) = X(ind,:) ./ repmat(sd,T(n),1);
         end
     end
-    covmats_unflipped = getFuncConn(X,T,options.maxlag,options.partial);
+    covmats_unflipped = getCovMats(X,T,options.maxlag,options.partial);
 end
 
 score = -Inf;
@@ -131,7 +131,7 @@ for r = 1:options.noruns
         end
     end
     
-    if scorer>score,
+    if scorer>score
         score = scorer;
         flips = flipsr;
     end
