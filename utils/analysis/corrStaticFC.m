@@ -11,8 +11,6 @@ function C = corrStaticFC (data,T,toPlot)
 % subjects. If the obtained values are too low, then covtype='uniquefull'
 % has a higher chance to do a good job. 
 % 
-% The output is C
-%
 % Author: Diego Vidaurre (2017)
 
 if nargin<3, toPlot = 1; end

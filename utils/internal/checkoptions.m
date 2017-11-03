@@ -320,7 +320,7 @@ elseif (strcmp(options.covtype,'full') || strcmp(options.covtype,'uniquefull')) 
 end
 if ~isfield(options,'zeromean')
     if options.order>0, options.zeromean = 1; 
-    else, options.zeromean = 0;
+    else, options.zeromean = 0; % i.e. when Gaussian or LEiDA
     end
 end
 if ~isfield(options,'timelag'), options.timelag = 1; end
