@@ -36,6 +36,8 @@ if ~isfield(options,'parallel_trials'), parallel_trials = all(T==T(1));
 else, parallel_trials = options.parallel_trials; end
 if ~isfield(options,'pca'), pca_opt = 0;
 else, pca_opt = options.pca; end
+if ~isfield(options,'add_noise'), add_noise = 1;
+else, add_noise = options.add_noise; end
 
 options.parallel_trials = parallel_trials;
 
@@ -85,6 +87,9 @@ end
 
 % Demean stimulus
 Y = bsxfun(@minus,Y,mean(Y));
+if add_noise % this avoids numerical problems 
+   Y = Y + 1e-4 * randn(size(Y)); 
+end
 % Filtering
 if ~isempty(filter)
     data = filterdata(X,T,options.Fs,filter);

@@ -33,7 +33,8 @@ N = length(T);
 [X,Y,T,options,stats.R2_pca,features] = preproc4hmm(X,Y,T,options); 
 parallel_trials = options.parallel_trials; 
 options = rmfield(options,'parallel_trials');
-p = size(X,2); q = size(p,2);
+if isfield(options,'add_noise'), options = rmfield(options,'add_noise'); end
+p = size(X,2); q = size(Y,2);
  
 % init HMM, only if trials are temporally related
 if parallel_trials

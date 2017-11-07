@@ -52,41 +52,44 @@ if ~all(T==T(1)), error('All elements of T must be equal'); end
 
 % Form CV folds; if response are categorical, then it's stratified
 samples_per_value = length(Y) / length(unique(Y));
-stratified = samples_per_value > 500;
-if stratified
-    disp('Response is treated as categorical')
-    tmp = zeros(length(responses),1);
-    for j = 1:size(responses,2)
-        rj = responses(:,j);
-        uj = unique(rj);
-        for jj = 1:length(uj)
-            tmp(rj == uj(jj)) = tmp(rj == uj(jj)) + 100^(j-1) * jj;
+stratified = samples_per_value > 200;
+if ~isfield(options,'c')
+    if stratified
+        %disp('Response is treated as categorical')
+        tmp = zeros(length(responses),1);
+        for j = 1:size(responses,2)
+            rj = responses(:,j);
+            uj = unique(rj);
+            for jj = 1:length(uj)
+                tmp(rj == uj(jj)) = tmp(rj == uj(jj)) + 100^(j-1) * jj;
+            end
         end
+        uy = unique(tmp);
+        group = zeros(length(responses),1);
+        for j = 1:length(uy)
+            group(tmp == uy(j)) = j;
+        end
+        c2 = cvpartition(group,'KFold',NCV);
+    else
+        c2 = cvpartition(N,'KFold',NCV);
+        %disp('Response is treated as continuous - no CV stratification')
     end
-    uy = unique(tmp);
-    group = zeros(length(responses),1);
-    for j = 1:length(uy)
-        group(tmp == uy(j)) = j;
-    end
-    c2 = cvpartition(group,'KFold',NCV);
+    c = struct();
+    c.test = cell(NCV,1);
+    c.training = cell(NCV,1);
+    for icv = 1:NCV
+        c.training{icv} = c2.training(icv);
+        c.test{icv} = c2.test(icv);
+    end; clear c2
 else
-    c2 = cvpartition(N,'KFold',NCV);
-    disp('Response is treated as continuous - no CV stratification')
+    c = options.c; options = rmfield(options,'c');
 end
-
-c = struct();
-c.test = cell(NCV,1);
-c.training = cell(NCV,1);
-for icv = 1:NCV
-    c.training{icv} = c2.training(icv);
-    c.test{icv} = c2.test(icv);
-end; clear c2
-K = options.K;
 
 % Preproc data and put in the right format
 [X,Y,T,options] = preproc4hmm(X,Y,T,options); 
 options = remove_options(options);
 p = size(X,2); q = size(Y,2);
+K = options.K;
 X = reshape(X,[ttrial N p]);
 Y = reshape(Y,[ttrial N q]);
 Ypred = zeros(ttrial,N,q,'single');
@@ -155,5 +158,6 @@ if isfield(options,'onpower'), options = rmfield(options,'onpower'); end
 if isfield(options,'standardise'), options = rmfield(options,'standardise'); end
 if isfield(options,'embeddedlags'), options = rmfield(options,'embeddedlags'); end
 if isfield(options,'pca'), options = rmfield(options,'pca'); end
+options.add_noise = 0; 
 end
 
