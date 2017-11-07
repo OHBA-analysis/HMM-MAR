@@ -46,5 +46,5 @@ end; clear Gamma3
 options.NCV = 5;
 options.lossfunc = 'quadratic';
 R2 = tudacv(X,Y,T,options);
-figure(2);clf(2)
+figure(4);clf(4)
 plot(R2)

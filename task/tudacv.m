@@ -86,7 +86,7 @@ K = options.K;
 % Preproc data and put in the right format
 [X,Y,T,options] = preproc4hmm(X,Y,T,options); 
 options = remove_options(options);
-p = size(X,2); q = size(p,2);
+p = size(X,2); q = size(Y,2);
 X = reshape(X,[ttrial N p]);
 Y = reshape(Y,[ttrial N q]);
 Ypred = zeros(ttrial,N,q,'single');
@@ -124,7 +124,7 @@ elseif strcmp(lossfunc,'absolute')
 elseif strcmp(lossfunc,'huber')
     l = zeros(size(d)); l0 = zeros(size(d)); ee = 1;
     for j1 = 1:N
-        for j = 1:q
+        for j2 = 1:q
             ii = abs(d(:,j1,j2))<1; l(ii,j1,j2) = d(ii,j1,j2).^2;
             ii = abs(d(:,j1,j2))>=1; l(ii,j1,j2) = abs(d(ii,j1,j2));
             ii = abs(Y(:,j1,j2))<1; l0(ii,j1,j2) = Y(ii,j1,j2).^2;
