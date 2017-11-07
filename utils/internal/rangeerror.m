@@ -1,7 +1,7 @@
 function [r] = rangeerror(X,T,maxorder,orders,Y,lambda)
 % estimates the range of the error
 
-if isempty(orders),
+if isempty(orders)
     r = range(X);
     
 else

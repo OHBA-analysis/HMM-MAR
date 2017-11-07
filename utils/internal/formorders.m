@@ -1,6 +1,6 @@
 function [orders,order] = formorders(order,orderoffset,timelag,exptimelag)
 %
-% get vector of lags to look at
+% get vector of lags to look for the MAR
 % 
 % Author: Diego Vidaurre, OHBA, University of Oxford
 

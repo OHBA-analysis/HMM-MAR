@@ -36,12 +36,8 @@ pcapred = hmm.train.pcapred>0;
 if pcapred, M = hmm.train.pcapred; end
 
 for k=1:hmm.K
-    if isfield(hmm.train,'state') && isfield(hmm.train.state(k),'train') && ~isempty(hmm.train.state(k).train)
-        train = hmm.train.state(k).train;
-    else
-        train = hmm.train;
-    end
-    
+
+    train = hmm.train;
     orders = train.orders;
     %train.orders = formorders(train.order,train.orderoffset,train.timelag,train.exptimelag);
 
@@ -115,16 +111,6 @@ else
     end
 end
 
-% moving the state options for convenience
-for k=1:hmm.K
-    if isfield(hmm.train,'state') && isfield(hmm.train.state(k),'train') ...
-            && ~isempty(hmm.train.state(k).train)
-        hmm.state(k).train = hmm.train.state(k).train;
-    end
-end
-if isfield(hmm.train,'state')
-    hmm.train = rmfield(hmm.train,'state');
-end
 end
 
 
