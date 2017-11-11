@@ -16,6 +16,9 @@ else
     N = length(T);
 end
 
+% this is irrelevant, but needs to be set
+options.K = 2; options.order = 0; 
+
 % is this going to be using the stochastic learning scheme? 
 stochastic_learn = isfield(options,'BIGNbatch') && ...
     (options.BIGNbatch < N && options.BIGNbatch > 0);

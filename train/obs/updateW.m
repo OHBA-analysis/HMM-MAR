@@ -95,15 +95,15 @@ for k=1:K
                 (~train.zeromean)+Q*length(orders),1) * residuals)';
         end
         regterm = [];
-        if ~train.zeromean, regterm = hmm.state(k).prior.Mean.iS; end
+        if ~train.zeromean, regterm = hmm.state(k).prior.Mean.iS; end % ndim by 1
         if ~isempty(orders) 
             if pcapred
                 betaterm = (hmm.state(k).beta.Gam_shape ./ hmm.state(k).beta.Gam_rate)';
                 regterm = [regterm; betaterm(:)];
             else
-                sigmaterm = (hmm.state(k).sigma.Gam_shape ./ hmm.state(k).sigma.Gam_rate)';
-                sigmaterm = sigmaterm(:);
-                sigmaterm = repmat(sigmaterm, length(orders), 1);
+                sigmaterm = (hmm.state(k).sigma.Gam_shape ./ hmm.state(k).sigma.Gam_rate)'; 
+                sigmaterm = sigmaterm(:); 
+                sigmaterm = repmat(sigmaterm, length(orders), 1); % ndim*ndim*order by 1 
                 alphaterm = repmat( (hmm.state(k).alpha.Gam_shape ./ hmm.state(k).alpha.Gam_rate), ...
                     length(hmm.state(k).sigma.Gam_rate(:)), 1);
                 alphaterm = alphaterm(:);

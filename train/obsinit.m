@@ -266,10 +266,7 @@ end
 %%% Priors
 if ~pcapred
     for k=1:K
-        if isfield(hmm.state(k),'train') && ~isempty(hmm.state(k).train), train = hmm.state(k).train;
-        else train = hmm.train;
-        end
-        if train.order>0 && isempty(train.prior)
+        if hmm.train.order>0 && isempty(hmm.train.prior)
             hmm.state(k).alpha.Gam_shape = hmm.state(k).prior.alpha.Gam_shape;
             hmm.state(k).alpha.Gam_rate = hmm.state(k).prior.alpha.Gam_rate;
         end

@@ -23,10 +23,9 @@ obs_it = 1;
 
 % Some stuff that will be later used
 Gammasum = sum(Gamma);
-Tres = sum(T) - length(T)*hmm.train.maxorder;
 if nargin<7, Tfactor = 1; end
 
-while mean_change>obs_tol && obs_it<=obs_maxit,
+while mean_change>obs_tol && obs_it<=obs_maxit
     
     last_state = hmm.state;
         

@@ -6,7 +6,7 @@ function maxFO = getMaxFractionalOccupancy(Gamma,T)
 %
 % Author: Diego Vidaurre, OHBA, University of Oxford (2017)
 
-FO = fractionalOccupancy (Gamma,T);
+FO = getFractionalOccupancy(Gamma,T);
 maxFO = max(FO,[],2);
 
 end
