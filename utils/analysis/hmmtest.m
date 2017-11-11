@@ -14,13 +14,13 @@ function tests = hmmtest (Gamma,T,Tsubject,Y,options)
 %       if empty it will be interpreted that there is only one subject
 % Y: (no. trials by no. conditions) design matrix 
 % options: testing related options
-%   .Nperm: number of permutations
+%   .Nperm: number of permutations (default 1000)
 %   .subjectlevel: run subject-level tests? 
 %           (default 1 if all subjects have at least 100 trials)
 %   .grouplevel: run group-level tests? 
 %           (default 1, if there are at least 2 subjects)
 %   .confounds: (no. trials by q) matrix of confounds that are to be
-%           regressed out before doing the testing
+%           regressed out before doing the testing (default none)
 % 
 % OUTPUTS:
 %
