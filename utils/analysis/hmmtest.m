@@ -57,8 +57,8 @@ if sum(T) ~= sum(Tsubject), error('sum(T) must equal to sum(Tsubject)'); end
 N = length(T); Nsubj = length(Tsubject);
 order =  (sum(T) - size(Gamma,1)) / N;
 K = size(Gamma,2); % no. of states
-threshold_visit = 3; % less that this no. of time point, a state visit is spurious
-threshold_Gamma = (2/3); % threshold over which a state is deemed to be active
+%threshold_visit = 3; % less that this no. of time point, a state visit is spurious
+%threshold_Gamma = (2/3); % threshold over which a state is deemed to be active
 
 % Get number of trials per subject
 if Nsubj > 1
@@ -86,7 +86,7 @@ if isfield(options,'subjectlevel'), subjectlevel = options.subjectlevel;
 else, subjectlevel = (min(Ntrials_per_subject) > 100);
 end
 if isfield(options,'grouplevel'), grouplevel = options.grouplevel;
-else, options.grouplevel = (Nsubj > 2); 
+else, grouplevel = (Nsubj > 2); 
 end
 if ~isfield(options,'confounds'), confounds = [];
 else, confounds = options.confounds;
@@ -157,7 +157,7 @@ if (nargin>4) && ~isempty(confounds)
     X = X - confounds * pinv(confounds) * X;
 end
 
-X = X - mean(X);  
+X = X - repmat(mean(X),size(X,1),1);  
 grotperms = zeros(Nperm,p);
 proj = (D' * D + 0.001 * eye(size(D,2))) \ D';  
 

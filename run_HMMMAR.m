@@ -12,7 +12,7 @@
 % and that the toolbox paths are in the right place. 
 
 
-if ~exist('data','var') || ~exist('T','var'), 
+if ~exist('data','var') || ~exist('T','var')
     error('You need to load the data (data and T - see Documentation)')
 end
 
