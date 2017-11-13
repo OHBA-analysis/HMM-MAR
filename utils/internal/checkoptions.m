@@ -132,7 +132,7 @@ if ~isfield(options,'dropstates')
     if any(~options.Pstructure), options.dropstates = 0;
     else, options.dropstates = ~stochastic_learning; end
 else
-    if options.dropstates == 1 && any(~options.Pstructure)
+    if options.dropstates == 1 && any(~options.Pstructure(:))
         warning('If Pstructure  has zeros, dropstates must be zero')
         options.dropstates = 0;
     elseif options.dropstates == 1 && stochastic_learning 
