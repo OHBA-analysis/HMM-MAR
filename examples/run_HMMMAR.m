@@ -10,13 +10,14 @@
 % that the variables data_modality, no_states ,Hz and stochastic_inference 
 % (see below) are correctly set, 
 % and that the toolbox paths are in the right place. 
-
+%
+% Author: Diego Vidaurre, OHBA, University of Oxford (2016)
 
 if ~exist('data','var') || ~exist('T','var')
     error('You need to load the data (data and T - see Documentation)')
 end
 
-data_modality = 'M/EEG' ; % one of: 'fMRI', 'M/EEG', 'M/EEG power' or 'LFP' 
+data_modality = 'fMRI' ; % one of: 'fMRI', 'M/EEG', 'M/EEG power' or 'LFP' 
 no_states = 4; % the number of states depends a lot on the question at hand
 Hz = 1; % the frequency of the data
 stochastic_inference = 0; % set to 1 if a normal run is too computationally expensive (memory or time)
@@ -111,3 +112,13 @@ else % Multi-taper spectra
     options_spectra.win = 10 * Hz;
     spectra = hmmspectramt(data,T,Gamma,options_spectra);
 end
+
+% Some useful information about the dynamics
+maxFO = getMaxFractionalOccupancy(Gamma,T); % useful to diagnose if the HMM 
+            % is capturing dynamics or grand between-subject 
+            % differences (see Wiki)
+FO = getFractionalOccupancy (Gamma,T); % state fractional occupancies per session
+LifeTimes = getStateLifeTimes (Gamma,T); % state life times
+Intervals = getStateIntervalTimes (Gamma,T); % interval times between state visits
+SwitchingRate =  getSwitchingRate(Gamma,T); % rate of switching between stats
+
