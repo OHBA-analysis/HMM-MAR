@@ -6,16 +6,30 @@ function [data,M] = leakcorr (data,T,order)
 %   Colclough et al. (2015)
 % Output M is only defined for Pasqual-Marqui's method
 % Needs ROINETS on path
+%
+% Diego Vidaurre, OHBA, University of Oxford (2017)
 
 if order > 0 
-    [XX,Y] = formautoregr(data,T,1:order,order,1);
+    if isstruct(data)
+        [XX,Y] = formautoregr(data.X,T,1:order,order,1);
+    else
+        [XX,Y] = formautoregr(data,T,1:order,order,1);
+    end
     B = XX \ Y;
     eta = Y - XX * B;
     epsilon = ROInets.closest_orthogonal_matrix(eta);
     M = pinv(epsilon) * eta;
-    data = data * inv(M);
+    if isstruct(data)
+        data.X = data.X * inv(M);
+    else
+        data = data * inv(M);
+    end
 else
-    data = ROInets.closest_orthogonal_matrix(data);
+    if isstruct(data)
+        data.X = ROInets.closest_orthogonal_matrix(data.X);
+    else
+        data = ROInets.closest_orthogonal_matrix(data);
+    end
     M = [];
 end
 

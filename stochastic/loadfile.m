@@ -1,6 +1,6 @@
 function [X,XX,Y,T] = loadfile(file,T,options)
 % load the file and does some optional preprocessing
-if ~isfield(options,'downsample'), options.downsample = 0; end
+
 if iscell(file) % T needs to be cell too
     T = cell2mat(T);
     for j=1:length(file)

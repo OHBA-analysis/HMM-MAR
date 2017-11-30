@@ -7,7 +7,9 @@ function [responseY,responseR,Gamma] = hmmpred(X,T,hmm,Gamma,residuals,actstates
 % T         Number of time points for each time series
 % hmm       hmm data structure
 % Gamma     probability of current state cond. on data - 
-%           inference is run for time points with Gamma=NaN,  
+%           inference is run for time points with Gamma=NaN.
+%           (It needs to have the same size of the state time courses as
+%           would be inferred by hmmmar - no. of time points by states).
 % residuals     in case we train on residuals, the value of those.
 % actstates     Kx1 vector indicating which states were effectively used in the training, 
 %               Gamma is assumed to have as many columns as initial states
@@ -38,7 +40,7 @@ train = hmm.train;
 [orders,order] = formorders(train.order,train.orderoffset,train.timelag,train.exptimelag);
 
 if nargin<5 || isempty(residuals)
-    [residuals,Wgl] = getresiduals(X,T,train.Sind,train.order.maxorder,train.order,...
+    [residuals,Wgl] = getresiduals(X,T,train.Sind,train.maxorder,train.order,...
         train.orderoffset,train.timelag,train.exptimelag,train.zeromean);
 else
     Wgl = zeros(length(orders)*ndim+(~hmm.train.zeromean),ndim);
