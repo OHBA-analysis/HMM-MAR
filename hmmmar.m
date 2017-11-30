@@ -95,12 +95,16 @@ oldMatlab = ~isempty(strfind(ver,'2010')) || ~isempty(strfind(ver,'2010')) ...
 
 % set the matlab parallel computing environment
 if options.useParallel==1 && usejava('jvm')
-    if oldMatlab
-        if matlabpool('size')==0
-            matlabpool
+    try
+        if oldMatlab
+            if matlabpool('size')==0
+                matlabpool
+            end
+        else
+            gcp;
         end
-    else
-        gcp;
+    catch
+        error('Issue with the matlab parallel computing environment - use options.useParallel==0');
     end
 end
 
