@@ -44,6 +44,7 @@ options.onpower = onpower;
 options.leida = 0;
 options.detrend = detrend;
 options.leakagecorr = leakagecorr;
+options.downsample = 0; % this is always done after PCA
 
 if isfield(options,'A'), options = rmfield(options,'A'); end
 if ~isempty(As), options.As = As; end
