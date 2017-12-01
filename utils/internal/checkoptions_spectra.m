@@ -10,13 +10,22 @@ if isfield(options,'pca') && options.pca~=0 && options.pca~=1
     options.pca = 0;
 end
 
-if iscell(data) && ischar(data{1})
-    loadfile_sub;
-    ndim = size(X,2);
-elseif isstruct(data)
-    ndim = size(data.X,2);
+if ~isempty(data)
+    if iscell(data) && ischar(data{1})
+        fsub = data{1};
+        loadfile_sub;
+        data = X; 
+        ndim = size(data,2);
+    elseif iscell(data)
+        data = data{1};
+        ndim = size(data,2);
+    elseif isstruct(data)
+        ndim = size(data.X,2);
+    else
+        ndim = size(data,2);
+    end
 else
-    ndim = size(data,2);
+    data = rand(10,2); ndim = 2; T = 10; % useless 
 end
 
 % MT and common
@@ -41,7 +50,7 @@ if nargin==3 && any(T<options.win)
     error('The specified window is larger than some of the segments')
 end
 
-[options,data] = checkoptions(options,data,T);
+[options,data] = checkoptions(options,data,[]);
 options.leida = 0;
 options.onpower = 0;
 options.pca = 0;
@@ -54,13 +63,6 @@ if isstruct(data), data = data.X; end
 % MAR 
 % if ~isfield(options,'loadings'), options.loadings=eye(ndim); end;
 if ~isfield(options,'Nf'),  options.Nf=256; end
-if ~isfield(options,'MLestimation'), options.MLestimation = 1; end
-if ~isfield(options,'completelags'), options.completelags = 0; end
-
-if ~isfield(options,'level'), options.level = 'group'; end
-if strcmp(options.level,'subject') && options.p>0
-   warning('Intervals of confidence can only be computed when subject.level is group; setting options.p=0 ...')
-   options.p = 0;
-end
+if ~isfield(options,'completelags'), options.completelags = 1; end
 
 end

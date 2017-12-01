@@ -14,7 +14,7 @@ end
 if options.K<1, error('K must be higher than 0'); end
 stochastic_learning = isfield(options,'BIGNbatch') && ...
     (options.BIGNbatch < length(T) && options.BIGNbatch > 0);
-if ~stochastic_learning
+if ~stochastic_learning && ~isempty(T)
     if ~isstruct(data), data = struct('X',data); end
     if size(data.X,1)~=sum(T)
         error('Total time specified in T does not match the size of the data')
@@ -320,6 +320,7 @@ if ~isfield(options,'covtype') && options.leida
 elseif ~isfield(options,'covtype') && (ndim==1 || (isfield(options,'S') && ~isempty(options.S) && ~all(options.S==1)))
     options.covtype = 'diag'; 
 elseif ~isfield(options,'covtype') && ndim>1, options.covtype = 'full'; 
+elseif ~isfield(options,'covtype'), options.covtype = 'diag';
 elseif (strcmp(options.covtype,'full') || strcmp(options.covtype,'uniquefull')) && ndim==1
     warning('Covariance can only be diag or uniquediag if data has only one channel')
     if strcmp(options.covtype,'full'), options.covtype = 'diag';

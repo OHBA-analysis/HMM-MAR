@@ -47,10 +47,10 @@ if order>0 && length(embeddedlags)>1
     error('Order needs to be zero for multiple embedded lags')
 end
     
-% Adjust series lengths (TT), and preprocess if data is not cell
+% Adjust series lengths, and preprocess if data is not cell
 if xor(iscell(data),iscell(T)), error('X and T must be cells, either both or none of them.'); end
 if iscell(data)
-    TT = [];
+    TT = []; 
     for j=1:length(data)
         t = double(T{j}); if size(t,1)==1, t = t'; end
         TT = [TT; t];
@@ -59,8 +59,13 @@ if iscell(data)
     if nargin<3 || isempty(Gamma)
         Gamma = ones(sum(TT),1);
     end
-    %order = (sum(TT) - size(Gamma,1)) / length(TT);
-    %TT = TT - order;
+    if order > 0
+        TT = TT - order; 
+    elseif length(embeddedlags) > 1
+        d1 = min(0,-embeddedlags(1));
+        d2 = max(0,embeddedlags(end));
+        TT = TT - (d1+d2);
+    end
 else
     T = double(T);
     [options,~,ndim] = checkoptions_spectra(options,data,T,0);
@@ -112,7 +117,11 @@ Gamma = sqrt(Gamma) .* repmat( sqrt(size(Gamma,1) ./ sum(Gamma)), size(Gamma,1),
 K = size(Gamma,2);
 
 if options.p>0, options.err = [2 options.p]; end
-Fs = options.Fs;
+if isfield(options,'downsample') && options.downsample~=0
+    Fs = options.downsample;
+else
+    Fs = options.Fs;
+end
 fit = {};
 
 nfft = max(2^(nextpow2(options.win)+options.pad),options.win);
@@ -124,11 +133,15 @@ ntapers = options.tapers(2);
 for k=1:K
            
     % Multitaper Cross-frequency matrix calculation
-    psdc = zeros(Nf,ndim,ndim,length(TT)*ntapers);
-    sumgamma = zeros(length(TT)*ntapers,1);
+    if options.p > 0
+        psdc = zeros(Nf,ndim,ndim,length(TT)*ntapers);
+    else
+        psdc = zeros(Nf,ndim,ndim);
+    end
+    sumgamma = zeros(length(T)*ntapers,1);
     c = 1;  
     t00 = 0; 
-    for n=1:length(T)
+    for n = 1:length(T)
         if iscell(data)
             X = loadfile(data{n},T{n},options); % includes preprocessing
             if order > 0
@@ -157,7 +170,7 @@ for k=1:K
             LT= 1;
         end
         t0 = 0;
-        for nn=1:LT
+        for nn = 1:LT % elements for this subject
             ind_gamma = (1:TT(c)) + t00;
             ind_X = (1:TT(c)) + t0;
             t00 = t00 + TT(c); t0 = t0 + TT(c);
@@ -185,10 +198,18 @@ for k=1:K
                         %        conj(Jik(:,1,j)).*Jik(:,1,l)  / double(Nwins);
                         %end
                         for l=j:ndim
-                            psdc(:,j,l,(c-1)*ntapers+tp) = psdc(:,j,l,(c-1)*ntapers+tp) + ...
-                                conj(Jik(:,1,j)).*Jik(:,1,l) / double(Nwins);
-                            if l~=j
-                                psdc(:,l,j,(c-1)*ntapers+tp) = conj(psdc(:,j,l,(c-1)*ntapers+tp));
+                            if options.p > 0
+                                psdc(:,j,l,(c-1)*ntapers+tp) = psdc(:,j,l,(c-1)*ntapers+tp) + ...
+                                    conj(Jik(:,1,j)).*Jik(:,1,l) / double(Nwins);
+                                if l~=j
+                                    psdc(:,l,j,(c-1)*ntapers+tp) = conj(psdc(:,j,l,(c-1)*ntapers+tp));
+                                end
+                            else
+                                psdc(:,j,l) = psdc(:,j,l) + sumgamma((c-1)*ntapers+tp) * ...
+                                    conj(Jik(:,1,j)).*Jik(:,1,l) / double(Nwins);
+                                if l~=j
+                                    psdc(:,l,j) = conj(psdc(:,j,l));
+                                end
                             end
                         end
                     end
@@ -197,15 +218,20 @@ for k=1:K
             c = c + 1;
         end
     end
-    sumgamma = sumgamma / sum(sumgamma);
-    for iNf = 1:Nf
-        for indim=1:ndim
-            for indim2=1:ndim
-                psdc(iNf,indim,indim2,:) = permute(psdc(iNf,indim,indim2,:),[4 1 2 3]) .* sumgamma;
+    if options.p > 0
+        sumgamma = sumgamma / sum(sumgamma);
+        for iNf = 1:Nf
+            for indim=1:ndim
+                for indim2=1:ndim
+                    psdc(iNf,indim,indim2,:) = permute(psdc(iNf,indim,indim2,:),[4 1 2 3]) .* sumgamma;
+                end
             end
         end
+        psd = mean(psdc,4); 
+    else
+        psd = psdc / sum(sumgamma);
     end
-    psd = mean(psdc,4); ipsd = zeros(Nf,ndim,ndim);
+    ipsd = zeros(Nf,ndim,ndim);
     
     for ff=1:Nf
         if rcond(permute(psd(ff,:,:),[3 2 1]))>1e-10
@@ -315,16 +341,16 @@ if isempty(strfind(which('dpss'),matlabroot))
     error('Function dpss() seems to be other than Matlab''s own - you need to rmpath() it. Use ''rmpath(fileparts(which(''dpss'')))''')
 end
 
-if sz(1)==1 && sz(2)==2;
+if sz(1)==1 && sz(2)==2
     try
         [tapers,eigs]=dpss(N,tapers(1),tapers(2));
     catch 
         error('Window is too short - increase options.win')
     end
     tapers = tapers*sqrt(Fs);
-elseif N~=sz(1);
+elseif N~=sz(1)
     error('error in your dpss calculation? the number of time points is different from the length of the tapers');
-end;
+end
 end
 
 %-------------------------------------------------------------------

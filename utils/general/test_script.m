@@ -56,6 +56,10 @@ for covtype = {'full','diag','uniquefull','uniquediag'}
                 fe2 = hmmfe(X,T,hmm); %(fe(end)-fe2)/fe2
             end
             fitmt = hmmspectramt(X,T,Gamma,options);
+            if order > 0
+                fitmar1 = hmmspectramar([],[],hmm);
+                fitmar2 = hmmspectramar(X,T,[],Gamma,options);
+            end
         end
     end
 end
@@ -68,6 +72,8 @@ options.covtype = 'diag';
 options.embeddedlags = 0;
 [hmm,Gamma,Xi,vpath,~,~,fe] = hmmmar(X(:,1),T,options);
 fitmt = hmmspectramt(X(:,1),T,Gamma,options);
+fitmar1 = hmmspectramar([],[],hmm);
+fitmar2 = hmmspectramar(X(:,1),T,[],Gamma,options);
 if isfield(options,'grouping')
     fe2 = hmmfe(X(:,1),T,hmm,[],[],[],options.grouping); %(fe(end)-fe2)/fe2
 else
