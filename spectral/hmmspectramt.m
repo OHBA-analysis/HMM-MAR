@@ -13,6 +13,8 @@ function fit = hmmspectramt(data,T,Gamma,options)
 % Gamma: State time course  
 % options       structure with the training options - see documentation in 
 %                       https://github.com/OHBA-analysis/HMM-MAR/wiki
+%               IMPORTANT: If the HMM was run with the options order or embeddedlags, 
+%                           these must be specified here as well
 %
 %
 % OUTPUTS:
@@ -35,64 +37,78 @@ function fit = hmmspectramt(data,T,Gamma,options)
 % Author: Diego Vidaurre, OHBA, University of Oxford (2014)
 %  the code uses some parts from Chronux
 
-% if iscell(T)
-%     for i = 1:length(T)
-%         if size(T{i},1)==1, T{i} = T{i}'; end
-%     end
-%     T = cell2mat(T);
-% end
-
+if ~isfield(options,'order'), order = 0; 
+else, order = options.order; 
+end
+if ~isfield(options,'embeddedlags'), embeddedlags = 0; 
+else, embeddedlags = options.embeddedlags; 
+end
+if order>0 && length(embeddedlags)>1
+    error('Order needs to be zero for multiple embedded lags')
+end
+    
+% Adjust series lengths (TT), and preprocess if data is not cell
+if xor(iscell(data),iscell(T)), error('X and T must be cells, either both or none of them.'); end
 if iscell(data)
-    if ~iscell(T), error('If you provide data as a cell, T must be a cell too'); end
-    if ~isfield(options,'standardise'), options.standardise = 0; end
-    X = loadfile_mt(data{1},T{1},options);
-    ndim = size(X,2);
     TT = [];
     for j=1:length(data)
         t = double(T{j}); if size(t,1)==1, t = t'; end
         TT = [TT; t];
     end
-    options = checkoptions_spectra(options,ndim,TT);
+    [options,~,ndim] = checkoptions_spectra(options,data,TT,0);
     if nargin<3 || isempty(Gamma)
         Gamma = ones(sum(TT),1);
     end
-    order = (sum(TT) - size(Gamma,1)) / length(TT);
-    TT = TT - order;
+    %order = (sum(TT) - size(Gamma,1)) / length(TT);
+    %TT = TT - order;
 else
-    if isstruct(data), data = data.X; end
-    ndim = size(data,2); T = double(T);
-    options = checkoptions_spectra(options,ndim,T);
+    T = double(T);
+    [options,~,ndim] = checkoptions_spectra(options,data,T,0);
     if nargin<3 || isempty(Gamma)
         Gamma = ones(sum(T),1);
+    end 
+    % Filtering
+    if ~isempty(options.filter)
+       data = filterdata(data,T,options.Fs,options.filter);
     end
-    if options.standardise == 1
-        for i = 1:length(T)
-            t = (1:T(i)) + sum(T(1:i-1));
-            data(t,:) = data(t,:) - repmat(mean(data(t,:)),length(t),1);
-            sdx = std(data(t,:));
-            if any(sdx==0)
-                error('At least one of the trials/segments/subjects has variance equal to zero');
-            end
-            data(t,:) = data(t,:) ./ repmat(sdx,length(t),1);
-        end
+    % Detrend data
+    if options.detrend
+       data = detrenddata(data,T); 
     end
-    order = (sum(T) - size(Gamma,1)) / length(T);
+    % Standardise data and control for ackward trials
+    data = standardisedata(data,T,options.standardise); 
+    % Leakage correction
+    if options.leakagecorr ~= 0 
+        data = leakcorr(data,T,options.leakagecorr);
+    end
+    % Downsampling
+    if options.downsample > 0 
+       [data,T] = downsampledata(data,T,options.downsample,options.Fs); 
+    end
     % remove the exceeding part of X (with no attached Gamma)
-    if order>0
+    if order > 0
         data2 = zeros(sum(T)-length(T)*order,ndim);
-        for in = 1:length(T)
-            t0 = sum(T(1:in-1)); t00 = sum(T(1:in-1)) - (in-1)*order;
-            data2(t00+1:t00+T(in)-order,:) = data(t0+1+order:t0+T(in),:);
+        for n = 1:length(T)
+            t0 = sum(T(1:n-1)); t00 = sum(T(1:n-1)) - (n-1)*order;
+            data2(t00+1:t00+T(n)-order,:) = data(t0+1+order:t0+T(n),:);
         end
         T = T - order;
         data = data2; clear data2;
+    elseif length(embeddedlags) > 1
+        d1 = min(0,-embeddedlags(1));
+        d2 = max(0,embeddedlags(end));
+        data2 = zeros(sum(T)-length(T)*(d1+d2),ndim);
+        for n = 1:length(T)
+            t0 = sum(T(1:n-1)); t00 = sum(T(1:n-1)) - (n-1)*(d1+d2);
+            data2(t00+1+d1:t00+T(n)-d2,:) = data(t0+1+d1:t0+T(n)-d2,:);
+        end
+        T = T - (d1+d2);
+        data = data2; clear data2;  
     end
     TT = T;
-    
 end
 
 Gamma = sqrt(Gamma) .* repmat( sqrt(size(Gamma,1) ./ sum(Gamma)), size(Gamma,1), 1);
-
 K = size(Gamma,2);
 
 if options.p>0, options.err = [2 options.p]; end
@@ -105,7 +121,6 @@ Nf = length(f); options.Nf = Nf;
 tapers=dpsschk(options.tapers,options.win,Fs); % check tapers
 ntapers = options.tapers(2);
 
-
 for k=1:K
            
     % Multitaper Cross-frequency matrix calculation
@@ -113,24 +128,36 @@ for k=1:K
     sumgamma = zeros(length(TT)*ntapers,1);
     c = 1;  
     t00 = 0; 
-    for in=1:length(T)
+    for n=1:length(T)
         if iscell(data)
-            X = loadfile_mt(data{in},T{in},options);
-            if order>0
-                X2 = zeros(sum(T{in})-length(T{in})*order,ndim);
-                for inn = 1:length(T{in})
-                    t0_star = sum(T{in}(1:inn-1)); t00_star = sum(T{in}(1:inn-1)) - (inn-1)*order;
-                    X2(t00_star+1:t00_star+T{in}(inn)-order,:) = X(t0_star+1+order:t0_star+T{in}(inn),:);
+            X = loadfile(data{n},T{n},options); % includes preprocessing
+            if order > 0
+                X2 = zeros(sum(T{n})-length(T{n})*order,ndim);
+                for nn = 1:length(T{n})
+                    t0_star = sum(T{n}(1:nn-1)); t00_star = sum(T{n}(1:nn-1)) - (nn-1)*order;
+                    X2(t00_star+1:t00_star+T{n}(nn)-order,:) = X(t0_star+1+order:t0_star+T{n}(nn),:);
+                end
+                X = X2; clear X2;
+            elseif length(embeddedlags) > 1
+                d1 = min(0,-embeddedlags(1));
+                d2 = max(0,embeddedlags(end));
+                X2 = zeros(sum(T{n})-length(T{n})*(d1+d2),ndim);
+                for nn = 1:length(T{n})
+                    t0_star = sum(T{n}(1:nn-1)); t00_star = sum(T{n}(1:nn-1)) - (nn-1)*(d1+d2);
+                    X2(t00_star+1+d1:t00_star+T{n}(nn)-d2,:) = X(t0_star+1+d1:t0_star+T{n}(nn)-d2,:);
+                    
+                    t0 = sum(T(1:n-1)); t00 = sum(T(1:n-1)) - (n-1)*(d1+d2);
+                    data2(t00+1+d1:t00+T(n)-d2,:) = data(t0+1+d1:t0+T(n)-d2,:);
                 end
                 X = X2; clear X2;
             end
-            LT = length(T{in});
+            LT = length(T{n});
         else
-            X = data((1:TT(in)) + sum(TT(1:in-1)) , : ); 
+            X = data((1:TT(n)) + sum(TT(1:n-1)) , : ); 
             LT= 1;
         end
         t0 = 0;
-        for inn=1:LT
+        for nn=1:LT
             ind_gamma = (1:TT(c)) + t00;
             ind_X = (1:TT(c)) + t0;
             t00 = t00 + TT(c); t0 = t0 + TT(c);
@@ -145,7 +172,6 @@ for k=1:K
                     if sum(nzeros2)<nzeros, nzeros2(1) = nzeros2(1)+1; end
                     ranget = ranget(1):TT(c);
                     Xwin=[zeros(nzeros2(1),ndim); Xki(ranget,:); zeros(nzeros2(2),ndim)]; % padding with zeroes
-                    
                 else
                     Xwin=Xki(ranget,:);
                 end
@@ -155,7 +181,7 @@ for k=1:K
                     Jik=J(findx,tp,:);
                     for j=1:ndim
                         %for l=1:ndim
-                        %    psdc(:,j,l,(in-1)*ntapers+tp) = psdc(:,j,l,(in-1)*ntapers+tp) + ...
+                        %    psdc(:,j,l,(n-1)*ntapers+tp) = psdc(:,j,l,(n-1)*ntapers+tp) + ...
                         %        conj(Jik(:,1,j)).*Jik(:,1,l)  / double(Nwins);
                         %end
                         for l=j:ndim
@@ -363,19 +389,19 @@ data_proj=data.*tapers; % product of data with tapers
 J=fft(data_proj,nfft)/Fs;   % fft of projected data
 end
 
-function X = loadfile_mt(f,T,options)
-
-if ischar(f)
-    fsub = f;
-    loadfile_sub;
-else
-    X = f;
-end
-if options.standardise == 1
-    for i=1:length(T)
-        t = (1:T(i)) + sum(T(1:i-1));
-        X(t,:) = X(t,:) - repmat(mean(X(t,:)),length(t),1);
-        X(t,:) = X(t,:) ./ repmat(std(X(t,:)),length(t),1);
-    end
-end
-end
+% function X = loadfile_mt(f,T,options)
+% 
+% if ischar(f)
+%     fsub = f;
+%     loadfile_sub;
+% else
+%     X = f;
+% end
+% if options.standardise == 1
+%     for i=1:length(T)
+%         t = (1:T(i)) + sum(T(1:i-1));
+%         X(t,:) = X(t,:) - repmat(mean(X(t,:)),length(t),1);
+%         X(t,:) = X(t,:) ./ repmat(std(X(t,:)),length(t),1);
+%     end
+% end
+% end

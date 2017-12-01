@@ -39,7 +39,6 @@ options.useParallel = 0;
 options.grouping = [1 1 1 1 1 1 1 1]; 
 %options.grouping = [1 1 1 1 2 2 2 2];
 
-
 for covtype = {'full','diag','uniquefull','uniquediag'}
     for order = [0 2]
         for zeromean = [0 1]
@@ -56,6 +55,7 @@ for covtype = {'full','diag','uniquefull','uniquediag'}
             else
                 fe2 = hmmfe(X,T,hmm); %(fe(end)-fe2)/fe2
             end
+            fitmt = hmmspectramt(X,T,Gamma,options);
         end
     end
 end
@@ -67,6 +67,7 @@ options.pca = 0;
 options.covtype = 'diag'; 
 options.embeddedlags = 0;
 [hmm,Gamma,Xi,vpath,~,~,fe] = hmmmar(X(:,1),T,options);
+fitmt = hmmspectramt(X(:,1),T,Gamma,options);
 if isfield(options,'grouping')
     fe2 = hmmfe(X(:,1),T,hmm,[],[],[],options.grouping); %(fe(end)-fe2)/fe2
 else
@@ -81,6 +82,8 @@ options.covtype = 'full';
 options.embeddedlags = -2:2;
 options.pca = 6;
 [hmm,Gamma,Xi,vpath,~,~,fe] = hmmmar(X,T,options);
+fitmt = hmmspectramt(X,T,Gamma,options);
+
 if isfield(options,'grouping')
     fe2 = hmmfe(X,T,hmm,[],[],[],options.grouping); %(fe(end)-fe2)/fe2
 else
@@ -200,6 +203,7 @@ for covtype = {'full','diag'} %,'uniquefull','uniquediag'}
             else
                 fe2 = hmmfe(X,T,hmm); %(fe(end)-fe2)/fe2
             end
+            fitmt = hmmspectramt(X,T,Gamma,options);
             if isnan((fe(end)-fe2)/fe2), error('NaN'); end
         end
     end
@@ -211,6 +215,7 @@ options.pca = 0;
 options.covtype = 'diag'; 
 options.embeddedlags = 0;
 [hmm,Gamma,Xi,vpath,~,~,fe] = hmmmar(X(:,1),T,options);
+fitmt = hmmspectramt(X(:,1),T,Gamma,options);
 if isfield(options,'grouping')
     fe2 = hmmfe(X(:,1),T,hmm,[],[],[],options.grouping); %(fe(end)-fe2)/fe2
 else
@@ -227,6 +232,7 @@ options.covtype = 'diag';
 options.embeddedlags = 0;
 options.zeromean = 1; 
 [hmm,Gamma,Xi,vpath,~,~,fe] = hmmmar(X,T,options);
+fitmt = hmmspectramt(X,T,Gamma,options);
 options = rmfield(options,'S');
 
 % Embedded HMM
@@ -236,6 +242,7 @@ options.covtype = 'full';
 options.embeddedlags = -2:2;
 options.pca = 3;
 [hmm,Gamma,Xi,vpath,~,~,fe] = hmmmar(X,T,options);
+fitmt = hmmspectramt(X,T,Gamma,options);
 if isfield(options,'grouping')
     fe2 = hmmfe(X,T,hmm,[],[],[],options.grouping); %(fe(end)-fe2)/fe2
 else

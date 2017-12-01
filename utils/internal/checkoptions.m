@@ -152,7 +152,7 @@ if ~isempty(options.filter)
             'This is discouraged for a MAR model'])
     end
 end
-if options.downsample > 0 && isfield(data,'C')
+if options.downsample > 0 && isstruct(data) && isfield(data,'C')
     warning('The use of downsampling is currently not compatible with specifying data.C');
     data = rmfield(data,'C');
 end
@@ -184,13 +184,21 @@ if options.leida
    end
 end
 
-if stochastic_learning
+if iscell(data)
     X = loadfile(data{1},T{1},options); 
     ndim = size(X,2);
 elseif length(options.pca)==1 && options.pca == 0
-    ndim = length(options.embeddedlags) * size(data.X,2);
+    if isstruct(data)
+        ndim = length(options.embeddedlags) * size(data.X,2);
+    else
+        ndim = length(options.embeddedlags) * size(data,2);
+    end
 elseif options.pca(1) < 1
-    ndim = size(data.X,2); % temporal assignment
+    if isstruct(data) % temporal assignment
+        ndim = size(data.X,2);
+    else
+        ndim = size(data,2);
+    end
 else
     ndim = options.pca;
 end
