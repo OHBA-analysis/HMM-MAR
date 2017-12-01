@@ -227,7 +227,7 @@ for k=1:K
                 end
             end
         end
-        psd = mean(psdc,4); 
+        psd = sum(psdc,4) / sum(sumgamma); 
     else
         psd = psdc / sum(sumgamma);
     end
