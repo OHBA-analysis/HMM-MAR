@@ -334,7 +334,9 @@ else
     else % using a warm restart from a previous run
         hmm_wr = versCompatibilityFix(options.hmm);
         options = rmfield(options,'hmm');
+        train = hmm_wr.train; 
         hmm_wr.train = options;
+        hmm_wr.train.active = train.active;        
         residuals_wr = getresiduals(data.X,T,hmm_wr.train.Sind,hmm_wr.train.maxorder,hmm_wr.train.order,...
             hmm_wr.train.orderoffset,hmm_wr.train.timelag,hmm_wr.train.exptimelag,hmm_wr.train.zeromean);
     end
