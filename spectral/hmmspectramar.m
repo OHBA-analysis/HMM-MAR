@@ -189,12 +189,12 @@ freqs = (0:options.Nf-1)* ...
     ( (options.fpass(2) - options.fpass(1)) / (options.Nf-1)) + options.fpass(1);
 w = 2*pi*freqs/Fs;
 N = length(T);
-Gammasum = zeros(N,K);
 
 % set up the resulting matrices
 if options.p==0, NN = 1; 
 else, NN = N;
 end
+Gammasum = zeros(NN,K);
 psdc = zeros(options.Nf,ndim,ndim,NN,K);
 if ndim>1
     pdcc = zeros(options.Nf,ndim,ndim,NN,K);
@@ -268,13 +268,33 @@ for j=1:NN
         end
     end
 end
+
+% Normalise psdc and pdcc by the amount of fractional occupancy per trial
+if options.p > 0
+    for ff=1:options.Nf
+        for n=1:ndim
+            for l=1:ndim
+                psdc(ff,n,l,:,:) = permute(psdc(ff,n,l,:,:),[4 5 1 2 3]) ./ Gammasum;
+                pdcc(ff,n,l,:,:) = permute(pdcc(ff,n,l,:,:),[4 5 1 2 3]) ./ Gammasum;
+            end
+        end
+    end
+end
     
 % For each state compute coherence, and do jackknifing
 for k=1:K
     fit.state(k).pdc = []; fit.state(k).coh = []; fit.state(k).pcoh = []; fit.state(k).phase = [];
-    fit.state(k).psd = mean(psdc(:,:,:,:,k),4);
+    if options.p > 0
+        fit.state(k).psd = sum(psdc(:,:,:,:,k),4) / sum(Gammasum(:,k));
+    else
+        fit.state(k).psd = psdc(:,:,:,1,k);
+    end
     if options.to_do(2)==1  && ndim>1
-        fit.state(k).pdc = mean(pdcc(:,:,:,:,k),4);
+        if options.p > 0
+            fit.state(k).pdc = sum(pdcc(:,:,:,:,k),4) / sum(Gammasum(:,k));
+        else
+            fit.state(k).pdc = pdcc(:,:,:,1,k);
+        end
     end
     fit.state(k).ipsd = zeros(options.Nf,ndim,ndim);
     for ff=1:options.Nf
