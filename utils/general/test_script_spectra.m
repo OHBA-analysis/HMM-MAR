@@ -16,6 +16,7 @@ for p = [0 0.99]
     for format = [0 1 2]
         
         options.p = p;
+        options.to_do = [1 1];
         
         if format==0
             data = X; Tdata = T;

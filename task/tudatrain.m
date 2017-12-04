@@ -69,6 +69,11 @@ options.S = -ones(p+q);
 options.S(1:p,p+1:end) = 1;
 options.updateObs = 0; % update only Gamma and trans prob mat
 [tuda,Gamma,~,vpath,~,~, stats.fehist] = hmmmar(Z,T,options); 
+options.updateObs = 1; 
+options.updateGamma = 0;
+options.Gamma = Gamma;
+options.hmm = tuda; 
+[tuda,Gamma,~,vpath,~,~, stats.fehist] = hmmmar(Z,T,options); 
 tuda.features = features;
 
 % Explained variance per state, square error &

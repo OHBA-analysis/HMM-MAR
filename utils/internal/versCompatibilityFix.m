@@ -1,7 +1,5 @@
 function hmm = versCompatibilityFix(hmm)
 
-K = length(hmm.state);
-
 if ~isfield(hmm.train,'orders')
     hmm.train.orders = formorders(hmm.train.order,hmm.train.orderoffset,...
         hmm.train.timelag,hmm.train.exptimelag);
