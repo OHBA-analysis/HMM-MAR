@@ -52,7 +52,7 @@ methods(Static)
             d = 1;
         else
             f = @(x) ts - f_prob(x); % Function with a minimum when the probability x returns a lifetime the same as requested
-            test_values = [1e-5 1-1e-5];
+            test_values = [1e-7 1-1e-7];
             if sign(f(test_values(1))) == sign(f(test_values(2)))
                 fprintf(2,'DirichletDiags is too large to numerically adjust it as K changes. Leaving it unchanged\n');
                 return
