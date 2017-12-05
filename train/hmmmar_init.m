@@ -70,7 +70,10 @@ if init_k < options.K
     f_prob = dirichletdiags.mean_lifetime(); % Function that returns the lifetime in steps given the probability
     expected_lifetime =  f_prob(p)/options.Fs; % Expected number of steps given the probability
     options.K = init_k;
-    options.DirichletDiag = dirichletdiags.get(expected_lifetime,options.Fs,options.K);
+    adjusted_DirichletDiag = dirichletdiags.get(expected_lifetime,options.Fs,options.K);
+    if isfinite(adjusted_DirichletDiag) % It is NaN if there was a numerical issue 
+        options.DirichletDiag = adjusted_DirichletDiag;
+    end
 end
 
 data.C = data.C(:,1:options.K);

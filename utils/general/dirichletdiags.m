@@ -29,10 +29,12 @@ methods(Static)
         % t - Mean state lifetime (s)
         % fs - Data sampling rate
         % K - number of states
+        d = NaN;
+        tested_lifetime = NaN;
+        analytic_lifetime = NaN;
+
         if K == 1
             d = 1; % If only one state, transition matrix is 1x1 with 1 on the diagonal
-            tested_lifetime = NaN;
-            analytic_lifetime = NaN;
             return
         end
         
@@ -50,8 +52,12 @@ methods(Static)
             d = 1;
         else
             f = @(x) ts - f_prob(x); % Function with a minimum when the probability x returns a lifetime the same as requested
-            
-            [p,~,flag] = fzero(f,[1e-5 1-1e-5]); % Solve this equation numerically to find the right probability
+            test_values = [1e-5 1-1e-5];
+            if sign(f(test_values(1))) == sign(f(test_values(2)))
+                fprintf(2,'DirichletDiags is too large to numerically adjust it as K changes. Leaving it unchanged\n');
+                return
+            end
+            [p,~,flag] = fzero(f,test_values); % Solve this equation numerically to find the right probability
             
             if flag ~= 1
                 error('fzero failed')
