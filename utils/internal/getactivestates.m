@@ -13,9 +13,11 @@ Gammasum = sum(Gamma);
 if isfield(hmm.train,'B'), Q = size(hmm.train.B,2);
 else, Q = ndim; end
 
+threshold = max(4*length(orders)*Q+5,10);
+
 actstates = ones(1,K); % length = to the last no. of states (=the original K if dropstates==0)
 for k=1:K
-    if Gammasum(:,k) <= max(4*length(orders)*Q+5,10)
+    if Gammasum(:,k) <= threshold
         if ~hmm.train.dropstates && hmm.train.active(k)==1
             fprintf('State %d has been switched off with %f points\n',k,Gammasum(k))
             hmm.train.active(k) = 0;
