@@ -147,7 +147,7 @@ if MLestimation
     end
     % Downsampling
     if options.downsample > 0
-        [data,T] = downsampledata(data,TT,options.downsample,options.Fs);
+        [data,T] = downsampledata(data,T,options.downsample,options.Fs);
     end
     % adjust the dimension of the data
     supposed_order = (size(data,1) - size(Gamma,1) ) / length(T);
