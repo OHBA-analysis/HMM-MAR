@@ -18,9 +18,8 @@ if nargin<10, W = []; end
 
 N = length(T);
 
-[~,order] = formorders(order,orderoffset,timelag,exptimelag);
-
 if any(Sind(:)==0) 
+    [~,order] = formorders(order,orderoffset,timelag,exptimelag);
     if isempty(W)
         [W,~,~,residuals] = mlmar(X,T,Sind==0,maxorder,order,orderoffset,timelag,...
         exptimelag,zeromean);

@@ -6,6 +6,10 @@ if iscell(T)
 end
 T = sum(T);
 
+if nargin < 3
+    Gamma = ones(sum(T),1);
+end
+
 ndim = size(hmm.state(1).W.Mu_W,2); K = size(Gamma,2);
 X = zeros(T,ndim);
 mu = zeros(T,ndim);

@@ -18,7 +18,7 @@ function [X,T,Gamma] = simhmmmar(T,hmm,Gamma,nrep,sim_state_tcs_only,grouping)
 % T             Number of time points for each time series
 % Gamma         simulated  p(state | data)
 %
-% Author: Diego Vidaurre, OHBA, University of Oxford
+% Author: Diego Vidaurre, OHBA, University of Oxford (2016)
 
 N = length(T); K = length(hmm.state);
 ndim = size(hmm.state(1).W.Mu_W,2);
@@ -28,6 +28,10 @@ if nargin<4 || isempty(nrep), nrep = 10; end
 if nargin<5, sim_state_tcs_only=0; end
 if nargin<6, grouping=[]; end
     
+
+if isfield(hmm.train,'embeddedlags') && length(options.embeddedlags) > 1
+    error('It is not currently possible to generate data with options.embeddedlags ~= 0'); 
+end
 if ~isfield(hmm.train,'timelag'), hmm.train.timelag = 1; end
 if ~isfield(hmm.train,'exptimelag'), hmm.train.exptimelag = 1; end
 if ~isfield(hmm.train,'orderoffset'), hmm.train.orderoffset = 0; end
@@ -37,6 +41,7 @@ if ~isfield(hmm.train,'maxorder'), hmm.train.maxorder = hmm.train.order; end
 if hmm.train.maxorder > 0, d = 500;
 else, d = 0;
 end
+nz = (~hmm.train.zeromean);
 
 if isempty(Gamma) && K>1 % Gamma is not provided, so we simulate it too
     Gamma = simgamma(T,hmm.P,hmm.Pi,nrep,grouping);
@@ -77,13 +82,10 @@ if ~sim_state_tcs_only
             for t=start:T(n)+d
                 for k=1:K
                     orders = hmm.state(k).train.orders;
-                    XX = zeros(1,length(orders)*ndim);
+                    XX = ones(1,length(orders)*ndim + nz);
                     for i=1:length(orders)
                         o = orders(i);
-                        XX(1,(1:ndim) + (i-1)*ndim) = Xin(t-o,:);
-                    end
-                    if ~hmm.train.zeromean
-                        XX = [1 XX];
+                        XX(1,(1:ndim) + (i-1)*ndim + nz) = Xin(t-o,:);
                     end
                     Xin(t,:) = Xin(t,:) + G(t,k) * XX * hmm.state(k).W.Mu_W;
                 end
