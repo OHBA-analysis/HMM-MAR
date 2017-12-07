@@ -17,7 +17,7 @@ else
     end
 end
 % KL-divergence for transition prob
-K = size(hmm.Dir_alpha,1);
+K = length(hmm.state);
 for i = 1:Q
     for k = 1:K
         kk = hmm.train.Pstructure(k,:);
