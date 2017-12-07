@@ -22,7 +22,7 @@ function [FrEn,avLL] = evalfreeenergy(X,T,Gamma,Xi,hmm,residuals,XX,todo)
 
 if nargin<8, todo = ones(1,5); end
 
-K = hmm.K;
+K = length(hmm.state);
 if (nargin<7 || isempty(XX)) && todo(2)==1
     setxx; % build XX and get orders
 end

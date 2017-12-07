@@ -100,12 +100,15 @@ else
         T = T - order;
         data = data2; clear data2;
     elseif length(embeddedlags) > 1
-        d1 = min(0,-embeddedlags(1));
+        d1 = -min(0,embeddedlags(1));
         d2 = max(0,embeddedlags(end));
         data2 = zeros(sum(T)-length(T)*(d1+d2),ndim);
         for n = 1:length(T)
-            t0 = sum(T(1:n-1)); t00 = sum(T(1:n-1)) - (n-1)*(d1+d2);
-            data2(t00+1+d1:t00+T(n)-d2,:) = data(t0+1+d1:t0+T(n)-d2,:);
+            idx1 = sum(T(1:n-1))-(d1+d2)*(n-1)+1; 
+            idx2 = sum(T(1:n)) - (d1+d2)*n; 
+            idx3 = sum(T(1:n-1))+d1+1; 
+            idx4 = sum(T(1:n)) - d2 ;
+            data2(idx1:idx2,:) = data(idx3:idx4,:); 
         end
         T = T - (d1+d2);
         data = data2; clear data2;  
