@@ -6,7 +6,7 @@ else
     Q = 1;
 end
 N = length(T); 
-order = hmm.train.maxorder;
+order = (sum(T) - size(Gamma,1))/N;
 avLL = 0; K = size(Gamma,2);
 jj = zeros(N,1); % reference to first time point of the segments
 for in = 1:N
