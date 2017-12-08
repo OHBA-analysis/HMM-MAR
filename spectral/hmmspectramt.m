@@ -37,7 +37,12 @@ function fit = hmmspectramt(data,T,Gamma,options)
 % Author: Diego Vidaurre, OHBA, University of Oxford (2014)
 %  the code uses some parts from Chronux
 
-if ~isfield(options,'order'), order = 0; 
+if ~isfield(options,'order') && ~isfield(options,'embeddedlags')
+    warning(['If you ran the HMM with options.order>0 or options.embeddedlags, ' ... 
+        'these need to be specified too here'])
+end
+
+if ~isfield(options,'order'), order = 0; options.order = 0;
 else, order = options.order; 
 end
 if ~isfield(options,'embeddedlags'), embeddedlags = 0; 
@@ -45,6 +50,11 @@ else, embeddedlags = options.embeddedlags;
 end
 if order>0 && length(embeddedlags)>1
     error('Order needs to be zero for multiple embedded lags')
+end
+if nargin<3 || isempty(Gamma)
+    options.K = 1; 
+else
+    options.K = size(Gamma,2);
 end
     
 % Adjust series lengths, and preprocess if data is not cell
@@ -62,7 +72,7 @@ if iscell(data)
     if order > 0
         TT = TT - order; 
     elseif length(embeddedlags) > 1
-        d1 = min(0,-embeddedlags(1));
+        d1 = -min(0,embeddedlags(1));
         d2 = max(0,embeddedlags(end));
         TT = TT - (d1+d2);
     end
@@ -70,7 +80,7 @@ else
     T = double(T);
     [options,~,ndim] = checkoptions_spectra(options,data,T,0);
     if nargin<3 || isempty(Gamma)
-        Gamma = ones(sum(T),1);
+        Gamma = ones(sum(T),1); options.order = 0; options.embeddedlags = 0;
     end 
     % Filtering
     if ~isempty(options.filter)
@@ -177,8 +187,10 @@ for k=1:K
             ind_gamma = (1:TT(c)) + t00;
             ind_X = (1:TT(c)) + t0;
             t00 = t00 + TT(c); t0 = t0 + TT(c);
+            try
             if sum(Gamma(ind_gamma,k))<1, c = c + 1; continue; end
             Xki = X(ind_X,:) .* repmat(Gamma(ind_gamma,k),1,ndim);
+            catch, keyboard; end
             Nwins=round(TT(c)/options.win); % pieces are going to be included as windows only if long enough
             for iwin=1:Nwins
                 ranget = (iwin-1)*options.win+1:iwin*options.win;

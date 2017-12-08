@@ -56,6 +56,13 @@ end
 if MLestimation
     hmm = struct('train',struct()); 
     K = size(Gamma,2);   
+    if ~isfield(options,'order')
+        error('You need to specify options.order')
+    end
+    if isfield(options,'embeddedlags') && length(options.embeddedlags)>1
+        warning('The options embeddedlags will be ignored')
+        options = rmfield(options,'embeddedlags');
+    end
     hmm.train.order = options.order; 
     hmm.train.maxorder = options.order; 
     hmm.train.uniqueAR = 0;
