@@ -141,7 +141,7 @@ for k=1:K
     else
         psdc = zeros(Nf,ndim,ndim);
     end
-    sumgamma = zeros(length(T)*ntapers,1);
+    sumgamma = zeros(length(TT)*ntapers,1);
     c = 1;  
     t00 = 0; 
     for n = 1:length(T)
@@ -154,16 +154,16 @@ for k=1:K
                     X2(t00_star+1:t00_star+T{n}(nn)-order,:) = X(t0_star+1+order:t0_star+T{n}(nn),:);
                 end
                 X = X2; clear X2;
-            elseif length(embeddedlags) > 1
-                d1 = min(0,-embeddedlags(1));
+            elseif length(embeddedlags) > 1                
+                d1 = -min(0,embeddedlags(1));
                 d2 = max(0,embeddedlags(end));
                 X2 = zeros(sum(T{n})-length(T{n})*(d1+d2),ndim);
                 for nn = 1:length(T{n})
-                    t0_star = sum(T{n}(1:nn-1)); t00_star = sum(T{n}(1:nn-1)) - (nn-1)*(d1+d2);
-                    X2(t00_star+1+d1:t00_star+T{n}(nn)-d2,:) = X(t0_star+1+d1:t0_star+T{n}(nn)-d2,:);
-                    
-                    t0 = sum(T(1:n-1)); t00 = sum(T(1:n-1)) - (n-1)*(d1+d2);
-                    data2(t00+1+d1:t00+T(n)-d2,:) = data(t0+1+d1:t0+T(n)-d2,:);
+                    idx1 = sum(T{n}(1:nn-1))-(d1+d2)*(nn-1)+1;
+                    idx2 = sum(T{n}(1:nn)) - (d1+d2)*nn;
+                    idx3 = sum(T{n}(1:nn-1))+d1+1;
+                    idx4 = sum(T{n}(1:nn)) - d2 ;
+                    X2(idx1:idx2,:) = X(idx3:idx4,:);
                 end
                 X = X2; clear X2;
             end
