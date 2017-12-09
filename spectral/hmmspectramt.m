@@ -188,9 +188,11 @@ for k=1:K
             ind_X = (1:TT(c)) + t0;
             t00 = t00 + TT(c); t0 = t0 + TT(c);
             try
-            if sum(Gamma(ind_gamma,k))<1, c = c + 1; continue; end
-            Xki = X(ind_X,:) .* repmat(Gamma(ind_gamma,k),1,ndim);
-            catch, keyboard; end
+                if sum(Gamma(ind_gamma,k))<1, c = c + 1; continue; end
+                Xki = X(ind_X,:) .* repmat(Gamma(ind_gamma,k),1,ndim);
+            catch
+                error('Index exceeds matrix dimensions - Did you specify options correctly? ')
+            end
             Nwins=round(TT(c)/options.win); % pieces are going to be included as windows only if long enough
             for iwin=1:Nwins
                 ranget = (iwin-1)*options.win+1:iwin*options.win;

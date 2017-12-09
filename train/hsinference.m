@@ -217,7 +217,9 @@ else
             XXt = XX(slicer + s0 - order,:);
             if isnan(C(t,1))
                 [gammat,xit,Bt,sc] = nodecluster(XXt,K,hmm,R(slicer,:),in);
-                if any(isnan(gammat(:))), keyboard; end
+                if any(isnan(gammat(:)))
+                    error('State time course inference returned NaN - Out of precision?')
+                end
             else
                 gammat = zeros(length(slicer),K);
                 if t==order+1, gammat(1,:) = C(slicer(1),:); end
@@ -273,8 +275,11 @@ else
 end
 
 try
-L = obslike([],hmm,residuals,XX,hmm.cache);
-catch, keyboard; end
+    L = obslike([],hmm,residuals,XX,hmm.cache);
+catch
+    error('obslike function is giving trouble - Out of precision?')
+end
+
 L(L<realmin) = realmin;
 
 if hmm.train.useMEX 

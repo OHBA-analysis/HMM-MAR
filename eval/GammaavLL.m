@@ -43,7 +43,10 @@ for i = 1:Q
             if ~hmm.train.Pstructure(l,k), continue; end
             if Q==1
                 avLL = avLL + sum(Xi(:,l,k)) * (psi(hmm.Dir2d_alpha(l,k))-PsiDir2d_alphasum(l));
-                if isnan(avLL), keyboard; end
+                if isnan(avLL)
+                    error(['Error computing log likelihood of the state time courses  - ' ...
+                        'Out of precision?'])
+                end
             else
                 for n = ii
                     t = (1:T(n)-1-order) + sum(T(1:n-1)) - (order+1)*(n-1) ;

@@ -20,5 +20,8 @@ for tr=1:length(T)
     if any(isinf(log(Psi(:)))), Psi(Psi==0) = eps; end
     Entr = Entr - sum(Xi_nz(:).*log(Psi(:)));    % entropy of hidden states
 end
-if isnan(Entr(:)), keyboard; end
+if isnan(Entr(:)) 
+    error(['Error computing entropy of the state time courses  - ' ...
+        'Out of precision?'])     
+end
 end

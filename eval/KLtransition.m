@@ -24,5 +24,8 @@ for i = 1:Q
         KLdiv = KLdiv + dirichlet_kl(hmm.Dir2d_alpha(k,kk,i),hmm.prior.Dir2d_alpha(k,kk));
     end
 end
-if isnan(KLdiv),keyboard;end
+if isnan(KLdiv)
+    error(['Error computing kullback-leibler divergence of the transition prob matrix - ' ...
+        'Please report the error'])
+end
 end

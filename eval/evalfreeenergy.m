@@ -180,7 +180,8 @@ if todo(5)==1
                     hs.prior.Omega.Gam_rate(regressed,regressed), ...
                     hs.Omega.Gam_shape,hs.prior.Omega.Gam_shape);
                 catch
-                    keyboard
+                    error(['Error computing kullback-leibler divergence of the cov matrix - ' ...
+                        'Something strange with the data?'])
                 end
         end
         
