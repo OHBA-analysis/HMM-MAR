@@ -85,6 +85,10 @@ end
 if isfield(options,'subjectlevel'), subjectlevel = options.subjectlevel;
 else, subjectlevel = (min(Ntrials_per_subject) > 100);
 end
+if subjectlevel && min(Ntrials_per_subject)<10
+    warning('Not enough trials per subject in order to get subject-specific p-values ')
+    subjectlevel = 0;
+end
 if isfield(options,'grouplevel'), grouplevel = options.grouplevel;
 else, grouplevel = (Nsubj > 2); 
 end
