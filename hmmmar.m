@@ -26,10 +26,8 @@ if iscell(T)
     for i = 1:length(T)
         if size(T{i},1)==1, T{i} = T{i}'; end
     end
-    N = numel(cell2mat(T));
-else
-    N = length(T);
 end
+N = length(T);
 
 % is this going to be using the stochastic learning scheme? 
 stochastic_learn = isfield(options,'BIGNbatch') && ...
