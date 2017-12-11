@@ -135,16 +135,21 @@ elseif strcmp(lossfunc,'huber')
         end
     end
 end
- 
+
+% across-trial R2, using mean of euclidean distances in stimulus space
 m = mean(sum(l,3).^(ee),2);
 m0 = mean(sum(l0,3).^(ee),2);
 R2 = 1 - m ./ m0; 
 
-% R2 time point by time point is insane
-% R2M = 1 - SE ./ SE0;
-% R2 = struct(); 
-% R2.m = mean(R2M,2); % ttrial by 1
-% R2.s = std(R2M,[],2); % ttrial by 1
+% % mean of R2, one per trial - equivalent to the previous
+% m = sum(l,3).^(ee);
+% m0 = sum(l0,3).^(ee);
+% R2 = mean(1 - m ./ m0,2);
+
+% % computing SE with all trials and features at once
+% se = sum(sum(l,3),2).^(ee);
+% se0 = sum(sum(l0,3),2).^(ee);
+% R2 = 1 - se ./ se0;
 
 end
 
