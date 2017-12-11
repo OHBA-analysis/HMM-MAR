@@ -46,23 +46,23 @@ if ~isfield(options,'Method'), options.Method = 'NNMF'; end
 if ~isfield(options,'Base'), options.Base = 'coh'; end
 if ~isfield(options,'plot'), options.plot = 1; end
 
-p = size(sp_fit{1}.state(1).psd,2); % no. channels
-p2 = p*(p-1)/2;
+ndim = size(sp_fit{1}.state(1).psd,2); % no. channels
+ndim2 = ndim*(ndim-1)/2;
 Nf = size(sp_fit{1}.state(1).psd,1); % no. frequencies
 N = length(sp_fit); % no. subjects
 K = length(sp_fit{1}.state); % no. states
-ind_offdiag = triu(true(p),1)==1;
+ind_offdiag = triu(true(ndim),1)==1;
 
 % put coh and psd in temporary arrays
-coh_comps = zeros(N,K,Nf,p,p);
-psd_comps = zeros(N,K,Nf,p);
+coh_comps = zeros(N,K,Nf,ndim,ndim);
+psd_comps = zeros(N,K,Nf,ndim);
 for n = 1:N
     for k = 1:K
         psd = sp_fit{n}.state(k).psd;
         coh = sp_fit{n}.state(k).coh;
-        for j = 1:p
+        for j = 1:ndim
             psd_comps(n,k,:,j) = psd(:,j,j);
-            for l=1:p
+            for l=1:ndim
                 coh_comps(n,k,:,j,l) = coh(:,j,l);
             end
         end
@@ -70,14 +70,14 @@ for n = 1:N
 end
 
 % Build the matrix that is to be factorised
-Xpsd = zeros(Nf,p*K);
+Xpsd = zeros(Nf,ndim*K);
 for k=1:K
-    ind = (1:p) + (k-1)*p;
+    ind = (1:ndim) + (k-1)*ndim;
     Xpsd(:,ind)= squeeze(mean(abs(psd_comps(:,k,:,:)),1));
 end
-Xcoh = zeros(Nf,K*p2);
+Xcoh = zeros(Nf,K*ndim2);
 for k = 1:K
-    ind = (1:p2) + (k-1)*p2;
+    ind = (1:ndim2) + (k-1)*ndim2;
     ck = squeeze(mean(abs(coh_comps(:,k,:,:,:)),1));
     Xcoh(:,ind) = ck(:,ind_offdiag);
 end
@@ -143,17 +143,17 @@ else
     coh = (Xcoh' * sp_profiles);
 end
 for k = 1:K
-    sp_fit_group.state(k).psd = zeros(options.Ncomp,p,p);
-    sp_fit_group.state(k).coh = ones(options.Ncomp,p,p);
-    ind = (1:p) + (k-1)*p;
+    sp_fit_group.state(k).psd = zeros(options.Ncomp,ndim,ndim);
+    sp_fit_group.state(k).coh = ones(options.Ncomp,ndim,ndim);
+    ind = (1:ndim) + (k-1)*ndim;
     for i = 1:options.Ncomp
         sp_fit_group.state(k).psd(i,:,:) = diag(psd(ind,i));
     end
-    ind = (1:p2) + (k-1)*p2;
+    ind = (1:ndim2) + (k-1)*ndim2;
     for i = 1:options.Ncomp
-        graphmat = zeros(p);
+        graphmat = zeros(ndim);
         graphmat(ind_offdiag) = coh(ind,i);
-        graphmat=(graphmat+graphmat') + eye(p);
+        graphmat=(graphmat+graphmat') + eye(ndim);
         sp_fit_group.state(k).coh(i,:,:) = graphmat;
     end
 end
@@ -163,14 +163,14 @@ for n = 1:N
     sp_fit{n} = struct();
     sp_fit{n}.state = struct();
     % prepare matrix
-    Xpsd = zeros(Nf,p*K);
+    Xpsd = zeros(Nf,ndim*K);
     for k=1:K
-        ind = (1:p) + (k-1)*p;
+        ind = (1:ndim) + (k-1)*ndim;
         Xpsd(:,ind)= squeeze(abs(psd_comps(n,k,:,:)));
     end
-    Xcoh = zeros(Nf,K*p2);
+    Xcoh = zeros(Nf,K*ndim2);
     for k = 1:K
-        ind = (1:p2) + (k-1)*p2;
+        ind = (1:ndim2) + (k-1)*ndim2;
         ck = squeeze(abs(coh_comps(n,k,:,:,:)));
         Xcoh(:,ind) = ck(:,ind_offdiag);
     end
@@ -190,17 +190,17 @@ for n = 1:N
     end
     % Reshape stuff
     for k = 1:K
-        sp_fit{n}.state(k).psd = zeros(options.Ncomp,p,p);
-        sp_fit{n}.state(k).coh = ones(options.Ncomp,p,p);
-        ind = (1:p) + (k-1)*p;
+        sp_fit{n}.state(k).psd = zeros(options.Ncomp,ndim,ndim);
+        sp_fit{n}.state(k).coh = ones(options.Ncomp,ndim,ndim);
+        ind = (1:ndim) + (k-1)*ndim;
         for i = 1:options.Ncomp
             sp_fit{n}.state(k).psd(i,:,:) = diag(psd(ind,i));
         end
-        ind = (1:p2) + (k-1)*p2;
+        ind = (1:ndim2) + (k-1)*ndim2;
         for i = 1:options.Ncomp
-            graphmat = zeros(p);
+            graphmat = zeros(ndim);
             graphmat(ind_offdiag) = coh(ind,i);
-            graphmat=(graphmat+graphmat') + eye(p);
+            graphmat=(graphmat+graphmat') + eye(ndim);
             sp_fit{n}.state(k).coh(i,:,:) = graphmat;
         end
     end
