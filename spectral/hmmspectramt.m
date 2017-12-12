@@ -234,6 +234,7 @@ for k=1:K
             end
             c = c + 1;
         end
+        if options.verbose, disp(['Subject ' num2str(n)]); end
     end
     if options.p > 0
         sumgamma = sumgamma / sum(sumgamma);
@@ -278,6 +279,7 @@ for k=1:K
     end
     
     if options.p>0 % jackknife
+        if options.verbose, disp('Jackknifing (this might take time - set options.p==0 to skip) ...'); end
         [psderr,coherr,pcoherr,pdcerr,sdphase] = spectrerr(psdc,[],coh,pcoh,pdc,options);
     end
     
