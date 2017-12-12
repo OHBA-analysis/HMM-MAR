@@ -197,15 +197,18 @@ for i = 1:N
     if length(options.embeddedlags)>1
         Ti = Ti - (max(options.embeddedlags) + max(-options.embeddedlags));
     end
-    Gamma = GammaInit((1:Ti)+tsum,:); tsum = tsum + Ti;
-    Xi = zeros(size(Gamma,1),K^2);
-    for j=1:Ti-1
-        t = Gamma(j,:)' * Gamma(j+1,:); 
-        Xi(j,:)=t(:)'/sum(t(:)); 
-        Xi = reshape(Xi,size(Xi,1),K,K);
+    Gamma = GammaInit((1:sum(Ti))+tsum,:); tsum = tsum + sum(Ti);
+    Xi = zeros(size(Gamma,1)-length(Ti),K^2);
+    for jj=1:length(Ti)
+        sTi = sum(Ti(1:jj-1)); sTi2 = sTi - (jj-1); 
+        for j=1:Ti(jj)-1
+            t = Gamma(sTi+j,:)' * Gamma(sTi+j+1,:);
+            Xi(sTi2+j,:)=t(:)'/sum(t(:));
+        end
     end
-    for trial=1:length(Ti)
-        t = sum(Ti(1:trial-1)) + 1;
+    Xi = reshape(Xi,size(Xi,1),K,K);
+    for jj=1:length(Ti)
+        t = sum(Ti(1:jj-1)) + 1;
         Dir_alpha_init(:,i) = Dir_alpha_init(:,i) + Gamma(t,:)';
     end
     Dir2d_alpha_init(:,:,i) = squeeze(sum(Xi,1));
@@ -219,7 +222,7 @@ tsum = 0;
 for i = 1:N    
     % read data
     [~,XX,Y,Ti] = loadfile(Xin{i},T{i},options);
-    XX_i = cell(1); XX_i{1} = XX;
+    %XX_i = cell(1); XX_i{1} = XX;
     Gamma = GammaInit((1:size(Y,1))+tsum,:); tsum = tsum + size(Y,1);
     Xi = zeros(size(Gamma,1),K^2);
     for j=1:Ti-1-hmm.train.order
