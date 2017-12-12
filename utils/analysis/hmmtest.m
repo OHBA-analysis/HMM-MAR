@@ -5,6 +5,9 @@ function tests = hmmtest (Gamma,T,Tsubject,Y,options)
 % Fractional occupancy is tested per state; the switching rate
 % is tested also for all states simultaneously. 
 % Tests are done at the subject and at the group level. 
+% Tests are the group level are done by
+%   - Permuting between subjects, if T == Tsubject
+%   - Permuting within subjects, if not (i.e. no between subject permutation)
 %
 % INPUTS:
 %
@@ -52,7 +55,7 @@ end
 if size(T,1)==1, T = T'; end
 if size(Tsubject,1)==1, Tsubject = Tsubject'; end
 
-if isempty(Tsubject), Tsubject = sum(T); end
+if isempty(Tsubject), Tsubject = sum(T); end  % One subject
 if sum(T) ~= sum(Tsubject), error('sum(T) must equal to sum(Tsubject)'); end
 N = length(T); Nsubj = length(Tsubject);
 order =  (sum(T) - size(Gamma,1)) / N;
@@ -131,6 +134,9 @@ end
    
 % Testing at the group level
 if grouplevel
+    if (length(T)==length(Tsubject)) 
+        Ntrials_per_subject = [];
+    end
     fo = getFractionalOccupancy(Gamma,T);
     %lt = getStateLifeTimes(Gamma,T,threshold_visit,threshold_Gamma);
     %it = getStateIntervalTimes(Gamma,T,threshold_visit,threshold_Gamma);
