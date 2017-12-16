@@ -1,5 +1,7 @@
 % This is a template script that runs the HMM on a fictional fMRI data set
-% using a number of different settings. It assumes that there are 2 different
+% using a number of different settings, involving how many PCA components we use to
+% describe the data, and how many HMM states we set up for the HMM inference.  
+% It assumes that there are 2 different
 % conditions (for example rest and some task). It performs permutation
 % testing on the HMM results for each of the HMM settings, and plots the results.
 % More specifically, it tests for fractional occupancy differences and state
