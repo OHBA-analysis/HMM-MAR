@@ -32,7 +32,7 @@ switchingRate = zeros(N,1);
 
 for n=1:N
     t = sum(T(1:n-1)) + (1:T(n));
-    switchingRate(n) = mean(sum(abs(diff(Gamma(t,:))),2));
+    switchingRate(n) = mean(sum(abs(diff(Gamma(t,:))),2)) / 2;
 end
 
 end
