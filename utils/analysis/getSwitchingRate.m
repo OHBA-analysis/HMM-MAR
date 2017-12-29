@@ -24,14 +24,14 @@ if is_vpath % viterbi path
     for k = 1:K
        Gamma(vpath==k,k) = 1;   
     end
-else
-    K = size(Gamma,2); 
 end
 
 switchingRate = zeros(N,1);
+order = (sum(T)-size(Gamma,1))/length(T);
 
 for n=1:N
-    t = sum(T(1:n-1)) + (1:T(n));
+    t0 = sum(T(1:n-1)) - (n-1)*order;
+    t = (1:T(n)-order) + t0;
     switchingRate(n) = mean(sum(abs(diff(Gamma(t,:))),2)) / 2;
 end
 
