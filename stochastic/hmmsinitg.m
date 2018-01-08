@@ -110,7 +110,8 @@ tsum = 0;
 for i = 1:N
     % read data
     [~,XX,Y] = loadfile(Xin{i},T{i},options);
-    Gamma = GammaInit((1:size(Y,1))+tsum,:); tsum = tsum + size(Y,1);
+    Gamma = GammaInit((1:size(Y,1))+tsum,:); 
+    tsum = tsum + size(Y,1);
     for k = 1:K
         if strcmp(options.covtype,'diag')
             if ~isempty(hmm.state(k).W.Mu_W)
@@ -222,8 +223,9 @@ tsum = 0;
 for i = 1:N    
     % read data
     [~,XX,Y,Ti] = loadfile(Xin{i},T{i},options);
-    %XX_i = cell(1); XX_i{1} = XX;
-    Gamma = GammaInit((1:size(Y,1))+tsum,:); tsum = tsum + size(Y,1);
+    XX_i = cell(1); XX_i{1} = XX;
+    Gamma = GammaInit((1:size(Y,1))+tsum,:); 
+    tsum = tsum + size(Y,1);
     Xi = zeros(size(Gamma,1),K^2);
     for j=1:Ti-1-hmm.train.order
         t = Gamma(j,:)' * Gamma(j+1,:);
