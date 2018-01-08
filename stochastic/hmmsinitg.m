@@ -223,7 +223,6 @@ tsum = 0;
 for i = 1:N    
     % read data
     [~,XX,Y,Ti] = loadfile(Xin{i},T{i},options);
-    XX_i = cell(1); XX_i{1} = XX;
     Gamma = GammaInit((1:size(Y,1))+tsum,:); 
     tsum = tsum + size(Y,1);
     Xi = zeros(size(Gamma,1),K^2);
@@ -232,7 +231,7 @@ for i = 1:N
         Xi(j,:)=t(:)'/sum(t(:));
         Xi = reshape(Xi,size(Xi,1),K,K);
     end
-    loglik_init(i) = -evalfreeenergy([],Ti,Gamma,[],hmm,Y,XX_i,[0 1 0 0 0]); % data LL
+    loglik_init(i) = -evalfreeenergy([],Ti,Gamma,[],hmm,Y,XX,[0 1 0 0 0]); % data LL
     subjfe_init(i,1:2) = evalfreeenergy([],Ti,Gamma,Xi,hmm,[],[],[1 0 1 0 0]); % Gamma entropy&LL
 end
 subjfe_init(:,3) = evalfreeenergy([],[],[],[],hmm,[],[],[0 0 0 1 0]) / N; % "share" P and Pi KL
