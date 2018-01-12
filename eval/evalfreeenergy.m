@@ -236,9 +236,9 @@ if todo(2)==1
         PsiWish_alphasum = 0;
         for n = 1:sum(regressed)
             PsiWish_alphasum=PsiWish_alphasum+0.5*psi(hmm.Omega.Gam_shape/2+0.5-n/2);
-        end
+        end 
         C = hmm.Omega.Gam_shape * hmm.Omega.Gam_irate;
-        avLL = avLL + (-ltpi-ldetWishB+PsiWish_alphasum);
+        avLL = avLL + (-ltpi-ldetWishB+PsiWish_alphasum+0.5*sum(regressed)*log(2));
     end
     for k=1:K
         hs=hmm.state(k);
@@ -260,7 +260,7 @@ if todo(2)==1
                 PsiWish_alphasum=PsiWish_alphasum+0.5*psi(hs.Omega.Gam_shape/2+0.5-n/2);
             end
             C = hs.Omega.Gam_shape * hs.Omega.Gam_irate;
-            avLL = avLL + Gamma(:,k) * (-ltpi-ldetWishB+PsiWish_alphasum);
+            avLL = avLL + Gamma(:,k) * (-ltpi-ldetWishB+PsiWish_alphasum+0.5*sum(regressed)*log(2));
         end
         meand = zeros(size(XX,1),sum(regressed)); % mean distance
         if train.uniqueAR
