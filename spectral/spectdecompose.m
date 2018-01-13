@@ -1,6 +1,6 @@
 function [sp_fit,sp_fit_group,sp_profiles] = spectdecompose(sp_fit,options)
 %
-% From a multitaper or MAR estimation of the states spectra,  
+% From a multitaper or MAR estimation of the states spectra (per subject),  
 % it factorises the spectral information (which is given by frequency bin)
 % into a set of spectral components (which are much fewer than the
 % frequency bins), in order to facilitate interpretation and visualisation
@@ -10,7 +10,7 @@ function [sp_fit,sp_fit_group,sp_profiles] = spectdecompose(sp_fit,options)
 %
 % INPUTS: 
 %
-% sp_fit                   The output of hmmspectramar or hmmspectramt. It
+% sp_fit                The output of hmmspectramar or hmmspectramt. It
 %                       should be a cell, where each element corresponds 
 %                       to one subject
 % options               Struct indicating the decomposing options
@@ -130,16 +130,17 @@ sp_fit_group = struct();
 sp_fit_group.state = struct();
 % NNMF / PCA
 if strcmpi(options.Method,'NNMF')
-    [~,b] = nnmf(Xpsd,options.Ncomp,'replicates',500,'algorithm','als',...
-        'w0',sp_profiles);
+    opt = statset('maxiter',1);    
+    [~,b] = nnmf(Xpsd,options.Ncomp,'algorithm','als',...
+        'w0',sp_profiles,'Options',opt);
     psd = b'; % regions by components  
-    [~,b] = nnmf(Xcoh,options.Ncomp,'replicates',500,'algorithm','als',...
-        'w0',sp_profiles);
+    [~,b] = nnmf(Xcoh,options.Ncomp,'algorithm','als',...
+        'w0',sp_profiles,'Options',opt);
     coh = b'; % pairs of regions by components   
 else
     Xpsd = Xpsd - repmat(mean(Xpsd),Nf,1);
     Xcoh = Xcoh - repmat(mean(Xcoh),Nf,1);
-    psd = (Xpsd' * sp_profiles);
+    psd = (Xpsd' * sp_profiles); % ndim by components
     coh = (Xcoh' * sp_profiles);
 end
 for k = 1:K
@@ -172,15 +173,16 @@ for n = 1:N
     for k = 1:K
         ind = (1:ndim2) + (k-1)*ndim2;
         ck = squeeze(abs(coh_comps(n,k,:,:,:)));
-        Xcoh(:,ind) = ck(:,ind_offdiag);
+        Xcoh(:,ind) = ck(:,ind_offdiag); 
     end
     % NNMF / PCA
     if strcmpi(options.Method,'NNMF')
-        [~,b] = nnmf(Xpsd,options.Ncomp,'replicates',500,'algorithm','als',...
-            'w0',sp_profiles);
+        opt = statset('maxiter',1);    
+        [~,b] = nnmf(Xpsd,options.Ncomp,'algorithm','als',...
+            'w0',sp_profiles,'Options',opt);
         psd = b'; % regions by components
-        [~,b] = nnmf(Xcoh,options.Ncomp,'replicates',500,'algorithm','als',...
-            'w0',sp_profiles);
+        [~,b] = nnmf(Xcoh,options.Ncomp,'algorithm','als',...
+            'w0',sp_profiles,'Options',opt);
         coh = b';
     else
         Xpsd = Xpsd - repmat(mean(Xpsd),Nf,1);
