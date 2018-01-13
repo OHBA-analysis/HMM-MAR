@@ -151,8 +151,8 @@ end
 
 
 function pval = permtest(X,D,Nperm,grouping,confounds)
-% permutation testing routine
-% x: data
+% permutation testing routine (through regression)
+% X: data
 % D: design matrix
 % Nperm: no. of permutations
 % grouping: the first grouping(1) rows belong to one group, 
