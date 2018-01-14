@@ -53,6 +53,16 @@ N = length(sp_fit); % no. subjects
 K = length(sp_fit{1}.state); % no. states
 ind_offdiag = triu(true(ndim),1)==1;
 
+% check that all estimations have the same number of freq bins
+for n = 1:N
+    if size(sp_fit{n}.state(1).psd,1) ~= Nf
+        error(['It is necessary for the spectral estimation of all subjects ' ...
+            'to have the same number of frequency bins. ' ...
+            'In the case of the multitaper, this is can be done by setting ' ...
+            'the options tapers and win to a fixed value.'])
+    end
+end
+
 % put coh and psd in temporary arrays
 coh_comps = zeros(N,K,Nf,ndim,ndim);
 psd_comps = zeros(N,K,Nf,ndim);
