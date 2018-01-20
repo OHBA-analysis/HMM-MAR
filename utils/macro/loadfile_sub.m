@@ -9,7 +9,7 @@ if ~isempty(strfind(fsub,'.mat'))
 elseif ~isempty(strfind(fsub,'.txt'))
     X = dlmread(fsub);
 else % no extension - assumed to be an SPM file
-    try
+    try % Note that we are not taking care of bad samples here
         D = spm_eeg_load(fsub);
         X = permute(D(:,:,:),[2 3 1]); clear D
         X = reshape(X,[size(X,1)*size(X,2) size(X,3)]);
