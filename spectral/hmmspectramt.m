@@ -234,7 +234,7 @@ for k=1:K
             end
             c = c + 1;
         end
-        if options.verbose, disp(['Subject ' num2str(n) ', state ' num2str(k)]); end
+        if options.verbose, disp(['Segment ' num2str(n) ', state ' num2str(k)]); end
     end
     if options.p > 0
         sumgamma = sumgamma / sum(sumgamma);

@@ -164,10 +164,14 @@ function pval = permtest(X,D,Nperm,grouping,confounds)
 if nargin<4, grouping = []; end
 if (nargin>4) && ~isempty(confounds)
     confounds = confounds - repmat(mean(confounds),N,1);
+    X = bsxfun(@minus,X,mean(X));   
     X = X - confounds * pinv(confounds) * X;
+    D = bsxfun(@minus,D,mean(D));   
+    D = D - confounds * pinv(confounds) * D;    
 end
 
-X = X - repmat(mean(X),size(X,1),1);  
+D = bsxfun(@minus,D,mean(D));   
+X = bsxfun(@minus,X,mean(X));  
 grotperms = zeros(Nperm,p);
 proj = (D' * D + 0.001 * eye(size(D,2))) \ D';  
 
