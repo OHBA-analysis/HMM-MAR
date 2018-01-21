@@ -17,6 +17,7 @@ function [flips,scorepath,covmats_unflipped] = findflip(X,T,options)
 %  partial       if 1, base on partial correlation instead of correlation 
 %  maxcyc        for each initialization, maximum number of cycles of the greedy algorithm
 %  mincyc        for each initialization, minimum number of cycles of the greedy algorithm
+%  verbose       do we get loud?
 %
 % OUTPUT
 % flips         (length(T) X No. channels) binary matrix saying which channels must be 
