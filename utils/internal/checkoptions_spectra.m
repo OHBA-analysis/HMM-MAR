@@ -41,6 +41,7 @@ if ~isfield(options,'fpass'),  options.fpass=[options.Fs/200 options.Fs/2]; end
 mfs = max(options.Fs/200, options.fpass(1));
 if ~isfield(options,'win'),  options.win = min(4*options.Fs/mfs, min(T));  end
 if ~isfield(options,'tapers'), options.tapers = [4 7]; end
+if ~isfield(options,'verbose'), options.verbose = 0; end
 if ~isfield(options,'to_do')
     if ndim>1, options.to_do = ones(2,1); options.to_do(2) = parametric;
     else, options.to_do = zeros(2,1); 
