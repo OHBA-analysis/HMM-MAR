@@ -279,7 +279,7 @@ for k=1:K
     end
     
     if options.p>0 % jackknife
-        disp('Jackknifing now... (this might take time - set options.p==0 to skip)'); end
+        disp('Jackknifing now... (this might take time - set options.p==0 to skip)'); 
         [psderr,coherr,pcoherr,pdcerr,sdphase] = spectrerr(psdc,[],coh,pcoh,pdc,options);
     end
     
