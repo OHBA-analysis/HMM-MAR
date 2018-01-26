@@ -1,4 +1,4 @@
-function e = explainedvar_PCA(data,T,options)
+function [e_group,e_subj] = explainedvar_PCA(data,T,options)
 % Performs preprocessing on the data, performs PCA,
 % and returns the explained variance for each PCA component. 
 % This is useful to inspect the rank of the data and decide the number of
@@ -20,8 +20,10 @@ end
 options.K = 2; options.order = 0; 
 
 % is this going to be using the stochastic learning scheme? 
-stochastic_learn = isfield(options,'BIGNbatch') && ...
-    (options.BIGNbatch < N && options.BIGNbatch > 0);
+%stochastic_learn = isfield(options,'BIGNbatch') && ...
+%    (options.BIGNbatch < N && options.BIGNbatch > 0);
+stochastic_learn = iscell(T);
+if stochastic_learn, options.BIGNbatch = 2; end
 options = checkspelling(options);
 
 % do some data checking and preparation
@@ -34,7 +36,7 @@ if stochastic_learn % data is a cell, either with strings or with matrices
         end
         data = data.X;
     end
-    if ~iscell(data)
+    if ~iscell(data) % make it cell
        dat = cell(N,1); TT = cell(N,1);
        for i=1:N
           t = 1:T(i);
@@ -48,7 +50,6 @@ if stochastic_learn % data is a cell, either with strings or with matrices
        end 
        data = dat; T = TT; clear dat TT
     end
-    options = checkoptions(options,data,T);
 else % data can be a cell or a matrix
     if iscell(T)
         for i = 1:length(T)
@@ -58,8 +59,8 @@ else % data can be a cell or a matrix
         T = cell2mat(T);
     end
     checkdatacell;
-    [options,data] = checkoptions(options,data,T,0);
 end
+[options,data] = checkoptions(options,data,T,0);
 
 if stochastic_learn
     
@@ -76,7 +77,7 @@ if stochastic_learn
         options.As = [];
     end    
     % main PCA
-    [~,~,e] = highdim_pca(data,T,[],...
+    [~,~,e_group,e_subj] = highdim_pca(data,T,[],...
         options.embeddedlags,options.standardise,...
         options.onpower,options.varimax,options.detrend,...
         options.filter,options.leakagecorr,options.Fs,options.As);
@@ -116,7 +117,7 @@ else
         [data,T] = embeddata(data,T,options.embeddedlags);
     end
     % main PCA
-    [~,~,e] = highdim_pca(data.X,T,[],0,0,0,options.varimax);
+    [~,~,e_group,e_subj] = highdim_pca(data.X,T,[],0,0,0,options.varimax);
 
 end
 

@@ -1,4 +1,4 @@
-function [A,B,e] = highdim_pca(X,T,d,embeddedlags,...
+function [A,B,e,e_subj] = highdim_pca(X,T,d,embeddedlags,...
     standardise,onpower,varimax,detrend,filter,leakagecorr,Fs,As)
 % pca for potentially loads of subjects
 %
@@ -53,7 +53,7 @@ verbose = 1;
 if is_cell_strings || is_cell_matrices
     B = [];
     for i=1:length(X)
-        X_i = loadfile(X{i},T{i},options); % zscoring/embeddeding are done here
+        X_i = loadfile(X{i},T{i},options); % zscoring/embedding are done here
         X_i = bsxfun(@minus,X_i,mean(X_i)); % must center
         if isempty(d), d = size(X_i,2); verbose = 0; end
         if i==1, C = zeros(size(X_i,2)); end
@@ -95,6 +95,27 @@ else
 end
 e = cumsum(e)/sum(e);
 
+if nargout > 3 % explained variance per subject
+    e_subj = zeros(length(T),length(e));
+    for i = 1:length(T)
+        if is_cell_strings || is_cell_matrices
+            X_i = loadfile(X{i},T{i},options);
+            X_i = bsxfun(@minus,X_i,mean(X_i)); 
+        else
+            ind = (1:T(i)) + sum(T(1:i-1));
+            X_i = X(ind,:);
+        end
+        Y = zeros(size(X_i));
+        for j = 1:length(e)
+            Y = Y + X_i * A(:,j) * A(:,j)';
+            e_subj(i,j) = sum(sum((X_i - Y).^2));
+        end
+        var_X_i = sum(sum(X_i.^2));
+        e_subj(i,:) = 1 - e_subj(i,:) ./ var_X_i;
+        disp(['Subject ' num2str(i)])
+    end
+end
+        
 if length(d)==1 && d<1
     ncomp = find(e>d,1);
 elseif length(d)==1 && d>=1

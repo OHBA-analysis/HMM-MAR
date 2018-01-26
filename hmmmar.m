@@ -66,7 +66,7 @@ if stochastic_learn % data is a cell, either with strings or with matrices
         end
         data = data.X;
     end
-    if ~iscell(data)
+    if ~iscell(data) % make it cell
        dat = cell(N,1); TT = cell(N,1);
        for i=1:N
           t = 1:T(i);
