@@ -114,11 +114,11 @@ else % Multi-taper spectra
 end
 
 % Some useful information about the dynamics
-maxFO = getMaxFractionalOccupancy(Gamma,T); % useful to diagnose if the HMM 
+maxFO = getMaxFractionalOccupancy(Gamma,T,options); % useful to diagnose if the HMM 
             % is capturing dynamics or grand between-subject 
             % differences (see Wiki)
-FO = getFractionalOccupancy (Gamma,T); % state fractional occupancies per session
-LifeTimes = getStateLifeTimes (Gamma,T); % state life times
-Intervals = getStateIntervalTimes (Gamma,T); % interval times between state visits
-SwitchingRate =  getSwitchingRate(Gamma,T); % rate of switching between stats
+FO = getFractionalOccupancy (Gamma,T,options); % state fractional occupancies per session
+LifeTimes = getStateLifeTimes (Gamma,T,options); % state life times
+Intervals = getStateIntervalTimes (Gamma,T,options); % interval times between state visits
+SwitchingRate =  getSwitchingRate(Gamma,T,options); % rate of switching between stats
 

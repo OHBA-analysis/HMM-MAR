@@ -1,29 +1,60 @@
-function intervals = getStateIntervalTimes (Gamma,T,threshold,threshold_Gamma)
+function intervals = getStateIntervalTimes (Gamma,T,options,threshold,threshold_Gamma)
 % Computes the interval times for the state time courses  
 % 
 % Gamma can be the probabilistic state time courses (time by states),
 %   which can contain the probability of all states or a subset of them,
 %   or the Viterbi path (time by 1). 
+%
 % In the first case, threshold_Gamma is used to define when a state is active. 
+%
 % The parameter threshold is used to discard intervals that are too
 %   short (deemed to be spurious); these are discarded when they are shorter than 
 %   'threshold' time points
+%
+% The parameter 'options' must be the same than the one supplied to the
+% hmmmar function for training. 
+%
 % Intervals is then a cell (subjects by states), where each element is a
 %   vector of interval times
 %
 % Diego Vidaurre, OHBA, University of Oxford (2016)
 
-is_vpath = (size(Gamma,2)==1 && all(rem(Gamma,1)==0)); % is a viterbi path?
-if nargin<3, threshold = 0; end
-if nargin<4, threshold_Gamma = (2/3); end
+if nargin<3, options = struct(); options.Fs = 1; options.downsample = 1; end
+if ~isfield(options,'Fs'), options.Fs = 1; end
+if ~isfield(options,'downsample'), options.downsample = options.Fs; end
+if nargin<4, threshold = 0; end
+if nargin<5, threshold_Gamma = (2/3); end
 
+is_vpath = (size(Gamma,2)==1 && all(rem(Gamma,1)==0)); 
 if iscell(T)
+    if size(T,1) == 1, T = T'; end
     for i = 1:length(T)
         if size(T{i},1)==1, T{i} = T{i}'; end
     end
+    Nsubj = length(T);
+    trials2subjects = zeros(length(cell2mat(T)),1); ii = 1; 
+    for i = 1:length(T)
+        Ntrials = length(T{i});
+        trials2subjects(ii:ii+Ntrials-1) = i;
+        ii = ii + Ntrials;
+    end
     T = cell2mat(T);
+else 
+    Nsubj = length(T);
+    trials2subjects = 1:Nsubj;
 end
 N = length(T);
+
+if isfield(options,'order') && options.order > 0
+    T = ceil((options.downsample/options.Fs) * T);
+    T = T - options.order; 
+elseif isfield(options,'embeddedlags') && length(options.embeddedlags) > 1
+    d1 = -min(0,options.embeddedlags(1));
+    d2 = max(0,options.embeddedlags(end));
+    T = T - (d1+d2);
+    T = ceil((options.downsample/options.Fs) * T);
+end
+
 if is_vpath % viterbi path
     vpath = Gamma; 
     K = length(unique(vpath));
@@ -36,20 +67,18 @@ else
     Gamma = Gamma > threshold_Gamma;
 end
 
-intervals = cell(N,K);
-order = (sum(T)-size(Gamma,1))/length(T);
-
-for j=1:N
-    t0 = sum(T(1:j-1)) - (j-1)*order;
-    ind = (1:T(j)-order) + t0;
+intervals = cell(Nsubj,K);
+for j = 1:N
+    t0 = sum(T(1:j-1));
+    ind = (1:T(j)) + t0;
+    if length(ind)==1, continue; end
+    jj = trials2subjects(j);
     for k=1:K
         t = find(Gamma(ind,k)==1,1);
         if isempty(t), continue; end
-        intervals{j,k} = aux_k(Gamma(ind(t:end),k),threshold);
+        intervals{jj,k} = [intervals{jj,k} aux_k(Gamma(ind(t:end),k),threshold)];
     end
 end
-
-if length(intervals)==1, intervals = intervals{1}; end
 
 end
 

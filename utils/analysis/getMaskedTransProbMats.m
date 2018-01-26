@@ -1,12 +1,18 @@
 function [P,Pi] = getMaskedTransProbMats (data,T,hmm,Masks,Gamma,Xi,residuals)
-% Obtain local Markov transitive probability matrices (LMTPM) for each of the masks
-% specified by the variable masks (see description of parameters).
+% Obtain local Markov transitive probability matrices (LMTPM) for each of the 
+% masks specified by the variable masks (see description of parameters).
 % The matrices include state persistency probabilities 
 % (see getTransProbs.m to obtain just the transition probabilities) 
+%
+% Note that this function does not the preproc that is done by hmmmar. so
+% it shouldn't be used if Gamma was obtained using options.downsample,
+% options.filter, options.detrend, etc. This is yet to be implemented.
 %
 % INPUTS:
 %
 % data          observations - a struct with X (time series) and C (classes)
+%               This is only necessary if Xi and residuals are not specified, 
+%               in order to compute them
 % T             Number of time points for each time series
 % hmm           An hmm structure 
 % Masks         A cell where each element is a vector containing the indexes
