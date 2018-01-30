@@ -17,27 +17,28 @@ function [R2,pval,surrogates,c] = tudacv(X,Y,T,options,Gamma)
 %                       https://github.com/OHBA-analysis/HMM-MAR/wiki
 %  Apart from the options specified for tudatrain, specific to tudacv are:
 %  - options.mode, referring to how to do cross-validation. 
-%                  if 1, CV is done time point by time point, across CV folds, 
+%                  . if 1, CV is done time point by time point, across CV folds, 
 %                   to produce a (time by 1) accuracy vector. 
-%                  if 2, CV is performed across time points, so we would get
+%                  . if 2, CV is performed across time points, so we would get
 %                   a (time by time) accuracy "generalisation" matrix.
-%  - options.conservative, whether or not to do conservative CV analysis.
-%                  The issue is that the state time courses are estimated
+%  - options.CVmethod, cross-validation with TUDA has a fundamental issue: 
+%                  that the state time courses are estimated
 %                  using both the data and the stimuli; then in the
 %                  held-out data there is no way to know which state is
 %                  active because, by definition, we do not use the
-%                  stimulus (that is what we want to predict). 
-%                  . if 1, then the state active at each time point is taken
-%                  to be the one that is most active in training at each
-%                  time point (losing between-trial variability)
-%                  . if 0, then the actual state time courses are used. 
-%  - options.estimation_method, if options.conservative == 1, this dictates how to
-%                  estimate the state time courses in the left-out data:
+%                  stimulus (that is what we want to predict).
+%                  This options establishes how to compute the model time
+%                  courses in the held-out data
+%                  . if 2, the state time courses are estimated using
+%                  just data and linear regression, i.e. we try to predict 
+%                  the state time courses in held-out trials using the data
 %                  . if 1, then it uses the state active at each time point is taken
 %                  to be the one that is most active in training at each
 %                  time point (losing between-trial variability)
-%                  . if 2, the state time courses are estimated using
-%                  the just data and linear regression
+%                  . if -1, then the state active at each time point is taken
+%                  to be the one that is most active in held-out trials at each
+%                  time point (thus also losing between-trial variability)
+%                  . if -2, then the actual held-out state time courses are used.
 %  - options.NCV, containing the number of cross-validation folds (default 10)
 %  - options.lambda, regularisation penalty for the decoding
 %  - options.lossfunc, loss function to compute the cross-validated error, 
@@ -47,8 +48,7 @@ function [R2,pval,surrogates,c] = tudacv(X,Y,T,options,Gamma)
 %                   the state time courses across trials, such that the
 %                   average remains the same but the trial-specific
 %                   temporal features are lost
-% Gamma: Precomputed decoding models time courses, used if options.mode == 2 
-%           (optional)
+% Gamma: Precomputed decoding models time courses (optional)
 %
 % OUTPUT 
 % R2: cross-validated explained variance
@@ -87,14 +87,9 @@ if isfield(options,'mode')
     mode = options.mode; options = rmfield(options,'mode');
 else, mode = 1; 
 end
-if isfield(options,'conservative') 
-    conservative = options.conservative; options = rmfield(options,'conservative');
-else, conservative = 1; 
-end
-if isfield(options,'estimation_method') 
-    estimation_method = options.estimation_method; 
-    options = rmfield(options,'estimation_method');
-else, estimation_method = 2; 
+if isfield(options,'CVmethod') 
+    CVmethod = options.conservative; options = rmfield(options,'CVmethod');
+else, CVmethod = 1; 
 end
 if isfield(options,'Nperm') 
     Nperm = options.Nperm; options = rmfield(options,'Nperm');
@@ -106,7 +101,6 @@ else, verbose = 1;
 end
 if nargin < 5, Gamma = []; end
 
-    
 if ~all(T==T(1)), error('All elements of T must be equal'); end 
 
 % Form CV folds; if response are categorical, then it's stratified
@@ -154,6 +148,7 @@ RidgePen = lambda * eye(p);
 
 % Get state time courses
 if isempty(Gamma)
+    options.verbose = 0; 
     [~,Gamma] = tudatrain(reshape(X,[ttrial*N p]),...
         reshape(Y,[ttrial*N q]),T,options);
 end
@@ -161,29 +156,37 @@ K = size(Gamma,2);
 Gamma = reshape(Gamma,[ttrial N K]);
 
 % Estimate testing state time courses if necessary
-if conservative
+if CVmethod > -2
     Gammapred = zeros(ttrial,N,K);
     for icv = 1:NCV
         Ntr = sum(c.training{icv}); Nte = sum(c.test{icv});
         Gammatrain = reshape(Gamma(:,c.training{icv},:),[ttrial Ntr K]);
-        if estimation_method == 1
-            mGammatrain = squeeze(mean(Gammatrain,2));
-            for t = 1:ttrial
-                [~,k] = max(mGammatrain(t,:));
-                Gammapred(t,c.test{icv},k) = 1;
-            end
-        else
-            Xtrain = permute(X(:,c.training{icv},:),[2 3 1]);
-            Xtest = permute(X(:,c.test{icv},:),[2 3 1]);
-            Gammatrain = permute(reshape(Gamma(:,c.training{icv},:),[ttrial Ntr K]),[2 3 1]);
-            for t = 1:ttrial
-                B = (Xtrain(:,:,t)' * Xtrain(:,:,t) + 0.0001 * eye(p)) \ ...
-                    Xtrain(:,:,t)' * Gammatrain(:,:,t);
-                pred = Xtest(:,:,t) * B;
-                pred = pred - repmat(min(min(pred,[],2), zeros(Nte,1)),1,K);
-                pred = pred ./ repmat(sum(pred,2),1,K);
-                Gammapred(t,c.test{icv},:) = pred; 
-            end
+        Gammatest = reshape(Gamma(:,c.test{icv},:),[ttrial Nte K]);
+        switch CVmethod
+            case 2
+                Xtrain = permute(X(:,c.training{icv},:),[2 3 1]);
+                Xtest = permute(X(:,c.test{icv},:),[2 3 1]);
+                Gammatrain = permute(reshape(Gamma(:,c.training{icv},:),[ttrial Ntr K]),[2 3 1]);
+                for t = 1:ttrial
+                    B = (Xtrain(:,:,t)' * Xtrain(:,:,t) + 0.0001 * eye(p)) \ ...
+                        Xtrain(:,:,t)' * Gammatrain(:,:,t);
+                    pred = Xtest(:,:,t) * B;
+                    pred = pred - repmat(min(min(pred,[],2), zeros(Nte,1)),1,K);
+                    pred = pred ./ repmat(sum(pred,2),1,K);
+                    Gammapred(t,c.test{icv},:) = pred;
+                end
+            case 1
+                mGammatrain = squeeze(mean(Gammatrain,2));
+                for t = 1:ttrial
+                    [~,k] = max(mGammatrain(t,:));
+                    Gammapred(t,c.test{icv},k) = 1;
+                end
+            case -1
+                mGammatest = squeeze(mean(Gammatest,2));
+                for t = 1:ttrial
+                    [~,k] = max(mGammatest(t,:));
+                    Gammapred(t,c.test{icv},k) = 1;
+                end
         end
     end
 else
