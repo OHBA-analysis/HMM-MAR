@@ -17,7 +17,7 @@ function [Path,Xi] = hmmdecode(data,T,hmm,type,residuals,preproc,grouping)
 % vpath         (T x K) state time courses
 % Xi            joint probability of past and future states conditioned on data
 %                   (empty if Viterbi path is computed) 
-
+%
 % Author: Diego Vidaurre, OHBA, University of Oxford
 
 % to fix potential compatibility issues with previous versions

@@ -37,14 +37,14 @@ if iscell(data)
     TT = TT - order;
 else
     ndim = size(data,2); T = double(T); 
-    if isempty(Gamma),
+    if isempty(Gamma)
         Gamma = ones(sum(T),1);
     end
     order = (sum(T) - size(Gamma,1)) / length(T);
     % remove the exceeding part of X (with no attached Gamma)
     if order>0
         data2 = zeros(sum(T)-length(T)*order,ndim);
-        for in = 1:length(T),
+        for in = 1:length(T)
             t0 = sum(T(1:in-1)); t00 = sum(T(1:in-1)) - (in-1)*order;
             data2(t00+1:t00+T(in)-order,:) = data(t0+1+order:t0+T(in),:);
         end
@@ -82,7 +82,7 @@ for j = 1:N
     G = Gamma(c + (1:sum(Tj)-lenTj*order) , :); c = c + size(G,1);
     phase = zeros(sum(Tj)-lenTj*order-lenTj*discard,ndim);
     Gammaj = zeros(sum(Tj)-lenTj*order-lenTj*discard,K);
-    for i = 1:length(Tj),
+    for i = 1:length(Tj)
         t0 = sum(Tj(1:i-1)); 
         Xij = filter(filtPts, 1, X(t0+1+order:t0+Tj(i),:) , [], 1);
         range = (round(Fs/2)+1) : (size(Xij,1)-round(Fs/2)); % discard some data

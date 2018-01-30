@@ -205,7 +205,7 @@ for k=1:K
                 else
                     Xwin=Xki(ranget,:);
                 end
-                J=mtfftc(Xwin,tapers,nfft,Fs); % use detrend on X?
+                J = mtfftc(Xwin,tapers,nfft,Fs); % use detrend on X?
                 sumgamma((c-1)*ntapers+(1:ntapers)) = sumgamma((c-1)*ntapers+(1:ntapers)) + sum(Gamma(ind_gamma(ranget),k)); 
                 for tp=1:ntapers
                     Jik=J(findx,tp,:);
