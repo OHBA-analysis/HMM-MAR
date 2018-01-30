@@ -26,6 +26,8 @@ options.embeddedlags = 0;
 [X,Y,T] = preproc4hmm(X,Y,T,options); 
 
 K = size(Gamma,2);
+p = size(X,2);
+q = size(Y,2);
 encmodel = zeros(p,K);
 
 for j = 1:p
