@@ -26,22 +26,22 @@ hmm = versCompatibilityFix(hmm);
 if nargin<4 || isempty(type), type = 0; end
 if nargin<5, residuals = []; end
 if nargin<6 || isempty(preproc), preproc = 1; end
-if nargin<7 || isempty(grouping) 
-    if isfield(hmm.train,'grouping')
-        grouping = hmm.train.grouping;
-    else
-        grouping = ones(length(T),1);
-    end
-    if size(grouping,1)==1,  grouping = grouping'; end
-end
+% if nargin<7 || isempty(grouping) 
+%     if isfield(hmm.train,'grouping')
+%         grouping = hmm.train.grouping;
+%     else
+%         grouping = ones(length(T),1);
+%     end
+%     if size(grouping,1)==1,  grouping = grouping'; end
+% end
 
-if length(size(hmm.Dir_alpha))==3 && isempty(grouping)
-    error('You must specify the grouping argument if the HMM was trained on different groups')
-elseif ~isempty(grouping)
-    Q = length(unique(grouping));
-else
-    Q = 1;
-end
+% if length(size(hmm.Dir_alpha))==3 && isempty(grouping)
+%     error('You must specify the grouping argument if the HMM was trained on different groups')
+% elseif ~isempty(grouping)
+%     Q = length(unique(grouping));
+% else
+%     Q = 1;
+% end
 
 stochastic_learn = isfield(hmm.train,'BIGNbatch') && hmm.train.BIGNbatch < length(T);
 N = length(T);
@@ -172,15 +172,17 @@ if hmm.train.useParallel==1 && N>1
     % any other way - more Matlab's fault than mine
     
     Path = cell(N,1);
-
+    
     parfor n = 1:N
         
-        if Q > 1
-            i = grouping(n);
-            P = hmm.P(:,:,i); Pi = hmm.Pi(:,i)';
-        else
-            P = hmm.P; Pi = hmm.Pi;
-        end
+        %if Q > 1
+        %    i = grouping(n);
+        %    P = hmm.P(:,:,i); Pi = hmm.Pi(:,i)';
+        %else
+        %    P = hmm.P; Pi = hmm.Pi;
+        %end
+        % This causes error with the Parallel toolbox 
+        P = hmm.P; Pi = hmm.Pi;
         
         q_star = ones(T(n)-order,1);
         
@@ -261,7 +263,7 @@ if hmm.train.useParallel==1 && N>1
         Path{n} = single(q_star);
         
     end
-    
+   
     Path = cell2mat(Path);
     
 else
@@ -271,12 +273,13 @@ else
     
     for n=1:N
         
-        if Q > 1
-            i = grouping(n);
-            P = hmm.P(:,:,i); Pi = hmm.Pi(:,i)';
-        else
-            P = hmm.P; Pi = hmm.Pi;
-        end
+        %if Q > 1
+        %    i = grouping(n);
+        %    P = hmm.P(:,:,i); Pi = hmm.Pi(:,i)';
+        %else
+        %    P = hmm.P; Pi = hmm.Pi;
+        %end
+        P = hmm.P; Pi = hmm.Pi;
         
         q_star = ones(T(n)-order,1);
         

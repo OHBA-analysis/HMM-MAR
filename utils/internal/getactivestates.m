@@ -31,11 +31,12 @@ for k=1:K
     end
 end
 
-if isfield(hmm.train,'grouping')
-    Q = length(unique(hmm.train.grouping));
-else
-    Q = 1;
-end
+% if isfield(hmm.train,'grouping')
+%     Q = length(unique(hmm.train.grouping));
+% else
+%     Q = 1;
+% end
+Q = 1; 
 if hmm.train.dropstates==1
     is_active = logical(actstates);
     Gamma = Gamma(:,is_active);
@@ -54,12 +55,13 @@ if hmm.train.dropstates==1
     hmm.Dir2d_alpha = hmm.Dir2d_alpha(is_active,is_active,:);
     hmm.P = hmm.P(is_active,is_active,:);
     if Q>1
-        hmm.Dir_alpha = hmm.Dir_alpha(is_active,:);
-        hmm.Pi = hmm.Pi(is_active,:);
+       hmm.Dir_alpha = hmm.Dir_alpha(is_active,:);
+       hmm.Pi = hmm.Pi(is_active,:);
     else
-        hmm.Dir_alpha = hmm.Dir_alpha(is_active);
-        hmm.Pi = hmm.Pi(is_active);
+       hmm.Dir_alpha = hmm.Dir_alpha(is_active);
+       hmm.Pi = hmm.Pi(is_active);
     end
+        
     hmm.train.Pstructure = hmm.train.Pstructure(is_active,is_active);
     hmm.train.Pistructure = hmm.train.Pistructure(is_active);
     if all(hmm.train.Pistructure==0)

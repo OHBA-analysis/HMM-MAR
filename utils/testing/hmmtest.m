@@ -180,17 +180,19 @@ for perm=1:Nperm
     if perm==1
        Xin = X;
     else
-        if ~isempty(grouping)
-            Xin = zeros(size(X));
-            for gr = 1:length(grouping)
-                jj = (1:grouping(gr)) + sum(grouping(1:gr-1));
-                r = randperm(grouping(gr));
-                Xin(jj,:) = X(jj(r),:);
-            end
-        else
-            r = randperm(N);
-            Xin = X(r,:);
-        end
+        %if ~isempty(grouping)
+        %    Xin = zeros(size(X));
+        %    for gr = 1:length(grouping)
+        %        jj = (1:grouping(gr)) + sum(grouping(1:gr-1));
+        %        r = randperm(grouping(gr));
+        %        Xin(jj,:) = X(jj(r),:);
+        %    end
+        %else
+        %    r = randperm(N);
+        %    Xin = X(r,:);
+        %end
+        r = randperm(N);
+        Xin = X(r,:);
     end
     beta = proj * Xin;
     grotperms(perm,:) = sqrt(sum((D * beta - Xin).^2)); 

@@ -59,7 +59,6 @@ end
 
 Gamma = cell(N,1);
 LL = zeros(N,1);
-scale = cell(N,1);
 Gammasum = zeros(N,K);
 Xi = cell(N,1);
 B = cell(N,1);
@@ -264,12 +263,13 @@ function [Gamma,Xi,L] = nodecluster(XX,K,hmm,residuals,n)
 order = hmm.train.maxorder;
 T = size(residuals,1) + order;
 
-if isfield(hmm.train,'grouping') && length(unique(hmm.train.grouping))>1
-    i = hmm.train.grouping(n); 
-    P = hmm.P(:,:,i); Pi = hmm.Pi(:,i)'; 
-else 
-    P = hmm.P; Pi = hmm.Pi;
-end
+% if isfield(hmm.train,'grouping') && length(unique(hmm.train.grouping))>1
+%     i = hmm.train.grouping(n); 
+%     P = hmm.P(:,:,i); Pi = hmm.Pi(:,i)'; 
+% else 
+%     P = hmm.P; Pi = hmm.Pi;
+% end
+P = hmm.P; Pi = hmm.Pi;
 
 try
     L = obslike([],hmm,residuals,XX,hmm.cache);

@@ -1,11 +1,12 @@
 function [hmm,fe] = dropstate(hmm,k,X,T)
 
 K = length(hmm.state);
-if isfield(hmm.train,'grouping')
-    Q = length(unique(hmm.train.grouping));
-else
-    Q = 1;
-end
+% if isfield(hmm.train,'grouping')
+%     Q = length(unique(hmm.train.grouping));
+% else
+%     Q = 1;
+% end
+Q = 1; 
 
 no_k = setdiff(1:K,k);
 K = K - 1;

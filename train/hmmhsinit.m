@@ -8,11 +8,12 @@ function hmm = hmmhsinit(hmm)
 %
 % Author: Diego Vidaurre, OHBA, University of Oxford
 
-if isfield(hmm.train,'grouping')
-    Q = length(unique(hmm.train.grouping));
-else
-    Q = 1;
-end
+% if isfield(hmm.train,'grouping')
+%     Q = length(unique(hmm.train.grouping));
+% else
+%     Q = 1;
+% end
+Q = 1; 
 
 % Initial state
 kk = hmm.train.Pistructure;

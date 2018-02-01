@@ -1,4 +1,4 @@
-function plv = hmmplv(data, T, Gamma, options)
+function [plv,powercorr] = hmmplv(data, T, Gamma, options)
 % Computes the state-wise Phase Locking Value (PLV) for (time X numChannels) data
 %
 % Input parameters:
@@ -68,6 +68,7 @@ filtPts = fir1(options.order, 2/Fs*options.fpass);
 discard = 2*round(Fs/2);
 
 plv = zeros(ndim, ndim, N, K);
+powercorr = zeros(ndim, ndim, N, K);
 
 c = 0;
 for j = 1:N
@@ -81,6 +82,7 @@ for j = 1:N
     lenTj = length(Tj);
     G = Gamma(c + (1:sum(Tj)-lenTj*order) , :); c = c + size(G,1);
     phase = zeros(sum(Tj)-lenTj*order-lenTj*discard,ndim);
+    power = zeros(sum(Tj)-lenTj*order-lenTj*discard,ndim);
     Gammaj = zeros(sum(Tj)-lenTj*order-lenTj*discard,K);
     for i = 1:length(Tj)
         t0 = sum(Tj(1:i-1)); 
@@ -88,8 +90,11 @@ for j = 1:N
         range = (round(Fs/2)+1) : (size(Xij,1)-round(Fs/2)); % discard some data
         t0 = sum(Tj(1:i-1)) - (i-1)*order - (i-1)*lenTj;
         for n = 1:ndim
-            phn = angle(hilbert(Xij(:,n)));
-            phase((t0+1):(t0+Tj(i)-order-discard),n) = phn(range);
+            h = hilbert(Xij(:,n));
+            s = angle(h);
+            phase((t0+1):(t0+Tj(i)-order-discard),n) = s(range);
+            s = abs(h);
+            power((t0+1):(t0+Tj(i)-order-discard),n) = s(range);
         end
         t0g = sum(Tj(1:i-1)) - (i-1)*order;
         g = G((t0g+1):(t0g+Tj(i)-order),:);
@@ -103,6 +108,15 @@ for j = 1:N
                 plv(n1,n2,j,k) = abs(sum(Gammaj(:,k) .* exp(1i*(phase(:,n1)-phase(:,n2))))) ...
                     / sum(Gammaj(:,k));
                 plv(n2,n1,j,k) = plv(n1,n2,j,k);
+                m1 = sum(Gammaj(:,k) .* power(:,n1)) / sum((Gammaj(:,k)));
+                m2 = sum(Gammaj(:,k) .* power(:,n2)) / sum((Gammaj(:,k)));
+                s1 = sum(Gammaj(:,k) .* (power(:,n1) - m1).^2) / sum((Gammaj(:,k)));
+                s2 = sum(Gammaj(:,k) .* (power(:,n2) - m2).^2) / sum((Gammaj(:,k)));
+                s12 = sum(Gammaj(:,k) .* ...
+                    ((power(:,n1) - m1).^2) .* ((power(:,n2) - m2).^2)) ./ ...
+                    sum((Gammaj(:,k)));
+                powercorr(n1,n2,j,k) = s12 / sqrt(s1) / sqrt(s2);
+                powercorr(n2,n1,j,k) = powercorr(n1,n2,j,k);
             end
         end
     end

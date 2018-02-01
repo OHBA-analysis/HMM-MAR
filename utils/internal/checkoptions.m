@@ -101,9 +101,12 @@ end
 % Trans prob mat related options
 if ~isfield(options,'grouping') || isempty(options.grouping)
     options.grouping = ones(length(T),1);
-elseif ~all(options.grouping==1) && stochastic_learning
-    warning('grouping option is not yet implemented for stochastic learning')
-    options.grouping = ones(length(T),1); 
+%elseif ~all(options.grouping==1) && stochastic_learning
+%    warning('grouping option is not yet implemented for stochastic learning')
+%    options.grouping = ones(length(T),1); 
+else
+    warning('Option grouping is not currently supported and will not be used')
+    options.grouping = ones(length(T),1);
 end  
 if size(options.grouping,1)==1,  options.grouping = options.grouping'; end
 if ~isfield(options,'Pstructure')

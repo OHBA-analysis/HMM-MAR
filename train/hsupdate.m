@@ -14,32 +14,34 @@ function hmm = hsupdate(Xi,Gamma,T,hmm)
 %
 % Author: Diego Vidaurre, OHBA, University of Oxford
 
-if isfield(hmm.train,'grouping')
-    Q = length(unique(hmm.train.grouping));
-else
-    Q = 1;
-end
+% if isfield(hmm.train,'grouping')
+%     Q = length(unique(hmm.train.grouping));
+% else
+%     Q = 1;
+% end
+Q = 1; 
 N = length(T); K = hmm.K;
 [~,order] = formorders(hmm.train.order,hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag);
 % transition matrix
-if Q>1
-    hmm.Dir2d_alpha = zeros(K,K,Q);
-    hmm.P = zeros(K,K,Q);
-    for i = 1:Q
-        hmm.Dir2d_alpha(:,:,i) = hmm.prior.Dir2d_alpha;
-    end
-    order = hmm.train.maxorder;
-    for n = 1:N
-        i = hmm.train.grouping(n);
-        t = (1:T(n)-1-order) + sum(T(1:n-1)) - (order+1)*(n-1) ;
-        s = permute(sum(Xi(t,:,:)),[2 3 1]);
-        hmm.Dir2d_alpha(:,:,i) = hmm.Dir2d_alpha(:,:,i) + s;
-    end
-else
-    hmm.Dir2d_alpha = permute(sum(Xi),[2 3 1]) + hmm.prior.Dir2d_alpha;
-    hmm.P = zeros(K,K);
-end
-%PsiSum=psi(sum(hmm.Dir2d_alpha(:),1));
+% if Q>1
+%     hmm.Dir2d_alpha = zeros(K,K,Q);
+%     hmm.P = zeros(K,K,Q);
+%     for i = 1:Q
+%         hmm.Dir2d_alpha(:,:,i) = hmm.prior.Dir2d_alpha;
+%     end
+%     order = hmm.train.maxorder;
+%     for n = 1:N
+%         i = hmm.train.grouping(n);
+%         t = (1:T(n)-1-order) + sum(T(1:n-1)) - (order+1)*(n-1) ;
+%         s = permute(sum(Xi(t,:,:)),[2 3 1]);
+%         hmm.Dir2d_alpha(:,:,i) = hmm.Dir2d_alpha(:,:,i) + s;
+%     end
+% else
+%     hmm.Dir2d_alpha = permute(sum(Xi),[2 3 1]) + hmm.prior.Dir2d_alpha;
+%     hmm.P = zeros(K,K);
+% end
+hmm.Dir2d_alpha = permute(sum(Xi),[2 3 1]) + hmm.prior.Dir2d_alpha;
+hmm.P = zeros(K,K);
 for i = 1:Q
     for j = 1:K
         PsiSum = psi(sum(hmm.Dir2d_alpha(j,:,i)));

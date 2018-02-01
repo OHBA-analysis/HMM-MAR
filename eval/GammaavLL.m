@@ -1,10 +1,11 @@
 function avLL = GammaavLL(hmm,Gamma,Xi,T)
 % average loglikelihood for state time course
-if isfield(hmm.train,'grouping')
-    Q = length(unique(hmm.train.grouping));
-else
-    Q = 1;
-end
+% if isfield(hmm.train,'grouping')
+%     Q = length(unique(hmm.train.grouping));
+% else
+%     Q = 1;
+% end
+Q = 1; 
 N = length(T); 
 order = (sum(T) - size(Gamma,1))/N;
 avLL = 0; K = size(Gamma,2);
@@ -13,21 +14,26 @@ for in = 1:N
     jj(in) = sum(T(1:in-1)) - order*(in-1) + 1;
 end
 % avLL initial state
-if Q>1
-    for i = 1:Q
-        PsiDir_alphasum = psi(sum(hmm.Dir_alpha(:,i)));
-        ii = hmm.train.grouping==i;
-        for l = 1:K
-            if ~hmm.train.Pistructure(l), continue; end
-            avLL = avLL + sum(Gamma(jj(ii),l)) * (psi(hmm.Dir_alpha(l,i)) - PsiDir_alphasum);
-        end
-    end
-else
-    PsiDir_alphasum = psi(sum(hmm.Dir_alpha));
-    for l = 1:K 
-        if ~hmm.train.Pistructure(l), continue; end
-        avLL = avLL + sum(Gamma(jj,l)) * (psi(hmm.Dir_alpha(l)) - PsiDir_alphasum);
-    end
+% if Q>1
+%     for i = 1:Q
+%         PsiDir_alphasum = psi(sum(hmm.Dir_alpha(:,i)));
+%         ii = hmm.train.grouping==i;
+%         for l = 1:K
+%             if ~hmm.train.Pistructure(l), continue; end
+%             avLL = avLL + sum(Gamma(jj(ii),l)) * (psi(hmm.Dir_alpha(l,i)) - PsiDir_alphasum);
+%         end
+%     end
+% else
+%     PsiDir_alphasum = psi(sum(hmm.Dir_alpha));
+%     for l = 1:K 
+%         if ~hmm.train.Pistructure(l), continue; end
+%         avLL = avLL + sum(Gamma(jj,l)) * (psi(hmm.Dir_alpha(l)) - PsiDir_alphasum);
+%     end
+% end
+PsiDir_alphasum = psi(sum(hmm.Dir_alpha));
+for l = 1:K
+    if ~hmm.train.Pistructure(l), continue; end
+    avLL = avLL + sum(Gamma(jj,l)) * (psi(hmm.Dir_alpha(l)) - PsiDir_alphasum);
 end
 % avLL remaining time points
 for i = 1:Q

@@ -96,16 +96,18 @@ for cycle = 2:options.BIGcyc
         end
         Dir2d_alpha(:,:,i) = squeeze(sum(Xi{ii},1));
     end
-    if length(unique(hmm.train.grouping))==1
-        hmm.Dir_alpha = sum(Dir_alpha,2)' + hmm.prior.Dir_alpha;
-        hmm.Dir2d_alpha = sum(Dir2d_alpha,3) + hmm.prior.Dir2d_alpha;
-    else
-        g = unique(hmm.train.grouping);
-        for i = 1:length(g)
-            hmm.Dir_alpha(:,i) = sum(Dir_alpha(:,hmm.train.grouping==g(i)),2) + hmm.prior.Dir_alpha';
-            hmm.Dir2d_alpha(:,:,i) = sum(Dir2d_alpha(:,:,hmm.train.grouping==g(i)),3) + hmm.prior.Dir2d_alpha;
-        end   
-    end
+    %if length(unique(hmm.train.grouping))==1
+    %    hmm.Dir_alpha = sum(Dir_alpha,2)' + hmm.prior.Dir_alpha;
+    %    hmm.Dir2d_alpha = sum(Dir2d_alpha,3) + hmm.prior.Dir2d_alpha;
+    %else
+    %    g = unique(hmm.train.grouping);
+    %    for i = 1:length(g)
+    %        hmm.Dir_alpha(:,i) = sum(Dir_alpha(:,hmm.train.grouping==g(i)),2) + hmm.prior.Dir_alpha';
+    %        hmm.Dir2d_alpha(:,:,i) = sum(Dir2d_alpha(:,:,hmm.train.grouping==g(i)),3) + hmm.prior.Dir2d_alpha;
+    %    end   
+    %end
+    hmm.Dir_alpha = sum(Dir_alpha,2)' + hmm.prior.Dir_alpha;
+    hmm.Dir2d_alpha = sum(Dir2d_alpha,3) + hmm.prior.Dir2d_alpha;
     [hmm.P,hmm.Pi] = computePandPi(hmm.Dir_alpha,hmm.Dir2d_alpha);
     subjfe(:,3,cycle) = evalfreeenergy([],[],[],[],hmm,[],[],[0 0 0 1 0]) / N; % "shared" P/Pi KL
     for ii = 1:length(I)
