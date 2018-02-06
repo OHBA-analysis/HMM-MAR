@@ -19,7 +19,9 @@ if iscell(T)
     for i = 1:length(T)
         if size(T{i},1)==1, T{i} = T{i}'; end
     end
-    T = cell2mat(T);
+    T = single(cell2mat(T));
+else
+    T = single(T);
 end
 T = T - (sum(T)-length(vpath))/length(T);
 

@@ -37,10 +37,11 @@ if iscell(T)
         trials2subjects(ii:ii+Ntrials-1) = i;
         ii = ii + Ntrials;
     end
-    T = cell2mat(T);
+    T = single(cell2mat(T));
 else 
     Nsubj = length(T);
     trials2subjects = 1:Nsubj;
+    T = single(T);
 end
 N = length(T);
 
