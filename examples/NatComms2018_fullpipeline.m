@@ -329,6 +329,7 @@ options_mt.tapers = [4 7]; % taper specification - leave it with default values
 options_mt.p = 0; %0.01; % interval of confidence  
 options_mt.win = 2 * Hz; % multitaper window
 options_mt.to_do = [1 0]; % turn off pdc
+options_mt.order = 0;
 options_mt.embeddedlags = -7:7;
 
 % average
@@ -337,7 +338,6 @@ fitmt = hmmspectramt(mat_files,T_all,Gamma,options_mt);
 % per subject
 fitmt_subj = cell(N,1);
 d = length(options_mt.embeddedlags) - 1; 
-params.to_do = [1 0]; params.p = 0; 
 acc = 0; for n=1:N
     load(mat_files{n});
     gamma = Gamma(acc + (1:(sum(T_all{n})-length(T_all{n})*d)),:);
