@@ -12,15 +12,19 @@ function [tuda,Gamma,GammaInit,vpath,stats] = tudatrain(X,Y,T,options)
 %
 % OUTPUT
 % tuda: Estimated TUDA model (similar to an HMM structure)
+%       It contains the fields of any HMM structure. It also contains:
+%           - features: if feature selection is performed, which
+%               features have been used
 % Gamma: Time courses of the states (decoding models) probabilities given data
 % GammaInit: Initialisation state time courses, where we do assume
 %       that the same decoding is active at the same time point at all trials.
 % vpath: Most likely state path of hard assignments 
 % stats: structure with additional information
 %   - R2_pca: explained variance of the PCA decomposition used to
-%   reduce the dimensionality of the brain data (X)
+%       reduce the dimensionality of the brain data (X)
+%   - fe: variational free energy 
 %   - R2: (training) explained variance of tuda (time by q) 
-%   - R2_states: (training) explained variance per state (time by q by K) 
+%   - R2_states: (training) explained variance of tuda per state (time by q by K) 
 %   - R2_stddec: (training) explained variance of the standard 
 %               (temporally constrained) decoding approach (time by q by K) 
 %
@@ -47,7 +51,10 @@ end
 
 % if cyc==0 there is just init and no HMM training 
 if isfield(options,'cyc') && options.cyc == 0 
-   tuda = []; vpath = []; stats.ev = []; 
+   if ~parallel_trials
+      error('Nothing to do, specify options.cyc > 0') 
+   end
+   tuda = []; vpath = [];  
    Gamma = options.Gamma;
    stats.R2_stddec = R2_standard_dec(X,Y,T);
    return
@@ -64,16 +71,20 @@ for n=1:N
     Z(t1(2:end),(p+1):end) = Y(t2,:);
 end 
 
-% run HMM
+% Run TUDA inference
 options.S = -ones(p+q);
 options.S(1:p,p+1:end) = 1;
-options.updateObs = 0; % update only Gamma and trans prob mat
-[tuda,Gamma,~,vpath,~,~, stats.fehist] = hmmmar(Z,T,options); 
-options.updateObs = 1; 
+% 1. Estimate state time courses, trans prob mat, and first approximation
+%       of the decoding models
+options.updateObs = 0;
+options.updateGamma = 1;
+[tuda,Gamma,~,vpath] = hmmmar(Z,T,options);
+% 2. Update state distributions only, leaving fixed the state time courses
+options.updateObs = 1; % 
 options.updateGamma = 0;
 options.Gamma = Gamma;
 options.hmm = tuda; 
-[tuda,Gamma,~,vpath,~,~, stats.fehist] = hmmmar(Z,T,options); 
+[tuda,~,~,~,~,~, stats.fe] = hmmmar(Z,T,options); 
 tuda.features = features;
 
 % Explained variance per state, square error &
@@ -82,11 +93,10 @@ if parallel_trials
     [stats.R2_states,stats.R2] = tuda_R2(X,Y,T-1,tuda,Gamma);
     stats.R2_stddec = R2_standard_dec(X,Y,T-1);
 else
-    stats.R2_states = []; stats.R2 = []; stats.sq0 = R2_stddec;
+    stats.R2_states = []; stats.R2 = []; stats.R2_stddec = [];
 end
 
 end
-
 
 
 function [R2_states,R2_tuda] = tuda_R2(X,Y,T,tuda,Gamma)

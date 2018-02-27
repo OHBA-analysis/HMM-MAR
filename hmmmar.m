@@ -311,7 +311,7 @@ else
             options.Gamma = ones(sum(T)-length(T)*options.maxorder,1);
             GammaInit = options.Gamma;
         end
-    elseif isempty(options.Gamma) && ~isempty(options.hmm) % Gamma unspecified
+    elseif isempty(options.Gamma) && ~isempty(options.hmm) % Gamma unspecified, hmm specified
         GammaInit = [];
     else % hmm unspecified, or both specified
         GammaInit = options.Gamma;
@@ -320,7 +320,7 @@ else
 
     % If initialization Gamma has fewer states than options.K, put those states back in
     % and renormalize
-    if size(GammaInit,2) < options.K 
+    if ~isempty(GammaInit) && (size(GammaInit,2) < options.K)
         % States were knocked out, but semisupervised in use, so put them back
         GammaInit = [GammaInit 0.0001*rand(size(GammaInit,1),options.K-size(GammaInit,2))];
         GammaInit = bsxfun(@rdivide,GammaInit,sum(GammaInit,2));
@@ -347,18 +347,26 @@ else
     fehist = Inf; 
     for it=1:options.repetitions
         hmm0 = hmm_wr;
-        residuals0 = residuals_wr;
-        [hmm0,Gamma0,Xi0,fehist0] = hmmtrain(data,T,hmm0,GammaInit,residuals0,fehistInit);
+        [hmm0,Gamma0,Xi0,fehist0] = hmmtrain(data,T,hmm0,GammaInit,residuals_wr,fehistInit);
         if options.updateGamma==1 && fehist0(end)<fehist(end)
             fehist = fehist0; hmm = hmm0;
-            residuals = residuals0; Gamma = Gamma0; Xi = Xi0;
+            residuals = residuals_wr; Gamma = Gamma0; Xi = Xi0;
         elseif options.updateGamma==0
             fehist = []; hmm = hmm0;
             residuals = []; Gamma = GammaInit; Xi = [];
         end
     end
     
+    if options.repetitions == 0
+        hmm0 = hmm_wr;
+        hmm0.train.updateObs = 0;
+        [~,Gamma,Xi] = hmmtrain(data,T,hmm0,GammaInit,residuals_wr,fehistInit);
+        fehist = []; hmm = hmm0;
+        residuals = []; 
+    end
+    
     if options.decodeGamma && nargout >= 4
+        
         vpath = hmmdecode(data.X,T,hmm,1,residuals,0);
         if ~options.keepS_W
             for i=1:hmm.K
