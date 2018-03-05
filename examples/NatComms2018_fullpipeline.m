@@ -1,5 +1,7 @@
 % Detailed documentation and further examples can be found in:
 % https://ohba-analysis.github.io/osl-docs/
+% This pipeline is adapted to CTF data and must be adapted to 
+% your particular configuration of files. 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%
 %% SETUP THE MATLAB PATHS AND FILE NAMES
