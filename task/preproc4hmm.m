@@ -137,7 +137,6 @@ else
     features = 1:p;
 end
 
-
 % Hilbert envelope
 if onpower
     X = rawsignal2power(X,T);
