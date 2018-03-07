@@ -27,25 +27,27 @@ else
 end
 
 % Filtering
-if ~isempty(options.filter)
+if isfield(options,'filter') && ~isempty(options.filter)
     X = filterdata(X,T,options.Fs,options.filter);
 end
 % Detrend data
-if options.detrend
+if isfield(options,'detrend') && options.detrend
     X = detrenddata(X,T);
 end
 % Standardise data and control for ackward trials
-X = standardisedata(X,T,options.standardise);
+if isfield(options,'standardise')
+    X = standardisedata(X,T,options.standardise);
+end
 % Leakage correction
-if options.leakagecorr ~= 0
+if isfield(options,'leakagecorr') && options.leakagecorr ~= 0
     X = leakcorr(X,T,options.leakagecorr);
 end
 % Hilbert envelope
-if options.onpower
+if isfield(options,'onpower') && options.onpower
     X = rawsignal2power(X,T);
 end
 % Leading Phase Eigenvectors
-if options.leida
+if isfield(options,'leida') && options.leida
     X = leadingPhEigenvector(X,T);
 end
 % PCA transform (before embedded, i.e. drawing only from space corr)
@@ -54,7 +56,7 @@ if isfield(options,'As') && ~isempty(options.As)
     X = X * options.As;
 end
 % Embedding
-if length(options.embeddedlags)>1
+if isfield(options,'embeddedlags') && length(options.embeddedlags)>1
     [X,T] = embeddata(X,T,options.embeddedlags);
 end
 % PCA transform
@@ -65,7 +67,7 @@ if isfield(options,'A') && ~isempty(options.A)
     X = standardisedata(X,T,options.standardise_pc);
 end
 % Downsampling
-if options.downsample > 0
+if isfield(options,'downsample') && options.downsample > 0
     [X,T] = downsampledata(X,T,options.downsample,options.Fs);
 end
 

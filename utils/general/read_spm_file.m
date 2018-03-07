@@ -21,7 +21,7 @@ goodsamples = good_samples(D);
 goodsamples = reshape(goodsamples,1,D.nsamples*D.ntrials);
 X = X(:,goodsamples)';
 options = struct(); 
-T = getStateLifeTimes (goodsamples',length(goodsamples),options,1);
+T = cell2mat(getStateLifeTimes (goodsamples',length(goodsamples),options,1));
 
 if min(T{1})<20
     warning('There are time segments with less than 20 time points')

@@ -1,14 +1,18 @@
-function [flips,scorepath,covmats_unflipped] = findflip(X,T,options)
+function [flips,scorepath,covmats_unflipped] = findflip(data,T,options)
 % Finds an optimal permutation of the channels, where goodness is measured
 % as the mean lagged partial  cross-correlation across pair of channels and lags.
 % In other words, it finds a permutation where the signs of the lagged
 % partial correlations agree as much as possible across subjects.
 %
 % INPUTS
-% X             time series, or alternatively an (unflipped) array of
+% data          observations, either a struct with X (time series) 
+%                             or just a matrix containing the time series
+%               Alternatively, it can be an (unflipped) array of
 %                   autocorrelation matrices (ndim x ndim x no.lags x no. trials),
 %                   as computed for example by getCovMats()
-% T             length of series
+% T             length of series. If data is supplied as the
+%               autocorrelation matrices, then this is not required and 
+%               can be specified as []
 % options:
 %  maxlag        max lag to consider 
 %  nbatch        no. of channels to evaluate at each iteration
@@ -27,41 +31,76 @@ function [flips,scorepath,covmats_unflipped] = findflip(X,T,options)
 %
 % Author: Diego Vidaurre, University of Oxford.
 
-N = length(T); ndim = size(X,2);
+N = length(T); 
 
+if nargin < 3, options = struct; end
 if ~isfield(options,'maxlag'), options.maxlag = 10; end
-if ~isfield(options,'noruns'), options.noruns = 50; end
-if ~isfield(options,'maxcyc'), options.maxcyc = 100*N*ndim; end
+if ~isfield(options,'noruns'), options.noruns = 10; end
 if ~isfield(options,'mincyc'), options.mincyc = 10; end
 if ~isfield(options,'probinitflip'), options.probinitflip = 0.25; end
-if ~isfield(options,'nbatch'), options.nbatch = ndim; end
 if ~isfield(options,'standardise'), options.standardise = 1; end
 if ~isfield(options,'partial'), options.partial = 0; end
 if ~isfield(options,'verbose'), options.verbose = 1; end
 
-if options.maxcyc<options.mincyc
-    error('maxcyc cannot be lower than mincyc')
-end
-
-if length(size(X))==4 % it is an array of autocorrelation matrices already
-    covmats_unflipped = X; clear X
+if length(size(data))==4 % it is an array of autocorrelation matrices already
+    covmats_unflipped = data; clear data
+    ndim = size(covmats_unflipped,1);
+    
+elseif iscell(data)
+    N = length(T); 
+    for j = 1:N
+        if ischar(data{j})
+            fsub = data{j};
+            loadfile_sub;
+        else
+            X = data{j};
+        end
+        Tj = T{j}; Nj = length(Tj); 
+        if options.standardise
+            for jj = 1:Nj
+                ind = (1:Tj(jj)) + sum(Tj(1:jj-1));
+                X(ind,:) = bsxfun(@minus,X(ind,:),mean(X(ind,:)));  
+                sd = std(X(ind,:));
+                if any(sd==0)
+                    error('At least one channel in at least one trial has variance equal to 0')
+                end
+                X(ind,:) = X(ind,:) ./ repmat(sd,Tj(jj),1);
+            end
+        end
+        covmats_unflipped_j = getCovMats(X,Tj,options.maxlag,options.partial);
+        if j==1
+            covmats_unflipped = covmats_unflipped_j; 
+            ndim = size(X,2);
+        else % do some kind of weighting here according to the number of samples?
+            covmats_unflipped = cat(4,covmats_unflipped,covmats_unflipped_j);
+        end
+    end
+    N = size(covmats_unflipped,4); 
+    
 else
+    if isstruct(data), data = data.X; end 
+    ndim = size(data,2);
     if options.standardise
-        for n = 1:N
-            ind = (1:T(n)) + sum(T(1:n-1));
-            X(ind,:) = X(ind,:) - repmat(mean(X(ind,:)),T(n),1);
-            sd = std(X(ind,:));
+        for j = 1:N
+            ind = (1:T(j)) + sum(T(1:j-1));
+            data(ind,:) = bsxfun(@minus,data(ind,:),mean(data(ind,:)));
+            sd = std(data(ind,:));
             if any(sd==0) 
                 error('At least one channel in at least one trial has variance equal to 0')
             end
-            X(ind,:) = X(ind,:) ./ repmat(sd,T(n),1);
+            data(ind,:) = data(ind,:) ./ repmat(sd,T(j),1);
         end
     end
-    covmats_unflipped = getCovMats(X,T,options.maxlag,options.partial);
+    covmats_unflipped = getCovMats(data,T,options.maxlag,options.partial);
 end
 
 score = -Inf;
 scorepath = cell(options.noruns,1);
+if ~isfield(options,'nbatch'), options.nbatch = ndim; end
+if ~isfield(options,'maxcyc'), options.maxcyc = 100*N*ndim; end
+if options.maxcyc<options.mincyc
+    error('maxcyc cannot be lower than mincyc')
+end
 
 for r = 1:options.noruns
     
@@ -92,25 +131,25 @@ for r = 1:options.noruns
             scorepath{r} = [scorepath{r} scorer];
         end
         for d = channels
-            for n = 1:N
-                cm = covmats(:,:,:,n); 
-                sm = signmats(:,:,n);
-                flipsr(n,d) = ~flipsr(n,d); % do ...
-                signmats(:,:,n) = getSignMat(flipsr(n,:)); 
-                covmats(:,:,:,n) = applySign(covmats_unflipped(:,:,:,n),signmats(:,:,n));
-                s = getscore(covmats,n,scorers); % ... evaluate ...
-                covmats(:,:,:,n) = cm;
-                signmats(:,:,n) = sm;
-                flipsr(n,d) = ~flipsr(n,d); % ... and undo
-                ScoreMatrix(n,d) = s - scorer;
+            for j = 1:N
+                cm = covmats(:,:,:,j); 
+                sm = signmats(:,:,j);
+                flipsr(j,d) = ~flipsr(j,d); % do ...
+                signmats(:,:,j) = getSignMat(flipsr(j,:)); 
+                covmats(:,:,:,j) = applySign(covmats_unflipped(:,:,:,j),signmats(:,:,j));
+                s = getscore(covmats,j,scorers); % ... evaluate ...
+                covmats(:,:,:,j) = cm;
+                signmats(:,:,j) = sm;
+                flipsr(j,d) = ~flipsr(j,d); % ... and undo
+                ScoreMatrix(j,d) = s - scorer;
             end
         end
         [score1,I] = max(ScoreMatrix(:));
-        [n,d] = ind2sub([N ndim],I);
+        [j,d] = ind2sub([N ndim],I);
         if score1>0
-            flipsr(n,d) = ~flipsr(n,d);
+            flipsr(j,d) = ~flipsr(j,d);
             if options.verbose
-                fprintf('Run %d, Cycle %d, score +%f, flipped (%d,%d) \n',r,cyc,score1,n,d)
+                fprintf('Run %d, Cycle %d, score +%f, flipped (%d,%d) \n',r,cyc,score1,j,d)
             end
             if cyc==options.maxcyc % we are finishing
                 scorer = scorer+score1;
@@ -144,24 +183,15 @@ if options.verbose
 end
 
 % Among the equivalent flippings, we keep the one w/ the lowest no. of flips
-for n = 1:N
-    if mean(flips(n,:))>0.5
-        flips(n,:) = 1 - flips(n,:);
+for j = 1:N
+    if mean(flips(j,:))>0.5
+        flips(j,:) = 1 - flips(j,:);
     end
 end
 
-if nargout>1
-    for n = 1:N
-        ind = (1:T(n)) + sum(T(1:n-1));
-        for d = 1:ndim
-            if flips(n,d)==1
-                X(ind,d) = -X(ind,d);
-            end
-        end
-    end
-end
 
 end
+
 
 
 

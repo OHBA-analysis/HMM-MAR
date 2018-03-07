@@ -4,8 +4,9 @@
 % if requested, obtain the cross-validated sum of prediction quadratic errors.
 %
 % INPUT
-% data          observations, either a struct with X (time series) and C (classes, optional)
-%                             or just a matrix containing the time series
+% data          observations; either a struct with X (time series) and C (classes, optional),
+%                             or a matrix containing the time series,
+%                             or a list of file names
 % T             length of series
 % options       structure with the training options - see documentation in 
 %                       https://github.com/OHBA-analysis/HMM-MAR/wiki

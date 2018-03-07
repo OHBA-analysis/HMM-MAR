@@ -272,14 +272,8 @@ options_signflip = [];
 options_signflip.maxlag = 7; 
 options_signflip.verbose = 0;
 
-for ss = 1:length(subjects_to_do)
-    load(mat_files{ss}); % loads X and T
-    flips = findflip(X,T,options_signflip);
-    X = flipdata(X,T,flips);
-    save(mat_files{ss},'T','X');
-    disp(['Subject ' num2str(ss)])
-end
-
+flips = findflip(mat_files,T_all,options_signflip);
+flipdata(mat_files,T,flips);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%
 %% Run the HMM
