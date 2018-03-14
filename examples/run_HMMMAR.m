@@ -82,12 +82,10 @@ end
 
 % stochastic options
 if stochastic_inference
-    options.BIGNinitbatch = 5;
-    options.BIGNbatch = 5;
+    options.BIGNbatch = max(N/30,5);
     options.BIGtol = 1e-7;
     options.BIGcyc = 500;
     options.BIGundertol_tostop = 5;
-    options.BIGdelay = 5;
     options.BIGforgetrate = 0.7;
     options.BIGbase_weights = 0.9;
 end
