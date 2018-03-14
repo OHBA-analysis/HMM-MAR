@@ -15,4 +15,8 @@ end
 
 m = hmm.state(k).W.Mu_W(1,:);
 
+if isfield(hmm.train,'A')
+   m = m * hmm.train.A';  
+end
+
 end

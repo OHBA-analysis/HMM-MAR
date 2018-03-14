@@ -22,4 +22,10 @@ else
 end
 corrmat = corrcov(covmat);
 
+if isfield(hmm.train,'A')
+    A = hmm.train.A;
+    corrmat = A * corrmat * A';
+    covmat = A * covmat * A';
+end
+
 end
