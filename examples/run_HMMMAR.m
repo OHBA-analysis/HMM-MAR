@@ -82,7 +82,7 @@ end
 
 % stochastic options
 if stochastic_inference
-    options.BIGNbatch = max(N/30,5);
+    options.BIGNbatch = max(round(N/30),5);
     options.BIGtol = 1e-7;
     options.BIGcyc = 500;
     options.BIGundertol_tostop = 5;
