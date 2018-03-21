@@ -102,16 +102,22 @@ end
 if ~isfield(options,'confounds'), confounds = [];
 else, confounds = options.confounds;
 end
+if ~isfield(options,'downsample') || ~isfield(options,'Fs')
+    r = 1; 
+else
+    r = options.downsample/options.Fs;
+end
+
 
 % Adjust dimensions of T and Tsubject
 if isfield(options,'order') && options.order > 0
-    Tsubject = ceil((options.downsample/options.Fs) * Tsubject);
+    Tsubject = ceil(r * Tsubject);
     Tsubject = Tsubject - Ntrials_per_subject * options.order; 
 elseif isfield(options,'embeddedlags') && length(options.embeddedlags) > 1
     d1 = -min(0,options.embeddedlags(1));
     d2 = max(0,options.embeddedlags(end));
     Tsubject = Tsubject - Ntrials_per_subject * (d1+d2); 
-    Tsubject = ceil((options.downsample/options.Fs) * Tsubject);
+    Tsubject = ceil(r * Tsubject);
 end
 
 tests = struct();
