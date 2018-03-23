@@ -53,14 +53,19 @@ elseif dim == 2
 end
 N = length(T);
 
+r = 1; 
+if isfield(options,'downsample') && options.downsample>0
+    r = (options.downsample/options.Fs);
+end
+
 if isfield(options,'order') && options.order > 0
-    T = ceil((options.downsample/options.Fs) * T);
+    T = ceil(r * T);
     T = T - options.order; 
 elseif isfield(options,'embeddedlags') && length(options.embeddedlags) > 1
     d1 = -min(0,options.embeddedlags(1));
     d2 = max(0,options.embeddedlags(end));
     T = T - (d1+d2);
-    T = ceil((options.downsample/options.Fs) * T);
+    T = ceil(r * T);
 end
 
 if is_vpath % viterbi path
@@ -90,7 +95,7 @@ if dim == 2
     FO = FO ./ repmat(sum(FO,2),1,K);
     ntrials = [];
 else
-    if all(T~=T(1)) 
+    if all(T==T(1)) 
         Gamma = reshape(Gamma,[T(1),N,K]);
         FO = squeeze(mean(Gamma,2));
         ntrials = N * ones(T(1),1);
