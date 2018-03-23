@@ -66,9 +66,33 @@ for cycle=1:hmm.train.cyc
             end
             setxx;
         end
+        
+        if strcmp(hmm.train.covtype,'logistic')
+            % update psi parameters also:
+            Sind=hmm.train.Sind==1;
+            n=hmm.train.ndim;
+            X=XX(:,1:(n-hmm.train.logisticYdim));
+            for i=1:K
+                WW{i}=hmm.state(i).W.Mu_W(Sind(:,n),n)*hmm.state(i).W.Mu_W(Sind(:,n),n)' + ...
+                            squeeze(hmm.state(i).W.S_W(n,Sind(:,n),Sind(:,n)));
+            end
+            for t=1:size(Gamma,1)
+                for i=1:K
+%                         gamWW(:,:,i) = Gamma(t,i)* ...
+%                             (hmm.state(i).W.Mu_W(Sind(:,n),n)*hmm.state(i).W.Mu_W(Sind(:,n),n)' + ...
+%                             squeeze(hmm.state(i).W.S_W(n,S(:,n),S(:,n))));
+                      gamWW(:,:,i) = Gamma(t,i)*WW{i};
+                end
+                hmm.psi(t)=sqrt(X(t,:) * sum(gamWW,3) * X(t,:)');
+            end
+        end
 
         %%%% Free energy computation
-        fehist(end+1) = sum(evalfreeenergy(data.X,T,Gamma,Xi,hmm,residuals,XX));
+        if strcmp(hmm.train.covtype,'logistic')
+            fehist(end+1) = sum(evalfreeenergylogistic(T,Gamma,Xi,hmm,residuals,XX));
+        else
+            fehist(end+1) = sum(evalfreeenergy(data.X,T,Gamma,Xi,hmm,residuals,XX));
+        end
         strwin = ''; if hmm.train.meancycstop>1, strwin = 'windowed'; end
         if cycle>(hmm.train.meancycstop+1) 
             chgFrEn = mean( fehist(end:-1:(end-hmm.train.meancycstop+1)) - ...
@@ -93,6 +117,8 @@ for cycle=1:hmm.train.cyc
     % Observation model
     if hmm.train.updateObs
         hmm = obsupdate(T,Gamma,hmm,residuals,XX,XXGXX);
+        
+        
     end
     
     if hmm.train.updateGamma

@@ -214,7 +214,9 @@ else
        data = detrenddata(data,T); 
     end
     % Standardise data and control for ackward trials
-    data = standardisedata(data,T,options.standardise); 
+    if options.standardise
+        data = standardisedata(data,T,options.standardise); 
+    end
     % Leakage correction
     if options.leakagecorr ~= 0 
         data = leakcorr(data,T,options.leakagecorr);
@@ -335,6 +337,7 @@ else
         %if options.whitening, hmm_wr.train.A = A; hmm_wr.train.iA = iA;  end
         hmm_wr = hmmhsinit(hmm_wr);
         [hmm_wr,residuals_wr] = obsinit(data,T,hmm_wr,GammaInit);
+        if ~isfield(options,'Gamma'); hmm_wr.Gamma = GammaInit;end
     else % using a warm restart from a previous run
         hmm_wr = versCompatibilityFix(options.hmm);
         options = rmfield(options,'hmm');

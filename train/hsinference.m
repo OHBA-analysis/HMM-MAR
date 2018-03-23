@@ -113,11 +113,12 @@ for k = 1:K
         C = hmm.state(k).Omega.Gam_shape * hmm.state(k).Omega.Gam_irate;
     end
     
-    hmm.cache.ldetWishB{k} = ldetWishB;
-    hmm.cache.PsiWish_alphasum{k} = PsiWish_alphasum;
-    hmm.cache.C{k} = C;
-    hmm.cache.do_normwishtrace(k) = ~isempty(hmm.state(k).W.Mu_W);
-    
+    if ~strcmp(train.covtype,'logistic')
+        hmm.cache.ldetWishB{k} = ldetWishB;
+        hmm.cache.PsiWish_alphasum{k} = PsiWish_alphasum;
+        hmm.cache.C{k} = C;
+        hmm.cache.do_normwishtrace(k) = ~isempty(hmm.state(k).W.Mu_W);
+    end
 end
 
 
@@ -152,8 +153,11 @@ if hmm.train.useParallel==1 && N>1
                 end
             end
             XXt = XX(slicer + s0 - order,:); 
+%             if isfield(hmm,'Gamma');Gamma_slice=hmm.Gamma(slicer + s0 - order,:);
+%             else Gamma_slice=NaN; end
+            slicepoints=slicer + s0 - order;
             if isnan(C(t,1))
-                [gammat,xit,Bt] = nodecluster(XXt,K,hmm,R(slicer,:),in);
+                [gammat,xit,Bt] = nodecluster(XXt,K,hmm,R(slicer,:),in,slicepoints);
             else
                 gammat = zeros(length(slicer),K);
                 if t==order+1, gammat(1,:) = C(slicer(1),:); end
@@ -213,8 +217,11 @@ else
                 end
             end
             XXt = XX(slicer + s0 - order,:);
+%             if isfield(hmm,'Gamma');Gamma_slice=hmm.Gamma(slicer + s0 - order,:);
+%             else Gamma_slice=NaN; end
+            slicepoints=slicer + s0 - order;
             if isnan(C(t,1))
-                [gammat,xit,Bt] = nodecluster(XXt,K,hmm,R(slicer,:),in);
+                [gammat,xit,Bt] = nodecluster(XXt,K,hmm,R(slicer,:),in,slicepoints);
                 if any(isnan(gammat(:)))
                     error('State time course inference returned NaN - Out of precision?')
                 end
@@ -257,11 +264,17 @@ if n_argout>=5, B  = cell2mat(B); end
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [Gamma,Xi,L] = nodecluster(XX,K,hmm,residuals,n)
+function [Gamma,Xi,L] = nodecluster(XX,K,hmm,residuals,n,slicepoints)
 % inference using normal foward backward propagation
 
-order = hmm.train.maxorder;
+
+if strcmp(hmm.train.covtype,'logistic'); order=0;
+else order = hmm.train.maxorder; end
 T = size(residuals,1) + order;
+
+if nargin<6
+    slicepoints=[];
+end
 
 % if isfield(hmm.train,'grouping') && length(unique(hmm.train.grouping))>1
 %     i = hmm.train.grouping(n); 
@@ -272,7 +285,11 @@ T = size(residuals,1) + order;
 P = hmm.P; Pi = hmm.Pi;
 
 try
-    L = obslike([],hmm,residuals,XX,hmm.cache);
+    if ~strcmp(hmm.train.covtype,'logistic')
+        L = obslike([],hmm,residuals,XX,hmm.cache);
+    else
+        L = obslikelogistic([],hmm,residuals,XX,hmm.cache,slicepoints);
+    end
 catch
     error('obslike function is giving trouble - Out of precision?')
 end

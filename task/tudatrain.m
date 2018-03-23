@@ -41,12 +41,14 @@ if isfield(options,'add_noise'), options = rmfield(options,'add_noise'); end
 p = size(X,2); q = size(Y,2);
  
 % init HMM, only if trials are temporally related
-if parallel_trials
+if parallel_trials && ~isfield(options,'Gamma')
     GammaInit = cluster_decoding(X,Y,T,options.K,'regression');
     options.Gamma = permute(repmat(GammaInit,[1 1 N]),[1 3 2]);
     options.Gamma = reshape(options.Gamma,[length(T)*size(GammaInit,1) options.K]);
-else
+elseif ~parallel_trials
     GammaInit = [];
+else 
+    GammaInit = options.Gamma;
 end
 
 % if cyc==0 there is just init and no HMM training 
@@ -74,15 +76,18 @@ end
 % Run TUDA inference
 options.S = -ones(p+q);
 options.S(1:p,p+1:end) = 1;
-% 1. Estimate state time courses, trans prob mat, and first approximation
-%       of the decoding models
-options.updateObs = 0;
+% 1. Estimate Obs Model parameters given Gamma, unless told not to:
+options_run1=options;
+if isfield(options,'updateObs') 
+    options_run1.updateObs=1
+end 
+options_run1.updateGamma=0;
+[tuda,Gamma,~,vpath] = hmmmar(Z,T,options_run1);
+
+% 2. Update state time courses only, leaving fixed obs model params:
+options.updateObs = 0; % 
 options.updateGamma = 1;
-[tuda,Gamma,~,vpath] = hmmmar(Z,T,options);
-% 2. Update state distributions only, leaving fixed the state time courses
-options.updateObs = 1; % 
-options.updateGamma = 0;
-options.Gamma = Gamma;
+%options.Gamma = Gamma;
 options.hmm = tuda; 
 [tuda,~,~,~,~,~, stats.fe] = hmmmar(Z,T,options); 
 tuda.features = features;
@@ -125,19 +130,24 @@ end
 function R2 = R2_standard_dec(X,Y,T)
 % squared error for time point by time point decoding (time by q)
 N = length(T); ttrial = sum(T)/N; p = size(X,2); q = size(Y,2);
-X = reshape(X,[ttrial N p]);
-Y = reshape(Y,[ttrial N q]);
-sqerr = zeros(ttrial,1);
-sqerr0 = zeros(ttrial,1);
-for t = 1:ttrial
-    Xt = permute(X(t,:,:),[2 3 1]);
-    Yt = permute(Y(t,:,:),[2 3 1]);
-    beta = (Xt' * Xt) \ (Xt' * Yt);
-    Yhat = Xt * beta; 
-    sqerr(t) = sum(sum( (Yhat - Yt).^2 ));
-    sqerr0(t) = sum(sum( (Yt).^2 ));
+if p < N
+    X = reshape(X,[ttrial N p]);
+    Y = reshape(Y,[ttrial N q]);
+    sqerr = zeros(ttrial,1);
+    sqerr0 = zeros(ttrial,1);
+    for t = 1:ttrial
+        Xt = permute(X(t,:,:),[2 3 1]);
+        Yt = permute(Y(t,:,:),[2 3 1]);
+        beta = (Xt' * Xt) \ (Xt' * Yt);
+        Yhat = Xt * beta; 
+        sqerr(t) = sum(sum( (Yhat - Yt).^2 ));
+        sqerr0(t) = sum(sum( (Yt).^2 ));
+    end
+    R2 = 1 - sqerr ./ sqerr0;
+else %implies prioblem is unconstrained, so perfect solution found
+    R2=NaN;
 end
-R2 = 1 - sqerr ./ sqerr0;
+
 end
 
 

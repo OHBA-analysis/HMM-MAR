@@ -36,8 +36,11 @@ if ~isfield(options,'parallel_trials'), parallel_trials = all(T==T(1));
 else, parallel_trials = options.parallel_trials; end
 if ~isfield(options,'pca'), pca_opt = 0;
 else, pca_opt = options.pca; end
-if ~isfield(options,'add_noise'), add_noise = 1;
-else, add_noise = options.add_noise; end
+if ~isfield(options,'logisticYdim'), logisticYdim=0; 
+else, logisticYdim = options.logisticYdim; end
+if ~isfield(options,'add_noise') && logisticYdim==0, add_noise = 1;
+elseif logisticYdim==0, add_noise = options.add_noise; 
+else add_noise = 0; end
 
 options.parallel_trials = parallel_trials;
 
@@ -47,6 +50,9 @@ end
 
 % options relative to the HMM
 if ~isfield(options,'covtype'), options.covtype = 'uniquediag'; end
+if logisticYdim>0; 
+    options.covtype = 'logistic';
+end
 options.order = 1;
 options.zeromean = 1;
 options.embeddedlags = 0; % it is done here
@@ -84,11 +90,12 @@ if size(Y,1) == length(T) % one value for the entire trial
     end; clear Ytmp
 end
 
-
-% Demean stimulus
-Y = bsxfun(@minus,Y,mean(Y));
-if add_noise % this avoids numerical problems 
-   Y = Y + 1e-4 * randn(size(Y)); 
+if logisticYdim==0
+    % Demean stimulus
+    Y = bsxfun(@minus,Y,mean(Y));
+    if add_noise % this avoids numerical problems 
+       Y = Y + 1e-4 * randn(size(Y)); 
+    end
 end
 % Filtering
 if ~isempty(filter)
@@ -98,8 +105,10 @@ end
 if detrend
     X = detrenddata(X,T);
 end
+
 % Standardise data
 X = standardisedata(X,T,standardise);
+
 
 % adjust dimension of Y according to embedding
 if do_embedding

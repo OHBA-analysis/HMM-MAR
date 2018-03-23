@@ -88,7 +88,7 @@ if isfield(options,'mode')
 else, mode = 1; 
 end
 if isfield(options,'CVmethod') 
-    CVmethod = options.conservative; options = rmfield(options,'CVmethod');
+    CVmethod = options.CVmethod; options = rmfield(options,'CVmethod');
 else, CVmethod = 1; 
 end
 if isfield(options,'Nperm') 

@@ -17,7 +17,7 @@ for k=1:K
     setstateoptions;
     if isempty(orders) && train.zeromean, continue; end
     if strcmp(train.covtype,'diag') || strcmp(train.covtype,'full'), omega = hmm.state(k).Omega;
-    else omega = hmm.Omega;
+    elseif ~strcmp(train.covtype,'logistic'), omega = hmm.Omega;
     end
     if train.uniqueAR || ndim==1 % it is assumed that order>0 and cov matrix is diagonal
         if hmm.train.pcapred>0, npred = hmm.train.pcapred;
@@ -86,6 +86,63 @@ for k=1:K
                 repmat(Gamma(:,k)',sum(Sind(:,n)),1)) * residuals(:,n);
         end
         XW(:,:,k) = XX * hmm.state(k).W.Mu_W;
+        
+    elseif strcmp(train.covtype,'logistic');
+        
+        % Set Y (unidimensional for now) and X: 
+        Xdim = size(XX,2)-hmm.train.logisticYdim;
+        X=XX(:,1:Xdim);
+        Y=XX(2:end,(Xdim+1):end);
+        Y((end+1),1)=Y(end,1);
+        T=size(X,1);
+        
+        % initialise priors - CAM NOTE: FOR NOW WITHOUT ARD, JUST SET HERE:
+        W_mu0 = zeros(Xdim,1);
+        W_sig0= eye(Xdim);
+        
+        % implement update equations for logistic regression:
+        lambdafunc = @(psi_t) ((2*psi_t).^-1).*(logsig(psi_t)-0.5);
+        
+        %select functioning channels:
+        for n=1:ndim
+            ndim_n = sum(S(:,n));
+            if ndim_n==0, continue; end
+            for i=1:K
+                WW{i}=hmm.state(i).W.Mu_W(Sind(:,n),n)*hmm.state(i).W.Mu_W(Sind(:,n),n)' + ...
+                            squeeze(hmm.state(i).W.S_W(n,S(:,n),S(:,n)));
+            end
+            if ~isfield(hmm,'psi')
+                for t=1:T
+                    for i=1:K
+%                         gamWW(:,:,i) = Gamma(t,i)* ...
+%                             (hmm.state(i).W.Mu_W(Sind(:,n),n)*hmm.state(i).W.Mu_W(Sind(:,n),n)' + ...
+%                             squeeze(hmm.state(i).W.S_W(n,S(:,n),S(:,n))));
+                          gamWW(:,:,i) = Gamma(t,i)*WW{i};
+                    end
+                    hmm.psi(t)=sqrt(X(t,:) * sum(gamWW,3) * X(t,:)');
+                end
+            end
+            for t=1:T
+                W_sigsum{k}(t,:,:)=2*lambdafunc(hmm.psi(t))*Gamma(t,k)*X(t,:)'*X(t,:);
+                W_musum{k}(t,:) = 0.5 * Y(t)*Gamma(t,k)*X(t,:)';
+            end
+            %update parameter entries:
+            hmm.state(k).W.S_W(n,S(:,n),S(:,n)) = inv(squeeze(sum(W_sigsum{k},1))+inv(W_sig0));
+            hmm.state(k).W.Mu_W(S(:,n),n) = (squeeze(hmm.state(k).W.S_W(n,S(:,n),S(:,n))) * sum(W_musum{k},1)') ...
+                +(inv(W_sig0)*W_mu0);
+            % Update optimal tuning parameters psi:
+            WW{k}=hmm.state(k).W.Mu_W(Sind(:,n),n)*hmm.state(k).W.Mu_W(Sind(:,n),n)' + ...
+                            squeeze(hmm.state(k).W.S_W(n,S(:,n),S(:,n)));
+            for t=1:T
+                for i=1:K
+%                         gamWW(:,:,i) = Gamma(t,i)* ...
+%                             (hmm.state(i).W.Mu_W(Sind(:,n),n)*hmm.state(i).W.Mu_W(Sind(:,n),n)' + ...
+%                             squeeze(hmm.state(i).W.S_W(n,S(:,n),S(:,n))));
+                      gamWW(:,:,i) = Gamma(t,i)*WW{i};
+                end
+                hmm.psi(t)=sqrt(X(t,:) * sum(gamWW,3) * X(t,:)');
+            end
+        end
         
     else % full or unique full - this only works if all(S(:)==1); any(S(:)~=1) is just not yet implemented 
         if pcapred
