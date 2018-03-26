@@ -9,7 +9,9 @@ end
 if ~isfield(options,'K'), error('K was not specified'); end
 if ~isfield(options,'order')
     options.order = 0;
-    warning('order was not specified - it will be set to 0'); 
+    if ~isfield(options,'leida') || ~options.leida
+        warning('order was not specified - it will be set to 0'); 
+    end
 end
 if options.K<1, error('K must be higher than 0'); end
 stochastic_learning = isfield(options,'BIGNbatch') && ...
