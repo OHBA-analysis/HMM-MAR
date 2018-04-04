@@ -21,6 +21,7 @@ data_modality = 'fMRI' ; % one of: 'fMRI', 'M/EEG', 'M/EEG power' or 'LFP'
 no_states = 4; % the number of states depends a lot on the question at hand
 Hz = 1; % the frequency of the data
 stochastic_inference = 0; % set to 1 if a normal run is too computationally expensive (memory or time)
+N = length(T); % number of subjects
 
 % getting the number of channels
 if iscellstr(data) 
@@ -40,6 +41,10 @@ options.K = no_states;
 options.standardise = 1;
 options.verbose = 1;
 options.Fs = Hz;
+
+if iscell(T), sumT = 0; for j = 1:N, sumT = sumT + sum(T{j}); end
+else, sumT = sum(T); 
+end
 
 if strcmp(data_modality,'fMRI') % Gaussian observation model
     options.order = 0;
@@ -69,12 +74,16 @@ elseif strcmp(data_modality,'LFP') && ndim > 5 % MAR observation model
     options.order = 5;
     options.zeromean = 1;
     options.covtype = 'diag';
+    if ndim > 2, options.pca = 0.9; end
+    options.DirichletDiag = round(sumT/10); 
 
 elseif strcmp(data_modality,'LFP') && ndim <= 5  % MAR observation model
     options.order = 11;
     options.zeromean = 1;
     options.covtype = 'diag';
-
+    if ndim > 2, options.pca = 0.9; end
+    options.DirichletDiag = round(sumT/10); 
+    
 else
     error('Option data_modality not recognised')
 
