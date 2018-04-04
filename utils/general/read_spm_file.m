@@ -23,7 +23,7 @@ X = X(:,goodsamples)';
 options = struct(); 
 T = cell2mat(getStateLifeTimes (goodsamples',length(goodsamples),options,1));
 
-if min(T{1})<20
+if min(T)<20
     warning('There are time segments with less than 20 time points')
 end
 
