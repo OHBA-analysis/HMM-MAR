@@ -58,11 +58,11 @@ end
 function X = flipdata_subject(X,T,flips)
 N = length(T); ndim = size(X,2);
 for j = 1:N
-ind = (1:T(j)) + sum(T(1:j-1));
-for d = 1:ndim
-    if flips(in,d)
-        X(ind,d) = -X(ind,d);
+    ind = (1:T(j)) + sum(T(1:j-1));
+    for d = 1:ndim
+        if flips(j,d)
+            X(ind,d) = -X(ind,d);
+        end
     end
-end
 end
 end
