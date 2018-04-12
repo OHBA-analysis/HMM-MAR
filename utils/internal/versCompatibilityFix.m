@@ -36,5 +36,8 @@ end
 if ~isfield(hmm.train,'Pistructure')
     hmm.train.Pistructure = true(1,hmm.K);
 end
+if ~isfield(hmm.train,'firsteigv')
+    hmm.train.firsteigv = 0;
+end
 
 end
