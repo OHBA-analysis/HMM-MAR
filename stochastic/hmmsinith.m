@@ -34,15 +34,14 @@ for i = 1:N
         end
         if ~hmm.train.zeromean, hmm.train.Sind = [true(1,hmm.train.ndim); hmm.train.Sind]; end
     end
-    XX_i = cell(1); XX_i{1} = XX;
-    [Gamma,~,Xi] = hsinference(X,Ti,hmm,Y,options,XX_i);
+    [Gamma,~,Xi] = hsinference(X,Ti,hmm,Y,options,XX);
     checkGamma(Gamma,Ti,hmm.train,i);
     for trial=1:length(Ti)
         t = sum(Ti(1:trial-1)) + 1;
         Dir_alpha_init(:,i) = Dir_alpha_init(:,i) + Gamma(t,:)';
     end
     Dir2d_alpha_init(:,:,i) = squeeze(sum(Xi,1));
-    loglik_init(i) = -evalfreeenergy([],Ti,Gamma,[],hmm,Y,XX_i,[0 1 0 0 0]); % data LL
+    loglik_init(i) = -evalfreeenergy([],Ti,Gamma,[],hmm,Y,XX,[0 1 0 0 0]); % data LL
     subjfe_init(i,1:2) = evalfreeenergy([],Ti,Gamma,Xi,hmm,[],[],[1 0 1 0 0]); % Gamma entropy&LL
 end
 

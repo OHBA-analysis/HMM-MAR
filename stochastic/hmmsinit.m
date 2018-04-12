@@ -72,7 +72,6 @@ for rep = 1:options.BIGinitrep
         if size(subset,1)==1, subset = subset'; end
         covered = [covered; subset];
         [X,XX,Y,Ti] = loadfile(Xin(subset),T(subset),options);
-        XX_i = cell(1); XX_i{1} = XX;
         if rep==1
             if ii==1
                 range_data = range(Y);
@@ -83,7 +82,7 @@ for rep = 1:options.BIGinitrep
         % Running the individual HMM
         if ~isempty(initial_hmm)
             hmm_i = versCompatibilityFix(initial_hmm{II(ii)});
-            [Gamma,~,Xi] = hsinference(X,Ti,hmm_i,Y,options,XX_i);
+            [Gamma,~,Xi] = hsinference(X,Ti,hmm_i,Y,options,XX);
             for i=1:length(subset)
                 tt = (1:Ti(i)-hmm_i.train.order) + sum(Ti(1:i-1)) - (i-1)*hmm_i.train.order;
                 checkGamma(Gamma(tt,:),Ti(i),hmm_i.train,subset(i));
