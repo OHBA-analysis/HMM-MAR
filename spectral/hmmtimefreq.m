@@ -1,10 +1,11 @@
 function [psd_tf,coh_tf,pdc_tf] = hmmtimefreq(spectra,Gamma,center)
 % obtains a time-frequency representation of the power spectra density,
-% coherence and PDC - the estimations of which (contained in fit) had to be
+% coherence and PDC - the estimations of which (contained in 'spectra') had to be
 % estimated with hmmspectramar or hmmspectramt. If coherence or PDC are
 % missing from the estimation, the corresponding output arguments are
 % empty. The argument Gamma contains the state time courses. 
-% If the third argument is 1, then each frequency bin is centered 
+% If the third argument is 1, then each frequency bin is centered
+% (i.e. the mean across time points for each frequency bin is zero) 
 %
 % The output arguments are
 %  psd_tf: (time points by no. of frequency bins by no.regions) 

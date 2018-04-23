@@ -1,4 +1,6 @@
 function status = checkGamma(Gamma,T,train,subj)
+% Check that the state time courses are well-defined (no NaNs)
+% and that the HMM inference wasn't trapped in a trivial local minima
 
 if nargin<4, subj = 0; end
 
