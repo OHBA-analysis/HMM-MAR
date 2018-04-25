@@ -27,10 +27,12 @@ ndim = size(spectra.state(1).psd,2);
 
 psd_tf = zeros(T,nf,ndim);
 for k=1:K
-    for n=1:ndim
-        psd_tf(:,:,n) = psd_tf(:,:,n) + repmat(Gamma(:,k),[1 nf]) .* ...
-            repmat(spectra.state(k).psd(:,n,n),[1 T])';
+    gamma_k = repmat(Gamma(:,k),[1 nf ndim]);
+    psd_k = zeros(T,nf,ndim);
+    for n=1:ndim 
+        psd_k(:,:,n) = repmat(spectra.state(k).psd(:,n,n)',[T 1]);
     end
+    psd_tf = psd_tf + gamma_k .* psd_k;
 end
 if center
     for f=1:nf
@@ -40,17 +42,20 @@ if center
     end
 end
 
-if isfield(spectra.state(1),'coh')
+if isfield(spectra.state(1),'coh') && nargout>=2
     coh_tf = ones(T,nf,ndim,ndim);
     for k=1:K
+        gamma_k = repmat(Gamma(:,k),[1 nf]);
+        coh_k = zeros(T,nf,ndim,ndim);
         for n1=1:ndim-1
             for n2=n1+1:ndim
-                coh_tf(:,:,n1,n2) = coh_tf(:,:,n1,n2) + repmat(Gamma(:,k),[1 nf]) .* ...
-                    repmat(spectra.state(k).coh(:,n1,n2),[1 T])';
-                coh_tf(:,:,n2,n1) = coh_tf(:,:,n1,n2);
+                coh_k(:,:,n1,n2) = repmat(spectra.state(k).coh(:,n1,n2)',[T 1]);
             end
         end
+        coh_tf = coh_tf + gamma_k .* coh_k;
     end
+    coh_tf = coh_tf + coh_tf';
+    for n=1:ndim, coh_tf(:,:,n,n) = 1; end
     if center
         for f=1:nf
             for n1=1:ndim-1
@@ -63,16 +68,19 @@ if isfield(spectra.state(1),'coh')
     end
 end
 
-if isfield(spectra.state(1),'pdc')
+if isfield(spectra.state(1),'pdc') && nargout==3
     pdc_tf = ones(T,nf,ndim,ndim);
     for k=1:K
+        gamma_k = repmat(Gamma(:,k),[1 nf]);
+        pdc_k = zeros(T,nf,ndim,ndim);
         for n1=1:ndim
             for n2=1:ndim
                 if n1==n2, continue; end
-                pdc_tf(:,:,n1,n2) = pdc_tf(:,:,n1,n2) + repmat(Gamma(:,k),[1 nf]) .* ...
-                    repmat(spectra.state(k).pdc(:,n1,n2),[1 T])';
+                pdc_k(:,:,n1,n2) = repmat(spectra.state(k).pdc(:,n1,n2)',[T 1]);
             end
         end
+        pdc_tf = coh_tf + gamma_k .* pdc_k;
+        for n=1:ndim, pdc_tf(:,:,n,n) = 1; end
     end
     if center
         for f=1:nf
