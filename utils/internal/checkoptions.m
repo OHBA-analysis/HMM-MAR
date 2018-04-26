@@ -41,6 +41,7 @@ if ~isfield(options,'standardise'), options.standardise = 1; end
 if ~isfield(options,'standardise_pc') 
     options.standardise_pc = length(options.embeddedlags)>1; 
 end
+if ~isfield(options,'logisticYdim'),options.logisticYdim=0;end
 
 % stochastic options
 if stochastic_learning
@@ -258,7 +259,7 @@ end
 % Check precomputed state time courses
 if ~isempty(options.Gamma)
     if length(options.embeddedlags)>1
-        if (size(options.Gamma,1) ~= (sum(T) - length(options.embeddedlags) + 1 )) || ...
+        if (size(options.Gamma,1) ~= (sum(T - length(options.embeddedlags) + 1 ))) || ...
                 (size(options.Gamma,2) ~= options.K)
             error('The supplied Gamma has not the right dimensions')
         end        

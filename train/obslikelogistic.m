@@ -1,4 +1,4 @@
-function L = obslikelogistic (X,hmm,Y,XX,cache,slicepoints)
+function L = obslikelogistic (X,hmm,residuals,XX,cache,slicepoints)
 %
 % Evaluate likelihood of data given observation model, for one continuous trial
 %
@@ -26,7 +26,7 @@ if nargin<4 || size(XX,1)==0
     [T,ndim]=size(X);
     setxx; % build XX and get orders
 else
-    [T,ndim] = size(Y);
+    [T,ndim] = size(residuals);
 %    T = T + hmm.train.maxorder;
 end
 if nargin==6
@@ -65,8 +65,9 @@ L = zeros(T,K);
 %separate X and Y:
 Xdim = size(XX,2)-hmm.train.logisticYdim;
 X=XX(:,1:Xdim);
-Y=XX(2:end,(Xdim+1):end);
-Y((end+1),1)=Y(end,1);
+% Y=XX(2:end,(Xdim+1):end);
+% Y((end+1),1)=Y(end,1);
+Y=residuals;
 T=size(X,1);
 
 %indices of coefficients:
@@ -74,10 +75,10 @@ S = hmm.train.S==1;
 Sind = hmm.train.S==1; 
 %setstateoptions;
 
-%for multidimensional Y, change here!!!
+%for Y with >2 dimensions, change here!!!
 n=Xdim+hmm.train.logisticYdim;
 
-% determine psi if not already done
+% determine psi:
 for k=1:K
     WW{k}=hmm.state(k).W.Mu_W(Sind(:,n),n)*hmm.state(k).W.Mu_W(Sind(:,n),n)' + ...
                             squeeze(hmm.state(k).W.S_W(n,S(:,n),S(:,n)));
@@ -109,12 +110,12 @@ for k=1:K
     comp1 = repmat(Y,1,Xdim) .* X * hmm.state(k).W.Mu_W(Sind(:,n),n) - hmm.psi;
     
 %     %full timepoint by timepoint calc for comparison:
-%     comp1test=zeros(1,T);
-%     for t=1:T
-%         comp1test(t)=Y(t)* X(t,:) * hmm.state(k).W.Mu_W(Sind(:,n),n) - hmm.psi(t);
-%     end
+    comp1test=zeros(1,T);
+    for t=1:T
+        comp1test(t)=Y(t)* X(t,:) * hmm.state(k).W.Mu_W(Sind(:,n),n) - hmm.psi(t);
+    end
     
-    %determine second order component (CHECK THIS DOT PRODUCT!!!!)
+    %determine second order component
     comp2 = sum((X * WW{k}) .* X , 2) - hmm.psi.^2;
     
     % full timepoint by timepoint calc for comparison:

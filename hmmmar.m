@@ -337,15 +337,22 @@ else
         %if options.whitening, hmm_wr.train.A = A; hmm_wr.train.iA = iA;  end
         hmm_wr = hmmhsinit(hmm_wr);
         [hmm_wr,residuals_wr] = obsinit(data,T,hmm_wr,GammaInit);
+        if strcmp(options.covtype,'logistic');
+            residuals_wr = getresidualslogistic(data.X,T,options.logisticYdim); 
+        end
         if ~isfield(options,'Gamma'); hmm_wr.Gamma = GammaInit;end
     else % using a warm restart from a previous run
         hmm_wr = versCompatibilityFix(options.hmm);
         options = rmfield(options,'hmm');
         train = hmm_wr.train; 
         hmm_wr.train = options;
-        hmm_wr.train.active = train.active;        
-        residuals_wr = getresiduals(data.X,T,hmm_wr.train.Sind,hmm_wr.train.maxorder,hmm_wr.train.order,...
-            hmm_wr.train.orderoffset,hmm_wr.train.timelag,hmm_wr.train.exptimelag,hmm_wr.train.zeromean);
+        hmm_wr.train.active = train.active;  
+        if ~strcmp(options.covtype,'logistic')
+            residuals_wr = getresiduals(data.X,T,hmm_wr.train.Sind,hmm_wr.train.maxorder,hmm_wr.train.order,...
+                hmm_wr.train.orderoffset,hmm_wr.train.timelag,hmm_wr.train.exptimelag,hmm_wr.train.zeromean);
+        else
+            residuals_wr = getresidualslogistic(data.X,T,options.logisticYdim); 
+        end
     end
     
     fehist = Inf; 

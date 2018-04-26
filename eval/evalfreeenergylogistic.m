@@ -42,10 +42,11 @@ regressed = sum(S,1)>0;
  % Set Y (unidimensional for now) and X: 
 Xdim = size(XX,2)-hmm.train.logisticYdim;
 X=XX(:,1:Xdim);
-Y=XX(2:end,(Xdim+1):end);
-Y((end+1),1)=Y(end,1);
-% HACK FOR NOW - set trial boundaries to 1, not zero:
-Y(Y==0)=1;
+% Y=XX(2:end,(Xdim+1):end);
+% Y((end+1),1)=Y(end,1);
+% % HACK FOR NOW - set trial boundaries to 1, not zero:
+% Y(Y==0)=1;
+Y=residuals;
 T=size(X,1);
 
 if (nargin<6 || isempty(residuals)) && todo(2)==1
@@ -93,6 +94,8 @@ if todo(5)==1
 end
 
 % data log likelihood:
+if isfield(hmm,'Gamma');hmm=rmfield(hmm,'Gamma');end
+hmm.Gamma = Gamma; %debugging - not sure which has been updated here:
 for t=1:T
     exp_H_LL(t) = loglikelihoodofH(Y(t),X(t,:),hmm,t);
 end

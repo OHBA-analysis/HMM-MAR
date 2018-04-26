@@ -92,13 +92,15 @@ for k=1:K
         % Set Y (unidimensional for now) and X: 
         Xdim = size(XX,2)-hmm.train.logisticYdim;
         X=XX(:,1:Xdim);
-        Y=XX(2:end,(Xdim+1):end);
-        Y((end+1),1)=Y(end,1);
+        %Y=XX(2:end,(Xdim+1):end);
+        %Y((end+1),1)=Y(end,1);
+        Y=residuals;
         T=size(X,1);
         
         % initialise priors - CAM NOTE: FOR NOW WITHOUT ARD, JUST SET HERE:
         W_mu0 = zeros(Xdim,1);
-        W_sig0= eye(Xdim);
+        %W_sig0= 5*eye(Xdim);
+        W_sig0 = diag(eye(Xdim) * hmm.state(k).alpha.Gam_shape * (hmm.state(k).alpha.Gam_rate.^-1));
         
         % implement update equations for logistic regression:
         lambdafunc = @(psi_t) ((2*psi_t).^-1).*(logsig(psi_t)-0.5);

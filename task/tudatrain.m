@@ -85,11 +85,12 @@ options_run1.updateGamma=0;
 [tuda,Gamma,~,vpath] = hmmmar(Z,T,options_run1);
 
 % 2. Update state time courses only, leaving fixed obs model params:
-options.updateObs = 0; % 
+options.updateObs = 1; % 
 options.updateGamma = 1;
 %options.Gamma = Gamma;
 options.hmm = tuda; 
-[tuda,~,~,~,~,~, stats.fe] = hmmmar(Z,T,options); 
+options.cyc=2;
+[tuda,Gamma,~,~,~,~, stats.fe] = hmmmar(Z,T,options); 
 tuda.features = features;
 
 % Explained variance per state, square error &

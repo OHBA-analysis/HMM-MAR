@@ -22,7 +22,8 @@ obsupdate.m
  v2 implemented
 * Created if loop that separates inference on normal vs logistic observation models, and allows more iterations to converge
 
-
+updatealpha
+* line 42: updated to implement ARD over the hyper parameters on W. Note that for logistic regression with more than one stimulus variable, the shape parameter is scalar whereas the scale parameter is of dimension xDim x nStimuli
 
 tudatrain.m
  v2 implemented
@@ -52,6 +53,9 @@ subroutine nodecluster
 hmmtrain.m
 * line 71: Added a psi update following HS inference
 * line 92: Added switch to call correct free energy code
+
+checkoptions.m
+* line 
 
 OTHER ISSUES:
 * decodeGamma (ie infer viterbi path) not working

@@ -289,6 +289,19 @@ try
         L = obslike([],hmm,residuals,XX,hmm.cache);
     else
         L = obslikelogistic([],hmm,residuals,XX,hmm.cache,slicepoints);
+%         % debugging test:
+%         Xhat=XX(:,1:50);
+%         Yhat=XX(:,51);
+%         Yhat=(2.*Yhat) -1;
+%         for k=1:length(hmm.state)
+%             params.state(k).w_mu=hmm.state(k).W.Mu_W(1:end-1,51);
+%             params.state(k).w_sig=squeeze(hmm.state(k).W.S_W(end,2:end,2:end));
+%         end
+%         params.gamma=hmm.Gamma;
+%         xi=hmm.psi;
+%         for t=slicepoints
+%             L_test(t)=bayeslogregress_loglikelihoodofH(Yhat(t),Xhat(t,:),params,xi(t),t);
+%         end
     end
 catch
     error('obslike function is giving trouble - Out of precision?')

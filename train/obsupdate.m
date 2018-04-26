@@ -59,14 +59,17 @@ if ~strcmp(hmm.train.covtype,'logistic')
     end
 else
     % note that logistic models are slower to converge, so more iterations
-    % need to be allowed (set to maximum of ten)
-    obs_maxit = 10;
+    % may need to be allowed here
+    obs_maxit = 1;
     while mean_change>obs_tol && obs_it<=obs_maxit,
         
         last_state = hmm.state;
         
         %%% W
         [hmm,XW] = updateW(hmm,Gamma,residuals,XX,XXGXX);
+        
+        %%% and hyperparameters alpha
+        hmm = updateAlpha(hmm);
         
         %%% termination conditions
         obs_it = obs_it + 1;
