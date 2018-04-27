@@ -383,7 +383,9 @@ else
     
 end
 
-hmm.train = rmfield(hmm.train,'grouping'); 
+if isfield(hmm,'grouping')
+    hmm.train = rmfield(hmm.train,'grouping');
+end
 status = checkGamma(Gamma,T,hmm.train);
 if status==1
     warning(['It seems that the inference was trapped in a local minima; ' ...
