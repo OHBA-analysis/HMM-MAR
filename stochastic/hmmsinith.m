@@ -23,6 +23,11 @@ for i = 1:N
     % read data
     [X,XX,Y,Ti] = loadfile(Xin{i},T{i},options);
     if i==1 % complete a few things
+        if isfield(options,'hmm')
+            hmm.train = rmfield(options,'hmm');
+        else
+            hmm.train = options; 
+        end
         hmm.train.ndim = size(Y,2);
         hmm.train.active = ones(1,K);
         hmm.train.orders = formorders(hmm.train.order,hmm.train.orderoffset,...
@@ -34,6 +39,10 @@ for i = 1:N
         end
         if ~hmm.train.zeromean, hmm.train.Sind = [true(1,hmm.train.ndim); hmm.train.Sind]; end
     end
+    Dir2d_alpha = hmm.Dir2d_alpha; Dir_alpha = hmm.Dir_alpha; P = hmm.P; Pi = hmm.Pi; 
+    hmm = hmmhsinit(hmm); % set priors
+    hmm.Dir2d_alpha = Dir2d_alpha; hmm.Dir_alpha = Dir_alpha; hmm.P = P; hmm.Pi = Pi; 
+    
     [Gamma,~,Xi] = hsinference(X,Ti,hmm,Y,options,XX);
     checkGamma(Gamma,Ti,hmm.train,i);
     for trial=1:length(Ti)

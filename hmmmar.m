@@ -332,7 +332,6 @@ else
         hmm_wr = struct('train',struct());
         hmm_wr.K = options.K;
         hmm_wr.train = options;
-        %if options.whitening, hmm_wr.train.A = A; hmm_wr.train.iA = iA;  end
         hmm_wr = hmmhsinit(hmm_wr);
         [hmm_wr,residuals_wr] = obsinit(data,T,hmm_wr,GammaInit);
     else % using a warm restart from a previous run
@@ -340,7 +339,10 @@ else
         options = rmfield(options,'hmm');
         train = hmm_wr.train; 
         hmm_wr.train = options;
-        hmm_wr.train.active = train.active;        
+        hmm_wr.train.active = train.active;
+        Dir2d_alpha = hmm_wr.Dir2d_alpha; Dir_alpha = hmm_wr.Dir_alpha; P = hmm_wr.P; Pi = hmm_wr.Pi;
+        hmm_wr = hmmhsinit(hmm_wr); % set priors
+        hmm_wr.Dir2d_alpha = Dir2d_alpha; hmm_wr.Dir_alpha = Dir_alpha; hmm_wr.P = P; hmm_wr.Pi = Pi;  
         residuals_wr = getresiduals(data.X,T,hmm_wr.train.Sind,hmm_wr.train.maxorder,hmm_wr.train.order,...
             hmm_wr.train.orderoffset,hmm_wr.train.timelag,hmm_wr.train.exptimelag,hmm_wr.train.zeromean);
     end
