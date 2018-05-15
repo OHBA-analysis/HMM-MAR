@@ -90,7 +90,7 @@ if ~isfield(hmm,'psi')
         for i=1:K
             gamWW(:,:,i) = Gamma(t,i)* WW{i};  
         end
-        hmm.psi(t,1)=sqrt(X(t,:) * sum(gamWW,3) * X(t,:)');
+        hmm.psi(1,t)=sqrt(X(t,:) * sum(gamWW,3) * X(t,:)');
         if mod(t,100)==0;fprintf(['\n',int2str(t)]);end
     end
 end

@@ -85,6 +85,9 @@ for cycle=1:hmm.train.cyc
                 end
                 hmm.psi(t)=sqrt(X(t,:) * sum(gamWW,3) * X(t,:)');
             end
+            % check for overfitting to labels - do mean state timecourses
+            % match over different labels:
+            Gamma = checkGammaOverfitting(Gamma,residuals,hmm,T,orders);
         end
 
         %%%% Free energy computation
