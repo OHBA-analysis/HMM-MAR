@@ -73,11 +73,16 @@ regressed = sum(S,1)>0;
 for k = 1:K
     setstateoptions;
     %hmm.cache = struct();
-    hmm.cache.train{k} = train;
-    hmm.cache.order{k} = order;
-    hmm.cache.orders{k} = orders;
-    hmm.cache.Sind{k} = Sind;
-    hmm.cache.S{k} = S;
+    if ~strcmp(train.covtype,'logistic')
+        %wierd bug here only on windows machines - interprets .train as an
+        %instruction
+        hmm.cache.train{k} = train;
+    end
+        hmm.cache.order{k} = order;
+        hmm.cache.orders{k} = orders;
+        hmm.cache.Sind{k} = Sind;
+        hmm.cache.S{k} = S;
+   
     if k == 1 && strcmp(train.covtype,'uniquediag')
         ldetWishB=0;
         PsiWish_alphasum=0;

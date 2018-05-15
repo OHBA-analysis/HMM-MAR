@@ -1,4 +1,4 @@
-function [tuda,Gamma,GammaInit,vpath,stats] = tudatrain(X,Y,T,options)
+function [tuda,Gamma,GammaInit,vpath,stats] = encodertrain(X,Y,T,options)
 % Performs the Temporal Unconstrained Decoding Approach (TUDA), 
 % an alternative approach for decoding where we dispense with the assumption 
 % that the same decoding is active at the same time point at all trials. 
@@ -34,7 +34,7 @@ stats = struct();
 N = length(T); 
 
 % Check options and put data in the right format
-[X,Y,T,options,stats.R2_pca,features] = preproc4hmm(X,Y,T,options); 
+[X,~,T,options,stats.R2_pca,features] = preproc4hmm(X,Y,T,options); 
 parallel_trials = options.parallel_trials; 
 options = rmfield(options,'parallel_trials');
 if isfield(options,'add_noise'), options = rmfield(options,'add_noise'); end
@@ -69,13 +69,13 @@ Z = zeros(sum(T),q+p,'single');
 for n=1:N
     t1 = (1:T(n)) + sum(T(1:n-1));
     t2 = (1:Ttmp(n)) + sum(Ttmp(1:n-1));
-    Z(t1(1:end-1),1:p) = X(t2,:);
-    Z(t1(2:end),(p+1):end) = Y(t2,:);
+    Z(t1(2:end),1:p) = X(t2,:);
+    Z(t1(1:end-1),(p+1):end) = Y(t2,:);
 end 
 
 % Run TUDA inference
 options.S = -ones(p+q);
-options.S(1:p,p+1:end) = 1;
+options.S(p+1:end,1:p) = 1;
 % 1. Estimate Obs Model parameters given Gamma, unless told not to:
 options_run1=options;
 if isfield(options,'updateObs') 

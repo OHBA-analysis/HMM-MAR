@@ -107,7 +107,9 @@ if detrend
 end
 
 % Standardise data
-X = standardisedata(X,T,standardise);
+if standardise
+    X = standardisedata(X,T,standardise);
+end
 
 
 % adjust dimension of Y according to embedding
