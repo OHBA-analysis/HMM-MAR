@@ -32,8 +32,8 @@ if any(D(1,:)<threshold)
     fclose(fileID);
     if hmm.train.logisticYdim>1
         Gamma0 = squeeze(mean(reshape(Gamma,P,size(Gamma,1)/P,hmm.train.K),2));
-        for k=find(D(1,:))
-            Gamma(residuals(:,k-1)==1,:)=Gamma0;
+        for k=find(D(1,:)<threshold)
+            Gamma(residuals(:,k-1)==1,:)=repmat(Gamma0,sum(residuals(:,k-1)==1)/P,1);
         end
     else
         StateLifetimes=squeeze(sum(GammaMean,2));

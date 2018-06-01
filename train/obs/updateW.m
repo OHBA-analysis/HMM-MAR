@@ -97,10 +97,10 @@ for k=1:K
         Y=residuals;
         T=size(X,1);
         
-        % initialise priors - CAM NOTE: FOR NOW WITHOUT ARD, JUST SET HERE:
+        % initialise priors - with ARD:
         W_mu0 = zeros(Xdim,1);
         %W_sig0= 5*eye(Xdim);
-        W_sig0 = diag(eye(Xdim) * hmm.state(k).alpha.Gam_shape * (hmm.state(k).alpha.Gam_rate.^-1));
+        W_sig0 = diag(eye(Xdim) * hmm.state(k).alpha.Gam_shape * (hmm.state(k).alpha.Gam_rate(1:Xdim).^-1));
         
         % implement update equations for logistic regression:
         lambdafunc = @(psi_t) ((2*psi_t).^-1).*(logsig(psi_t)-0.5);
@@ -109,12 +109,15 @@ for k=1:K
         for n=1:ndim
             ndim_n = sum(S(:,n));
             if ndim_n==0, continue; end
+            WW=cell(K,1);
             for i=1:K
                 WW{i}=hmm.state(i).W.Mu_W(Sind(:,n),n)*hmm.state(i).W.Mu_W(Sind(:,n),n)' + ...
                             squeeze(hmm.state(i).W.S_W(n,S(:,n),S(:,n)));
             end
             if ~isfield(hmm,'psi')
+                hmm.psi=zeros(1,T);
                 for t=1:T
+                    gamWW=zeros(ndim_n,ndim_n,K);
                     for i=1:K
 %                         gamWW(:,:,i) = Gamma(t,i)* ...
 %                             (hmm.state(i).W.Mu_W(Sind(:,n),n)*hmm.state(i).W.Mu_W(Sind(:,n),n)' + ...
@@ -124,6 +127,8 @@ for k=1:K
                     hmm.psi(t)=sqrt(X(t,:) * sum(gamWW,3) * X(t,:)');
                 end
             end
+            W_sigsum{k}=zeros(T,ndim_n,ndim_n);
+            W_musum{k} =zeros(T,ndim_n);
             for t=1:T
                 W_sigsum{k}(t,:,:)=2*lambdafunc(hmm.psi(t))*Gamma(t,k)*X(t,:)'*X(t,:);
                 W_musum{k}(t,:) = 0.5 * Y(t)*Gamma(t,k)*X(t,:)';
@@ -135,6 +140,7 @@ for k=1:K
             % Update optimal tuning parameters psi:
             WW{k}=hmm.state(k).W.Mu_W(Sind(:,n),n)*hmm.state(k).W.Mu_W(Sind(:,n),n)' + ...
                             squeeze(hmm.state(k).W.S_W(n,S(:,n),S(:,n)));
+            hmm.psi=zeros(T,1);
             for t=1:T
                 for i=1:K
 %                         gamWW(:,:,i) = Gamma(t,i)* ...

@@ -293,7 +293,7 @@ try
     if ~strcmp(hmm.train.covtype,'logistic')
         L = obslike([],hmm,residuals,XX,hmm.cache);
     else
-        L = obslikelogistic([],hmm,residuals,XX,hmm.cache,slicepoints);
+        L = obslikelogistic([],hmm,residuals,XX,slicepoints);
 %         % debugging test:
 %         Xhat=XX(:,1:50);
 %         Yhat=XX(:,51);

@@ -1,4 +1,4 @@
-function L = obslikelogistic (X,hmm,residuals,XX,cache,slicepoints)
+function L = obslikelogistic (X,hmm,residuals,XX,slicepoints)
 %
 % Evaluate likelihood of data given observation model, for one continuous trial
 %
@@ -22,6 +22,7 @@ function L = obslikelogistic (X,hmm,residuals,XX,cache,slicepoints)
 % end
 
 K=hmm.K;
+Ydim = hmm.train.logisticYdim;
 if nargin<4 || size(XX,1)==0
     [T,ndim]=size(X);
     setxx; % build XX and get orders
@@ -32,7 +33,7 @@ end
 if nargin==6
     Gamma=hmm.Gamma(slicepoints,:);
     if isfield(hmm,'psi');
-    psi=hmm.psi(slicepoints);
+    psi=hmm.psi(1:Ydim,slicepoints);
     hmm=rmfield(hmm,'psi');
     hmm.psi=psi;
     end
@@ -76,55 +77,63 @@ Sind = hmm.train.S==1;
 %setstateoptions;
 
 %for Y with >2 dimensions, change here!!!
-n=Xdim+hmm.train.logisticYdim;
-
-% determine psi:
-for k=1:K
-    WW{k}=hmm.state(k).W.Mu_W(Sind(:,n),n)*hmm.state(k).W.Mu_W(Sind(:,n),n)' + ...
+%n=Xdim+hmm.train.logisticYdim;
+for iY = 1:Ydim
+    n=Xdim+iY;
+    % determine psi:
+    for k=1:K
+         %n=Xdim+1:Xdim+Ydim
+        WW{k,iY}=hmm.state(k).W.Mu_W(Sind(:,n),n)*hmm.state(k).W.Mu_W(Sind(:,n),n)' + ...
                             squeeze(hmm.state(k).W.S_W(n,S(:,n),S(:,n)));
-end
+    end
+    
 
-if ~isfield(hmm,'psi') 
-    hmm.psi=zeros(1,T);
-    for t=1:T
-        for i=1:K
-            gamWW(:,:,i) = Gamma(t,i)* WW{i};  
+    if ~isfield(hmm,'psi') 
+        hmm.psi=zeros(Ydim,T);
+        gamWW=zeros(Xdim,Xdim,K);
+        for t=1:T
+            for i=1:K
+                gamWW(:,:,i) = Gamma(t,i)* WW{i,n};  
+            end
+            hmm.psi(iY,t)=sqrt(X(t,:) * sum(gamWW,3) * X(t,:)');
+            %if mod(t,100)==0;fprintf(['\n',int2str(t)]);end
         end
-        hmm.psi(1,t)=sqrt(X(t,:) * sum(gamWW,3) * X(t,:)');
-        if mod(t,100)==0;fprintf(['\n',int2str(t)]);end
-    end
-end
-if size(hmm.psi,2)>1
-    hmm.psi=hmm.psi';
-end
-
-%first component constant over different states k:
-logsigpsi=log(logsig(hmm.psi));
-% implement update equations for logistic regression:
-lambdafunc = @(psi_t) ((2*psi_t).^-1).*(logsig(psi_t)-0.5);
-lambdasig = lambdafunc(hmm.psi); 
-
-for k=1:K
+    end    
+    psi = hmm.psi(iY,slicepoints)';
     
-    % determine first order component:
-    comp1 = repmat(Y,1,Xdim) .* X * hmm.state(k).W.Mu_W(Sind(:,n),n) - hmm.psi;
-    
-%     %full timepoint by timepoint calc for comparison:
-    comp1test=zeros(1,T);
-    for t=1:T
-        comp1test(t)=Y(t)* X(t,:) * hmm.state(k).W.Mu_W(Sind(:,n),n) - hmm.psi(t);
-    end
-    
-    %determine second order component
-    comp2 = sum((X * WW{k}) .* X , 2) - hmm.psi.^2;
-    
-    % full timepoint by timepoint calc for comparison:
-%     comp2test=zeros(1,T);
-%     for t=1:T
-%         comp2test(t)=X(t,:)*WW{k}*X(t,:)' - hmm.psi(t).^2;
+%     if size(hmm.psi,2)>size(hmm.psi,1)
+%         hmm.psi=hmm.psi';
 %     end
     
-    L(1:T,k)= logsigpsi +  0.5 * comp1 - lambdasig .* comp2;
+    %first component constant over different states k:
+    logsigpsi=log(logsig(psi));
+    % implement update equations for logistic regression:
+    lambdafunc = @(psi_t) ((2*psi_t).^-1).*(logsig(psi_t)-0.5);
+    lambdasig = lambdafunc(psi); 
+
+    for k=1:K
+
+        % determine first order component:
+        comp1 = repmat(Y(:,iY),1,Xdim) .* X * hmm.state(k).W.Mu_W(Sind(:,n),n) - psi;
+
+    %     %full timepoint by timepoint calc for comparison:
+%         comp1test=zeros(1,T);
+%         for t=1:T
+%             comp1test(t)=Y(t,iY)* X(t,:) * hmm.state(k).W.Mu_W(Sind(:,n),n) - psi(t);
+%         end
+
+        %determine second order component
+        comp2 = sum((X * WW{k,iY}) .* X , 2) - psi.^2;
+
+        % full timepoint by timepoint calc for comparison:
+    %     comp2test=zeros(1,T);
+    %     for t=1:T
+    %         comp2test(t)=X(t,:)*WW{k}*X(t,:)' - hmm.psi(t).^2;
+    %     end
+
+        L(1:T,k,iY)= logsigpsi +  0.5 * comp1 - lambdasig .* comp2;
+    end
 end
+L=sum(L,3);
 L=exp(L);
 end

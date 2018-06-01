@@ -44,8 +44,7 @@ Xdim = size(XX,2)-hmm.train.logisticYdim;
 X=XX(:,1:Xdim);
 % Y=XX(2:end,(Xdim+1):end);
 % Y((end+1),1)=Y(end,1);
-% % HACK FOR NOW - set trial boundaries to 1, not zero:
-% Y(Y==0)=1;
+
 Y=residuals;
 T=size(X,1);
 
@@ -84,20 +83,29 @@ if todo(5)==1
     % note for now we use arbitrary priors!!! this to be entered properly
     % with hyperparams (in due course)
     W_mu0=zeros(Xdim,1);
-    W_sig0=eye(Xdim);
-    
+    %W_sig0=eye(Xdim);
+    alphaKL=0;
     for k=1:K
-        KLdiv = [ KLdiv, gauss_kl(hmm.state(k).W.Mu_W(S),W_mu0, ...
-            squeeze(hmm.state(k).W.S_W(n,S(:,n),S(:,n))),W_sig0)];
+        hs=hmm.state(k);
+        pr=hmm.state(k).prior;
+        for ly = n:n+hmm.train.logisticYdim-1
+            W_sig0 = diag(eye(Xdim) * hs.alpha.Gam_shape * (hs.alpha.Gam_rate(1:Xdim,ly-Xdim).^-1));
+            KLdiv = [ KLdiv, gauss_kl(hs.W.Mu_W(1:Xdim,ly),W_mu0, ...
+                squeeze(hs.W.S_W(ly,1:Xdim,1:Xdim)),W_sig0)];
+            for xd=1:Xdim
+                alphaKL = alphaKL + sum(gamma_kl(hs.alpha.Gam_shape,pr.alpha.Gam_shape, ...
+                    hs.alpha.Gam_rate(xd,ly-Xdim),pr.alpha.Gam_rate));
+            end
+        end
     end
-      
+    KLdiv = KLdiv + alphaKL;      
 end
 
 % data log likelihood:
 if isfield(hmm,'Gamma');hmm=rmfield(hmm,'Gamma');end
-hmm.Gamma = Gamma; %debugging - not sure which has been updated here:
+hmm.Gamma = Gamma;
 for t=1:T
-    exp_H_LL(t) = loglikelihoodofH(Y(t),X(t,:),hmm,t);
+    exp_H_LL(t) = loglikelihoodofH(Y(t,:),X(t,:),hmm,t);
 end
 
 avLL=sum(exp_H_LL);

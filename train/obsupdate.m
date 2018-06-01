@@ -64,13 +64,18 @@ else
     while mean_change>obs_tol && obs_it<=obs_maxit,
         
         last_state = hmm.state;
+        hmm_orig=hmm;
+        for iY = 1:hmm.train.logisticYdim
+            hmm_marginalised = logisticMarginaliseHMM(hmm,iY);
+            xdim=hmm_marginalised.train.ndim-1;
+            %%% W
+            [hmm_temp,XW] = updateW(hmm_marginalised,Gamma,residuals(:,iY),XX(:,[1:xdim,xdim+iY]));
         
-        %%% W
-        [hmm,XW] = updateW(hmm,Gamma,residuals,XX,XXGXX);
-        
-        %%% and hyperparameters alpha
-        hmm = updateAlpha(hmm);
-        
+            %%% and hyperparameters alpha
+            hmm_temp = updateAlpha(hmm_temp);
+            
+            hmm = logisticMergeHMM(hmm_temp,hmm,iY);
+        end
         %%% termination conditions
         obs_it = obs_it + 1;
         mean_changew = 0;

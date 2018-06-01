@@ -40,7 +40,7 @@ for k=1:K
         end
         
     elseif strcmp(train.covtype,'logistic')
-        for i=1:train.logisticYdim
+        for i=1:train.logisticYdim %note dimension iterated over outside this code
             D=ndim-orders;
             if isfield(hmm.state(k).alpha,'Gam_rate')
                 hmm.state(k).alpha=rmfield(hmm.state(k).alpha,'Gam_rate');

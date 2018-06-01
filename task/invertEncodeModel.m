@@ -32,6 +32,15 @@ for t=1:T
         sig = Omega + squeeze(sum(squeeze(betasig_givenY(testcond,:,:,:)).*repmat(Gamma(t,:)',1,nDim,nDim),1));
         loglikelihoodX(t,testcond)=-0.5*log(det(sig)) -0.5 * (X(t,:)-mu)*inv(sig)*(X(t,:)-mu)';
     end
+    m=max(loglikelihoodX(t,:),[],2);
+    Y_pred(t,:) = loglikelihoodX(t,:)==m;
+    if sum(Y_pred(t,:))>1
+        fprintf('\n\nWARNING: Equal scores achieved for multiple classes\n\n');
+        a=find(Y_pred(t,:));
+        Y_pred(t,a)=0;Y_pred(t,a(randi(length(a))))=1; %randomly silence all but one of these entries 
+        
+    end
 end
-Y_pred = loglikelihoodX==repmat(max(loglikelihoodX,[],2),1,Ydim);
+
+
 end
