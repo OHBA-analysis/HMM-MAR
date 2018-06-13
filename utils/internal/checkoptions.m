@@ -61,7 +61,9 @@ if stochastic_learning
     if ~isfield(options,'BIGdecodeGamma'), options.BIGdecodeGamma = 1; end
     if ~isfield(options,'BIGverbose'), options.BIGverbose = 1; end
     if ~isfield(options,'initial_hmm'), options.initial_hmm = []; end
-    options.BIGbase_weights = options.BIGbase_weights * ones(1,length(T));
+    if length(options.BIGbase_weights)==1
+        options.BIGbase_weights = options.BIGbase_weights * ones(1,length(T));
+    end
     if ~isfield(options,'Gamma'), options.Gamma = []; end
     if ~isfield(options,'hmm'), options.hmm = []; end
     if options.BIGdelay > 1, warning('BIGdelay is recommended to be 1.'); end
@@ -215,18 +217,15 @@ if ~stochastic_learning
     data = data2struct(data,T,options);
 end
 
-if stochastic_learning  
-    % the rest will be dealt with in the recursive calls
-    return
-end
-
 % Some hmm model options unrelated to the observational model
+if ~isfield(options,'DirichletDiag'), options.DirichletDiag = 10; end
+if ~isfield(options,'PriorWeighting'), options.PriorWeighting = 1; end
+
+% Some more hmm model options unrelated to the observational model
+if ~isfield(options,'repetitions'), options.repetitions = 1; end
 if ~isfield(options,'Gamma'), options.Gamma = []; end
 if ~isfield(options,'hmm'), options.hmm = []; end
 if ~isfield(options,'fehist'), options.fehist = []; end
-if ~isfield(options,'DirichletDiag'), options.DirichletDiag = 10; end
-if ~isfield(options,'PriorWeighting'), options.PriorWeighting = 1; end
-if ~isfield(options,'repetitions'), options.repetitions = 1; end
 if ~isfield(options,'updateObs'), options.updateObs = 1; end
 if ~isfield(options,'updateGamma'), options.updateGamma = 1; end
 if ~isfield(options,'decodeGamma'), options.decodeGamma = 1; end
@@ -240,6 +239,11 @@ elseif isfield(options,'useMEX') && options.useMEX==1 && length(unique(options.g
     options.useMEX = 0; 
 else % ~isfield(options,'useMEX')
     options.useMEX = 0; 
+end
+
+if stochastic_learning  
+    % the rest will be dealt with in the recursive calls
+    return
 end
 
 % Further checks

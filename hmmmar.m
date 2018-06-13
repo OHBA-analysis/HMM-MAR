@@ -340,9 +340,12 @@ else
         train = hmm_wr.train; 
         hmm_wr.train = options;
         hmm_wr.train.active = train.active;
+        % set priors
         Dir2d_alpha = hmm_wr.Dir2d_alpha; Dir_alpha = hmm_wr.Dir_alpha; P = hmm_wr.P; Pi = hmm_wr.Pi;
-        hmm_wr = hmmhsinit(hmm_wr); % set priors
-        hmm_wr.Dir2d_alpha = Dir2d_alpha; hmm_wr.Dir_alpha = Dir_alpha; hmm_wr.P = P; hmm_wr.Pi = Pi;  
+        if isfield(hmm_wr,'prior'), hmm_wr = rmfield(hmm_wr,'prior'); end
+        hmm_wr = hmmhsinit(hmm_wr); 
+        hmm_wr.Dir2d_alpha = Dir2d_alpha; hmm_wr.Dir_alpha = Dir_alpha; hmm_wr.P = P; hmm_wr.Pi = Pi; 
+        % get residuals
         residuals_wr = getresiduals(data.X,T,hmm_wr.train.Sind,hmm_wr.train.maxorder,hmm_wr.train.order,...
             hmm_wr.train.orderoffset,hmm_wr.train.timelag,hmm_wr.train.exptimelag,hmm_wr.train.zeromean);
     end

@@ -51,6 +51,7 @@ if nargin==3 && any(T<options.win)
     error('The specified window is larger than some of the segments')
 end
 
+options.updateGamma = 1; 
 [options,data] = checkoptions(options,data,[]);
 options.leida = 0;
 options.onpower = 0;

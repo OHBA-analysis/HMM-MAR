@@ -58,12 +58,12 @@ if ~isfield(hmm,'prior')
   hmm.prior=defhmmprior;
 else
   % priors not specified are set to default
-  hmmpriorlist=fieldnames(defhmmprior);
-  fldname=fieldnames(hmm.prior);
-  misfldname=find(~ismember(hmmpriorlist,fldname));
-  for i=1:length(misfldname)
-    priorval=getfield(defhmmprior,hmmpriorlist{i});
-    hmm.prior=setfield(hmm.prior,hmmpriorlist{i},priorval);
+  hmmpriorlist = fieldnames(defhmmprior);
+  fldname = fieldnames(hmm.prior);
+  misfldname = find(~ismember(hmmpriorlist,fldname));
+  for i = 1:length(misfldname)
+    priorval = getfield(defhmmprior,hmmpriorlist{i});
+    hmm.prior = setfield(hmm.prior,hmmpriorlist{i},priorval);
   end
 end
 

@@ -38,11 +38,12 @@ for i = 1:N
             hmm.train.Sind = formindexes(hmm.train.orders,hmm.train.S)==1;
         end
         if ~hmm.train.zeromean, hmm.train.Sind = [true(1,hmm.train.ndim); hmm.train.Sind]; end
+        Dir2d_alpha = hmm.Dir2d_alpha; Dir_alpha = hmm.Dir_alpha; P = hmm.P; Pi = hmm.Pi;
+        if isfield(hmm,'prior'), hmm = rmfield(hmm,'prior'); end
+        hmm = hmmhsinit(hmm); % set priors
+        hmm.Dir2d_alpha = Dir2d_alpha; hmm.Dir_alpha = Dir_alpha; hmm.P = P; hmm.Pi = Pi;
     end
-    Dir2d_alpha = hmm.Dir2d_alpha; Dir_alpha = hmm.Dir_alpha; P = hmm.P; Pi = hmm.Pi; 
-    hmm = hmmhsinit(hmm); % set priors
-    hmm.Dir2d_alpha = Dir2d_alpha; hmm.Dir_alpha = Dir_alpha; hmm.P = P; hmm.Pi = Pi; 
-    
+
     [Gamma,~,Xi] = hsinference(X,Ti,hmm,Y,options,XX);
     checkGamma(Gamma,Ti,hmm.train,i);
     for trial=1:length(Ti)
