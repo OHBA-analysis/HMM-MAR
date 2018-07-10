@@ -350,6 +350,10 @@ save(outputfile,'fitmt_subj','fitmt','-append')
 %%%%%%%%%%%%%%%%%%%%%%%%%
 %% Do an automatic spectral factorisation to find spectrally-defined networks 
 % (see paper for more info)
+% Note: manual inspection of the spectral modes (i.e. what is contained in sp_profiles_wb
+% and sp_profiles_4b) is **strongly** recommended. This is an algorithmic
+% solution and there is no theoretical guarantee of getting a sensible
+% result.
 
 % Get the three bands depicted in the paper (the 4th is essentially capturing noise)
 options_fact = struct();

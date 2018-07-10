@@ -20,7 +20,7 @@ function [sp_fit,sp_fit_group,sp_profiles] = spectdecompose(sp_fit,options)
 %                       coherence if 'coh' (default: 'coh') 
 %        .sp_profiles   Spectral profiles; if supplied, these will be used
 %                       instead of computing them (default: empty) 
-%        .plot          If the spectral profiles are to be printed (default: 1) 
+%        .plot          If the spectral profiles are to be plotted (default: 0) 
 % 
 % OUTPUT:
 % 
@@ -47,7 +47,7 @@ if nargin < 2, options = struct(); end
 if ~isfield(options,'Ncomp'), options.Ncomp = 4; end
 if ~isfield(options,'Method'), options.Method = 'NNMF'; end
 if ~isfield(options,'Base'), options.Base = 'coh'; end
-if ~isfield(options,'plot'), options.plot = 1; end
+if ~isfield(options,'plot'), options.plot = 0; end
 
 ndim = size(sp_fit{1}.state(1).psd,2); % no. channels
 ndim2 = ndim*(ndim-1)/2;
@@ -58,6 +58,9 @@ ind_offdiag = triu(true(ndim),1)==1;
 
 % check that all estimations have the same number of freq bins
 for n = 1:N
+    if isempty(sp_fit{n})
+        error('One or more elements of sp_fit are empty - remove them first')
+    end
     if size(sp_fit{n}.state(1).psd,1) ~= Nf
         error(['It is necessary for the spectral estimation of all subjects ' ...
             'to have the same number of frequency bins. ' ...
@@ -110,6 +113,9 @@ if ~isfield(options,'sp_profiles') || isempty(options.sp_profiles)
         end
         %sp_profiles = pinv(X') * b'; % you lose non-negativity by doing this
         sp_profiles = a;
+        [~,ind] = max(sp_profiles',[],2);
+        [~,neworder_auto] = sort(ind);
+        sp_profiles = sp_profiles(:,neworder_auto);
     else
         try
             m = mean(X);
