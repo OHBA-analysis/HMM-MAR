@@ -37,6 +37,6 @@ for st=1:hmm_out.train.K
 end
 
 %update psi:
-hmm_out.psi(iY,:) = hmm_marg.psi;
+hmm_out.psi(:,iY) = hmm_marg.psi;
 
 end

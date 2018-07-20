@@ -40,7 +40,7 @@ end
 if isfield(hmm_in,'psi')
     if size(hmm_in.psi,2)==hmm_in.train.logisticYdim
         %has psi been calculated specific to this variable:
-        hmm_out.psi = hmm_in.psi(iY,:);
+        hmm_out.psi = hmm_in.psi(:,iY);
     else
         hmm_out = rmfield(hmm_out,'psi');
     end

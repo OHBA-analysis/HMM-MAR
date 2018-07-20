@@ -80,8 +80,6 @@ end
 KLdiv = [];
 n=Xdim+1;
 if todo(5)==1
-    % note for now we use arbitrary priors!!! this to be entered properly
-    % with hyperparams (in due course)
     W_mu0=zeros(Xdim,1);
     %W_sig0=eye(Xdim);
     alphaKL=0;
@@ -89,7 +87,7 @@ if todo(5)==1
         hs=hmm.state(k);
         pr=hmm.state(k).prior;
         for ly = n:n+hmm.train.logisticYdim-1
-            W_sig0 = diag(eye(Xdim) * hs.alpha.Gam_shape * (hs.alpha.Gam_rate(1:Xdim,ly-Xdim).^-1));
+            W_sig0 = diag(hs.alpha.Gam_shape ./ (hs.alpha.Gam_rate(1:Xdim,ly-Xdim)));
             KLdiv = [ KLdiv, gauss_kl(hs.W.Mu_W(1:Xdim,ly),W_mu0, ...
                 squeeze(hs.W.S_W(ly,1:Xdim,1:Xdim)),W_sig0)];
             for xd=1:Xdim
@@ -104,10 +102,8 @@ end
 % data log likelihood:
 if isfield(hmm,'Gamma');hmm=rmfield(hmm,'Gamma');end
 hmm.Gamma = Gamma;
-for t=1:T
-    exp_H_LL(t) = loglikelihoodofH(Y(t,:),X(t,:),hmm,t);
-end
 
+exp_H_LL = loglikelihoodofH2(Y,X,hmm);
 avLL=sum(exp_H_LL);
 
 FrEn=[ -avLL +KLdivTran +KLdiv];

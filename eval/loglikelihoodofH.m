@@ -1,22 +1,17 @@
-function [Q_h] = loglikelihoodofH(Y,X,hmm,t)
+function [Q_h] = loglikelihoodofH(Y,X,hmm)
 % function calculates the log likelihood of our approximate likelihood
 % function h(Y|w,gamma,xi), which approximates the likelihood P(Y|w,gamma)
 % for bayesian weighted logistic regression models.
 
 [T,dimY]=size(Y);
-[T2,dimX]=size(X);
+[~,dimX]=size(X);
 
-if T>1 || T2>1 
-    ME=MException(loglikelihoodofH:tunidimensional, ...
-        'Error: this function only takes single point values in time; received vector across time');
-    throw ME;
-end
 % if dimX ~= size(hmm.state(1).w_mu,1)
 %     ME=MException(loglikelihoodofH:xdimension, ...
 %         'Error: X dimension inputted does not match W dimension');
 %     throw ME;
 % end
-if (sum(Y==-1)+sum(Y==1))~=(T*dimY)
+if any(~(Y(:)==1 | Y(:)==-1))
     MException(loglikelihoodofH:Yformaterror,'Error; Y not in correct format for binary inference')
     throw ME;
 end
@@ -33,25 +28,25 @@ outerWprod = @(hmm,i,n,Xdim) squeeze(hmm.state(i).W.S_W(n,1:Xdim,1:Xdim)) + ...
 for iY=1:dimY
     n=dimX+iY;
     % calculation broken down into component parts for ease of reference:
-    comp1 = log (logsig(hmm.psi(iY,t)'));
+    comp1 = log (logsig(hmm.psi(:,iY)));
 
-    comp2 = zeros(1,1);
+    comp2 = zeros(T,1);
     for i=1:length(hmm.state)
-        comp2= comp2 + hmm.Gamma(t,i) * X * hmm.state(i).W.Mu_W(1:dimX,dimX+iY);
+        comp2= comp2 + (repmat(hmm.Gamma(:,i),1,dimX) .* X) * hmm.state(i).W.Mu_W(1:dimX,dimX+iY);
     end
-    comp2 = (Y(iY)*comp2' - hmm.psi(iY,t))/2;
+    comp2 = (Y(:,iY).*comp2 - hmm.psi(:,iY))/2;
 
     lambdafunc = @(xi_in) ((2*xi_in).^-1).*(logsig(xi_in)-0.5);
-    comp3 = -(hmm.psi(t).^2);
+    comp3 = -(hmm.psi(:,iY).^2);
     for i=1:length(hmm.state)
-        comp3 = comp3 + hmm.Gamma(t,i) * X * outerWprod(hmm,i,iY,dimX) * X';
+        comp3 = comp3 + sum((repmat(hmm.Gamma(:,i),1,dimX) .* X) * outerWprod(hmm,i,iY,dimX) .* X,2);
         %(params.state(i).w_mu*params.state(i).w_mu') * X';
     end
-    comp3 = lambdafunc(hmm.psi(iY,t))*comp3;
+    comp3 = lambdafunc(hmm.psi(:,iY)).*comp3;
 
-    Q_h(iY) = comp1 + comp2 - comp3;
+    Q_h(:,iY) = comp1 + comp2 - comp3;
 end
-Q_h=sum(Q_h);
+Q_h=sum(Q_h,2);
 end
 
 % function WW = outerWprod(hmm,i,n)

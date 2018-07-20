@@ -69,25 +69,12 @@ for cycle=1:hmm.train.cyc
         
         if strcmp(hmm.train.covtype,'logistic')
             % update psi parameters also:
-            Sind=hmm.train.Sind==1;
-            n=hmm.train.ndim;
-            X=XX(:,1:(n-hmm.train.logisticYdim));
-            for i=1:K
-                WW{i}=hmm.state(i).W.Mu_W(Sind(:,n),n)*hmm.state(i).W.Mu_W(Sind(:,n),n)' + ...
-                            squeeze(hmm.state(i).W.S_W(n,Sind(:,n),Sind(:,n)));
-            end
-            for t=1:size(Gamma,1)
-                for i=1:K
-%                         gamWW(:,:,i) = Gamma(t,i)* ...
-%                             (hmm.state(i).W.Mu_W(Sind(:,n),n)*hmm.state(i).W.Mu_W(Sind(:,n),n)' + ...
-%                             squeeze(hmm.state(i).W.S_W(n,S(:,n),S(:,n))));
-                      gamWW(:,:,i) = Gamma(t,i)*WW{i};
-                end
-                hmm.psi(t)=sqrt(X(t,:) * sum(gamWW,3) * X(t,:)');
-            end
+            
+            hmm=updatePsi(hmm,Gamma,XX(:,1:(hmm.train.ndim-hmm.train.logisticYdim)));
+
             % check for overfitting to labels - do mean state timecourses
             % match over different labels:
-            Gamma = checkGammaOverfitting(Gamma,residuals,hmm,T,orders);
+%            Gamma = checkGammaOverfitting(Gamma,residuals,hmm,T,orders);
         end
 
         %%%% Free energy computation

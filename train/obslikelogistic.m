@@ -11,7 +11,7 @@ function L = obslikelogistic (X,hmm,residuals,XX,slicepoints)
 % OUTPUT
 % B          Likelihood of N data points
 %
-% Author: Diego Vidaurre, OHBA, University of Oxford
+% Author: Cam Higgins, OHBA, University of Oxford
 
 
 % not familiar with caching commands so omitting for now
@@ -33,7 +33,7 @@ end
 if nargin==6
     Gamma=hmm.Gamma(slicepoints,:);
     if isfield(hmm,'psi');
-    psi=hmm.psi(1:Ydim,slicepoints);
+    psi=hmm.psi(slicepoints,1:Ydim);
     hmm=rmfield(hmm,'psi');
     hmm.psi=psi;
     end
@@ -89,17 +89,17 @@ for iY = 1:Ydim
     
 
     if ~isfield(hmm,'psi') 
-        hmm.psi=zeros(Ydim,T);
+        hmm.psi=zeros(T,Ydim);
         gamWW=zeros(Xdim,Xdim,K);
         for t=1:T
             for i=1:K
                 gamWW(:,:,i) = Gamma(t,i)* WW{i,n};  
             end
-            hmm.psi(iY,t)=sqrt(X(t,:) * sum(gamWW,3) * X(t,:)');
+            hmm.psi(t,iY)=sqrt(X(t,:) * sum(gamWW,3) * X(t,:)');
             %if mod(t,100)==0;fprintf(['\n',int2str(t)]);end
         end
     end    
-    psi = hmm.psi(iY,slicepoints)';
+    psi = hmm.psi(slicepoints,iY);
     
 %     if size(hmm.psi,2)>size(hmm.psi,1)
 %         hmm.psi=hmm.psi';

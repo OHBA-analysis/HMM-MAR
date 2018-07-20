@@ -89,7 +89,7 @@ for k=1:K
         
     elseif strcmp(train.covtype,'logistic');
         
-        % Set Y (unidimensional for now) and X: 
+        % Set Y and X: 
         Xdim = size(XX,2)-hmm.train.logisticYdim;
         X=XX(:,1:Xdim);
         %Y=XX(2:end,(Xdim+1):end);
@@ -99,8 +99,7 @@ for k=1:K
         
         % initialise priors - with ARD:
         W_mu0 = zeros(Xdim,1);
-        %W_sig0= 5*eye(Xdim);
-        W_sig0 = diag(eye(Xdim) * hmm.state(k).alpha.Gam_shape * (hmm.state(k).alpha.Gam_rate(1:Xdim).^-1));
+        W_sig0 = diag(hmm.state(k).alpha.Gam_shape ./ hmm.state(k).alpha.Gam_rate(1:Xdim));
         
         % implement update equations for logistic regression:
         lambdafunc = @(psi_t) ((2*psi_t).^-1).*(logsig(psi_t)-0.5);
@@ -115,41 +114,25 @@ for k=1:K
                             squeeze(hmm.state(i).W.S_W(n,S(:,n),S(:,n)));
             end
             if ~isfield(hmm,'psi')
-                hmm.psi=zeros(1,T);
-                for t=1:T
-                    gamWW=zeros(ndim_n,ndim_n,K);
-                    for i=1:K
-%                         gamWW(:,:,i) = Gamma(t,i)* ...
-%                             (hmm.state(i).W.Mu_W(Sind(:,n),n)*hmm.state(i).W.Mu_W(Sind(:,n),n)' + ...
-%                             squeeze(hmm.state(i).W.S_W(n,S(:,n),S(:,n))));
-                          gamWW(:,:,i) = Gamma(t,i)*WW{i};
-                    end
-                    hmm.psi(t)=sqrt(X(t,:) * sum(gamWW,3) * X(t,:)');
-                end
+                hmm = updatePsi(hmm,Gamma,X);
             end
-            W_sigsum{k}=zeros(T,ndim_n,ndim_n);
-            W_musum{k} =zeros(T,ndim_n);
-            for t=1:T
-                W_sigsum{k}(t,:,:)=2*lambdafunc(hmm.psi(t))*Gamma(t,k)*X(t,:)'*X(t,:);
-                W_musum{k}(t,:) = 0.5 * Y(t)*Gamma(t,k)*X(t,:)';
-            end
+            % note this could be optimised with better use of XXGXX:
+%             W_sigsum{k}=zeros(T,ndim_n,ndim_n);
+%             for t=1:T
+%                 W_sigsum{k}(t,:,:)=2*lambdafunc(hmm.psi(t))*Gamma(t,k)*X(t,:)'*X(t,:);
+%             end
+            W_sigsum = (XX(:,1:ndim_n)' .* repmat(2*lambdafunc(hmm.psi)'.*Gamma(:,k)',ndim_n,1))* XX(:,1:ndim_n);
             %update parameter entries:
-            hmm.state(k).W.S_W(n,S(:,n),S(:,n)) = inv(squeeze(sum(W_sigsum{k},1))+inv(W_sig0));
-            hmm.state(k).W.Mu_W(S(:,n),n) = (squeeze(hmm.state(k).W.S_W(n,S(:,n),S(:,n))) * sum(W_musum{k},1)') ...
-                +(inv(W_sig0)*W_mu0);
-            % Update optimal tuning parameters psi:
-            WW{k}=hmm.state(k).W.Mu_W(Sind(:,n),n)*hmm.state(k).W.Mu_W(Sind(:,n),n)' + ...
-                            squeeze(hmm.state(k).W.S_W(n,S(:,n),S(:,n)));
-            hmm.psi=zeros(T,1);
-            for t=1:T
-                for i=1:K
-%                         gamWW(:,:,i) = Gamma(t,i)* ...
-%                             (hmm.state(i).W.Mu_W(Sind(:,n),n)*hmm.state(i).W.Mu_W(Sind(:,n),n)' + ...
-%                             squeeze(hmm.state(i).W.S_W(n,S(:,n),S(:,n))));
-                      gamWW(:,:,i) = Gamma(t,i)*WW{i};
-                end
-                hmm.psi(t)=sqrt(X(t,:) * sum(gamWW,3) * X(t,:)');
-            end
+            %hmm.state(k).W.S_W(n,S(:,n),S(:,n)) = inv(squeeze(sum(W_sigsum{k},1))+inv(W_sig0));
+            hmm.state(k).W.S_W(n,S(:,n),S(:,n)) = inv(squeeze(W_sigsum)+inv(W_sig0));
+            hmm.state(k).W.Mu_W(S(:,n),n) = squeeze(hmm.state(k).W.S_W(n,S(:,n),S(:,n))) * 0.5 * X' * (Y.*Gamma(:,k)) ... %sum(W_musum{k},1)') ...
+                +(W_sig0\W_mu0);
+            
+            % Also increment optimal tuning parameters psi:
+            WWupdate = hmm.state(k).W.Mu_W(Sind(:,n),n)*hmm.state(k).W.Mu_W(Sind(:,n),n)' + ...
+                             squeeze(hmm.state(k).W.S_W(n,S(:,n),S(:,n))) - WW{k};
+            psiupdate = sum(((X .* repmat(Gamma(:,k),1,size(X,2))) * WWupdate).*X , 2);
+            hmm.psi = sqrt(hmm.psi.^2+psiupdate);
         end
         
     else % full or unique full - this only works if all(S(:)==1); any(S(:)~=1) is just not yet implemented 
