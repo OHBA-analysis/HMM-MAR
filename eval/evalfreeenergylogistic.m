@@ -103,7 +103,7 @@ end
 if isfield(hmm,'Gamma');hmm=rmfield(hmm,'Gamma');end
 hmm.Gamma = Gamma;
 
-exp_H_LL = loglikelihoodofH2(Y,X,hmm);
+exp_H_LL = loglikelihoodofH(Y,X,hmm);
 avLL=sum(exp_H_LL);
 
 FrEn=[ -avLL +KLdivTran +KLdiv];
