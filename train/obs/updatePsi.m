@@ -7,14 +7,14 @@ function [hmm] = updatePsi(hmm,Gamma,X)
 K = hmm.train.K;
 for iY=1:hmm.train.logisticYdim
     WW=cell(K,1);
-    innersum=zeros(T,ndim);
+    sum1=zeros(T,ndim);
     for i=1:K
         WW{i}=hmm.state(i).W.Mu_W(1:ndim,ndim+iY)*hmm.state(i).W.Mu_W(1:ndim,ndim+iY)' + ...
                     squeeze(hmm.state(i).W.S_W(ndim+iY,1:ndim,1:ndim));
                 
-        innersum=innersum + (repmat(Gamma(:,i),1,ndim).*X)*WW{i};
+        sum1=sum1 + (repmat(Gamma(:,i),1,ndim).*X)*WW{i};
     end     
-    hmm.psi(:,iY) = sqrt(sum(innersum .*X,2));
+    hmm.psi(1:T,iY) = sqrt(sum(sum1 .*X,2));
     
     
     
