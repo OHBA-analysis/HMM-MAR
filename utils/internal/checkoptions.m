@@ -42,6 +42,7 @@ if ~isfield(options,'standardise_pc')
     options.standardise_pc = length(options.embeddedlags)>1; 
 end
 if ~isfield(options,'logisticYdim'),options.logisticYdim=0;end
+if ~isfield(options,'balancedata'),options.balancedata=1;end
 
 % stochastic options
 if stochastic_learning

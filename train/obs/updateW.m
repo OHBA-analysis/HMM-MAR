@@ -97,6 +97,15 @@ for k=1:K
         Y=residuals;
         T=size(X,1);
         
+        if hmm.train.balancedata
+            %w=sum(Gamma(:,k))./(sum(Y==1 .* Gamma(:,k)).*hmm.train.origlogisticYdim);
+            w=sum(Gamma(:,k))./(sum([Y==1] .* Gamma(:,k)).*2); % note 2 is because we are modelling Ydim binary logistic classifiers
+            w_star=sum(Gamma(:,k))./(sum([Y==-1] .* Gamma(:,k)).*2);
+            weightvector = [Y==1].*w + [Y==-1].*w_star;
+            Gammaweighted(:,k)=Gamma(:,k) .*weightvector;
+        else
+            Gammaweighted(:,k)=Gamma(:,k);
+        end
         % initialise priors - with ARD:
         W_mu0 = zeros(Xdim,1);
         W_sig0 = diag(hmm.state(k).alpha.Gam_shape ./ hmm.state(k).alpha.Gam_rate(1:Xdim));
@@ -121,11 +130,11 @@ for k=1:K
 %             for t=1:T
 %                 W_sigsum{k}(t,:,:)=2*lambdafunc(hmm.psi(t))*Gamma(t,k)*X(t,:)'*X(t,:);
 %             end
-            W_sigsum = (XX(:,1:ndim_n)' .* repmat(2*lambdafunc(hmm.psi)'.*Gamma(:,k)',ndim_n,1))* XX(:,1:ndim_n);
+            W_sigsum = (XX(:,1:ndim_n)' .* repmat(2*lambdafunc(hmm.psi)'.*Gammaweighted(:,k)',ndim_n,1))* XX(:,1:ndim_n);
             %update parameter entries:
             %hmm.state(k).W.S_W(n,S(:,n),S(:,n)) = inv(squeeze(sum(W_sigsum{k},1))+inv(W_sig0));
             hmm.state(k).W.S_W(n,S(:,n),S(:,n)) = inv(squeeze(W_sigsum)+inv(W_sig0));
-            hmm.state(k).W.Mu_W(S(:,n),n) = squeeze(hmm.state(k).W.S_W(n,S(:,n),S(:,n))) * 0.5 * X' * (Y.*Gamma(:,k)) ... %sum(W_musum{k},1)') ...
+            hmm.state(k).W.Mu_W(S(:,n),n) = squeeze(hmm.state(k).W.S_W(n,S(:,n),S(:,n))) * 0.5 * X' * (Y.*Gammaweighted(:,k)) ... %sum(W_musum{k},1)') ...
                 +(W_sig0\W_mu0);
             
             % Also increment optimal tuning parameters psi:
