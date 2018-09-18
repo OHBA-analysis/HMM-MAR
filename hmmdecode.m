@@ -44,11 +44,10 @@ if nargin<6 || isempty(preproc), preproc = 1; end
 % end
 
 stochastic_learn = isfield(hmm.train,'BIGNbatch') && hmm.train.BIGNbatch < length(T);
-N = length(T);
 
 if xor(iscell(data),iscell(T)), error('data and T must be cells, either both or none of them.'); end
-
 if stochastic_learn
+    N = length(T);
     if ~iscell(data)
        dat = cell(N,1); TT = cell(N,1);
        for i=1:N
@@ -65,14 +64,16 @@ if stochastic_learn
     end
     [Path,Xi] = hmmsdecode(data,T,hmm,type);
     return
-end
-
-if iscell(T)
-    for i = 1:length(T)
-        if size(T{i},1)==1, T{i} = T{i}'; end
+else % data can be a cell or a matrix
+    if iscell(T)
+        for i = 1:length(T)
+            if size(T{i},1)==1, T{i} = T{i}'; end
+        end
+        if size(T,1)==1, T = T'; end
+        T = cell2mat(T);
     end
-    if size(T,1)==1, T = T'; end
-    T = cell2mat(T);
+    checkdatacell;    
+    N = length(T);
 end
 
 if preproc % Adjust the data if necessary
