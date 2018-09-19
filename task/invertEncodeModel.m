@@ -29,10 +29,16 @@ if isfield(model,'Omega')
         Omega = diag(model.Omega.Gam_shape ./ model.Omega.Gam_rate(1:nDim));
     end
 else
-    
+    %deal with this later
 end
 if T==T2
     for t=1:T
+        if ~isfield(model,'Omega')
+            for k=1:K
+                Omega(:,:,k) = Gamma(t,k)*diag(model.state(k).Omega.Gam_shape ./ model.state(k).Omega.Gam_rate(1:nDim));
+            end
+            Omega=sum(Omega,3);
+        end
         for testcond = 1:Ydim
             mu = sum(squeeze(betamu_givenY(testcond,:,:)) .*repmat(Gamma(t,:)',1,nDim));
             mu_rec(testcond,t,:)=mu;

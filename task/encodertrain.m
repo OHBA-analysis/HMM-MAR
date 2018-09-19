@@ -38,6 +38,7 @@ N = length(T);
 parallel_trials = options.parallel_trials; 
 options = rmfield(options,'parallel_trials');
 if isfield(options,'add_noise'), options = rmfield(options,'add_noise'); end
+if ~isfield(options,'useUnsupervisedGamma');options.useUnsupervisedGamma=false;end
 p = size(X,2); q = size(Y,2);
  
 % init HMM, only if trials are temporally related
@@ -77,21 +78,22 @@ end
 options.S = -ones(p+q);
 options.S(p+1:end,1:p) = 1;
 % 1. Estimate Obs Model parameters given Gamma, unless told not to:
-options_run1=options;
+options_run1=rmfield(options,'useUnsupervisedGamma');
 if isfield(options,'updateObs') 
-    options_run1.updateObs=1
+    options_run1.updateObs=1;
 end 
 options_run1.updateGamma=0;
 
 [tuda,Gamma,~,vpath] = hmmmar(Z,T,options_run1);
-
+if ~options.useUnsupervisedGamma
 % 2. Update state time courses only, leaving fixed obs model params:
-options.updateObs = 1; % 
-options.updateGamma = 1;
-%options.Gamma = Gamma;
-options.hmm = tuda; 
-options.cyc=2;
-[tuda,Gamma,~,~,~,~, stats.fe] = hmmmar(Z,T,options); 
+    options.updateObs = 1; % 
+    options.updateGamma = 1;
+    %options.Gamma = Gamma;
+    options.hmm = tuda; 
+    options.cyc=2;
+    [tuda,Gamma,~,~,~,~, stats.fe] = hmmmar(Z,T,options); 
+end
 tuda.features = features;
 
 % Explained variance per state, square error &
