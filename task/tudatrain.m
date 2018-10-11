@@ -90,7 +90,10 @@ options.updateObs = 1; %
 options.updateGamma = 1;
 %options.Gamma = Gamma;
 options.hmm = tuda; 
-options.cyc=2;
+if ~isfield(options,'cyc')
+    options.cyc=2;
+end
+    
 [tuda,Gamma,~,~,~,~, stats.fe] = hmmmar(Z,T,options); 
 tuda.features = features;
 
