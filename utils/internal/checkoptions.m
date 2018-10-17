@@ -46,6 +46,9 @@ end
 
 % stochastic options
 if stochastic_learning
+    if options.K==1
+        error('There is no purpose on using stochastic inference with K=1. Please restart')
+    end
     if ~isfield(options,'BIGNinitbatch'), options.BIGNinitbatch = options.BIGNbatch; end
     if ~isfield(options,'BIGprior'), options.BIGprior = []; end
     if ~isfield(options,'BIGcyc'), options.BIGcyc = 200; end
