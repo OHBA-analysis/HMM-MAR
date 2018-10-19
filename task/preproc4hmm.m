@@ -1,5 +1,9 @@
 function [X,Y,T,options,R2_pca,features] = preproc4hmm(X,Y,T,options)
 
+if length(X)==3 % 1st dim, time; 2nd dim, trials; 3rd dim, channels
+    X = reshape(X,[size(X,1)*size(X,2), size(X,3)]);
+end
+
 if size(X,1) ~= sum(T), error('Dimension of X not correct'); end
 if (size(Y,1) ~= sum(T)) && (size(Y,1) ~= length(T))
     error('Dimension of Y not correct');

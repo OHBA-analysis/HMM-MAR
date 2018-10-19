@@ -4,7 +4,7 @@ function [tuda,Gamma,GammaInit,vpath,stats] = tudatrain(X,Y,T,options)
 % that the same decoding is active at the same time point at all trials. 
 % 
 % INPUT
-% X: Brain data, (time by regions)
+% X: Brain data, (time by regions) or (time by trials by regions)
 % Y: Stimulus, (time by q); q is no. of stimulus features
 % T: Length of series
 % options: structure with the training options - see documentation in 
