@@ -1,5 +1,5 @@
 function lifetimes = getStateLifeTimes (Gamma,T,options,threshold,threshold_Gamma)
-% Computes the state life times for the state time courses  
+% Computes the state life times for the state time courses, in number of time points 
 %
 % Gamma can be the probabilistic state time courses (time by states),
 %   which can contain the probability of all states or a subset of them,
