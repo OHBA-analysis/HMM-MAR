@@ -1,4 +1,4 @@
-function pval = permtest(X,D,Nperm,grouping,confounds)
+function pval = permtest_aux(X,D,Nperm,grouping,confounds)
 % permutation testing routine (through regression)
 % X: data
 % D: design matrix
