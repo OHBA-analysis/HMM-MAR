@@ -1,8 +1,8 @@
+% Code used in Vidaurre et al. (2018) Nature Communications
+%
 % Detailed documentation and further examples can be found in:
-% https://ohba-analysis.github.io/osl-docs/
-% This pipeline is adapted to CTF data and must be adapted to 
-% your particular configuration of files. 
-
+% https://github.com/OHBA-analysis/HMM-MAR
+% This pipeline must be adapted to your particular configuration of files. 
 %%%%%%%%%%%%%%%%%%%%%%%%%
 %% SETUP THE MATLAB PATHS AND FILE NAMES
 % make sure that fieldtrip and spm are not in your matlab path
