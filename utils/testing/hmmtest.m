@@ -1,9 +1,10 @@
-function tests = hmmtest (Gamma,T,Tsubject,Y,options)
+function tests = hmmtest (Gamma,T,Tsubject,Y,options,hmm)
 % 
 % Test fractional occupancy and switching rates against a 
 % (no. trials by no. conditions) design matrix Y using permutation testing.
-% Fractional occupancy is tested per state; the switching rate
-% is tested also for all states simultaneously. 
+% Fractional occupancy is tested per state, and also aggregated across states
+% using the NPC algorithm; see Winkler et al., 2016 NI; Vidaurre et al. 2018 HBM
+% Switching rate is tested also for all states simultaneously. 
 % Tests are done at the subject and at the group level. 
 % Tests are the group level are done by
 %   - Permuting between subjects, if T == Tsubject
@@ -24,19 +25,20 @@ function tests = hmmtest (Gamma,T,Tsubject,Y,options)
 %           (default 1, if there are at least 2 subjects)
 %   .confounds: (no. trials by q) matrix of confounds that are to be
 %           regressed out before doing the testing (default none)
-% options must also contain the training options for the HMM, used to
-% obtain Gamma
+% hmm: first output of the hmm structure
 % 
 % OUTPUTS:
 %
 % tests: a struct with fields
 %   .subjectlevel: subject-level tests, with fields containing  
 %           p-values for the different measures:
-%       .p_fractional_occupancy: (no. states by no. subjects)   
+%       .p_fractional_occupancy: (no. states by no. subjects)  
+%       .p_aggr_fractional_occupancy: (1 by no. subjects) of aggregated pvalues
 %       .p_switching_rate: (1 by no. subjects) one p-value 
 %               for the global rate of switching
 %   .grouplevel: group-level tests, with fields
 %       .p_fractional_occupancy: (no. states by 1)  
+%       .p_aggr_fractional_occupancy: 1 global pvalue of aggregated pvalues
 %       .p_switching_rate: 1 global p-value 
 %   Either .subjectlevel or .grouplevel will be structs with empty fields
 %       if the corresponding level of testing is not run. 
@@ -64,8 +66,6 @@ if size(Tsubject,1)==1, Tsubject = Tsubject'; end
 if sum(T) ~= sum(Tsubject), error('sum(T) must equal to sum(Tsubject)'); end
 N = length(T); Nsubj = length(Tsubject);
 K = size(Gamma,2); % no. of states
-%threshold_visit = 3; % less that this no. of time point, a state visit is spurious
-%threshold_Gamma = (2/3); % threshold over which a state is deemed to be active
 
 % Get number of trials per subject
 if Nsubj > 1
@@ -102,20 +102,19 @@ end
 if ~isfield(options,'confounds'), confounds = [];
 else, confounds = options.confounds;
 end
-if ~isfield(options,'downsample') || ~isfield(options,'Fs')
+if ~isfield(hmm.train,'downsample') || ~isfield(hmm.train,'Fs')
     r = 1; 
 else
-    r = options.downsample/options.Fs;
+    r = hmm.train.downsample/hmm.train.Fs;
 end
 
-
 % Adjust dimensions of T and Tsubject
-if isfield(options,'order') && options.order > 0
+if isfield(hmm.train,'order') && hmm.train.order > 0
     Tsubject = ceil(r * Tsubject);
-    Tsubject = Tsubject - Ntrials_per_subject * options.order; 
-elseif isfield(options,'embeddedlags') && length(options.embeddedlags) > 1
-    d1 = -min(0,options.embeddedlags(1));
-    d2 = max(0,options.embeddedlags(end));
+    Tsubject = Tsubject - Ntrials_per_subject * hmm.train.order; 
+elseif isfield(hmm.train,'embeddedlags') && length(hmm.train.embeddedlags) > 1
+    d1 = -min(0,hmm.train.embeddedlags(1));
+    d2 = max(0,hmm.train.embeddedlags(end));
     Tsubject = Tsubject - Ntrials_per_subject * (d1+d2); 
     Tsubject = ceil(r * Tsubject);
 end
@@ -127,22 +126,18 @@ tests.grouplevel = struct();
 % Testing at the subject level
 if subjectlevel
     tests.subjectlevel.p_fractional_occupancy = zeros(K,Nsubj);
-    %tests.subjectlevel.p_life_times = zeros(K,Nsubj);
-    %tests.subjectlevel.p_interval_times = zeros(K,Nsubj); 
+    tests.subjectlevel.p_aggr_fractional_occupancy = zeros(1,Nsubj);
     tests.subjectlevel.p_switching_rate = zeros(1,Nsubj);  
     for j = 1:Nsubj
         t = (1:Tsubject(j)) + sum(Tsubject(1:j-1));
         g = Gamma(t,:);
         jj = (1:Ntrials_per_subject(j)) + sum(Ntrials_per_subject(1:j-1));
         Yj = Y(jj,:);
-        fo = getFractionalOccupancy(g,TperSubj{j},options);
-        %lt = getStateLifeTimes(g,TperSubj{j},options,threshold_visit,threshold_Gamma);
-        %it = getStateIntervalTimes(g,TperSubj{j},options,threshold_visit,threshold_Gamma);
-        sr = getSwitchingRate(g,TperSubj{j},options);
-        tests.subjectlevel.p_fractional_occupancy(:,j) = permtest_aux(fo,Yj,Nperm,[],confounds);
-        %tests.subjectlevel.p_life_times(:,j) = permtest_aux(lt,Yj,Nperm,[],confounds);
-        %tests.subjectlevel.p_interval_times(:,j) = permtest_aux(it,Yj,Nperm,[],confounds);
-        tests.subjectlevel.p_switching_rate(j) = permtest_aux(sr,Yj,Nperm,[],confounds);
+        fo = getFractionalOccupancy(g,TperSubj{j},hmm.train);
+        sr = getSwitchingRate(g,TperSubj{j},hmm.train);
+        tests.subjectlevel.p_fractional_occupancy(:,j) = permtest_aux(fo,Yj,Nperm,confounds);
+        tests.subjectlevel.p_aggr_fractional_occupancy(j) = permtest_aux_NPC(fo,Yj,Nperm,confounds);
+        tests.subjectlevel.p_switching_rate(j) = permtest_aux(sr,Yj,Nperm,confounds);
     end
 end
    
@@ -151,14 +146,11 @@ if grouplevel
     if (length(T)==length(Tsubject)) 
         Ntrials_per_subject = [];
     end
-    fo = getFractionalOccupancy(Gamma,T,options);
-    %lt = getStateLifeTimes(Gamma,T,options,threshold_visit,threshold_Gamma);
-    %it = getStateIntervalTimes(Gamma,T,options,threshold_visit,threshold_Gamma);
-    sr = getSwitchingRate(Gamma,T,options);
-    tests.grouplevel.p_fractional_occupancy = permtest_aux(fo,Y,Nperm,Ntrials_per_subject,confounds);
-    %tests.grouplevel.p_life_times(:,j) = permtest_aux(lt,Y,Nperm,Ntrials_per_subject,confounds);
-    %tests.grouplevel.p_interval_times(:,j) = permtest_aux(it,Y,Nperm,Ntrials_per_subject,confounds);
-    tests.grouplevel.p_switching_rate = permtest_aux(sr,Y,Nperm,Ntrials_per_subject,confounds);
+    fo = getFractionalOccupancy(Gamma,T,hmm.train);
+    sr = getSwitchingRate(Gamma,T,hmm.train);
+    tests.grouplevel.p_fractional_occupancy = permtest_aux(fo,Y,Nperm,confounds);
+    tests.grouplevel.p_aggr_fractional_occupancy = permtest_aux_NPC(fo,Y,Nperm,confounds);
+    tests.grouplevel.p_switching_rate = permtest_aux(sr,Y,Nperm,confounds);
 end
           
 end
