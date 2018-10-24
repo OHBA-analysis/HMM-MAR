@@ -32,7 +32,7 @@ else, embeddedlags = options.embeddedlags; end
 if ~isfield(options,'filter'), filter = [];
 else, filter = options.filter; end
 if ~isfield(options,'detrend'), detrend = 0;
-else, detrend = options.onpower; end
+else, detrend = options.detrend; end
 % econ_embed saves memory at the expense of speed, when pca is applied
 if ~isfield(options,'econ_embed'), econ_embed = 0;
 else, econ_embed = options.econ_embed; end
