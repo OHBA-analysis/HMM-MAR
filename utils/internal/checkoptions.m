@@ -221,7 +221,16 @@ if ~stochastic_learning
 end
 
 % Some hmm model options unrelated to the observational model
-if ~isfield(options,'DirichletDiag'), options.DirichletDiag = 10; end
+if ~isfield(options,'DirichletDiag')
+    if options.order > 0
+        if iscell(T), sumT = sum(cell2mat(T));
+        else, sumT = sum(T);
+        end
+        options.DirichletDiag = sumT/5;
+    else
+        options.DirichletDiag = 10;
+    end
+end
 if ~isfield(options,'PriorWeighting'), options.PriorWeighting = 1; end
 
 % Some more hmm model options unrelated to the observational model

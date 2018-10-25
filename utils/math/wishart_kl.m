@@ -30,7 +30,7 @@ K=size(B_p,1);
 
 try
     Lq = -logdet(B_q,'chol');
-catch excp
+catch 
     disp('Probably, part of your time series has no information and can be removed.')
     disp('For example, check if there are segments such that data(during_segment,:) == 0')
     error('Error computing the inverse of the covariance matrix.')

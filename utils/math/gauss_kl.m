@@ -18,19 +18,19 @@ function [D] = gauss_kl (mu_q,mu_p,sigma_q,sigma_p)
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-if nargin<4,
+if nargin<4
   error('Incorrect number of input arguments');
-end;
+end
 
-if length(mu_q)~=length(mu_p),
+if length(mu_q)~=length(mu_p)
   error('Distributions must have equal dimensions (Means dimension)');
-end;
+end
 mu_q=mu_q(:);
 mu_p=mu_p(:);
 
-if size(sigma_q)~=size(sigma_p),
+if size(sigma_q)~=size(sigma_p)
   error('Distributions must have equal dimensions (Covariance dimension)');
-end;
+end
 
 %DSq=det(sigma_q);
 %DSp=det(sigma_p);

@@ -82,10 +82,6 @@ if stochastic_learn % data is a cell, either with strings or with matrices
     end
 else % data can be a cell or a matrix
     if iscell(T)
-        for i = 1:length(T)
-            if size(T{i},1)==1, T{i} = T{i}'; end
-        end
-        if size(T,1)==1, T = T'; end
         T = cell2mat(T);
     end
     checkdatacell;
