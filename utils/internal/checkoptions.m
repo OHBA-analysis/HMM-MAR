@@ -189,6 +189,7 @@ if options.leida
            (strcmp(options.covtype,'full') || strcmp(options.covtype,'diag'))
        error('When using leida, covtype cannot be full or diag')
    end
+   options.zeromean = 0; 
    if length(options.embeddedlags) > 1
        error('Option leida and embeddedlags are not compatible')
    end
