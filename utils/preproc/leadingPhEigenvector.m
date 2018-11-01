@@ -24,7 +24,7 @@ for n=1:length(T)
         end
     else
         for j=1:ndim
-            Ph(:,j) = abs(hilbert(data(ind,j)));
+            Ph(:,j) = angle(hilbert(data(ind,j)));
         end
     end
     for t = 1:length(ind)
