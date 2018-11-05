@@ -44,7 +44,6 @@ end
 
 % define P-priors
 defhmmprior=struct('Dir2d_alpha',[],'Dir_alpha',[]);
-
 defhmmprior.Dir_alpha = ones(1,hmm.K);
 defhmmprior.Dir_alpha(~hmm.train.Pistructure) = 0; 
 defhmmprior.Dir2d_alpha = ones(hmm.K);

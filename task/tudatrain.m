@@ -5,7 +5,9 @@ function [tuda,Gamma,GammaInit,vpath,stats] = tudatrain(X,Y,T,options)
 % 
 % INPUT
 % X: Brain data, (time by regions) or (time by trials by regions)
-% Y: Stimulus, (time by q); q is no. of stimulus features
+% Y: Stimulus, (time by q); q is no. of stimulus features OR
+%              (no.trials by q), meaning that each trial has a single
+%              stimulus value
 % T: Length of series
 % options: structure with the training options - see documentation in 
 %                       https://github.com/OHBA-analysis/HMM-MAR/wiki
@@ -34,7 +36,7 @@ stats = struct();
 N = length(T); 
 
 % Check options and put data in the right format
-[X,Y,T,options,stats.R2_pca,features] = preproc4hmm(X,Y,T,options); 
+[X,Y,T,options,stats.R2_pca,npca,features] = preproc4hmm(X,Y,T,options); 
 parallel_trials = options.parallel_trials; 
 options = rmfield(options,'parallel_trials');
 if isfield(options,'add_noise'), options = rmfield(options,'add_noise'); end
@@ -95,6 +97,8 @@ if parallel_trials
 else
     stats.R2_states = []; stats.R2 = []; stats.R2_stddec = [];
 end
+
+tuda.train.pca = npca;
 
 end
 

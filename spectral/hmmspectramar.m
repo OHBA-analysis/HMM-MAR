@@ -37,6 +37,10 @@ if nargin < 3, hmm = []; end
 
 MLestimation = isempty(hmm) || ~isfield(hmm.state(1),'W');
 
+if MLestimation && ~isempty(options) && isempty(Gamma) && options.K==1
+    Gamma = ones(size(data,1),1);
+end
+
 if MLestimation && isempty(Gamma)
     error('If the MAR is going to be re-estimated, you need to supply Gamma')
 end

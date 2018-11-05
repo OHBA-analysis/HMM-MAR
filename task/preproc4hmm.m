@@ -1,17 +1,17 @@
-function [X,Y,T,options,R2_pca,features] = preproc4hmm(X,Y,T,options)
+function [X,Y,T,options,R2_pca,pca_opt,features] = preproc4hmm(X,Y,T,options)
 
 if length(size(X))==3 % 1st dim, time; 2nd dim, trials; 3rd dim, channels
     X = reshape(X,[size(X,1)*size(X,2), size(X,3)]);
 end
 
+q = size(Y,2);
+N = length(T);
+p = size(X,2);
+
 if size(X,1) ~= sum(T), error('Dimension of X not correct'); end
 if (size(Y,1) ~= sum(T)) && (size(Y,1) ~= length(T))
     error('Dimension of Y not correct');
 end
-
-q = size(Y,2);
-N = length(T);
-p = size(X,2);
 
 if isfield(options,'downsample') && options.downsample
    error('Downsampling is not currently an option') 
@@ -80,12 +80,13 @@ end
 emforw = max(max(embeddedlags),0);
 emback = max(-min(embeddedlags),0);
 
-if size(Y,1) == length(T) % one value for the entire trial
+if size(Y,1) == N % one value for the entire trial
     Ytmp = Y;
     Y = zeros(sum(T),q);
     for n = 1:N
         Y(sum(T(1:n-1)) + (1:T(n)),:) = repmat(Ytmp(n,:),T(n),1);
     end; clear Ytmp
+    Y = Y + 1e-6 * repmat(std(Y),size(Y,1),1) .* randn(size(Y)) ;
 end
 
 
@@ -191,6 +192,9 @@ else
     
     if do_embedding
         [X,T] = embeddata(X,T,embeddedlags);
+        msg = '(embedded)';
+    else
+        msg = '';
     end
     if do_pca
         [~,X,e] = pca(X);
@@ -198,8 +202,28 @@ else
         p = num_comp_pca(e,pca_opt);
         R2_pca = e(p);
         X = X(:,1:p);
+        fprintf('Working in PCA %s space, with %d components. \n',msg,p)
     else
         R2_pca = 1;
     end
     
+end
+
+end
+
+
+function ncomp = num_comp_pca(e,d)
+
+if length(d)==1 && d<1
+    ncomp = find(e>d,1);
+elseif length(d)==1 && d>=1
+    ncomp = d;
+elseif length(d)==2 || (length(d)==3 && d(3)==1)
+    ncomp = min(find(e>d(1),1),d(2));
+elseif length(d)==3 && d(3)==2
+    ncomp = max(find(e>d(1),1),d(2));
+else
+    error('pca parameters are wrongly specified')
+end
+
 end

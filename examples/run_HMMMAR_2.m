@@ -119,8 +119,8 @@ options_test.subjectlevel = 0;
 options_test.Nperm = 1000;
 
 for i = 1:length(configurations)
-    [~,Gamma{i}] = hmmmar(X,T,configurations{i});
-    t = hmmtest(Gamma{i},T,Tsubject,Y,options_test);
+    [hmm,Gamma{i}] = hmmmar(X,T,configurations{i});
+    t = hmmtest(Gamma{i},T,Tsubject,Y,options_test,hmm);
     test_group{i} = t.grouplevel; % only doing group-level testing
     disp([num2str(i) ' of ' num2str(L)])
 end

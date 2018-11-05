@@ -1,4 +1,4 @@
-function [Path,Xi] = hmmdecode(data,T,hmm,type,residuals,preproc,grouping)
+function [Path,Xi] = hmmdecode(data,T,hmm,type,residuals,preproc)
 %
 % State time course and Viterbi decoding for hmm
 % The algorithm is run for the whole data set, including those whose class
@@ -11,6 +11,8 @@ function [Path,Xi] = hmmdecode(data,T,hmm,type,residuals,preproc,grouping)
 % hmm           hmm data structure
 % type          0, state time courses (default); 1, viterbi path
 % residuals     in case we train on residuals, the value of those (optional)
+% preproc       whether we should perform the preprocessing options with
+%               which the hmm model was trained; 1 by default.
 %
 % OUTPUT
 % vpath         (T x 1) maximum likelihood state sequence (type=1) OR
