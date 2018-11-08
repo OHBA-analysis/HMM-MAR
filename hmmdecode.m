@@ -64,7 +64,12 @@ if stochastic_learn
        end 
        data = dat; T = TT; clear dat TT
     end
-    [Path,Xi] = hmmsdecode(data,T,hmm,type);
+    if nargin<2
+        Path = hmmsdecode(data,T,hmm,type);
+    else
+        Xi = [];
+        [Path,Xi] = hmmsdecode(data,T,hmm,type);
+    end
     return
 else % data can be a cell or a matrix
     if iscell(T)

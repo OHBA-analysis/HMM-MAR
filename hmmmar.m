@@ -26,10 +26,10 @@ if iscell(T)
     if size(T,1)==1, T = T'; end
     for i = 1:length(T)
         if size(T{i},1)==1, T{i} = T{i}'; end
-        T{i} = single(T{i});
+        T{i} = int64(T{i});
     end
 else
-    T = single(T);
+    T = int64(T);
 end
 N = length(T);
 
@@ -192,7 +192,12 @@ if stochastic_learn
     end
     Gamma = []; Xi = []; vpath = []; residuals = [];
     if options.BIGcomputeGamma && nargout >= 2
-       [Gamma,Xi] = hmmdecode(data,T,hmm,0); 
+       Gamma = hmmdecode(data,T,hmm,0); 
+       if nargout > 2 
+           warning(['When stochastic inference is run, Xi will be returned ' ...
+               'as empty to prevent excessive memory usage. ' ...
+               'If required, it can be obtained by calling to hmmdecode directly'])
+       end
     end
     if options.BIGdecodeGamma && nargout >= 4
        vpath = hmmdecode(data,T,hmm,1); 

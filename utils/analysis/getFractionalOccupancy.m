@@ -45,11 +45,11 @@ if iscell(T)
         trials2subjects(ii:ii+Ntrials-1) = i;
         ii = ii + Ntrials;
     end
-    T = single(cell2mat(T));
+    T = int64(cell2mat(T));
 elseif dim == 2
     Nsubj = length(T);
     trials2subjects = 1:Nsubj;
-    T = single(T);
+    T = int64(T);
 end
 N = length(T);
 
