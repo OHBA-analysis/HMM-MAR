@@ -45,6 +45,12 @@ nz = (~hmm.train.zeromean);
 
 if isempty(Gamma) && K>1 % Gamma is not provided, so we simulate it too
     Gamma = simgamma(T,hmm.P,hmm.Pi,nrep,grouping);
+    % Need to ensure Gamma timecourses are mutually exclusive. We generate
+    % the timecourses by calculating sum_k Gamma(:, k) .* state. If not
+    % discrete, we end up with "new" states that are lin. combinations of 
+    % other states
+    [~, maxGammaInd] = max(Gamma, [], 2);
+    Gamma = maxGammaInd == 1:max(maxGammaInd);
 elseif isempty(Gamma) && K==1
     Gamma = ones(sum(T),1);
 end
@@ -71,6 +77,9 @@ if ~sim_state_tcs_only
         t0 = sum(T(1:n-1)) + 1; t1 = sum(T(1:n));
         if hmm.train.maxorder > 0 % a MAR is generating the data
             Gamma0 = simgamma(d,hmm.P,hmm.Pi,nrep,grouping);
+            % Ensure distinct Gamma0 time courses
+            [~, maxGamma0Ind] = max(Gamma0, [], 2);
+            Gamma = maxGamma0Ind == 1:max(maxGamm0aInd);
             X0 = simgauss(d,hmm0,Gamma0); % no mean in the innovation signal
         else % sampling Gaussian
             X0 = []; Gamma0 = [];
