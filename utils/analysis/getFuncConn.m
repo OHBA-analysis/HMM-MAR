@@ -20,7 +20,12 @@ else
     ndim = length(hmm.state(k).Omega.Gam_rate);
     covmat = hmm.state(k).Omega.Gam_rate / (hmm.state(k).Omega.Gam_shape-ndim-1);
 end
-corrmat = corrcov(covmat);
+try
+    corrmat = corrcov(covmat);
+catch
+    error(['The covariance matrix of this state is not well-defined. ' ...
+        'Most probably, the inference did not assign enough time points to this state.'])
+end
 
 if isfield(hmm.train,'A')
     A = hmm.train.A;
