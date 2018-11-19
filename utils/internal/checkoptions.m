@@ -139,8 +139,9 @@ end
 
 % Drop states? 
 if ~isfield(options,'dropstates')
-    if any(~options.Pstructure), options.dropstates = 0;
-    else, options.dropstates = ~stochastic_learning; end
+    options.dropstates = 0;
+    %if any(~options.Pstructure), options.dropstates = 0;
+    %else, options.dropstates = ~stochastic_learning; end
 else
     if options.dropstates == 1 && any(~options.Pstructure(:))
         warning('If Pstructure  has zeros, dropstates must be zero')
