@@ -23,13 +23,16 @@ end
 try
     corrmat = corrcov(covmat);
 catch
-    error(['The covariance matrix of this state is not well-defined. ' ...
-        'Most probably, the inference did not assign enough time points to this state.'])
-end
+    corrmat = [];
+    warning(['The covariance matrix of this state is not well-defined, ' ...
+        'so the correlation matrix was not computed (second output argument is empty).' ... 
+        'Most probably, the inference did not assign enough time points to this state.'])end
 
 if isfield(hmm.train,'A')
     A = hmm.train.A;
-    corrmat = A * corrmat * A';
+    if ~isempty(corrmat)
+        corrmat = A * corrmat * A';
+    end
     covmat = A * covmat * A';
 end
 
