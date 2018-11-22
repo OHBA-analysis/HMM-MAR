@@ -1,4 +1,5 @@
 function [X,Y,T,options,R2_pca,pca_opt,features] = preproc4hmm(X,Y,T,options)
+% Prepare data to run TUDA
 
 if length(size(X))==3 % 1st dim, time; 2nd dim, trials; 3rd dim, channels
     X = reshape(X,[size(X,1)*size(X,2), size(X,3)]);
@@ -44,9 +45,13 @@ if ~isfield(options,'add_noise'), add_noise = 1;
 else, add_noise = options.add_noise; end
 
 options.parallel_trials = parallel_trials;
+if ~isfield(options,'tudamonitoring'), options.tudamonitoring = 0; end
 
 if parallel_trials && ~all(T==T(1))
     error('parallel_trials can be used only when all trials have equal length');
+end
+if options.tudamonitoring && ~all(T==T(1))
+    error('tudamonitoring can be used only when all trials have equal length');
 end
 
 % options relative to the HMM

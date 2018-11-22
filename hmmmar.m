@@ -332,7 +332,7 @@ else
         hmm_wr = struct('train',struct());
         hmm_wr.K = options.K;
         hmm_wr.train = options;
-        hmm_wr = hmmhsinit(hmm_wr);
+        hmm_wr = hmmhsinit(hmm_wr,GammaInit,T);
         [hmm_wr,residuals_wr] = obsinit(data,T,hmm_wr,GammaInit);
     else % using a warm restart from a previous run
         hmm_wr = versCompatibilityFix(options.hmm);
@@ -350,6 +350,17 @@ else
         % get residuals
         residuals_wr = getresiduals(data.X,T,hmm_wr.train.Sind,hmm_wr.train.maxorder,hmm_wr.train.order,...
             hmm_wr.train.orderoffset,hmm_wr.train.timelag,hmm_wr.train.exptimelag,hmm_wr.train.zeromean);
+    end
+    
+    if hmm_wr.train.tudamonitoring
+        hmm_wr.tudamonitor = struct();
+        hmm_wr.tudamonitor.synch = zeros(hmm_wr.train.cyc+1,T(1)-1);
+        hmm_wr.tudamonitor.accuracy = zeros(hmm_wr.train.cyc+1,T(1)-1);
+        hmm_wr.tudamonitor.synch(1,:) = getSynchronicity(GammaInit,T);
+        which_x = (hmm_wr.train.S(1,:) == -1);
+        which_y = (hmm_wr.train.S(1,:) == 1);
+        hmm_wr.tudamonitor.accuracy(1,:) = ...
+            getAccuracy(residuals_wr(:,which_x),residuals_wr(:,which_y),T,GammaInit,[],0);
     end
     
     fehist = Inf; 
@@ -405,5 +416,4 @@ if gatherStats==1
     profsave(profile('info'),hmm.train.DirStats)
 end
 
-    
 end

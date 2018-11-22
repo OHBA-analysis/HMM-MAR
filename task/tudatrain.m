@@ -82,10 +82,11 @@ options.updateObs = 0;
 options.updateGamma = 1;
 [tuda,Gamma,~,vpath] = hmmmar(Z,T,options);
 % 2. Update state distributions only, leaving fixed the state time courses
-options.updateObs = 1; % 
+options.updateObs = 1;
 options.updateGamma = 0;
 options.Gamma = Gamma;
 options.hmm = tuda; 
+options.tudamonitoring = 0;
 [tuda,~,~,~,~,~, stats.fe] = hmmmar(Z,T,options); 
 tuda.features = features;
 

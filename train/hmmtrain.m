@@ -66,7 +66,7 @@ for cycle=1:hmm.train.cyc
             end
             setxx;
         end
-
+        
         %%%% Free energy computation
         fehist(end+1) = sum(evalfreeenergy(data.X,T,Gamma,Xi,hmm,residuals,XX));
         strwin = ''; if hmm.train.meancycstop>1, strwin = 'windowed'; end
@@ -78,7 +78,9 @@ for cycle=1:hmm.train.cyc
                 fprintf('cycle %i free energy = %g, %s relative change = %g \n',...
                     cycle,fehist(end),strwin,chgFrEn); 
             end
-            if (abs(chgFrEn) < hmm.train.tol) && cyc_to_go==0, break; end
+            if (abs(chgFrEn) < hmm.train.tol) && cyc_to_go==0
+                break; 
+            end
         elseif hmm.train.verbose
             fprintf('cycle %i free energy = %g \n',cycle,fehist(end)); %&& cycle>1
         end
@@ -99,15 +101,31 @@ for cycle=1:hmm.train.cyc
         % transition matrices and initial state
         hmm = hsupdate(Xi,Gamma,T,hmm);
     else
-        break % one is enough
+        break; % one is enough
     end
-
+    
+    if hmm.train.tudamonitoring
+        hmm.tudamonitor.synch(cycle+1,:) = getSynchronicity(Gamma,T);
+        which_x = (hmm.train.S(1,:) == -1);
+        which_y = (hmm.train.S(1,:) == 1);
+        hmm.tudamonitor.accuracy(cycle+1,:) = ...
+            getAccuracy(residuals(:,which_x),residuals(:,which_y),T,Gamma,[],0);
+    end
+   
 end
 
 for k = 1:K
     if isfield(hmm.state(k),'cache')
         hmm.state(k) = rmfield(hmm.state(k),'cache');
     end
+end
+
+if hmm.train.tudamonitoring
+    if (abs(chgFrEn) < hmm.train.tol) && cyc_to_go==0
+        cycle = cycle - 1; 
+    end
+    hmm.tudamonitor.synch = hmm.tudamonitor.synch(1:cycle+1,:);
+    hmm.tudamonitor.accuracy = hmm.tudamonitor.accuracy(1:cycle+1,:);
 end
 
 if hmm.train.verbose

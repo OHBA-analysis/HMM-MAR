@@ -49,6 +49,14 @@ if stochastic_learning
     if options.K==1
         error('There is no purpose on using stochastic inference with K=1. Please restart')
     end
+    if length(T)==1
+        error('It is not possible to run stochastic inference with just one subject - remove option BIGNbatch')
+    end
+    if options.BIGNbatch < 1
+        new_BIGNbatch = min(length(T)/2,10); 
+        warning(['BIGNbatch needs to be > 0. Setting to ' num2str(new_BIGNbatch) ])
+        options.BIGNbatch = new_BIGNbatch;
+    end 
     if ~isfield(options,'BIGNinitbatch'), options.BIGNinitbatch = options.BIGNbatch; end
     if ~isfield(options,'BIGprior'), options.BIGprior = []; end
     if ~isfield(options,'BIGcyc'), options.BIGcyc = 200; end
@@ -104,6 +112,13 @@ else
         options.useParallel = (length(T)>1);
     end
 end
+
+% TUDA specific option 
+if ~isfield(options,'tudamonitoring'), options.tudamonitoring = 0; end
+if options.tudamonitoring && stochastic_learning
+   error('Stochastic learning is not currently compatible with options.tudamonitoring') 
+end
+if ~isfield(options,'monitoring_vars'), options.monitoring_vars = []; end
 
 % Trans prob mat related options
 if ~isfield(options,'grouping') || isempty(options.grouping)

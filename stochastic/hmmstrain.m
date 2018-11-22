@@ -171,11 +171,17 @@ for cycle = 2:options.BIGcyc
     else
         count = count + 1; 
     end
+    
     if options.BIGverbose
         fprintf('Cycle %d, free energy: %g (relative change %g), rho: %g \n', ...
             cycle,fehist(end),ch,rho(cycle));
     end
 
+    %if hmm.train.tudamonitoring
+    %    hmm.tudamonitor.synch(cycle+1,:) = getSynchronicity(Gamma,T);
+    %    hmm.tudamonitor.accuracy(cycle+1,:) = getAccuracy(XX,residuals,T,Gamma,[],0);
+    %end
+    
     if cycle>5 && abs(ch) < options.BIGtol 
         undertol = undertol + 1; 
     else
