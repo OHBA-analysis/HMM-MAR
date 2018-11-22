@@ -22,6 +22,17 @@ function hmm = hsupdate(Xi,Gamma,T,hmm)
 Q = 1; 
 N = length(T); K = hmm.K;
 [~,order] = formorders(hmm.train.order,hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag);
+
+if isempty(Xi)
+    Xi = zeros(hmm.K);
+    for n = 1:N
+        t = (1:T(n)-order) + sum(T(1:n-1)) - order*(n-1);
+        g = Gamma(t,:);
+        Xi = Xi + g(1:end-1,:)' * g(2:end,:);
+    end
+end
+if length(size(Xi))==3, Xi = permute(sum(Xi),[2 3 1]); end
+
 % transition matrix
 % if Q>1
 %     hmm.Dir2d_alpha = zeros(K,K,Q);
@@ -40,7 +51,8 @@ N = length(T); K = hmm.K;
 %     hmm.Dir2d_alpha = permute(sum(Xi),[2 3 1]) + hmm.prior.Dir2d_alpha;
 %     hmm.P = zeros(K,K);
 % end
-hmm.Dir2d_alpha = permute(sum(Xi),[2 3 1]) + hmm.prior.Dir2d_alpha;
+
+hmm.Dir2d_alpha = Xi + hmm.prior.Dir2d_alpha;
 hmm.P = zeros(K,K);
 for i = 1:Q
     for j = 1:K
