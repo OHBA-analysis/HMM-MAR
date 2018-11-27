@@ -85,7 +85,7 @@ for fullcyc=1:2
     % 1. Estimate Obs Model parameters given Gamma:
     options_run1.updateObs=1;
     options_run1.updateGamma=0;
-
+    options.dropstates=0;
     [tuda,Gamma,~,vpath] = hmmmar(Z,T,options_run1);
 
 

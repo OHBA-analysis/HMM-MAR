@@ -29,7 +29,7 @@ if isfield(model,'Omega')
         Omega = diag(model.Omega.Gam_shape ./ model.Omega.Gam_rate(1:nDim));
     end
 else
-    %deal with this later
+    %insert code for statewise Omega estimation - still to do later
 end
 if T==T2
     for t=1:T
