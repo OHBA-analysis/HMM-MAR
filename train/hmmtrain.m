@@ -104,12 +104,15 @@ for cycle=1:hmm.train.cyc
         break; % one is enough
     end
     
-    if hmm.train.tudamonitoring
+    if isstruct(hmm.train.tudamonitoring) || hmm.train.tudamonitoring
         hmm.tudamonitor.synch(cycle+1,:) = getSynchronicity(Gamma,T);
         which_x = (hmm.train.S(1,:) == -1);
         which_y = (hmm.train.S(1,:) == 1);
         hmm.tudamonitor.accuracy(cycle+1,:) = ...
             getAccuracy(residuals(:,which_x),residuals(:,which_y),T,Gamma,[],0);
+        if isstruct(hmm.train.tudamonitoring)
+            
+        end
     end
    
 end
