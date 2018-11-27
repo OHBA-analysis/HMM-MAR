@@ -44,6 +44,15 @@ else, pca_opt = options.pca; end
 if ~isfield(options,'add_noise'), add_noise = 1;
 else, add_noise = options.add_noise; end
 
+% Options relative to constraints in the trans prob mat
+if ~isfield(options,'K'), error('K was not specified'); end
+if ~isfield(options,'Pstructure')
+    options.Pstructure = true(options.K);
+end
+if ~isfield(options,'Pistructure')
+    options.Pistructure = true(1,options.K);
+end
+
 options.parallel_trials = parallel_trials;
 if ~isfield(options,'tudamonitoring'), options.tudamonitoring = 0; end
 

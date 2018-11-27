@@ -44,7 +44,8 @@ p = size(X,2); q = size(Y,2);
  
 % init HMM, only if trials are temporally related
 if parallel_trials
-    GammaInit = cluster_decoding(X,Y,T,options.K,'regression');
+    GammaInit = cluster_decoding(X,Y,T,options.K,'regression','',...
+        options.Pstructure,options.Pistructure);
     options.Gamma = permute(repmat(GammaInit,[1 1 N]),[1 3 2]);
     options.Gamma = reshape(options.Gamma,[length(T)*size(GammaInit,1) options.K]);
 else
@@ -86,9 +87,14 @@ options.updateObs = 1;
 options.updateGamma = 0;
 options.Gamma = Gamma;
 options.hmm = tuda; 
+tudamonitoring = options.tudamonitoring;
+verbose = options.verbose;
 options.tudamonitoring = 0;
+options.verbose = 0;
 [tuda,~,~,~,~,~, stats.fe] = hmmmar(Z,T,options); 
 tuda.features = features;
+options.tudamonitoring = tudamonitoring;
+options.verbose = verbose;
 
 % Explained variance per state, square error &
 % Square error for the standard time point by time point regression
@@ -146,23 +152,27 @@ R2 = 1 - sqerr ./ sqerr0;
 end
 
 
-function Gamma = cluster_decoding(X,Y,T,K,cluster_method,cluster_measure)
+function Gamma = cluster_decoding(X,Y,T,K,cluster_method,...
+    cluster_measure,Pstructure,Pistructure)
 % clustering of the time-point-by-time-point regressions, which is
 % temporally constrained unlike TUDA
 % INPUT
 % X,Y,T are as usual
 % K is the number of states 
-% cluster_method is 'regression', 'kmeans' or 'hierarchical'
+% cluster_method is 'regression', 'kmeans', or 'hierarchical' 
 % cluster_measure is 'error', 'response' or 'beta' 
+% Pstructure and Pistructure are constraints in the transitions 
+%   if these are specified, cluster_method will be set to 'greedy'
 % OUTPUT
 % Gamma: (trial time by K), containing the cluster assignments 
 
 if nargin<5, cluster_method = 'regression'; end
-if nargin>5 && strcmp(cluster_method,'regression')
+if nargin>5 && ~isempty(cluster_measure) && strcmp(cluster_method,'regression')
    warning('cluster_measure is not used when cluster_method is regression') 
 end
 if nargin<6, cluster_measure = 'error'; end
-%if nargin<7, cluster_distance = 'euclidean'; end
+if nargin<7, Pstructure = true(K,1); end
+if nargin<8, Pistructure = true(K); end
 if ~strcmp(cluster_measure,'beta') && strcmp(cluster_method,'kmeans')
     error('If kmeans is used, cluster_measure must be beta')
 end
@@ -170,14 +180,18 @@ N = length(T); p = size(X,2); q = size(Y,2); ttrial = T(1);
 X = reshape(X,[ttrial N p]);
 Y = reshape(Y,[ttrial N q]);
 if strcmp(cluster_method,'regression')
-    init_regr = 'hierarchical';
     max_cyc = 100;
-    if strcmp(init_regr,'random')
-        assig = randi(K,ttrial,1);
-    else
-        Gamma = cluster_decoding(reshape(X,[ttrial*N p]),reshape(Y,[ttrial*N q]),...
-            T,K,'hierarchical','error');
-        assig = zeros(N,1);
+    % start with no constraints
+    Gamma = cluster_decoding(reshape(X,[ttrial*N p]),reshape(Y,[ttrial*N q]),...
+        T,K,'hierarchical','error');
+    assig = zeros(ttrial,1);
+    for t=1:ttrial, assig(t) = find(Gamma(t,:)==1); end
+    j1 = assig(1);
+    if ~Pistructure(j1) % is it consistent with constraint?
+        j = find(Pistructure,1); 
+        Gamma_j = Gamma(:,j);
+        Gamma(:,j) = Gamma(:,j1);
+        Gamma(:,j1) = Gamma_j;
         for t=1:ttrial, assig(t) = find(Gamma(t,:)==1); end
     end
     assig_pr = assig;
@@ -198,12 +212,19 @@ if strcmp(cluster_method,'regression')
            e = reshape(e,[ttrial N]); 
            err(:,k) = sqrt(sum(e,2));
         end
-        for t=1:ttrial
+        err(1,~Pistructure) = Inf; 
+        [~,assig(1)] = min(err(1,:));
+        for t = 2:ttrial
+           err(t,~Pstructure(assig(t-1),:)) = Inf;
            [~,assig(t)] = min(err(t,:)); 
         end
         % terminate? 
         if all(assig_pr==assig), break; end
         assig_pr = assig;
+    end
+    for t = 1:ttrial
+        Gamma(t,:) = 0;
+        Gamma(t,assig(t)) = 1;
     end
 else
     beta = zeros(p,q,ttrial);
