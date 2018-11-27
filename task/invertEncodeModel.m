@@ -48,10 +48,9 @@ if T==T2
         m=max(loglikelihoodX(t,:),[],2);
         Y_pred(t,:) = loglikelihoodX(t,:)==m;
         if sum(Y_pred(t,:))>1
-            fprintf('\n\nWARNING: Equal scores achieved for multiple classes\n\n');
+            fprintf(['\n\nWARNING: Equal scores achieved for multiple classes, t=',int2str(t),'\n\n']);
             a=find(Y_pred(t,:));
             Y_pred(t,a)=0;Y_pred(t,a(randi(length(a))))=1; %randomly silence all but one of these entries 
-
         end
     end
 else
