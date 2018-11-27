@@ -88,7 +88,9 @@ options_run1.updateGamma=0;
 if ~options.useUnsupervisedGamma
 % 2. Update state time courses only, leaving fixed obs model params:
     options.updateObs = 1; % 
-    options.updateGamma = 1;
+    if ~isfield(options,'updateGamma')
+        options.updateGamma = 1;
+    end
     %options.Gamma = Gamma;
     options.hmm = tuda; 
     options.cyc=2;

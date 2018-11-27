@@ -8,6 +8,7 @@ Xdim = Xfulldim - hmm_in.train.logisticYdim;
 Xfulldim_new=Xdim+1;
 select_vec = [1:Xdim,Xdim+iY];
 hmm_out=hmm_in;
+hmm_out.train.origlogisticYdim = hmm_in.train.logisticYdim;
 
 %update S and options:
 hmm_out.train.S=hmm_out.train.S(1:Xfulldim_new,1:Xfulldim_new);

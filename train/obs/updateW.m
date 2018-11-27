@@ -98,9 +98,8 @@ for k=1:K
         T=size(X,1);
         
         if hmm.train.balancedata
-            %w=sum(Gamma(:,k))./(sum(Y==1 .* Gamma(:,k)).*hmm.train.origlogisticYdim);
-            w=sum(Gamma(:,k))./(sum([Y==1] .* Gamma(:,k)).*2); % note 2 is because we are modelling Ydim binary logistic classifiers
-            w_star=sum(Gamma(:,k))./(sum([Y==-1] .* Gamma(:,k)).*2);
+            w=(1/(hmm.train.origlogisticYdim))*sum(Gamma(:,k))./(sum([Y==1] .* Gamma(:,k)));%(1+hmm.train.origlogisticYdim));
+            w_star=((hmm.train.origlogisticYdim-1)/hmm.train.origlogisticYdim)*sum(Gamma(:,k))./(sum([Y==-1] .* Gamma(:,k)));
             weightvector = [Y==1].*w + [Y==-1].*w_star;
             Gammaweighted(:,k)=Gamma(:,k) .*weightvector;
         else

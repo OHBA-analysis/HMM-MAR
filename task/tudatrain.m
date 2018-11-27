@@ -86,8 +86,10 @@ options_run1.updateGamma=0;
 [tuda,Gamma,~,vpath] = hmmmar(Z,T,options_run1);
 
 % 2. Update state time courses only, leaving fixed obs model params:
+if ~isfield(options,'updateGamma')
+    options.updateGamma = 1;
+end
 options.updateObs = 1; % 
-options.updateGamma = 1;
 %options.Gamma = Gamma;
 options.hmm = tuda; 
 options.cyc=2;
