@@ -118,7 +118,7 @@ if ~isfield(options,'tudamonitoring'), options.tudamonitoring = 0; end
 if options.tudamonitoring && stochastic_learning
    error('Stochastic learning is not currently compatible with options.tudamonitoring') 
 end
-if ~isfield(options,'monitoring_vars'), options.monitoring_vars = []; end
+%if ~isfield(options,'monitoring_vars'), options.monitoring_vars = []; end
 
 % Trans prob mat related options
 if ~isfield(options,'grouping') || isempty(options.grouping)
