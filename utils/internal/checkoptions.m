@@ -114,11 +114,13 @@ else
 end
 
 % TUDA specific option 
-if ~isfield(options,'tudamonitoring'), options.tudamonitoring = 0; end
-if options.tudamonitoring && stochastic_learning
-   error('Stochastic learning is not currently compatible with options.tudamonitoring') 
+if ~isfield(options,'behaviour'), options.behaviour = []; end
+if ~isempty(options.behaviour), options.tudamonitoring = 1;
+elseif ~isfield(options,'tudamonitoring'), options.tudamonitoring = 0;
 end
-%if ~isfield(options,'monitoring_vars'), options.monitoring_vars = []; end
+if options.tudamonitoring && stochastic_learning
+   error('Stochastic learning is not currently compatible with TUDA monitoring options') 
+end
 
 % Trans prob mat related options
 if ~isfield(options,'grouping') || isempty(options.grouping)

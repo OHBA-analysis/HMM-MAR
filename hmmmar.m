@@ -356,11 +356,21 @@ else
         hmm_wr.tudamonitor = struct();
         hmm_wr.tudamonitor.synch = zeros(hmm_wr.train.cyc+1,T(1)-1);
         hmm_wr.tudamonitor.accuracy = zeros(hmm_wr.train.cyc+1,T(1)-1);
-        hmm_wr.tudamonitor.synch(1,:) = getSynchronicity(GammaInit,T);
+        sy = getSynchronicity(GammaInit,T);
+        hmm_wr.tudamonitor.synch(1,:) = sy;
         which_x = (hmm_wr.train.S(1,:) == -1);
         which_y = (hmm_wr.train.S(1,:) == 1);
         hmm_wr.tudamonitor.accuracy(1,:) = ...
             getAccuracy(residuals_wr(:,which_x),residuals_wr(:,which_y),T,GammaInit,[],0);
+        if ~isempty(hmm_wr.train.behaviour)
+            fs = fields(hmm_wr.train.behaviour);
+            hmm_wr.tudamonitor.behaviour = struct();
+            for ifs = 1:length(fs)
+                y = hmm_wr.train.behaviour.(fs{ifs});
+                f = getBehAssociation(GammaInit,y,T,sy);
+                hmm_wr.tudamonitor.behaviour.(fs{ifs}) = f;
+            end
+        end        
     end
     
     fehist = Inf; 

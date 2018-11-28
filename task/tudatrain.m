@@ -88,12 +88,15 @@ options.updateGamma = 0;
 options.Gamma = Gamma;
 options.hmm = tuda; 
 tudamonitoring = options.tudamonitoring;
+behaviour = options.behaviour;
 verbose = options.verbose;
 options.tudamonitoring = 0;
+options.behaviour = [];
 options.verbose = 0;
 [tuda,~,~,~,~,~, stats.fe] = hmmmar(Z,T,options); 
 tuda.features = features;
 options.tudamonitoring = tudamonitoring;
+options.behaviour = behaviour;
 options.verbose = verbose;
 
 % Explained variance per state, square error &

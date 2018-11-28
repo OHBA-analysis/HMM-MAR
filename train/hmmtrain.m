@@ -104,14 +104,20 @@ for cycle=1:hmm.train.cyc
         break; % one is enough
     end
     
-    if isstruct(hmm.train.tudamonitoring) || hmm.train.tudamonitoring
+    if hmm.train.tudamonitoring
         hmm.tudamonitor.synch(cycle+1,:) = getSynchronicity(Gamma,T);
         which_x = (hmm.train.S(1,:) == -1);
         which_y = (hmm.train.S(1,:) == 1);
         hmm.tudamonitor.accuracy(cycle+1,:) = ...
             getAccuracy(residuals(:,which_x),residuals(:,which_y),T,Gamma,[],0);
-        if isstruct(hmm.train.tudamonitoring)
-            
+        if ~isempty(hmm.train.behaviour)
+            fs = fields(hmm.train.behaviour);
+            for ifs = 1:length(fs)
+                f = hmm.tudamonitor.behaviour.(fs{ifs});
+                y = hmm.train.behaviour.(fs{ifs});
+                f(cycle+1,:) = getBehAssociation(Gamma,y,T);
+                hmm.tudamonitor.behaviour.(fs{ifs}) = f;
+            end
         end
     end
    
@@ -129,6 +135,14 @@ if hmm.train.tudamonitoring
     end
     hmm.tudamonitor.synch = hmm.tudamonitor.synch(1:cycle+1,:);
     hmm.tudamonitor.accuracy = hmm.tudamonitor.accuracy(1:cycle+1,:);
+    if ~isempty(hmm.train.behaviour)
+        fs = fields(hmm.train.behaviour);
+        for ifs = 1:length(fs)
+            f = hmm.tudamonitor.behaviour.(fs{ifs});
+            f = f(1:cycle+1,:);
+            hmm.tudamonitor.behaviour.(fs{ifs}) = f;
+        end
+    end
 end
 
 if hmm.train.verbose
