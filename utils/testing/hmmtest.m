@@ -58,7 +58,7 @@ if iscell(Tsubject)
     if size(Tsubject,1)==1, Tsubject = Tsubject'; end
     Tsubject = int64(cell2mat(Tsubject));
 else
-    Tsubject = sinint64gle(Tsubject);
+    Tsubject = int64(Tsubject);
 end
 if size(T,1)==1, T = T'; end
 if isempty(Tsubject), Tsubject = sum(T); end  % One subject
