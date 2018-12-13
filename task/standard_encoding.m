@@ -25,6 +25,7 @@ function encmodel = standard_encoding(X,Y,T,options,binsize)
 options.Nfeatures = 0; 
 options.pca = 0;
 options.embeddedlags = 0;
+options.K = 1; 
 [X,Y,T] = preproc4hmm(X,Y,T,options); 
 
 N = length(T); ttrial = T(1); 
