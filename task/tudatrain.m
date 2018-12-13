@@ -88,7 +88,11 @@ options.updateGamma = 0;
 options.Gamma = Gamma;
 options.hmm = tuda; 
 tudamonitoring = options.tudamonitoring;
-behaviour = options.behaviour;
+if isfield(options,'behaviour')
+    behaviour = options.behaviour;
+else 
+    behaviour = [];
+end
 verbose = options.verbose;
 options.tudamonitoring = 0;
 options.behaviour = [];
