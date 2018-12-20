@@ -74,8 +74,6 @@ for k = 1:K
     setstateoptions;
     %hmm.cache = struct();
     if ~strcmp(train.covtype,'logistic')
-        %wierd bug here only on windows machines - interprets .train as an
-        %instruction
         hmm.cache.train{k} = train;
     end
         hmm.cache.order{k} = order;
@@ -118,7 +116,7 @@ for k = 1:K
         C = hmm.state(k).Omega.Gam_shape * hmm.state(k).Omega.Gam_irate;
     end
     
-    if ~strcmp(train.covtype,'logistic')
+    if ~(strcmp(train.covtype,'logistic') || strcmp(train.covtype,'direct'))
         hmm.cache.ldetWishB{k} = ldetWishB;
         hmm.cache.PsiWish_alphasum{k} = PsiWish_alphasum;
         hmm.cache.C{k} = C;
@@ -290,10 +288,14 @@ end
 P = hmm.P; Pi = hmm.Pi;
 
 try
-    if ~strcmp(hmm.train.covtype,'logistic')
+    if ~strcmp(hmm.train.covtype,'logistic') & ~strcmp(hmm.train.covtype,'direct')
         L = obslike([],hmm,residuals,XX,hmm.cache);
     else
-        L = obslikelogistic([],hmm,residuals,XX,slicepoints);
+        if strcmp(hmm.train.covtype,'logistic')
+            L = obslikelogistic([],hmm,residuals,XX,slicepoints);
+        else
+            L = exp(hmm.train.LL(slicepoints,:));
+        end
 %         % debugging test:
 %         Xhat=XX(:,1:50);
 %         Yhat=XX(:,51);

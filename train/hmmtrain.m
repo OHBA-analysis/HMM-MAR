@@ -80,6 +80,8 @@ for cycle=1:hmm.train.cyc
         %%%% Free energy computation
         if strcmp(hmm.train.covtype,'logistic')
             fehist(end+1) = sum(evalfreeenergylogistic(T,Gamma,Xi,hmm,residuals,XX));
+        elseif strcmp(hmm.train.covtype,'direct')
+            fehist(end+1) =1;
         else
             fehist(end+1) = sum(evalfreeenergy(data.X,T,Gamma,Xi,hmm,residuals,XX));
         end
