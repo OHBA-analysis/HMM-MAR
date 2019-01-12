@@ -16,5 +16,5 @@ Diego Vidaurre, Romesh Abeysuriya, Robert Becker, Andrew J. Quinn, F. Alfaro-Alm
 
 Diego Vidaurre, S.M. Smith and Mark W. Woolrich (2017). _Brain network dynamics are hierarchically organized in time_. Proceedings of the National Academy of Sciences of the USA.
 
-Diego Vidaurre, Lawrence T. Hunt, Andrew J. Quinn, Benjamin A.E. Hunt, Matthew J. Brookes, Anna C. Nobre and Mark W. Woolrich (2017). _Spontaneous cortical activity transiently organises into frequency specific phase-coupling networks_. BiorXiv.
+Diego Vidaurre, Lawrence T. Hunt, Andrew J. Quinn, Benjamin A.E. Hunt, Matthew J. Brookes, Anna C. Nobre and Mark W. Woolrich (2017). _Spontaneous cortical activity transiently organises into frequency specific phase-coupling networks_. Nature Communications.
 
