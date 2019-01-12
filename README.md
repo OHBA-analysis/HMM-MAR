@@ -2,7 +2,7 @@
 
 Please check the [Wiki](https://github.com/OHBA-analysis/HMM-MAR/wiki) for the latest documentation, including some basic introduction to the method. 
 
-Note: the name of the toolbox is mantained only for historical reasons, and currently contain other observation models other than the multivariate autoregressive model (MAR). 
+Note: the name of the toolbox is mantained only for historical reasons, and currently contains other observation models other than the multivariate autoregressive model (MAR). 
 
 The example scripts provide some basic demonstration of the toolbox functionality. The script examples/run_HMMMAR.m is a template script that specifies some basic options depending on the specified data modality and, provided that the user has already loaded the data in the right format (see the script for details), runs the HMM-MAR and gets some basic information out of the estimation. The script examples/run_HMMMAR_2.m is a template script that generates some random (putatively fMRI) data under two different conditions, estimates the HMM for a number of different configurations, does permutation testing to test the results against the conditions, and plots the results. 
 
