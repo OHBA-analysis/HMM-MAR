@@ -155,15 +155,15 @@ sp_fit_group = struct();
 sp_fit_group.state = struct();
 % NNMF / PCA
 if strcmpi(options.Method,'NNMF')
-    psd = (Xpsd' * sp_profiles); % ndim by components
-    coh = (Xcoh' * sp_profiles);
-%     opt = statset('maxiter',0);
-%     [~,b] = nnmf(Xpsd,options.Ncomp,'algorithm','als',...
-%         'w0',sp_profiles,'Options',opt);
-%     psd = b'; % regions by components
-%     [~,b] = nnmf(Xcoh,options.Ncomp,'algorithm','als',...
-%         'w0',sp_profiles,'Options',opt);
-%     coh = b'; % pairs of regions by components
+%    psd = (Xpsd' * sp_profiles); % ndim by components
+%    coh = (Xcoh' * sp_profiles);
+    opt = statset('maxiter',0);
+    [~,b] = nnmf(Xpsd,options.Ncomp,'algorithm','als',...
+        'w0',sp_profiles,'Options',opt);
+    psd = b'; % regions by components
+    [~,b] = nnmf(Xcoh,options.Ncomp,'algorithm','als',...
+        'w0',sp_profiles,'Options',opt);
+    coh = b'; % pairs of regions by components
 else
     Xpsd = Xpsd - repmat(mean(Xpsd),Nf,1);
     Xcoh = Xcoh - repmat(mean(Xcoh),Nf,1);
