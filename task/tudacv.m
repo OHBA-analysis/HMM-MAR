@@ -235,7 +235,7 @@ if mode == 1 %  time point by time point CV (i.e. not across time points)
         if verbose && mod(r,10)==0
             disp(['Permutation ' num2str(r)])
         end
-        surrogates(:,r) = get_R2(Y,Ypred,lossfunc);
+        surrogates(:,r) = get_R2(Y,Ypred,lossfunc,2);
     end
     R2 = surrogates(:,1);
     if Nperm > 1 
@@ -287,7 +287,7 @@ else % cross-time generalisation
                     Ypred(:,n,:) = Xtest * Beta_t1_n;
                 end
             end
-            surrogates(t1,:,r) = get_R2(Y,Ypred,lossfunc);
+            surrogates(t1,:,r) = get_R2(Y,Ypred,lossfunc,2);
         end
         if verbose && mod(r,10)==0
             disp(['Permutation ' num2str(r)])

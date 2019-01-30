@@ -1,4 +1,4 @@
-function [cv_acc,acc] = standard_decoding(X,Y,T,options,binsize)
+function [cv_acc,acc,cv_error,error] = standard_decoding(X,Y,T,options,binsize)
 % Compute cross-validated (CV) accuracies from a "decoding" model trained 
 % at each time point (or window, see below) in the trial  
 % The reported statistic is the cross-validated explained variance from
@@ -89,8 +89,9 @@ nwin = round(ttrial / binsize);
 binsize = floor(ttrial / nwin); 
 RidgePen = lambda * eye(p);
 
-cv_acc = zeros(nwin,q);
 Ypred = zeros(size(Y));
+cv_acc = zeros(nwin,1);
+cv_error = zeros(nwin,1); 
 
 for icv = 1:NCV
     Ntr = sum(c.training{icv}); Nte = sum(c.test{icv});
@@ -106,15 +107,14 @@ end
 
 for t = 1:nwin
     r = (1:binsize) + (t-1)*binsize;
-    for j = 1:q
-        Yj = reshape(Y(r,:,j),binsize*N,1);
-        Ypredj = reshape(Ypred(r,:,j),binsize*N,1);
-        cv_acc(t,j) = get_R2(Yj,Ypredj,lossfunc);
-    end
+    Yt = reshape(Y(r,:,:),binsize*N,q);
+    Ypredt = reshape(Ypred(r,:,:),binsize*N,q);
+    [cv_acc(t),cv_error(t)] = get_R2(Yt,Ypredt,lossfunc,1);
 end
 
 % non-cross validated
-acc = zeros(nwin,q);
+acc = zeros(nwin,1);
+error = zeros(nwin,1); 
 Ypred = zeros(size(Y));
 
 for t = 1:nwin
@@ -123,11 +123,8 @@ for t = 1:nwin
     Yt = reshape(Y(r,:,:),binsize*N,q);
     beta = (Xt' * Xt + RidgePen) \ (Xt' * Yt);
     Ypred(r,:,:) = reshape(Xt * beta,[binsize N q]);
-    for j = 1:q
-        Yj = Yt(:,j);
-        Ypredj = reshape(Ypred(r,:,j),binsize*N,1);
-        acc(t,j) = get_R2(Yj,Ypredj,lossfunc);
-    end
+    Ypredt = reshape(Ypred(r,:,:),binsize*N,q);
+    [acc(t),error(t)] = get_R2(Yt,Ypredt,lossfunc,1);
 end
 
 end

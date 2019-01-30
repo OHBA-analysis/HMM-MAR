@@ -1,4 +1,9 @@
-function R2 = get_R2(Y,Ypred,lossfunc)
+function [R2,m] = get_R2(Y,Ypred,lossfunc,mode)
+% Gets explained variance according to the loss function lossfunc
+% If mode==1, then the first dimension of Y is time and the second number
+%   of dimensions
+% If mode==2, then the first dimension of Y is time, the second number
+%   of trials, and the third the number of dimensions
 d = Y - Ypred;
 if strcmp(lossfunc,'quadratic')
     l = d.^2; l0 = Y.^2; ee = 1/2;
@@ -16,21 +21,17 @@ elseif strcmp(lossfunc,'huber')
     end
 end
 % across-trial R2, using mean of euclidean distances in stimulus space
-if length(l)==size(l,1)
-    m = mean(sum(l).^(ee),2);
-    m0 = mean(sum(l0).^(ee),2);
+if mode==1
+    l = l(:); l0 = l0(:);
+    m = sum(l).^(ee);
+    m0 = sum(l0).^(ee);
+    %m = mean(sum(l).^(ee),2);
+    %m0 = mean(sum(l0).^(ee),2);
     R2 = 1 - m ./ m0;
 else
     m = mean(sum(l,3).^(ee),2);
     m0 = mean(sum(l0,3).^(ee),2);
     R2 = 1 - m ./ m0;
 end
-% % mean of R2, one per trial - equivalent to the previous
-% m = sum(l,3).^(ee);
-% m0 = sum(l0,3).^(ee);
-% R2 = mean(1 - m ./ m0,2);
-% % computing SE with all trials and features at once
-% se = sum(sum(l,3),2).^(ee);
-% se0 = sum(sum(l0,3),2).^(ee);
-% R2 = 1 - se ./ se0;
+
 end

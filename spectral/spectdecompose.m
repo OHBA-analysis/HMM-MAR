@@ -1,9 +1,9 @@
-function [sp_fit,sp_fit_group,sp_profiles] = spectdecompose(sp_fit,options)
+function [sp_fit,sp_fit_group,sp_profiles] = spectdecompose(sp_fit,options,chan)
 %
 % From a multitaper or MAR estimation of the states spectra (per subject),  
 % it factorises the spectral information (which is given by frequency bin)
 % into a set of spectral components (which are much fewer than the
-% frequency bins), in order to facilitate interpretation and visualisation
+% frequency bins), in order to facilitate interpretation and visualisation.
 % The decomposition can be done either using PCA or non-negative matrix
 % factorisation or NNMF (the default). Note that if NNMF is used, the
 % solution might somewhat vary every time the function is called. 
@@ -21,6 +21,9 @@ function [sp_fit,sp_fit_group,sp_profiles] = spectdecompose(sp_fit,options)
 %        .sp_profiles   Spectral profiles; if supplied, these will be used
 %                       instead of computing them (default: empty) 
 %        .plot          If the spectral profiles are to be plotted (default: 0) 
+% chan                  If supplied, a vector of integers defining which
+%                       channels will be used in the decomposion; 
+%                       if not specified, all will beused
 % 
 % OUTPUT:
 % 
@@ -50,6 +53,9 @@ if ~isfield(options,'Base'), options.Base = 'coh'; end
 if ~isfield(options,'plot'), options.plot = 0; end
 
 ndim = size(sp_fit{1}.state(1).psd,2); % no. channels
+if nargin < 3, chan = 1:ndim;
+else, ndim = length(chan);
+end
 ndim2 = ndim*(ndim-1)/2;
 Nf = size(sp_fit{1}.state(1).psd,1); % no. frequencies
 N = length(sp_fit); % no. subjects
@@ -74,11 +80,11 @@ coh_comps = zeros(N,K,Nf,ndim,ndim);
 psd_comps = zeros(N,K,Nf,ndim);
 for n = 1:N
     for k = 1:K
-        psd = sp_fit{n}.state(k).psd;
-        coh = sp_fit{n}.state(k).coh;
-        for j = 1:ndim
+        psd = sp_fit{n}.state(k).psd(:,chan,chan);
+        coh = sp_fit{n}.state(k).coh(:,chan,chan);
+        for j = chan
             psd_comps(n,k,:,j) = psd(:,j,j);
-            for l=1:ndim
+            for l = chan
                 coh_comps(n,k,:,j,l) = coh(:,j,l);
             end
         end
@@ -113,7 +119,7 @@ if ~isfield(options,'sp_profiles') || isempty(options.sp_profiles)
         end
         %sp_profiles = pinv(X') * b'; % you lose non-negativity by doing this
         sp_profiles = a;
-        [~,ind] = max(sp_profiles',[],2);
+        [~,ind] = max(sp_profiles,[],1);
         [~,neworder_auto] = sort(ind);
         sp_profiles = sp_profiles(:,neworder_auto);
     else
@@ -149,13 +155,15 @@ sp_fit_group = struct();
 sp_fit_group.state = struct();
 % NNMF / PCA
 if strcmpi(options.Method,'NNMF')
-    opt = statset('maxiter',1);
-    [~,b] = nnmf(Xpsd,options.Ncomp,'algorithm','als',...
-        'w0',sp_profiles,'Options',opt);
-    psd = b'; % regions by components
-    [~,b] = nnmf(Xcoh,options.Ncomp,'algorithm','als',...
-        'w0',sp_profiles,'Options',opt);
-    coh = b'; % pairs of regions by components
+    psd = (Xpsd' * sp_profiles); % ndim by components
+    coh = (Xcoh' * sp_profiles);
+%     opt = statset('maxiter',0);
+%     [~,b] = nnmf(Xpsd,options.Ncomp,'algorithm','als',...
+%         'w0',sp_profiles,'Options',opt);
+%     psd = b'; % regions by components
+%     [~,b] = nnmf(Xcoh,options.Ncomp,'algorithm','als',...
+%         'w0',sp_profiles,'Options',opt);
+%     coh = b'; % pairs of regions by components
 else
     Xpsd = Xpsd - repmat(mean(Xpsd),Nf,1);
     Xcoh = Xcoh - repmat(mean(Xcoh),Nf,1);

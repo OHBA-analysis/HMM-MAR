@@ -41,6 +41,9 @@ if ~isfield(options,'parallel_trials'), parallel_trials = all(T==T(1));
 else, parallel_trials = options.parallel_trials; end
 if ~isfield(options,'pca'), pca_opt = 0;
 else, pca_opt = options.pca; end
+if isfield(options,'downsample') && options.downsample~=0
+    warning('Downsampling is not possible for TUDA')
+end
 if ~isfield(options,'add_noise'), add_noise = 1;
 else, add_noise = options.add_noise; end
 
