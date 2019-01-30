@@ -384,16 +384,16 @@ if nargin < 3; error('Need all arguments'); end;
 df=Fs/nfft;
 f=0:df:Fs; % all possible frequencies
 f=f(1:nfft);
-if length(fpass)~=1;
+if length(fpass)~=1
     findx=find(f>=fpass(1) & f<=fpass(end));
 else
     [~,findx]=min(abs(f-fpass));
-end;
+end
 f=f(findx);
 end
 
 
-function J=mtfftc(data,tapers,nfft,Fs)
+function J = mtfftc(data,tapers,nfft,Fs)
 % Multi-taper fourier transform - continuous data
 %
 % Usage:
