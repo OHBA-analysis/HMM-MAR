@@ -175,9 +175,9 @@ if ~isempty(options.filter)
     if (options.filter(1)==0 && isinf(options.filter(2)))
         warning('The specified filter does not do anything - Ignoring.')
         options.filter = [];
-    elseif (options.filter(2) < options.Fs/2) && options.order >= 1
+    elseif ~isinf(options.filter(2)) && (options.filter(2) < options.Fs/2) && options.order >= 1
         warning(['The lowpass cutoff frequency is lower than the Nyquist frequency - ' ...
-            'This is discouraged for a MAR model'])
+            'This is discouraged for a MAR model; better to using downsampling.'])
     end
 end
 if options.downsample > 0 && isstruct(data) && isfield(data,'C')
