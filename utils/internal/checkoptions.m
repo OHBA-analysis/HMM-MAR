@@ -290,7 +290,8 @@ if options.K>1 && options.updateGamma == 0 && isempty(options.Gamma)
     warning('Gamma is unspecified, so updateGamma was set to 1');  options.updateGamma = 1; 
 end
 if options.updateGamma == 1 && options.K == 1
-    warning('Since K is one, updateGamma was set to 0');  options.updateGamma = 0; 
+    %warning('Since K is one, updateGamma was set to 0');  
+    options.updateGamma = 0; 
 end
 if options.updateGamma == 0 && options.repetitions>1
     error('If Gamma is not going to be updated, repetitions>1 is unnecessary')
