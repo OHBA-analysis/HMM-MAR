@@ -128,7 +128,6 @@ else
     TT = T;
 end
 
-%Gamma = sqrt(Gamma) .* repmat( sqrt(size(Gamma,1) ./ sum(Gamma)), size(Gamma,1), 1);
 K = size(Gamma,2);
 
 if options.p>0, options.err = [2 options.p]; end

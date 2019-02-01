@@ -161,7 +161,6 @@ if stochastic_learn
         X = loadfile(data{1},T{1},options); 
         options.ndim = size(X,2);
     end
-    
     if options.pcamar > 0 && ~isfield(options,'B')
         % PCA on the predictors of the MAR regression, per lag: X_t = \sum_i X_t-i * B_i * W_i + e
         options.B = pcamar_decomp(data,T,options);
@@ -180,7 +179,10 @@ if stochastic_learn
         hmm = versCompatibilityFix(options.hmm);
         GammaInit = [];
         [hmm,info] = hmmsinith(data,T,options,hmm);
-    else % hmm unspecified 
+    else % Gamma specified
+        if ~isempty(options.hmm)
+           warning('options.hmm will not be used because options.Gamma was specified') 
+        end
         GammaInit = options.Gamma;
         options = rmfield(options,'Gamma');
         [hmm,info] = hmmsinitg(data,T,options,GammaInit);
@@ -314,7 +316,11 @@ else
         end
     elseif isempty(options.Gamma) && ~isempty(options.hmm) % Gamma unspecified, hmm specified
         GammaInit = [];
-    else % hmm unspecified, or both specified
+    else % Gamma specified
+        if ~isempty(options.hmm)
+           warning('options.hmm will not be used because options.Gamma was specified') 
+        end
+        % hmm unspecified, or both specified
         GammaInit = options.Gamma;
     end
     options = rmfield(options,'Gamma');

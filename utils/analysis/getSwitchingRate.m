@@ -1,4 +1,4 @@
-function switchingRate =  getSwitchingRate(Gamma,T,options)
+function switchingRate = getSwitchingRate(Gamma,T,options)
 % Computes the state switching rate for each session/subject
 %
 % Gamma can be the probabilistic state time courses (time by states),
