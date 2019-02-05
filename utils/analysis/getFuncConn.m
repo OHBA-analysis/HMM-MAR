@@ -26,7 +26,8 @@ catch
     corrmat = [];
     warning(['The covariance matrix of this state is not well-defined, ' ...
         'so the correlation matrix was not computed (second output argument is empty).' ... 
-        'Most probably, the inference did not assign enough time points to this state.'])end
+        'Most probably, the inference did not assign enough time points to this state.'])
+end
 
 if isfield(hmm.train,'A')
     A = hmm.train.A;
