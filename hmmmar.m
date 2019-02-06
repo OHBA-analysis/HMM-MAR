@@ -380,7 +380,7 @@ else
     end
     
     fehist = Inf; 
-    for it=1:options.repetitions
+    for it = 1:options.repetitions
         hmm0 = hmm_wr;
         [hmm0,Gamma0,Xi0,fehist0] = hmmtrain(data,T,hmm0,GammaInit,residuals_wr,fehistInit);
         if options.updateGamma==1 && fehist0(end)<fehist(end)

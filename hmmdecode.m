@@ -52,7 +52,7 @@ if stochastic_learn
     N = length(T);
     if ~iscell(data)
        dat = cell(N,1); TT = cell(N,1);
-       for i=1:N
+       for i = 1:N
           t = 1:T(i);
           dat{i} = data(t,:); TT{i} = T(i);
           try data(t,:) = []; 
@@ -67,7 +67,6 @@ if stochastic_learn
     if nargin<2
         Path = hmmsdecode(data,T,hmm,type);
     else
-        Xi = [];
         [Path,Xi] = hmmsdecode(data,T,hmm,type);
     end
     return

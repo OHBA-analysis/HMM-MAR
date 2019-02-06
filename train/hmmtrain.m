@@ -15,7 +15,6 @@ function [hmm,Gamma,Xi,fehist] = hmmtrain(data,T,hmm,Gamma,residuals,fehist)
 % Gamma         estimated p(state | data)
 % Xi            joint probability of past and future states conditioned on data
 % fehist        historic of the free energies across iterations
-% knocked       states knocked out by the Bayesian inference
 %
 % hmm.Pi          - intial state probability
 % hmm.P           - state transition matrix
