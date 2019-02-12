@@ -8,8 +8,6 @@ function [X,T,Gamma] = simhmmmar(T,hmm,Gamma,nrep,sim_state_tcs_only,grouping)
 % hmm                   hmm structure with options specified in hmm.train
 % Gamma                 State courses - leave these empty to simulate these too
 % nrep                  no. repetitions of Gamma(t), from which we take the average
-% X0                    A starting point for the time series ( no. time points x ndim x length(T) )
-%                       - if not provided, it is set to Gaussian noise
 % sim_state_tcs_only    Flag to indicate that only state time courses will be
 %                       simulated
 %
@@ -76,10 +74,14 @@ if ~sim_state_tcs_only
     for n = 1:N
         t0 = sum(T(1:n-1)) + 1; t1 = sum(T(1:n));
         if hmm.train.maxorder > 0 % a MAR is generating the data
-            Gamma0 = simgamma(d,hmm.P,hmm.Pi,nrep,grouping);
+            if K>1
+                Gamma0 = simgamma(d,hmm.P,hmm.Pi,nrep,grouping);
+            else
+                Gamma0 = ones(d,1);
+            end
             % Ensure distinct Gamma0 time courses
             [~, maxGamma0Ind] = max(Gamma0, [], 2);
-            Gamma = maxGamma0Ind == 1:max(maxGamm0aInd);
+            Gamma0 = maxGamma0Ind == 1:max(maxGamma0Ind);
             X0 = simgauss(d,hmm0,Gamma0); % no mean in the innovation signal
         else % sampling Gaussian
             X0 = []; Gamma0 = [];
