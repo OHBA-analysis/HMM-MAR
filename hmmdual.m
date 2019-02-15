@@ -1,4 +1,4 @@
-function [hmm,Gamma] = hmmdual(data,T,hmm,residuals)
+function [hmm,Gamma] = hmmdual(data,T,hmm,Gamma,residuals)
 %
 % Dual estimation of the HMM
 %
@@ -19,7 +19,8 @@ function [hmm,Gamma] = hmmdual(data,T,hmm,residuals)
 % to fix potential compatibility issues with previous versions
 hmm = versCompatibilityFix(hmm);
 
-if nargin<4, residuals = []; end
+if nargin<5, residuals = []; end
+if nargin<4, Gamma = []; end
 
 if iscell(T)
     for i = 1:length(T)
@@ -98,11 +99,16 @@ if isempty(residuals)
         hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag,hmm.train.zeromean);
 end
 
-[Gamma,~,Xi] = hsinference(data,T,hmm,residuals); setxx;
+
+if isempty(Gamma)
+    [Gamma,~,Xi] = hsinference(data,T,hmm,residuals); 
+end
+setxx;
 
 hmm = obsupdate(T,Gamma,hmm,residuals,XX,XXGXX);
 hmm = hsupdate(Xi,Gamma,T,hmm);
 
+Gamma = hsinference(data,T,hmm,residuals); 
 
 end
 
