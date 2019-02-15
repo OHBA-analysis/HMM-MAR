@@ -171,7 +171,9 @@ if hmm.train.useParallel==1 && N>1
             xi = [xi; xit];
             gamma = [gamma; gammat];
             gammasum = gammasum + sum(gamma);
-            if n_argout>=4, ll = ll + sum(sum(log(Bt(order+1:end,:)) .* gammat,2)); end
+            if n_argout>=4 
+                ll = ll + sum(log(sum(Bt(order+1:end,:) .* gammat, 2))); 
+            end
             if n_argout>=5, B{in} = [B{in}; Bt(order+1:end,:) ]; end
             if isempty(no_c), break;
             else, t = no_c(1)+t-1;
@@ -235,7 +237,9 @@ else
             xi = [xi; xit];
             gamma = [gamma; gammat];
             gammasum = gammasum + sum(gamma);
-            if nargout>=4, ll = ll + sum(sum(log(Bt(order+1:end,:)) .* gammat,2)); end
+            if nargout>=4 
+                ll = ll + sum(log(sum(Bt(order+1:end,:) .* gammat, 2)));
+            end
             if nargout>=5, B{in} = [B{in}; Bt(order+1:end,:) ]; end
             if isempty(no_c), break;
             else t = no_c(1)+t-1;
