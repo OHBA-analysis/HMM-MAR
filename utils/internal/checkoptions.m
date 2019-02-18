@@ -43,7 +43,8 @@ if ~isfield(options,'standardise'), options.standardise = 1; end
 if ~isfield(options,'standardise_pc') 
     options.standardise_pc = length(options.embeddedlags)>1; 
 end
-if length(options.embeddedlags)>1 && ~strcmpi(options.covtype,'full')
+if length(options.embeddedlags)>1 && isfield(options,'covtype') && ...
+        ~strcmpi(options.covtype,'full')
     options.covtype = 'full';
     warning('options.covtype will be set to ''full'' because embeddedlags is used')
 end
