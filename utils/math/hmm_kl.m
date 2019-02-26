@@ -89,7 +89,6 @@ for k = 1:K
                     hs0.Omega.Gam_rate(regressed,regressed), ...
                     hs.Omega.Gam_shape,hs0.Omega.Gam_shape);
             catch
-                keyboard
                 error(['Error computing kullback-leibler divergence of the cov matrix - ' ...
                     'Something strange with the data?'])
             end

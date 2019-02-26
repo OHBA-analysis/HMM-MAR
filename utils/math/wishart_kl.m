@@ -1,4 +1,4 @@
-function [D] = wishart_kl (B_q,B_p,alpha_q,alpha_p)
+function [D] = wishart_kl (arg1,arg2,arg3,arg4)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   [D] = wishart_kl (B_q,B_p,alpha_q,alpha_p)
@@ -18,8 +18,13 @@ function [D] = wishart_kl (B_q,B_p,alpha_q,alpha_p)
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-if nargin<4
-  error('Incorrect number of input arguments');
+if nargin == 4
+    B_q = arg1; B_p = arg2; alpha_q = arg3; alpha_p = arg4;
+elseif nargin == 2
+    B_q = arg1.Gam_rate; alpha_q = arg1.Gam_shape;
+    B_p = arg2.Gam_rate; alpha_p = arg2.Gam_shape;
+else
+    error('Incorrect number of input arguments');
 end
 
 if size(B_q)~=size(B_p)
