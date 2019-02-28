@@ -23,7 +23,7 @@ if ~isfield(options,'Fs'), options.Fs = 1; end
 if ~isfield(options,'downsample'), options.downsample = options.Fs; end
 if nargin<4, threshold = 0; end
 if nargin<5, threshold_Gamma = (2/3); end
-
+    
 is_vpath = (size(Gamma,2)==1 && all(rem(Gamma,1)==0)); 
 if iscell(T)
     if size(T,1) == 1, T = T'; end
@@ -68,6 +68,8 @@ if is_vpath % viterbi path
        Gamma(vpath==k,k) = 1;   
     end
 else
+    warning(['Using the Viterbi path is here recommended instead of the state ' ...
+        'probabilistic time courses (Gamma)'])
     K = size(Gamma,2); 
     Gamma = Gamma > threshold_Gamma;
 end

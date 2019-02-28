@@ -69,6 +69,8 @@ if is_vpath % viterbi path
        Gamma(vpath==k,k) = 1;   
     end
 else
+    warning(['Using the Viterbi path is here recommended instead of the state ' ...
+        'probabilistic time courses (Gamma)'])
     K = size(Gamma,2); 
     Gamma = Gamma > threshold_Gamma;
 end
