@@ -4,7 +4,7 @@ function [hmm,Gamma] = hmmdual(data,T,hmm,Gamma,residuals)
 %
 % INPUTS:
 %
-% data          observations - a struct with X (time series) and C (classes)
+% data          observations - a struct with X (time series) and C (classes; optional)
 % T             Number of time points for each time series
 % hmm           hmm structure with options specified in hmm.train
 % Gamma         Initial state courses
