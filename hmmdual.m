@@ -1,4 +1,4 @@
-function [hmm,Gamma] = hmmdual(data,T,hmm,Gamma,residuals)
+function [hmm,Gamma] = hmmdual(data,T,hmm,Gamma,Xi,residuals)
 %
 % Dual estimation of the HMM
 %
@@ -8,6 +8,7 @@ function [hmm,Gamma] = hmmdual(data,T,hmm,Gamma,residuals)
 % T             Number of time points for each time series
 % hmm           hmm structure with options specified in hmm.train
 % Gamma         Initial state courses
+% Xi            joint probability of past and future states conditioned on data
 % residuals     in case we train on residuals, the value of those.
 %
 % OUTPUTS
@@ -19,7 +20,8 @@ function [hmm,Gamma] = hmmdual(data,T,hmm,Gamma,residuals)
 % to fix potential compatibility issues with previous versions
 hmm = versCompatibilityFix(hmm);
 
-if nargin<5, residuals = []; end
+if nargin<6, residuals = []; end
+if nargin<5, Xi = []; end
 if nargin<4, Gamma = []; end
 
 if iscell(T)
@@ -100,7 +102,7 @@ if isempty(residuals)
 end
 
 
-if isempty(Gamma)
+if isempty(Gamma) || isempty(Xi)
     [Gamma,~,Xi] = hsinference(data,T,hmm,residuals); 
 end
 setxx;
