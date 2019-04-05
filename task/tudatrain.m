@@ -45,7 +45,7 @@ p = size(X,2); q = size(Y,2);
 % init HMM, only if trials are temporally related
 if parallel_trials && ~isfield(options,'Gamma')
     GammaInit = cluster_decoding(X,Y,T,options.K,'regression','',...
-        options.Pstructure,options.Pistructure););
+        options.Pstructure,options.Pistructure);
     options.Gamma = permute(repmat(GammaInit,[1 1 N]),[1 3 2]);
     options.Gamma = reshape(options.Gamma,[length(T)*size(GammaInit,1) options.K]);
 elseif ~parallel_trials
@@ -109,8 +109,9 @@ verbose = options.verbose;
 options.tudamonitoring = 0;
 options.behaviour = [];
 options.verbose = 0;
-
+warning off
 [tuda,Gamma,~,~,~,~, stats.fe] = hmmmar(Z,T,options); 
+warning on
 % =======
 % % 1. Estimate state time courses, trans prob mat, and first approximation
 % %       of the decoding models
