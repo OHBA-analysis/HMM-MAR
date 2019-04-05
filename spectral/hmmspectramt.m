@@ -91,7 +91,9 @@ else
        data = detrenddata(data,T); 
     end
     % Standardise data and control for ackward trials
-    data = standardisedata(data,T,options.standardise); 
+    if options.standardise
+        data = standardisedata(data,T,options.standardise);
+    end
     % Leakage correction
     if options.leakagecorr ~= 0 
         data = leakcorr(data,T,options.leakagecorr);
@@ -126,7 +128,6 @@ else
     TT = T;
 end
 
-Gamma = sqrt(Gamma) .* repmat( sqrt(size(Gamma,1) ./ sum(Gamma)), size(Gamma,1), 1);
 K = size(Gamma,2);
 
 if options.p>0, options.err = [2 options.p]; end
@@ -147,11 +148,12 @@ for k=1:K
            
     % Multitaper Cross-frequency matrix calculation
     if options.p > 0
-        psdc = zeros(Nf,ndim,ndim,length(TT)*ntapers);
+        psdc = zeros(Nf,ndim,ndim,length(TT),ntapers);
     else
         psdc = zeros(Nf,ndim,ndim);
     end
-    sumgamma = zeros(length(TT)*ntapers,1);
+    sumgamma = zeros(length(TT),1);
+    stime = zeros(length(TT),1);
     c = 1;  
     t00 = 0; 
     for n = 1:length(T)
@@ -188,42 +190,38 @@ for k=1:K
             ind_X = (1:TT(c)) + t0;
             t00 = t00 + TT(c); t0 = t0 + TT(c);
             try
-                if sum(Gamma(ind_gamma,k))<1, c = c + 1; continue; end
+                if sum(Gamma(ind_gamma,k))<10, c = c + 1; continue; end
                 Xki = X(ind_X,:) .* repmat(Gamma(ind_gamma,k),1,ndim);
             catch
                 error('Index exceeds matrix dimensions - Did you specify options correctly? ')
             end
-            Nwins=round(TT(c)/options.win); % pieces are going to be included as windows only if long enough
-            for iwin=1:Nwins
+            Nwins = round(TT(c)/options.win); % pieces are going to be included as windows only if long enough
+            
+            for iwin = 1:Nwins
                 ranget = (iwin-1)*options.win+1:iwin*options.win;
                 if ranget(end)>TT(c)
                     nzeros = ranget(end) - TT(c);
                     nzeros2 = floor(double(nzeros)/2) * ones(2,1);
                     if sum(nzeros2)<nzeros, nzeros2(1) = nzeros2(1)+1; end
                     ranget = ranget(1):TT(c);
-                    Xwin=[zeros(nzeros2(1),ndim); Xki(ranget,:); zeros(nzeros2(2),ndim)]; % padding with zeroes
+                    Xwin = [zeros(nzeros2(1),ndim); Xki(ranget,:); zeros(nzeros2(2),ndim)]; % padding with zeroes
                 else
-                    Xwin=Xki(ranget,:);
-                end
-                J = mtfftc(Xwin,tapers,nfft,Fs); % use detrend on X?
-                sumgamma((c-1)*ntapers+(1:ntapers)) = sumgamma((c-1)*ntapers+(1:ntapers)) + sum(Gamma(ind_gamma(ranget),k)); 
-                for tp=1:ntapers
-                    Jik=J(findx,tp,:);
-                    for j=1:ndim
-                        %for l=1:ndim
-                        %    psdc(:,j,l,(n-1)*ntapers+tp) = psdc(:,j,l,(n-1)*ntapers+tp) + ...
-                        %        conj(Jik(:,1,j)).*Jik(:,1,l)  / double(Nwins);
-                        %end
-                        for l=j:ndim
+                    Xwin = Xki(ranget,:);
+                end 
+                J = mtfftc(Xwin,tapers,nfft,Fs); 
+                sumgamma(c) = sumgamma(c) + sum(Gamma(ind_gamma(ranget),k).^2); 
+                stime(c) = stime(c) + length(Gamma(ind_gamma(ranget),k)); 
+                for tp = 1:ntapers              
+                    Jik = J(findx,tp,:);
+                    for j = 1:ndim
+                        for l = j:ndim
                             if options.p > 0
-                                psdc(:,j,l,(c-1)*ntapers+tp) = psdc(:,j,l,(c-1)*ntapers+tp) + ...
-                                    conj(Jik(:,1,j)).*Jik(:,1,l) / double(Nwins);
+                                psdc(:,j,l,c,tp) = psdc(:,j,l,c,tp) + conj(Jik(:,1,j)).*Jik(:,1,l); 
                                 if l~=j
                                     psdc(:,l,j,(c-1)*ntapers+tp) = conj(psdc(:,j,l,(c-1)*ntapers+tp));
                                 end
                             else
-                                psdc(:,j,l) = psdc(:,j,l) + sumgamma((c-1)*ntapers+tp) * ...
-                                    conj(Jik(:,1,j)).*Jik(:,1,l) / double(Nwins);
+                                psdc(:,j,l) = psdc(:,j,l) + conj(Jik(:,1,j)).*Jik(:,1,l);  
                                 if l~=j
                                     psdc(:,l,j) = conj(psdc(:,j,l));
                                 end
@@ -237,21 +235,27 @@ for k=1:K
         if options.verbose, disp(['Segment ' num2str(n) ', state ' num2str(k)]); end
     end
     if options.p > 0
-        sumgamma = sumgamma / sum(sumgamma);
+        sumgamma = sumgamma(1:c-1); 
+        stime = stime(1:c-1); 
+        psdc = psdc(:,:,:,1:c-1,:);
+        psd = sum(sum(psdc,5),4) / (sum(sumgamma) / sum(stime)) / ntapers / Nwins;
         for iNf = 1:Nf
-            for indim=1:ndim
-                for indim2=1:ndim
-                    psdc(iNf,indim,indim2,:) = permute(psdc(iNf,indim,indim2,:),[4 1 2 3]) .* sumgamma;
+            for tp = 1:ntapers
+                for indim=1:ndim
+                    for indim2=1:ndim
+                        psdc(iNf,indim,indim2,:,tp) = permute(psdc(iNf,indim,indim2,:,tp),[4 1 2 3]) ...
+                            ./ (sumgamma ./ stime) ;
+                    end
                 end
             end
         end
-        psd = sum(psdc,4) / sum(sumgamma); 
+        psdc = reshape(psdc,[Nf,ndim,ndim,size(psdc,4)*ntapers]);
     else
-        psd = psdc / sum(sumgamma);
+        psd = psdc / (sum(sumgamma) / sum(stime)) / ntapers / Nwins;
     end
     ipsd = zeros(Nf,ndim,ndim);
     
-    for ff=1:Nf
+    for ff = 1:Nf
         if rcond(permute(psd(ff,:,:),[3 2 1]))>1e-10
             ipsd(ff,:,:) = pinv(permute(psd(ff,:,:),[3 2 1])); 
         else
@@ -357,7 +361,8 @@ function [tapers,eigs]=dpsschk(tapers,N,Fs)
 if nargin < 3; error('Need all arguments'); end
 sz=size(tapers);
 if isempty(strfind(which('dpss'),matlabroot))
-    error('Function dpss() seems to be other than Matlab''s own - you need to rmpath() it. Use ''rmpath(fileparts(which(''dpss'')))''')
+    error(['Function dpss() seems to be other than Matlab''s own ' ...
+        '- you need to rmpath() it. Use ''rmpath(fileparts(which(''dpss'')))'''])
 end
 
 if sz(1)==1 && sz(2)==2
@@ -368,7 +373,8 @@ if sz(1)==1 && sz(2)==2
     end
     tapers = tapers*sqrt(Fs);
 elseif N~=sz(1)
-    error('error in your dpss calculation? the number of time points is different from the length of the tapers');
+    error(['error in your dpss calculation? ' ...
+        'the number of time points is different from the length of the tapers']);
 end
 end
 
@@ -384,16 +390,16 @@ if nargin < 3; error('Need all arguments'); end;
 df=Fs/nfft;
 f=0:df:Fs; % all possible frequencies
 f=f(1:nfft);
-if length(fpass)~=1;
+if length(fpass)~=1
     findx=find(f>=fpass(1) & f<=fpass(end));
 else
     [~,findx]=min(abs(f-fpass));
-end;
+end
 f=f(findx);
 end
 
 
-function J=mtfftc(data,tapers,nfft,Fs)
+function J = mtfftc(data,tapers,nfft,Fs)
 % Multi-taper fourier transform - continuous data
 %
 % Usage:

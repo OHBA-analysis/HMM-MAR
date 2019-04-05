@@ -8,8 +8,6 @@ function [X,T,Gamma] = simhmmmar(T,hmm,Gamma,nrep,sim_state_tcs_only,grouping)
 % hmm                   hmm structure with options specified in hmm.train
 % Gamma                 State courses - leave these empty to simulate these too
 % nrep                  no. repetitions of Gamma(t), from which we take the average
-% X0                    A starting point for the time series ( no. time points x ndim x length(T) )
-%                       - if not provided, it is set to Gaussian noise
 % sim_state_tcs_only    Flag to indicate that only state time courses will be
 %                       simulated
 %
@@ -29,7 +27,7 @@ if nargin<5, sim_state_tcs_only=0; end
 if nargin<6, grouping=[]; end
     
 
-if isfield(hmm.train,'embeddedlags') && length(options.embeddedlags) > 1
+if isfield(hmm.train,'embeddedlags') && length(hmm.train.embeddedlags) > 1
     error('It is not currently possible to generate data with options.embeddedlags ~= 0'); 
 end
 if ~isfield(hmm.train,'timelag'), hmm.train.timelag = 1; end
@@ -45,6 +43,12 @@ nz = (~hmm.train.zeromean);
 
 if isempty(Gamma) && K>1 % Gamma is not provided, so we simulate it too
     Gamma = simgamma(T,hmm.P,hmm.Pi,nrep,grouping);
+    % Need to ensure Gamma timecourses are mutually exclusive. We generate
+    % the timecourses by calculating sum_k Gamma(:, k) .* state. If not
+    % discrete, we end up with "new" states that are lin. combinations of 
+    % other states
+    [~, maxGammaInd] = max(Gamma, [], 2);
+    Gamma = maxGammaInd == 1:max(maxGammaInd);
 elseif isempty(Gamma) && K==1
     Gamma = ones(sum(T),1);
 end
@@ -70,7 +74,14 @@ if ~sim_state_tcs_only
     for n = 1:N
         t0 = sum(T(1:n-1)) + 1; t1 = sum(T(1:n));
         if hmm.train.maxorder > 0 % a MAR is generating the data
-            Gamma0 = simgamma(d,hmm.P,hmm.Pi,nrep,grouping);
+            if K>1
+                Gamma0 = simgamma(d,hmm.P,hmm.Pi,nrep,grouping);
+            else
+                Gamma0 = ones(d,1);
+            end
+            % Ensure distinct Gamma0 time courses
+            [~, maxGamma0Ind] = max(Gamma0, [], 2);
+            Gamma0 = maxGamma0Ind == 1:max(maxGamma0Ind);
             X0 = simgauss(d,hmm0,Gamma0); % no mean in the innovation signal
         else % sampling Gaussian
             X0 = []; Gamma0 = [];

@@ -23,6 +23,11 @@ for i = 1:N
     % read data
     [X,XX,Y,Ti] = loadfile(Xin{i},T{i},options);
     if i==1 % complete a few things
+        if isfield(options,'hmm')
+            hmm.train = rmfield(options,'hmm');
+        else
+            hmm.train = options; 
+        end
         hmm.train.ndim = size(Y,2);
         hmm.train.active = ones(1,K);
         hmm.train.orders = formorders(hmm.train.order,hmm.train.orderoffset,...
@@ -33,16 +38,20 @@ for i = 1:N
             hmm.train.Sind = formindexes(hmm.train.orders,hmm.train.S)==1;
         end
         if ~hmm.train.zeromean, hmm.train.Sind = [true(1,hmm.train.ndim); hmm.train.Sind]; end
+        Dir2d_alpha = hmm.Dir2d_alpha; Dir_alpha = hmm.Dir_alpha; P = hmm.P; Pi = hmm.Pi;
+        if isfield(hmm,'prior'), hmm = rmfield(hmm,'prior'); end
+        hmm = hmmhsinit(hmm); % set priors
+        hmm.Dir2d_alpha = Dir2d_alpha; hmm.Dir_alpha = Dir_alpha; hmm.P = P; hmm.Pi = Pi;
     end
-    XX_i = cell(1); XX_i{1} = XX;
-    [Gamma,~,Xi] = hsinference(X,Ti,hmm,Y,options,XX_i);
+
+    [Gamma,~,Xi] = hsinference(X,Ti,hmm,Y,options,XX);
     checkGamma(Gamma,Ti,hmm.train,i);
     for trial=1:length(Ti)
         t = sum(Ti(1:trial-1)) + 1;
         Dir_alpha_init(:,i) = Dir_alpha_init(:,i) + Gamma(t,:)';
     end
     Dir2d_alpha_init(:,:,i) = squeeze(sum(Xi,1));
-    loglik_init(i) = -evalfreeenergy([],Ti,Gamma,[],hmm,Y,XX_i,[0 1 0 0 0]); % data LL
+    loglik_init(i) = -evalfreeenergy([],Ti,Gamma,[],hmm,Y,XX,[0 1 0 0 0]); % data LL
     subjfe_init(i,1:2) = evalfreeenergy([],Ti,Gamma,Xi,hmm,[],[],[1 0 1 0 0]); % Gamma entropy&LL
 end
 

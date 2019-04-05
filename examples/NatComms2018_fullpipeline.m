@@ -1,8 +1,8 @@
+% Code used in Vidaurre et al. (2018) Nature Communications
+%
 % Detailed documentation and further examples can be found in:
-% https://ohba-analysis.github.io/osl-docs/
-% This pipeline is adapted to CTF data and must be adapted to 
-% your particular configuration of files. 
-
+% https://github.com/OHBA-analysis/HMM-MAR
+% This pipeline must be adapted to your particular configuration of files. 
 %%%%%%%%%%%%%%%%%%%%%%%%%
 %% SETUP THE MATLAB PATHS AND FILE NAMES
 % make sure that fieldtrip and spm are not in your matlab path
@@ -221,7 +221,7 @@ orthogonalisation = 'innovations_mar';
 innovations_mar_order = 14; 
 
 parcdir = [codedir '/parcellations'];
-parcfile = [parcdir '/fmri_d100_parcellation_with_3PCC_ips_reduced_2mm_ss5mm_ds8mm.nii.gz'];
+parcfile = [parcdir '/fmri_d100_parcellation_with_3PCC_ips_reduced_2mm_ss5mm_ds8mm_adj.nii.gz'];
 parcname = '42ROIs_with_separatePCC';
 parcprefix = [parcname '_' orthogonalisation num2str(innovations_mar_order) '_'];
 
@@ -350,6 +350,10 @@ save(outputfile,'fitmt_subj','fitmt','-append')
 %%%%%%%%%%%%%%%%%%%%%%%%%
 %% Do an automatic spectral factorisation to find spectrally-defined networks 
 % (see paper for more info)
+% Note: manual inspection of the spectral modes (i.e. what is contained in sp_profiles_wb
+% and sp_profiles_4b) is **strongly** recommended. This is an algorithmic
+% solution and there is no theoretical guarantee of getting a sensible
+% result.
 
 % Get the three bands depicted in the paper (the 4th is essentially capturing noise)
 options_fact = struct();
@@ -393,10 +397,15 @@ end
 
 maskfile = [codedir '/std_masks/MNI152_T1_8mm_brain'];
 parcdir = [codedir '/parcellations'];
-parcfile = [parcdir '/fmri_d100_parcellation_with_3PCC_ips_reduced_2mm_ss5mm_ds8mm.nii.gz'];
+parcfile = [parcdir '/fmri_d100_parcellation_with_3PCC_ips_reduced_2mm_ss5mm_ds8mm_adj.nii.gz'];
 
-spatialMap = parcellation(parc_file);
+spatialMap = parcellation(parcfile);
 spatialMap = spatialMap.to_matrix(spatialMap.weight_mask);
+
+% compensate the parcels to have comparable weights 
+for j=1:size(spatialMap,2) % iterate through regions : make max value to be 1
+    spatialMap(:,j) =  spatialMap(:,j) / max(spatialMap(:,j));
+end
 
 % Wideband
 mapfile = [mapsdir '/state_maps_wideband'];
@@ -405,6 +414,12 @@ for k = 1:12
     psd = diag(squeeze(fitmt_group_fact_wb.state(k).psd(1,:,:)));
     map(:,k) = spatialMap * psd;
 end
+nii.save(matrix2vols(map,mask),res,xform,mapfile);
+osl_render4D([mapfile '.nii.gz'],'savedir','weighted_maps/',...
+    'interptype','trilinear','visualise',false)
+% centered by voxel across states
+mapfile = [mapsdir '/state_maps_wideband_centered'];
+map = map - repmat(mean(map,2),1,size(map,2));
 nii.save(matrix2vols(map,mask),res,xform,mapfile);
 osl_render4D([mapfile '.nii.gz'],'savedir','weighted_maps/',...
     'interptype','trilinear','visualise',false)
@@ -417,6 +432,12 @@ for fr = 1:3
         psd = diag(squeeze(fitmt_group_fact_4b.state(k).psd(fr,:,:)));
         map(:,k) = spatialMap * psd;
     end
+    nii.save(matrix2vols(map,mask),res,xform,mapfile);
+    osl_render4D([mapfile '.nii.gz'],'savedir','weighted_maps/',...
+        'interptype','trilinear','visualise',false)
+    % centered by voxel across states
+    mapfile = [mapsdir '/state_maps_band' num2str(fr) '_centered'];
+    map = map - repmat(mean(map,2),1,size(map,2));
     nii.save(matrix2vols(map,mask),res,xform,mapfile);
     osl_render4D([mapfile '.nii.gz'],'savedir','weighted_maps/',...
         'interptype','trilinear','visualise',false)
@@ -437,85 +458,85 @@ save(outputfile,'LifeTimes','Intervals','FO','switchingRate','-append')
 %%%%%%%%%%%%%%%%%%%%%%%%%
 %% Get glass connectivity brains
 % doing data-driven thresholding
-% 
-% addpath([codedir '/ohba-external/netlab3.3/netlab'])
-% 
-% K = length(fitmt_group_fact_4b.state);
-% 
-% % wideband
-% M = zeros(42); 
-% for k = 1:K
-%     M = M + squeeze(abs(fitmt_group_fact_wb.state(k).coh(1,:,:)));
-% end
-% for k = 1:K
-%     graph = squeeze(abs(fitmt_group_fact_wb.state(k).coh(1,:,:)));
-%     graph = (graph - M);  
-%     tmp = squash(triu(graph));
-%     inds2 = find(tmp>1e-10);
-%     data = tmp(inds2);
-%     S2 = [];
-%     S2.data = data;
-%     S2.do_fischer_xform = false;
-%     S2.do_plots = 1;
-%     S2.pvalue_th = 0.01/length(S2.data);
-%     graph_ggm = teh_graph_gmm_fit(S2); 
-%     th = graph_ggm.normalised_th;
-%     graph=graph_ggm.data';
-%     graph(graph<th)=NaN;
-%     graphmat=nan(ndim, ndim);
-%     graphmat(inds2)=graph;
-%     graph=graphmat;
-%     spatialMap = nii_quickread(parcelFile, spatialRes);
-%     mni_coords = find_ROI_centres(spatialMap, spatialRes, 0, OSLDIR);
-%     nROIs = size(graph,2);
-%     colorLims = [th th+1];
-%     sphereCols = repmat([30 144 255]/255, nROIs, 1);
-%     figure(100 + pp*10 + ik);
-%     osl_braingraph(graph, colorLims, repmat(0.5,nROIs,1), [0 1], mni_coords, ...
-%           [], 0, sphereCols, edgeLims);
-%     colorbar off
-%     fig_handle = gcf;
-% end
-%    
-% 
-% % Per frequency band
-% for fr = 1:3
-%     M = zeros(42);
-%     for k = 1:K
-%         M = M + squeeze(abs(fitmt_group_fact_4b.state(k).coh(fr,:,:)));
-%     end
-%     for k = 1:K
-%         graph = squeeze(abs(fitmt_group_fact_4b.state(k).coh(fr,:,:)));
-%         graph = (graph - M);  
-%         tmp = squash(triu(graph));
-%         inds2 = find(tmp>1e-10);
-%         data = tmp(inds2);
-%         S2 = [];
-%         S2.data = data;
-%         S2.do_fischer_xform = false;
-%         S2.do_plots = 1;
-%         S2.pvalue_th = 0.01/length(S2.data);
-%         graph_ggm = teh_graph_gmm_fit(S2);
-%         th = graph_ggm.normalised_th;
-%         graph=graph_ggm.data';
-%         graph(graph<th)=NaN;
-%         graphmat=nan(ndim, ndim);
-%         graphmat(inds2)=graph;
-%         graph=graphmat;
-%         spatialMap = nii_quickread(parcelFile, spatialRes);
-%         mni_coords = find_ROI_centres(spatialMap, spatialRes, 0, OSLDIR);
-%         nROIs = size(graph,2);
-%         colorLims = [th th+1];
-%         sphereCols = repmat([30 144 255]/255, nROIs, 1);
-%         figure(100 + pp*10 + ik);
-%         osl_braingraph(graph, colorLims, repmat(0.5,nROIs,1), [0 1], ...
-%               mni_coords, [], 0, sphereCols, edgeLims);
-%         colorbar off
-%         fig_handle = gcf;
-%     end
-% end
-%     
-% rmdir([codedir '/ohba-external/netlab3.3/netlab'])
+osldir = 1;
+addpath([codedir '/ohba-external/netlab3.3/netlab'])
+addpath([codedir '/ohba-external/osl-core/util'])
+parcdir = [codedir '/parcellations'];
+parcfile = [parcdir '/fmri_d100_parcellation_with_3PCC_ips_reduced_2mm_ss5mm_ds8mm_adj.nii.gz'];
+
+K = length(fitmt_group_fact_4b.state); ndim = 42; 
+spatialRes = 8; edgeLims = [4 8];
+
+% wideband
+M = zeros(42); 
+for k = 1:K
+    M = M + squeeze(abs(fitmt_group_fact_wb.state(k).coh(1,:,:))) / K;
+end
+for k = 1:K
+    graph = squeeze(abs(fitmt_group_fact_wb.state(k).coh(1,:,:)));
+    graph = (graph - M);  
+    tmp = squash(triu(graph));
+    inds2 = find(tmp>1e-10);
+    data = tmp(inds2);
+    S2 = [];
+    S2.data = data;
+    S2.do_fischer_xform = false;
+    S2.do_plots = 1;
+    S2.pvalue_th = 0.01/length(S2.data);
+    graph_ggm = teh_graph_gmm_fit(S2); 
+    th = graph_ggm.normalised_th;
+    graph = graph_ggm.data';
+    graph(graph<th) = NaN;
+    graphmat = nan(ndim, ndim);
+    graphmat(inds2) = graph;
+    graph = graphmat;
+    p = parcellation(parcfile);
+    spatialMap = p.to_matrix(p.weight_mask);
+    % compensate the parcels to have comparable weights
+    for j=1:size(spatialMap,2) % iterate through regions : make max value to be 1
+        spatialMap(:,j) =  spatialMap(:,j) / max(spatialMap(:,j));
+    end
+    p.weight_mask = p.to_vol(spatialMap);
+    [h_patch,h_scatter] = p.plot_network(graph,th);
+end
+    
+% Per frequency band
+for fr = 1:3
+    M = zeros(42);
+    for k = 1:K
+        M = M + squeeze(abs(fitmt_group_fact_4b.state(k).coh(fr,:,:))) / K;
+    end
+    for k = 1:K
+        graph = squeeze(abs(fitmt_group_fact_4b.state(k).coh(fr,:,:)));
+        graph = (graph - M);
+        tmp = squash(triu(graph));
+        inds2 = find(tmp>1e-10);
+        data = tmp(inds2);
+        S2 = [];
+        S2.data = data;
+        S2.do_fischer_xform = false;
+        S2.do_plots = 1;
+        S2.pvalue_th = 0.01/length(S2.data);
+        graph_ggm = teh_graph_gmm_fit(S2);
+        th = graph_ggm.normalised_th;
+        graph = graph_ggm.data';
+        graph(graph<th) = NaN;
+        graphmat = nan(ndim, ndim);
+        graphmat(inds2) = graph;
+        graph = graphmat;
+        p = parcellation(parcfile);
+        spatialMap = p.to_matrix(p.weight_mask);
+        % compensate the parcels to have comparable weights
+        for j=1:size(spatialMap,2) % iterate through regions : make max value to be 1
+            spatialMap(:,j) =  spatialMap(:,j) / max(spatialMap(:,j));
+        end
+        p.weight_mask = p.to_vol(spatialMap);
+        [h_patch,h_scatter] = p.plot_network(graph,th);
+    end
+end
+
+rmdir([codedir '/ohba-external/netlab3.3/netlab'])
+rmpath([codedir '/ohba-external/osl-core/util'])
 
 
 

@@ -1,6 +1,11 @@
+% For the real data experiments in:
+%   Vidaurre et al (2018). Temporally unconstrained decoding reveals consistent 
+%       but time-varying stages of stimulus processing. Cerebral Cortex
+% check:
+%   https://github.com/vidaurre/CC2018
 %% Example for a continuous response that varies across time
 
-addpath(genpath('.'))
+addpath(genpath('.')) % HMM-MAR path
 
 K =3; p = 10; q = 3; 
 N = 200;
@@ -55,7 +60,6 @@ plot(R2)
 
 %% Example for a response that varies trial by trial but stays fixed within trial
 % As in Myers et al (2015) 
-
 
 addpath(genpath('.'))
 

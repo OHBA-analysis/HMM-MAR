@@ -46,6 +46,7 @@ end
 
 order = hmm.train.maxorder;
 
+if ~iscell(Masks), Masks = {Masks}; end
 N = length(T);
 np = length(Masks);
 P = cell(1,np); Pi = cell(1,np);

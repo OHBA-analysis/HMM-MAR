@@ -1,5 +1,5 @@
 function lifetimes = getStateLifeTimes (Gamma,T,options,threshold,threshold_Gamma)
-% Computes the state life times for the state time courses  
+% Computes the state life times for the state time courses, in number of time points 
 %
 % Gamma can be the probabilistic state time courses (time by states),
 %   which can contain the probability of all states or a subset of them,
@@ -23,7 +23,7 @@ if ~isfield(options,'Fs'), options.Fs = 1; end
 if ~isfield(options,'downsample'), options.downsample = options.Fs; end
 if nargin<4, threshold = 0; end
 if nargin<5, threshold_Gamma = (2/3); end
-
+    
 is_vpath = (size(Gamma,2)==1 && all(rem(Gamma,1)==0)); 
 if iscell(T)
     if size(T,1) == 1, T = T'; end
@@ -37,22 +37,27 @@ if iscell(T)
         trials2subjects(ii:ii+Ntrials-1) = i;
         ii = ii + Ntrials;
     end
-    T = single(cell2mat(T));
+    T = int64(cell2mat(T));
 else 
     Nsubj = length(T);
     trials2subjects = 1:Nsubj;
-    T = single(T);
+    T = int64(T);
 end
 N = length(T);
 
+r = 1; 
+if isfield(options,'downsample') && options.downsample>0
+    r = (options.downsample/options.Fs);
+end
+
 if isfield(options,'order') && options.order > 0
-    T = ceil((options.downsample/options.Fs) * T);
+    T = ceil(r * T);
     T = T - options.order; 
 elseif isfield(options,'embeddedlags') && length(options.embeddedlags) > 1
     d1 = -min(0,options.embeddedlags(1));
     d2 = max(0,options.embeddedlags(end));
     T = T - (d1+d2);
-    T = ceil((options.downsample/options.Fs) * T);
+    T = ceil(r * T);
 end
 
 if is_vpath % viterbi path
@@ -63,6 +68,8 @@ if is_vpath % viterbi path
        Gamma(vpath==k,k) = 1;   
     end
 else
+    warning(['Using the Viterbi path is here recommended instead of the state ' ...
+        'probabilistic time courses (Gamma)'])
     K = size(Gamma,2); 
     Gamma = Gamma > threshold_Gamma;
 end

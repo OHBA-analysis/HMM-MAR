@@ -15,6 +15,7 @@ function encmodel = tudaencoding(X,Y,T,options,Gamma)
 
 if ~isfield(options,'embeddedlags'), embeddedlags = 0;
 else, embeddedlags = options.embeddedlags; end
+do_embedding = length(embeddedlags)>1;
 if ~isfield(options,'CCA'), CCA = 0;
 else, CCA = options.CCA; end
 nlags = length(embeddedlags);
@@ -55,7 +56,6 @@ for j = 1:p
             res = ((Xj - Y * beta).^2) .* G1; 
             res0 = (Xj.^2) .* G1;
             encmodel(j,k) = 1 - sum(res(:))/sum(res0(:)); 
-            % Y needs to be in the same scale for all columns        
         end
     end
 end

@@ -18,7 +18,7 @@ if nargin<5, options = struct(); options.Fs = 1; options.downsample = 1; end
 if ~isfield(options,'Fs'), options.Fs = 1; end
 if ~isfield(options,'downsample'), options.downsample = options.Fs; end
 embedding = isfield(options,'embeddedlags') && length(options.embeddedlags) > 1;
-downsampling = options.Fs~=options.downsample;
+downsampling = (options.Fs~=options.downsample) && (options.downsample>0);
 N = length(T);
 
 window = round(window * options.Fs); 

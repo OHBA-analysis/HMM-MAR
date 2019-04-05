@@ -13,9 +13,9 @@
 #  make tidy - remove object files
 
 # USER NOTES: CHANGE THE LINES BELOW TO REFLECT YOUR MATLAB INSTALLATION
-MATLAB_DIR    = /Applications/MATLAB_R2016a.app/#
-MATLAB_ARCH   = maci64# e.g. $(MATLAB_DIR)/bin/$(MATLAB_ARCH)/
-MACOS_VERSION = 10.11
+MATLAB_DIR=/Applications/MATLAB_R2016b.app/#
+MATLAB_ARCH=maci64# e.g. $(MATLAB_DIR)/bin/$(MATLAB_ARCH)/
+MACOS_VERSION=10.11
 
 # If you want to link dynamically, change the lines below to reflect your armadillo installation
 # Install armadillo on mac with 'brew install armadillo' (assuming you have homebrew)
@@ -24,8 +24,8 @@ MACOS_VERSION = 10.11
 # /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
 #
 # Matlab mex files need these direct paths to the dynamic libraries. If you know how to link statically, please tell me. 
-ARMADILLO_DIR = /usr/local/opt/armadillo/lib
-ARMADILLO_LIB = $(ARMADILLO_DIR)/libarmadillo.dylib #file found in ARMADILLO_DIR
+ARMADILLO_DIR=/usr/local/Cellar/armadillo/6.500.5
+ARMADILLO_LIB=$(ARMADILLO_DIR)/libarmadillo.dylib #file found in ARMADILLO_DIR
 
 
 
@@ -48,7 +48,7 @@ LAPACK_LIB  = $(MATLAB_DIR)/bin/$(MATLAB_ARCH)/libmwlapack.dylib
 
 MEX         = $(MATLAB_DIR)/bin/mex
 MEX_FLAGS   = -v -largeArrayDims
-MEX_INCLUDE = -I./ -I/usr/local/include
+MEX_INCLUDE = -I./ -I/usr/local/include 
 MEX_LFLAGS  = -Wall $(DEBUG) -L$(ARMADILLO_DIR) $(ARMADILLO_LIB)
 MEX_CXXOPT  = CXXOPTIMFLAGS="$(OPT) $(DEBUG)"
 
@@ -80,7 +80,7 @@ mex: $(TARGET).o
 	$(MEX) ../$(TARGET)_mx.cpp $(TARGET).o $(MEX_FLAGS) $(MEX_CXXOPT) $(MEX_INCLUDE) $(MEX_CXXFLAG) $(ARMA_STATIC) $(MEX_LFLAGS_STATIC) $(ARMA_FLAGS)
 
 # This also works, with no .o file:
-#	/Applications/MATLAB_R2015a.app/bin/mex ./$(TARGET)_mx.cpp $(TARGET).cpp -v -largeArrayDims CXXOPTIMFLAGS="-O0"  -I/usr/local/include/ -I./  CXXFLAGS="-fno-common -arch x86_64 -march=native -mmacosx-version-min=10.9 -fexceptions -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk -fobjc-arc -std=c++14 -stdlib=libc++" -DARMA_BLAS_LONG_LONG -I/usr/local/opt/armadillo/lib /usr/local/opt/armadillo/lib/libarmadillo.6.40.3.dylib
+#	/Applications/MATLAB_R2016b.app/bin/mex ./$(TARGET)_mx.cpp $(TARGET).cpp -v -largeArrayDims CXXOPTIMFLAGS="-O0"  -I/usr/local/include/ -I./  CXXFLAGS="-fno-common -arch x86_64 -march=native -mmacosx-version-min=10.9 -fexceptions -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk -fobjc-arc -std=c++14 -stdlib=libc++" -DARMA_BLAS_LONG_LONG -I/usr/local/opt/armadillo/lib /usr/local/opt/armadillo/lib/libarmadillo.6.40.3.dylib
 # -DARMA_NO_DEBUG CXXOPTIMFLAGS="-O3 -DNDEBUG"
 # CXXOPTIMFLAGS="-O0"
 # -DARMA_64BIT_WORD -DARMA_NO_WRAPPER

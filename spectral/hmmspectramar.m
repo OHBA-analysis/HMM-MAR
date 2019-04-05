@@ -35,7 +35,11 @@ if nargin < 5, options = struct(); end
 if nargin < 4, Gamma = []; end
 if nargin < 3, hmm = []; end
 
-MLestimation = isempty(hmm);
+MLestimation = isempty(hmm) || ~isfield(hmm.state(1),'W') || isempty(hmm.state(1).W.Mu_W);
+
+if MLestimation && ~isempty(options) && isempty(Gamma) && options.K==1
+    Gamma = ones(size(data,1),1);
+end
 
 if MLestimation && isempty(Gamma)
     error('If the MAR is going to be re-estimated, you need to supply Gamma')
@@ -58,6 +62,9 @@ if MLestimation
     K = size(Gamma,2);   
     if ~isfield(options,'order')
         error('You need to specify options.order')
+    end
+    if options.order == 0 
+        error('order needs to be higher than 0')
     end
     if isfield(options,'embeddedlags') && length(options.embeddedlags)>1
         warning('The options embeddedlags will be ignored')
@@ -254,9 +261,9 @@ for j=1:NN
                 preckd = hmm.state(k).Omega.Gam_shape ./ diag(hmm.state(k).Omega.Gam_rate)';
         end
         % Get Power Spectral Density matrix and PDC for state K
-        for ff=1:options.Nf
+        for ff = 1:options.Nf
             A = zeros(ndim);
-            for i=1:length(orders)
+            for i = 1:length(orders)
                 o = orders(i);
                 A = A + permute(W(i,:,:),[2 3 1]) * exp(-1i*w(ff)*o);
             end

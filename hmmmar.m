@@ -26,16 +26,15 @@ if iscell(T)
     if size(T,1)==1, T = T'; end
     for i = 1:length(T)
         if size(T{i},1)==1, T{i} = T{i}'; end
-        T{i} = single(T{i});
+        T{i} = int64(T{i});
     end
 else
-    T = single(T);
+    T = int64(T);
 end
 N = length(T);
 
 % is this going to be using the stochastic learning scheme? 
-stochastic_learn = isfield(options,'BIGNbatch') && ...
-    (options.BIGNbatch < N && options.BIGNbatch > 0);
+stochastic_learn = isfield(options,'BIGNbatch') && (options.BIGNbatch < N && options.BIGNbatch > 0);
 options = checkspelling(options);
 if ~stochastic_learn && ...
         (isfield(options,'BIGNinitbatch') || ...
@@ -83,10 +82,6 @@ if stochastic_learn % data is a cell, either with strings or with matrices
     end
 else % data can be a cell or a matrix
     if iscell(T)
-        for i = 1:length(T)
-            if size(T{i},1)==1, T{i} = T{i}'; end
-        end
-        if size(T,1)==1, T = T'; end
         T = cell2mat(T);
     end
     checkdatacell;
@@ -166,7 +161,6 @@ if stochastic_learn
         X = loadfile(data{1},T{1},options); 
         options.ndim = size(X,2);
     end
-    
     if options.pcamar > 0 && ~isfield(options,'B')
         % PCA on the predictors of the MAR regression, per lag: X_t = \sum_i X_t-i * B_i * W_i + e
         options.B = pcamar_decomp(data,T,options);
@@ -185,7 +179,10 @@ if stochastic_learn
         hmm = versCompatibilityFix(options.hmm);
         GammaInit = [];
         [hmm,info] = hmmsinith(data,T,options,hmm);
-    else % hmm unspecified 
+    else % Gamma specified
+        if ~isempty(options.hmm)
+           warning('options.hmm will not be used because options.Gamma was specified') 
+        end
         GammaInit = options.Gamma;
         options = rmfield(options,'Gamma');
         [hmm,info] = hmmsinitg(data,T,options,GammaInit);
@@ -197,7 +194,12 @@ if stochastic_learn
     end
     Gamma = []; Xi = []; vpath = []; residuals = [];
     if options.BIGcomputeGamma && nargout >= 2
-       [Gamma,Xi] = hmmdecode(data,T,hmm,0); 
+       Gamma = hmmdecode(data,T,hmm,0); 
+       if nargout > 2 
+           warning(['When stochastic inference is run, Xi will be returned ' ...
+               'as empty to prevent excessive memory usage. ' ...
+               'If required, it can be obtained by calling to hmmdecode directly'])
+       end
     end
     if options.BIGdecodeGamma && nargout >= 4
        vpath = hmmdecode(data,T,hmm,1); 
@@ -316,7 +318,11 @@ else
         end
     elseif isempty(options.Gamma) && ~isempty(options.hmm) % Gamma unspecified, hmm specified
         GammaInit = [];
-    else % hmm unspecified, or both specified
+    else % Gamma specified
+        if ~isempty(options.hmm)
+           warning('options.hmm will not be used because options.Gamma was specified') 
+        end
+        % hmm unspecified, or both specified
         GammaInit = options.Gamma;
     end
     options = rmfield(options,'Gamma');
@@ -334,8 +340,7 @@ else
         hmm_wr = struct('train',struct());
         hmm_wr.K = options.K;
         hmm_wr.train = options;
-        %if options.whitening, hmm_wr.train.A = A; hmm_wr.train.iA = iA;  end
-        hmm_wr = hmmhsinit(hmm_wr);
+        hmm_wr = hmmhsinit(hmm_wr,GammaInit,T);
         [hmm_wr,residuals_wr] = obsinit(data,T,hmm_wr,GammaInit);
         if strcmp(options.covtype,'logistic');
             residuals_wr = getresidualslogistic(data.X,T,options.logisticYdim); 
@@ -347,6 +352,14 @@ else
         train = hmm_wr.train; 
         hmm_wr.train = options;
         hmm_wr.train.active = train.active;  
+        % set priors
+        Dir2d_alpha = hmm_wr.Dir2d_alpha; Dir_alpha = hmm_wr.Dir_alpha; P = hmm_wr.P; Pi = hmm_wr.Pi;
+        if isfield(hmm_wr,'prior') && isfield(hmm_wr.prior,'Omega'), Omega_prior = hmm_wr.prior.Omega; end
+        if isfield(hmm_wr,'prior'), hmm_wr = rmfield(hmm_wr,'prior'); end
+        hmm_wr = hmmhsinit(hmm_wr); 
+        hmm_wr.Dir2d_alpha = Dir2d_alpha; hmm_wr.Dir_alpha = Dir_alpha; hmm_wr.P = P; hmm_wr.Pi = Pi; 
+        if exist('Omega_prior','var'), hmm_wr.prior.Omega = Omega_prior; end
+        % get residuals
         if ~strcmp(options.covtype,'logistic')
             residuals_wr = getresiduals(data.X,T,hmm_wr.train.Sind,hmm_wr.train.maxorder,hmm_wr.train.order,...
                 hmm_wr.train.orderoffset,hmm_wr.train.timelag,hmm_wr.train.exptimelag,hmm_wr.train.zeromean);
@@ -355,8 +368,29 @@ else
         end
     end
     
+    if hmm_wr.train.tudamonitoring
+        hmm_wr.tudamonitor = struct();
+        hmm_wr.tudamonitor.synch = zeros(hmm_wr.train.cyc+1,T(1)-1);
+        hmm_wr.tudamonitor.accuracy = zeros(hmm_wr.train.cyc+1,T(1)-1);
+        sy = getSynchronicity(GammaInit,T);
+        hmm_wr.tudamonitor.synch(1,:) = sy;
+        which_x = (hmm_wr.train.S(1,:) == -1);
+        which_y = (hmm_wr.train.S(1,:) == 1);
+        hmm_wr.tudamonitor.accuracy(1,:) = ...
+            getAccuracy(residuals_wr(:,which_x),residuals_wr(:,which_y),T,GammaInit,[],0);
+        if ~isempty(hmm_wr.train.behaviour)
+            fs = fields(hmm_wr.train.behaviour);
+            hmm_wr.tudamonitor.behaviour = struct();
+            for ifs = 1:length(fs)
+                y = hmm_wr.train.behaviour.(fs{ifs});
+                f = getBehAssociation(GammaInit,y,T,sy);
+                hmm_wr.tudamonitor.behaviour.(fs{ifs}) = f;
+            end
+        end        
+    end
+    
     fehist = Inf; 
-    for it=1:options.repetitions
+    for it = 1:options.repetitions
         hmm0 = hmm_wr;
         [hmm0,Gamma0,Xi0,fehist0] = hmmtrain(data,T,hmm0,GammaInit,residuals_wr,fehistInit);
         if options.updateGamma==1 && fehist0(end)<fehist(end)
@@ -393,7 +427,9 @@ else
     
 end
 
-hmm.train = rmfield(hmm.train,'grouping'); 
+if isfield(hmm,'grouping')
+    hmm.train = rmfield(hmm.train,'grouping');
+end
 status = checkGamma(Gamma,T,hmm.train);
 if status==1
     warning(['It seems that the inference was trapped in a local minima; ' ...
@@ -406,5 +442,4 @@ if gatherStats==1
     profsave(profile('info'),hmm.train.DirStats)
 end
 
-    
 end

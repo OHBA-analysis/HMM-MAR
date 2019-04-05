@@ -1,11 +1,12 @@
-function [R2,pval,surrogates,c] = tudacv(X,Y,T,options,Gamma)
+function [R2,pval,surrogates,c] = tudacv(X,Y,T,options,Gamma,do_preproc)
 %
 % Performs cross-validation of the TUDA model, which can be useful for
 % example to compare different number or states or other parameters
 % Cross-validation has a limitation for TUDA that is acknowledged in
-%   Vidaurre et al (2017). ***TO COMPLETE***
+%   Vidaurre et al (2018).Temporally unconstrained decoding reveals consistent 
+%                         but time-varying stages of stimulus processing
 %   (section 'Modelling between-trial temporal differences improves decoding
-%   performance')
+%   performance'; also see options.CVmethod below) 
 % NOTE: Specificying Nfeatures will lead to a circular assessment 
 % (overfitting of R2), so this is discouraged
 % 
@@ -32,19 +33,23 @@ function [R2,pval,surrogates,c] = tudacv(X,Y,T,options,Gamma)
 %                  . if 2, the state time courses are estimated using
 %                  just data and linear regression, i.e. we try to predict 
 %                  the state time courses in held-out trials using the data
-%                  . if 1, then it uses the state active at each time point is taken
-%                  to be the one that is most active in training at each
-%                  time point (losing between-trial variability)
+%                  . if 1, the state in held-out trials is taken
+%                  to be the one that is most active in training at the
+%                  corresponding time point (losing between-trial variability)
 %                  . if -1, then the state active at each time point is taken
 %                  to be the one that is most active in held-out trials at each
-%                  time point (thus also losing between-trial variability)
+%                  time point, therefore also losing between-trial variability.
+%                  Note that this is circular, so it shouldn't be used
+%                  other than for exploration. 
 %                  . if -2, then the actual held-out state time courses are used.
+%                  Again, this is circular.
 %  - options.NCV, containing the number of cross-validation folds (default 10)
 %  - options.lambda, regularisation penalty for the decoding
 %  - options.lossfunc, loss function to compute the cross-validated error, 
 %                  default is 'quadratic', in which case R2 corresponds to
 %                  explained variance. Other options are: 'absolute', 'huber'
-%  - options.Nperm, if options.mode==2, it generate surrogates by permuting
+%  - options.c      an optional CV fold structure as returned by cvpartition
+%  - options.Nperm, if > 1, it generate surrogates by permuting
 %                   the state time courses across trials, such that the
 %                   average remains the same but the trial-specific
 %                   temporal features are lost
@@ -63,6 +68,12 @@ function [R2,pval,surrogates,c] = tudacv(X,Y,T,options,Gamma)
 %
 % Author: Diego Vidaurre, OHBA, University of Oxford (2017)
 
+if nargin < 6, do_preproc = 1; end
+
+% Preproc data and put in the right format
+if do_preproc
+    [X,Y,T,options] = preproc4hmm(X,Y,T,options); % this demeans Y
+end
 N = length(T); q = size(Y,2); ttrial = T(1); p = size(X,2);
 responses = permute(reshape(Y,[ttrial N q]),[2 3 1]);
 responses = responses(:,:,1);
@@ -104,13 +115,14 @@ if nargin < 5, Gamma = []; end
 if ~all(T==T(1)), error('All elements of T must be equal'); end 
 
 % Form CV folds; if response are categorical, then it's stratified
-samples_per_value = length(Y) / length(unique(Y));
-stratified = samples_per_value > 200;
+%samples_per_value = length(Y) / length(unique(Y));
+%stratified = samples_per_value > 200;
+stratified = length(unique(Y)) < 5;
 if ~isfield(options,'c')
     if stratified
         %disp('Response is treated as categorical')
-        tmp = zeros(length(responses),1);
-        for j = 1:size(responses,2)
+        tmp = zeros(N,1);
+        for j = 1:q
             rj = responses(:,j);
             uj = unique(rj);
             for jj = 1:length(uj)
@@ -118,7 +130,7 @@ if ~isfield(options,'c')
             end
         end
         uy = unique(tmp);
-        group = zeros(length(responses),1);
+        group = zeros(N,1);
         for j = 1:length(uy)
             group(tmp == uy(j)) = j;
         end
@@ -138,16 +150,14 @@ else
     c = options.c; options = rmfield(options,'c');
 end
 
-% Preproc data and put in the right format
-[X,Y,T,options] = preproc4hmm(X,Y,T,options); 
-options = remove_options(options);
 p = size(X,2); q = size(Y,2);
 X = reshape(X,[ttrial N p]);
 Y = reshape(Y,[ttrial N q]);
 RidgePen = lambda * eye(p);
 
-% Get state time courses
+% Get state time courses if necessary
 if isempty(Gamma)
+    options = remove_options(options);
     options.verbose = 0; 
     [~,Gamma] = tudatrain(reshape(X,[ttrial*N p]),...
         reshape(Y,[ttrial*N q]),T,options);
@@ -225,7 +235,7 @@ if mode == 1 %  time point by time point CV (i.e. not across time points)
         if verbose && mod(r,10)==0
             disp(['Permutation ' num2str(r)])
         end
-        surrogates(:,r) = get_R2(Y,Ypred,lossfunc);
+        surrogates(:,r) = get_R2(Y,Ypred,lossfunc,2);
     end
     R2 = surrogates(:,1);
     if Nperm > 1 
@@ -277,7 +287,7 @@ else % cross-time generalisation
                     Ypred(:,n,:) = Xtest * Beta_t1_n;
                 end
             end
-            surrogates(t1,:,r) = get_R2(Y,Ypred,lossfunc);
+            surrogates(t1,:,r) = get_R2(Y,Ypred,lossfunc,2);
         end
         if verbose && mod(r,10)==0
             disp(['Permutation ' num2str(r)])
@@ -309,33 +319,3 @@ options.add_noise = 0;
 end
 
 
-function R2 = get_R2(Y,Ypred,lossfunc)
-d = Y - Ypred;
-if strcmp(lossfunc,'quadratic')
-    l = d.^2; l0 = Y.^2; ee = 1/2;
-elseif strcmp(lossfunc,'absolute')
-    l = abs(d); l0 = abs(Y); ee = 1;
-elseif strcmp(lossfunc,'huber')
-    l = zeros(size(d)); l0 = zeros(size(d)); ee = 1;
-    for j1 = 1:N
-        for j2 = 1:q
-            ii = abs(d(:,j1,j2))<1; l(ii,j1,j2) = d(ii,j1,j2).^2;
-            ii = abs(d(:,j1,j2))>=1; l(ii,j1,j2) = abs(d(ii,j1,j2));
-            ii = abs(Y(:,j1,j2))<1; l0(ii,j1,j2) = Y(ii,j1,j2).^2;
-            ii = abs(Y(:,j1,j2))>=1; l0(ii,j1,j2) = abs(Y(ii,j1,j2));
-        end
-    end
-end
-% across-trial R2, using mean of euclidean distances in stimulus space
-m = mean(sum(l,3).^(ee),2);
-m0 = mean(sum(l0,3).^(ee),2);
-R2 = 1 - m ./ m0;
-% % mean of R2, one per trial - equivalent to the previous
-% m = sum(l,3).^(ee);
-% m0 = sum(l0,3).^(ee);
-% R2 = mean(1 - m ./ m0,2);
-% % computing SE with all trials and features at once
-% se = sum(sum(l,3),2).^(ee);
-% se0 = sum(sum(l0,3),2).^(ee);
-% R2 = 1 - se ./ se0;
-end

@@ -19,7 +19,6 @@ end
 N = length(Xin);
 K = length(hmm.state);
 TT = []; for i=1:N, TT = [TT; T{i}]; end
-tacc = 0; tacc2 = 0;
 
 if length(hmm.train.embeddedlags)>1
     L = -min(hmm.train.embeddedlags) + max(hmm.train.embeddedlags);
@@ -35,14 +34,18 @@ else
     downs_ratio = 1;
 end
 
+Xi = [];
 if type==0
     Path = zeros(downs_ratio * (sum(TT)-length(TT)*L),K,'single');
-    Xi = zeros(downs_ratio * (sum(TT)-length(TT)*(L+1)),K,K,'single');
+    if nargout>=2
+        Xi = zeros(downs_ratio * (sum(TT)-length(TT)*(L+1)),K,K,'single');
+    end
 else
     Path = zeros(downs_ratio * (sum(TT)-length(TT)*L),1,'single');
-    Xi = [];
+    if nargout>=2, Xi = []; end
 end
 
+tacc = 0; tacc2 = 0;
 for i = 1:N
     [X,XX,Y,Ti] = loadfile(Xin{i},T{i},hmm.train);
     hmm_i = hmm;
@@ -60,7 +63,7 @@ for i = 1:N
         [gamma,~,xi] = hsinference(data,Ti,hmm_i,Y,[],XX);
         checkGamma(gamma,Ti,hmm_i.train,i);
         Path(t,:) = single(gamma);
-        Xi(t2,:,:) = xi;
+        if nargout>=2, Xi(t2,:,:) = xi; end
     else
         Path(t,:) = hmmdecode(X,Ti,hmm_i,type,Y,0);
     end

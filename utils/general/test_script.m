@@ -27,7 +27,6 @@ options.filter = [];
 options.detrend = 1; 
 options.downsample = 100; 
 options.inittype = 'hmmmar';
-options.DirichletDiag = 10;
 options.standardise = 1;
 options.standardise_pc = 1;
 options.cyc = 5;
@@ -36,7 +35,7 @@ options.tol = 1e-7;
 options.initrep = 2;
 options.verbose = 0; 
 options.useParallel = 0; 
-options.grouping = [1 1 1 1 1 1 1 1]; 
+%options.grouping = [1 1 1 1 1 1 1 1]; 
 %options.grouping = [1 1 1 1 2 2 2 2];
 
 for covtype = {'full','diag','uniquefull','uniquediag'}
@@ -175,7 +174,6 @@ options.filter = [];
 options.detrend = 1; 
 options.downsample = 100; 
 options.verbose = 0;
-options.DirichletDiag = 10;
 options.cyc = 5;
 options.initcyc = 2;
 options.initrep = 2;
@@ -203,7 +201,8 @@ for covtype = {'full','diag'} %,'uniquefull','uniquediag'}
             options.covtype = covtype{1};
             options.order = order;
             options.zeromean = zeromean;
-            [hmm,Gamma,Xi,vpath,~,~,fe] = hmmmar(X,T,options);
+            [hmm,Gamma,~,vpath,~,~,fe] = hmmmar(X,T,options);
+            [~,Xi] = hmmdecode(X,T,hmm);
             if isfield(options,'grouping')
                 fe2 = hmmfe(X,T,hmm,[],[],[],options.grouping); %(fe(end)-fe2)/fe2
             else
@@ -220,7 +219,8 @@ options.order = 2;
 options.pca = 0; 
 options.covtype = 'diag'; 
 options.embeddedlags = 0;
-[hmm,Gamma,Xi,vpath,~,~,fe] = hmmmar(X(:,1),T,options);
+[hmm,Gamma,~,vpath,~,~,fe] = hmmmar(X(:,1),T,options);
+[~,Xi] = hmmdecode(X(:,1),T,hmm);
 fitmt = hmmspectramt(X(:,1),T,Gamma,options);
 if isfield(options,'grouping')
     fe2 = hmmfe(X(:,1),T,hmm,[],[],[],options.grouping); %(fe(end)-fe2)/fe2
@@ -248,6 +248,7 @@ options.covtype = 'full';
 options.embeddedlags = -2:2;
 options.pca = 3;
 [hmm,Gamma,Xi,vpath,~,~,fe] = hmmmar(X,T,options);
+[~,Xi] = hmmdecode(X,T,hmm);
 fitmt = hmmspectramt(X,T,Gamma,options);
 if isfield(options,'grouping')
     fe2 = hmmfe(X,T,hmm,[],[],[],options.grouping); %(fe(end)-fe2)/fe2

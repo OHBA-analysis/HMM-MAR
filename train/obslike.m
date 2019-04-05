@@ -1,4 +1,4 @@
-function L = obslike (X,hmm,residuals,XX,cache)
+function L = obslike(X,hmm,residuals,XX,cache)
 %
 % Evaluate likelihood of data given observation model, for one continuous trial
 %
@@ -19,7 +19,7 @@ else
     use_cache = true;
 end
 
-K=hmm.K;
+K = hmm.K;
 if nargin<4 || size(XX,1)==0
     [T,ndim]=size(X);
     setxx; % build XX and get orders
@@ -87,19 +87,19 @@ for k=1:K
     
         switch train.covtype
             case 'diag'
-                ldetWishB=0;
-                PsiWish_alphasum=0;
-                for n=1:ndim
+                ldetWishB = 0;
+                PsiWish_alphasum = 0;
+                for n = 1:ndim
                     if ~regressed(n), continue; end
-                    ldetWishB=ldetWishB+0.5*log(hmm.state(k).Omega.Gam_rate(n));
-                    PsiWish_alphasum=PsiWish_alphasum+0.5*psi(hmm.state(k).Omega.Gam_shape);
+                    ldetWishB = ldetWishB+0.5*log(hmm.state(k).Omega.Gam_rate(n));
+                    PsiWish_alphasum = PsiWish_alphasum+0.5*psi(hmm.state(k).Omega.Gam_shape);
                 end
                 C = hmm.state(k).Omega.Gam_shape ./ hmm.state(k).Omega.Gam_rate;
             case 'full'
-                ldetWishB=0.5*logdet(hmm.state(k).Omega.Gam_rate(regressed,regressed));
-                PsiWish_alphasum=0;
-                for n=1:sum(regressed)
-                    PsiWish_alphasum=PsiWish_alphasum+0.5*psi(hmm.state(k).Omega.Gam_shape/2+0.5-n/2);  
+                ldetWishB = 0.5*logdet(hmm.state(k).Omega.Gam_rate(regressed,regressed));
+                PsiWish_alphasum = 0;
+                for n = 1:sum(regressed)
+                    PsiWish_alphasum = PsiWish_alphasum+0.5*psi(hmm.state(k).Omega.Gam_shape/2+0.5-n/2);  
                 end
                 C = hmm.state(k).Omega.Gam_shape * hmm.state(k).Omega.Gam_irate;
         end
@@ -121,12 +121,12 @@ for k=1:K
         Cd = C(regressed,regressed) * d';
     end
     
-    dist=zeros(Tres,1);
+    dist = zeros(Tres,1);
     for n=1:sum(regressed)
-        dist=dist-0.5*d(:,n).*Cd(n,:)';
+        dist = dist-0.5*d(:,n).*Cd(n,:)';
     end
     
-    NormWishtrace=zeros(Tres,1);
+    NormWishtrace = zeros(Tres,1);
     if do_normwishtrace
         switch train.covtype
             case {'diag','uniquediag'}
@@ -172,5 +172,5 @@ for k=1:K
     end
     L(hmm.train.maxorder+1:T,k)= - ltpi - ldetWishB + PsiWish_alphasum + dist - NormWishtrace; 
 end
-L=exp(L);
+L = exp(L);
 end

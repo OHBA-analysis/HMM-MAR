@@ -1,16 +1,19 @@
 function status = checkGamma(Gamma,T,train,subj)
+% Check that the state time courses are well-defined (no NaNs)
+% and that the HMM inference wasn't trapped in a trivial local minima
 
 if nargin<4, subj = 0; end
 
 if any(isnan(sum(Gamma,2)))
     t = find(isnan(sum(Gamma,2)),1);
-    if train.order>1
+    if train.order>0
         d = train.order;
         Td = T-d;
     elseif length(train.embeddedlags)>1
         d = length(train.embeddedlags)-1;
         Td = T;
     else
+        d = 0;
         Td = T;
     end
     cT = cumsum(Td); 

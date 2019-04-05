@@ -15,7 +15,6 @@ function [hmm,Gamma,Xi,fehist] = hmmtrain(data,T,hmm,Gamma,residuals,fehist)
 % Gamma         estimated p(state | data)
 % Xi            joint probability of past and future states conditioned on data
 % fehist        historic of the free energies across iterations
-% knocked       states knocked out by the Bayesian inference
 %
 % hmm.Pi          - intial state probability
 % hmm.P           - state transition matrix
@@ -76,7 +75,6 @@ for cycle=1:hmm.train.cyc
             % match over different labels:
 %            Gamma = checkGammaOverfitting(Gamma,residuals,hmm,T,orders);
         end
-
         %%%% Free energy computation
         if strcmp(hmm.train.covtype,'logistic')
             fehist(end+1) = sum(evalfreeenergylogistic(T,Gamma,Xi,hmm,residuals,XX));
@@ -92,7 +90,9 @@ for cycle=1:hmm.train.cyc
                 fprintf('cycle %i free energy = %g, %s relative change = %g \n',...
                     cycle,fehist(end),strwin,chgFrEn); 
             end
-            if (abs(chgFrEn) < hmm.train.tol) && cyc_to_go==0, break; end
+            if (abs(chgFrEn) < hmm.train.tol) && cyc_to_go==0
+                break; 
+            end
         elseif hmm.train.verbose
             fprintf('cycle %i free energy = %g \n',cycle,fehist(end)); %&& cycle>1
         end
@@ -114,14 +114,47 @@ for cycle=1:hmm.train.cyc
         % transition matrices and initial state
         hmm = hsupdate(Xi,Gamma,T,hmm);
     else
-        break % one is enough
+        break; % one is enough
     end
-
+    
+    if hmm.train.tudamonitoring
+        hmm.tudamonitor.synch(cycle+1,:) = getSynchronicity(Gamma,T);
+        which_x = (hmm.train.S(1,:) == -1);
+        which_y = (hmm.train.S(1,:) == 1);
+        hmm.tudamonitor.accuracy(cycle+1,:) = ...
+            getAccuracy(residuals(:,which_x),residuals(:,which_y),T,Gamma,[],0);
+        if ~isempty(hmm.train.behaviour)
+            fs = fields(hmm.train.behaviour);
+            for ifs = 1:length(fs)
+                f = hmm.tudamonitor.behaviour.(fs{ifs});
+                y = hmm.train.behaviour.(fs{ifs});
+                f(cycle+1,:) = getBehAssociation(Gamma,y,T);
+                hmm.tudamonitor.behaviour.(fs{ifs}) = f;
+            end
+        end
+    end
+   
 end
 
 for k = 1:K
     if isfield(hmm.state(k),'cache')
         hmm.state(k) = rmfield(hmm.state(k),'cache');
+    end
+end
+
+if hmm.train.tudamonitoring
+    if (abs(chgFrEn) < hmm.train.tol) && cyc_to_go==0
+        cycle = cycle - 1; 
+    end
+    hmm.tudamonitor.synch = hmm.tudamonitor.synch(1:cycle+1,:);
+    hmm.tudamonitor.accuracy = hmm.tudamonitor.accuracy(1:cycle+1,:);
+    if ~isempty(hmm.train.behaviour)
+        fs = fields(hmm.train.behaviour);
+        for ifs = 1:length(fs)
+            f = hmm.tudamonitor.behaviour.(fs{ifs});
+            f = f(1:cycle+1,:);
+            hmm.tudamonitor.behaviour.(fs{ifs}) = f;
+        end
     end
 end
 

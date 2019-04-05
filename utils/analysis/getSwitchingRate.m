@@ -1,4 +1,4 @@
-function switchingRate =  getSwitchingRate(Gamma,T,options)
+function switchingRate = getSwitchingRate(Gamma,T,options)
 % Computes the state switching rate for each session/subject
 %
 % Gamma can be the probabilistic state time courses (time by states),
@@ -29,22 +29,27 @@ if iscell(T)
         trials2subjects(ii:ii+Ntrials-1) = i;
         ii = ii + Ntrials;
     end
-    T = single(cell2mat(T));
+    T = int64(cell2mat(T));
 else 
     Nsubj = length(T);
     trials2subjects = 1:Nsubj;
-    T = single(T);
+    T = int64(T);
 end
 N = length(T);
 
+r = 1; 
+if isfield(options,'downsample') && options.downsample>0
+    r = (options.downsample/options.Fs);
+end
+
 if isfield(options,'order') && options.order > 0
-    T = ceil((options.downsample/options.Fs) * T);
+    T = ceil(r * T);
     T = T - options.order; 
 elseif isfield(options,'embeddedlags') && length(options.embeddedlags) > 1
     d1 = -min(0,options.embeddedlags(1));
     d2 = max(0,options.embeddedlags(end));
     T = T - (d1+d2);
-    T = ceil((options.downsample/options.Fs) * T);
+    T = ceil(r * T);
 end
 
 if is_vpath % viterbi path

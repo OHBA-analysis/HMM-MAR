@@ -1,13 +1,18 @@
-function [X,Y,T,options,R2_pca,features] = preproc4hmm(X,Y,T,options)
+function [X,Y,T,options,R2_pca,pca_opt,features] = preproc4hmm(X,Y,T,options)
+% Prepare data to run TUDA
 
-if size(X,1) ~= sum(T), error('Dimension of X not correct'); end
-if (size(Y,1) ~= sum(T)) && (size(Y,1) ~= length(T))
-    error('Dimension of Y not correct');
+if length(size(X))==3 % 1st dim, time; 2nd dim, trials; 3rd dim, channels
+    X = reshape(X,[size(X,1)*size(X,2), size(X,3)]);
 end
 
 q = size(Y,2);
 N = length(T);
 p = size(X,2);
+
+if size(X,1) ~= sum(T), error('Dimension of X not correct'); end
+if (size(Y,1) ~= sum(T)) && (size(Y,1) ~= length(T))
+    error('Dimension of Y not correct');
+end
 
 if isfield(options,'downsample') && options.downsample
    error('Downsampling is not currently an option') 
@@ -28,7 +33,7 @@ else, embeddedlags = options.embeddedlags; end
 if ~isfield(options,'filter'), filter = [];
 else, filter = options.filter; end
 if ~isfield(options,'detrend'), detrend = 0;
-else, detrend = options.onpower; end
+else, detrend = options.detrend; end
 % econ_embed saves memory at the expense of speed, when pca is applied
 if ~isfield(options,'econ_embed'), econ_embed = 0;
 else, econ_embed = options.econ_embed; end
@@ -41,11 +46,28 @@ else, logisticYdim = options.logisticYdim; end
 if ~isfield(options,'add_noise') && logisticYdim==0, add_noise = 1;
 elseif logisticYdim==0, add_noise = options.add_noise; 
 else add_noise = 0; end
+if isfield(options,'downsample') && options.downsample~=0
+    warning('Downsampling is not possible for TUDA')
+end
+
+
+% Options relative to constraints in the trans prob mat
+if ~isfield(options,'K'), error('K was not specified'); end
+if ~isfield(options,'Pstructure')
+    options.Pstructure = true(options.K);
+end
+if ~isfield(options,'Pistructure')
+    options.Pistructure = true(1,options.K);
+end
 
 options.parallel_trials = parallel_trials;
+if ~isfield(options,'tudamonitoring'), options.tudamonitoring = 0; end
 
 if parallel_trials && ~all(T==T(1))
     error('parallel_trials can be used only when all trials have equal length');
+end
+if options.tudamonitoring && ~all(T==T(1))
+    error('tudamonitoring can be used only when all trials have equal length');
 end
 
 % options relative to the HMM
@@ -82,12 +104,13 @@ end
 emforw = max(max(embeddedlags),0);
 emback = max(-min(embeddedlags),0);
 
-if size(Y,1) == length(T) % one value for the entire trial
+if size(Y,1) == N % one value for the entire trial
     Ytmp = Y;
     Y = zeros(sum(T),q);
     for n = 1:N
         Y(sum(T(1:n-1)) + (1:T(n)),:) = repmat(Ytmp(n,:),T(n),1);
     end; clear Ytmp
+    Y = Y + 1e-6 * repmat(std(Y),size(Y,1),1) .* randn(size(Y)) ;
 end
 
 if logisticYdim==0
@@ -198,6 +221,9 @@ else
     
     if do_embedding
         [X,T] = embeddata(X,T,embeddedlags);
+        msg = '(embedded)';
+    else
+        msg = '';
     end
     if do_pca
         [~,X,e] = pca(X);
@@ -205,8 +231,28 @@ else
         p = num_comp_pca(e,pca_opt);
         R2_pca = e(p);
         X = X(:,1:p);
+        fprintf('Working in PCA %s space, with %d components. \n',msg,p)
     else
         R2_pca = 1;
     end
     
+end
+
+end
+
+
+function ncomp = num_comp_pca(e,d)
+
+if length(d)==1 && d<1
+    ncomp = find(e>d,1);
+elseif length(d)==1 && d>=1
+    ncomp = d;
+elseif length(d)==2 || (length(d)==3 && d(3)==1)
+    ncomp = min(find(e>d(1),1),d(2));
+elseif length(d)==3 && d(3)==2
+    ncomp = max(find(e>d(1),1),d(2));
+else
+    error('pca parameters are wrongly specified')
+end
+
 end

@@ -180,7 +180,9 @@ if hmm.train.useParallel==1 && N>1
             xi = [xi; xit];
             gamma = [gamma; gammat];
             gammasum = gammasum + sum(gamma);
-            if n_argout>=4, ll = ll + sum(sum(log(Bt(order+1:end,:)) .* gammat,2)); end
+            if n_argout>=4 
+                ll = ll + sum(log(sum(Bt(order+1:end,:) .* gammat, 2))); 
+            end
             if n_argout>=5, B{in} = [B{in}; Bt(order+1:end,:) ]; end
             if isempty(no_c), break;
             else, t = no_c(1)+t-1;
@@ -247,7 +249,9 @@ else
             xi = [xi; xit];
             gamma = [gamma; gammat];
             gammasum = gammasum + sum(gamma);
-            if nargout>=4, ll = ll + sum(sum(log(Bt(order+1:end,:)) .* gammat,2)); end
+            if nargout>=4 
+                ll = ll + sum(log(sum(Bt(order+1:end,:) .* gammat, 2)));
+            end
             if nargout>=5, B{in} = [B{in}; Bt(order+1:end,:) ]; end
             if isempty(no_c), break;
             else t = no_c(1)+t-1;
@@ -324,34 +328,34 @@ if hmm.train.useMEX
     end
 end
 
-scale=zeros(T,1);
-alpha=zeros(T,K);
-beta=zeros(T,K);
+scale = zeros(T,1);
+alpha = zeros(T,K);
+beta = zeros(T,K);
 
-alpha(1+order,:)=Pi.*L(1+order,:);
-scale(1+order)=sum(alpha(1+order,:));
-alpha(1+order,:)=alpha(1+order,:)/scale(1+order);
-for i=2+order:T
-    alpha(i,:)=(alpha(i-1,:)*P).*L(i,:);
-    scale(i)=sum(alpha(i,:));		% P(X_i | X_1 ... X_{i-1})
-    alpha(i,:)=alpha(i,:)/scale(i);
+alpha(1+order,:) = Pi.*L(1+order,:);
+scale(1+order) = sum(alpha(1+order,:));
+alpha(1+order,:) = alpha(1+order,:)/scale(1+order);
+for i = 2+order:T
+    alpha(i,:) = (alpha(i-1,:)*P).*L(i,:);
+    scale(i) = sum(alpha(i,:));		% P(X_i | X_1 ... X_{i-1})
+    alpha(i,:) = alpha(i,:)/scale(i);
 end
 
 scale(scale<realmin) = realmin;
 
-beta(T,:)=ones(1,K)/scale(T);
-for i=T-1:-1:1+order
-    beta(i,:)=(beta(i+1,:).*L(i+1,:))*(P')/scale(i);
+beta(T,:) = ones(1,K)/scale(T);
+for i = T-1:-1:1+order
+    beta(i,:) = (beta(i+1,:).*L(i+1,:))*(P')/scale(i);
     beta(i,beta(i,:)>realmax) = realmax;
 end
-Gamma=(alpha.*beta);
-Gamma=Gamma(1+order:T,:);
-Gamma=rdiv(Gamma,sum(Gamma,2));
+Gamma = (alpha.*beta);
+Gamma = Gamma(1+order:T,:);
+Gamma = rdiv(Gamma,sum(Gamma,2));
 
-Xi=zeros(T-1-order,K*K);
-for i=1+order:T-1
-    t=P.*( alpha(i,:)' * (beta(i+1,:).*L(i+1,:)));
-    Xi(i-order,:)=t(:)'/sum(t(:));
+Xi = zeros(T-1-order,K*K);
+for i = 1+order:T-1
+    t = P.*( alpha(i,:)' * (beta(i+1,:).*L(i+1,:)));
+    Xi(i-order,:) = t(:)'/sum(t(:));
 end
 
 end

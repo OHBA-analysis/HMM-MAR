@@ -1,10 +1,12 @@
-function onsets = getStateOnsets(vpath,T,Hz)
+function onsets = getStateOnsets(vpath,T,Hz,K)
 % Finds the onset times of the states for each session.
 %
 % vpath must be the Viterbi path, and T is the length of the sessions
 % Hz is the sampling frequency
 % onsets is a cell (subjects by states), where each element is a
 %   vector of onset times
+% K (optional) prespecifies the number of states. This is useful when vpath
+% does not visit the entire repertoire of states
 %
 % Author: Diego Vidaurre, OHBA, University of Oxford (2017)
 
@@ -19,16 +21,19 @@ if iscell(T)
     for i = 1:length(T)
         if size(T{i},1)==1, T{i} = T{i}'; end
     end
-    T = single(cell2mat(T));
+    T = int64(cell2mat(T));
 else
-    T = single(T);
+    T = int64(T);
 end
 T = T - (sum(T)-length(vpath))/length(T);
 
 N = length(T);
-val = unique(vpath)';
-K = length(val);
-
+%val = unique(vpath)';
+if nargin<4 || isempty(K)
+    K = max(val);
+end
+val = 1:K;
+    
 onsets = cell(N,K);
 for n=1:N
     t = sum(T(1:n-1)) + (1:T(n));

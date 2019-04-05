@@ -1,4 +1,4 @@
-function [Path,Xi] = hmmdecode(data,T,hmm,type,residuals,preproc,grouping)
+function [Path,Xi] = hmmdecode(data,T,hmm,type,residuals,preproc)
 %
 % State time course and Viterbi decoding for hmm
 % The algorithm is run for the whole data set, including those whose class
@@ -11,6 +11,8 @@ function [Path,Xi] = hmmdecode(data,T,hmm,type,residuals,preproc,grouping)
 % hmm           hmm data structure
 % type          0, state time courses (default); 1, viterbi path
 % residuals     in case we train on residuals, the value of those (optional)
+% preproc       whether we should perform the preprocessing options with
+%               which the hmm model was trained; 1 by default.
 %
 % OUTPUT
 % vpath         (T x 1) maximum likelihood state sequence (type=1) OR
@@ -44,14 +46,13 @@ if nargin<6 || isempty(preproc), preproc = 1; end
 % end
 
 stochastic_learn = isfield(hmm.train,'BIGNbatch') && hmm.train.BIGNbatch < length(T);
-N = length(T);
 
 if xor(iscell(data),iscell(T)), error('data and T must be cells, either both or none of them.'); end
-
 if stochastic_learn
+    N = length(T);
     if ~iscell(data)
        dat = cell(N,1); TT = cell(N,1);
-       for i=1:N
+       for i = 1:N
           t = 1:T(i);
           dat{i} = data(t,:); TT{i} = T(i);
           try data(t,:) = []; 
@@ -63,16 +64,22 @@ if stochastic_learn
        end 
        data = dat; T = TT; clear dat TT
     end
-    [Path,Xi] = hmmsdecode(data,T,hmm,type);
-    return
-end
-
-if iscell(T)
-    for i = 1:length(T)
-        if size(T{i},1)==1, T{i} = T{i}'; end
+    if nargin<2
+        Path = hmmsdecode(data,T,hmm,type);
+    else
+        [Path,Xi] = hmmsdecode(data,T,hmm,type);
     end
-    if size(T,1)==1, T = T'; end
-    T = cell2mat(T);
+    return
+else % data can be a cell or a matrix
+    if iscell(T)
+        for i = 1:length(T)
+            if size(T{i},1)==1, T{i} = T{i}'; end
+        end
+        if size(T,1)==1, T = T'; end
+        T = cell2mat(T);
+    end
+    checkdatacell;    
+    N = length(T);
 end
 
 if preproc % Adjust the data if necessary

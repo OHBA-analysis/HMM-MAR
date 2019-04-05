@@ -9,7 +9,9 @@ end
 if ~isfield(options,'K'), error('K was not specified'); end
 if ~isfield(options,'order')
     options.order = 0;
-    warning('order was not specified - it will be set to 0'); 
+    if ~isfield(options,'leida') || ~options.leida
+        warning('order was not specified - it will be set to 0'); 
+    end
 end
 if options.K<1, error('K must be higher than 0'); end
 stochastic_learning = isfield(options,'BIGNbatch') && ...
@@ -43,9 +45,25 @@ if ~isfield(options,'standardise_pc')
 end
 if ~isfield(options,'logisticYdim'),options.logisticYdim=0;end
 if ~isfield(options,'balancedata'),options.balancedata=1;end
+if length(options.embeddedlags)>1 && isfield(options,'covtype') && ...
+        ~strcmpi(options.covtype,'full')
+    options.covtype = 'full';
+    warning('options.covtype will be set to ''full'' because embeddedlags is used')
+end
 
 % stochastic options
 if stochastic_learning
+    if options.K==1
+        error('There is no purpose on using stochastic inference with K=1. Please restart')
+    end
+    if length(T)==1
+        error('It is not possible to run stochastic inference with just one subject - remove option BIGNbatch')
+    end
+    if options.BIGNbatch < 1
+        new_BIGNbatch = min(length(T)/2,10); 
+        warning(['BIGNbatch needs to be > 0. Setting to ' num2str(new_BIGNbatch) ])
+        options.BIGNbatch = new_BIGNbatch;
+    end 
     if ~isfield(options,'BIGNinitbatch'), options.BIGNinitbatch = options.BIGNbatch; end
     if ~isfield(options,'BIGprior'), options.BIGprior = []; end
     if ~isfield(options,'BIGcyc'), options.BIGcyc = 200; end
@@ -61,7 +79,9 @@ if stochastic_learning
     if ~isfield(options,'BIGdecodeGamma'), options.BIGdecodeGamma = 1; end
     if ~isfield(options,'BIGverbose'), options.BIGverbose = 1; end
     if ~isfield(options,'initial_hmm'), options.initial_hmm = []; end
-    options.BIGbase_weights = options.BIGbase_weights * ones(1,length(T));
+    if length(options.BIGbase_weights)==1
+        options.BIGbase_weights = options.BIGbase_weights * ones(1,length(T));
+    end
     if ~isfield(options,'Gamma'), options.Gamma = []; end
     if ~isfield(options,'hmm'), options.hmm = []; end
     if options.BIGdelay > 1, warning('BIGdelay is recommended to be 1.'); end
@@ -100,13 +120,22 @@ else
     end
 end
 
+% TUDA specific option 
+if ~isfield(options,'behaviour'), options.behaviour = []; end
+if ~isempty(options.behaviour), options.tudamonitoring = 1;
+elseif ~isfield(options,'tudamonitoring'), options.tudamonitoring = 0;
+end
+if options.tudamonitoring && stochastic_learning
+   error('Stochastic learning is not currently compatible with TUDA monitoring options') 
+end
+
 % Trans prob mat related options
-if ~isfield(options,'grouping') || isempty(options.grouping)
+if ~isfield(options,'grouping') || isempty(options.grouping)  
     options.grouping = ones(length(T),1);
 %elseif ~all(options.grouping==1) && stochastic_learning
 %    warning('grouping option is not yet implemented for stochastic learning')
 %    options.grouping = ones(length(T),1); 
-else
+elseif ~all(options.grouping==1)
     warning('Option grouping is not currently supported and will not be used')
     options.grouping = ones(length(T),1);
 end  
@@ -134,8 +163,9 @@ end
 
 % Drop states? 
 if ~isfield(options,'dropstates')
-    if any(~options.Pstructure), options.dropstates = 0;
-    else, options.dropstates = ~stochastic_learning; end
+    options.dropstates = 0;
+    %if any(~options.Pstructure), options.dropstates = 0;
+    %else, options.dropstates = ~stochastic_learning; end
 else
     if options.dropstates == 1 && any(~options.Pstructure(:))
         warning('If Pstructure  has zeros, dropstates must be zero')
@@ -152,9 +182,9 @@ if ~isempty(options.filter)
     if (options.filter(1)==0 && isinf(options.filter(2)))
         warning('The specified filter does not do anything - Ignoring.')
         options.filter = [];
-    elseif (options.filter(2) < options.Fs/2) && options.order >= 1
+    elseif ~isinf(options.filter(2)) && (options.filter(2) < options.Fs/2) && options.order >= 1
         warning(['The lowpass cutoff frequency is lower than the Nyquist frequency - ' ...
-            'This is discouraged for a MAR model'])
+            'This is discouraged for a MAR model; better to using downsampling.'])
     end
 end
 if options.downsample > 0 && isstruct(data) && isfield(data,'C')
@@ -184,6 +214,7 @@ if options.leida
            (strcmp(options.covtype,'full') || strcmp(options.covtype,'diag'))
        error('When using leida, covtype cannot be full or diag')
    end
+   options.zeromean = 0; 
    if length(options.embeddedlags) > 1
        error('Option leida and embeddedlags are not compatible')
    end
@@ -215,18 +246,24 @@ if ~stochastic_learning
     data = data2struct(data,T,options);
 end
 
-if stochastic_learning  
-    % the rest will be dealt with in the recursive calls
-    return
-end
-
 % Some hmm model options unrelated to the observational model
+if ~isfield(options,'DirichletDiag')
+    if options.order > 0
+        if iscell(T), sumT = sum(cell2mat(T));
+        else, sumT = sum(T);
+        end
+        options.DirichletDiag = sumT/5;
+    else
+        options.DirichletDiag = 10;
+    end
+end
+if ~isfield(options,'PriorWeighting'), options.PriorWeighting = 1; end
+
+% Some more hmm model options unrelated to the observational model
+if ~isfield(options,'repetitions'), options.repetitions = 1; end
 if ~isfield(options,'Gamma'), options.Gamma = []; end
 if ~isfield(options,'hmm'), options.hmm = []; end
 if ~isfield(options,'fehist'), options.fehist = []; end
-if ~isfield(options,'DirichletDiag'), options.DirichletDiag = 10; end
-if ~isfield(options,'PriorWeighting'), options.PriorWeighting = 1; end
-if ~isfield(options,'repetitions'), options.repetitions = 1; end
 if ~isfield(options,'updateObs'), options.updateObs = 1; end
 if ~isfield(options,'updateGamma'), options.updateGamma = 1; end
 if ~isfield(options,'decodeGamma'), options.decodeGamma = 1; end
@@ -242,6 +279,11 @@ else % ~isfield(options,'useMEX')
     options.useMEX = 0; 
 end
 
+if stochastic_learning  
+    % the rest will be dealt with in the recursive calls
+    return
+end
+
 % Further checks
 if options.maxorder+1 >= min(T)
    error('There is at least one trial that is too short for the specified order') 
@@ -251,7 +293,8 @@ if options.K>1 && options.updateGamma == 0 && isempty(options.Gamma)
     warning('Gamma is unspecified, so updateGamma was set to 1');  options.updateGamma = 1; 
 end
 if options.updateGamma == 1 && options.K == 1
-    warning('Since K is one, updateGamma was set to 0');  options.updateGamma = 0; 
+    %warning('Since K is one, updateGamma was set to 0');  
+    options.updateGamma = 0; 
 end
 if options.updateGamma == 0 && options.repetitions>1
     error('If Gamma is not going to be updated, repetitions>1 is unnecessary')
@@ -260,7 +303,7 @@ end
 % Check precomputed state time courses
 if ~isempty(options.Gamma)
     if length(options.embeddedlags)>1
-        if (size(options.Gamma,1) ~= (sum(T - length(options.embeddedlags) + 1 ))) || ...
+        if (size(options.Gamma,1) ~= (sum(T) - (length(options.embeddedlags)-1)*length(T) )) || ...
                 (size(options.Gamma,2) ~= options.K)
             error('The supplied Gamma has not the right dimensions')
         end        

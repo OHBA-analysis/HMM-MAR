@@ -1,8 +1,13 @@
-function [flips,scorepath,covmats_unflipped] = findflip(data,T,options)
+function [flips,scorepath,covmats_unflipped] = findflip(data,T,options,data_ref,T_ref)
 % Finds an optimal permutation of the channels, where goodness is measured
 % as the mean lagged partial  cross-correlation across pair of channels and lags.
 % In other words, it finds a permutation where the signs of the lagged
 % partial correlations agree as much as possible across subjects.
+% If 'data_ref' is specified, then it finds the optimal permutation of the channels
+% for 'data' such that the mean lagged partial  cross-correlation across 
+% pair of channels and lags matches as much as possible that of
+% 'data_ref', which is assumed to have been sign-corrected already.
+% This is useful to compare results between runs and data sets. 
 %
 % INPUTS
 % data          observations, either a struct with X (time series) 
@@ -23,6 +28,10 @@ function [flips,scorepath,covmats_unflipped] = findflip(data,T,options)
 %  mincyc        for each initialization, minimum number of cycles of the greedy algorithm
 %  verbose       do we get loud?
 %
+% data_ref and T_ref refer to having a previous data set to
+% with which we want to be consistent (see above). These are assumed to be
+% already sign-disambiguated 
+
 % OUTPUT
 % flips         (length(T) X No. channels) binary matrix saying which channels must be 
 %               flipped for each time series
@@ -45,53 +54,20 @@ if ~isfield(options,'verbose'), options.verbose = 1; end
 if length(size(data))==4 % it is an array of autocorrelation matrices already
     covmats_unflipped = data; clear data
     ndim = size(covmats_unflipped,1);
-    
-elseif iscell(data)
-    N = length(T); 
-    for j = 1:N
-        if ischar(data{j})
-            fsub = data{j};
-            loadfile_sub;
-        else
-            X = data{j};
-        end
-        Tj = T{j}; Nj = length(Tj); 
-        if options.standardise
-            for jj = 1:Nj
-                ind = (1:Tj(jj)) + sum(Tj(1:jj-1));
-                X(ind,:) = bsxfun(@minus,X(ind,:),mean(X(ind,:)));  
-                sd = std(X(ind,:));
-                if any(sd==0)
-                    error('At least one channel in at least one trial has variance equal to 0')
-                end
-                X(ind,:) = X(ind,:) ./ repmat(sd,Tj(jj),1);
-            end
-        end
-        covmats_unflipped_j = getCovMats(X,Tj,options.maxlag,options.partial);
-        if j==1
-            covmats_unflipped = covmats_unflipped_j; 
-            ndim = size(X,2);
-        else % do some kind of weighting here according to the number of samples?
-            covmats_unflipped = cat(4,covmats_unflipped,covmats_unflipped_j);
-        end
-    end
-    N = size(covmats_unflipped,4); 
-    
 else
-    if isstruct(data), data = data.X; end 
-    ndim = size(data,2);
-    if options.standardise
-        for j = 1:N
-            ind = (1:T(j)) + sum(T(1:j-1));
-            data(ind,:) = bsxfun(@minus,data(ind,:),mean(data(ind,:)));
-            sd = std(data(ind,:));
-            if any(sd==0) 
-                error('At least one channel in at least one trial has variance equal to 0')
-            end
-            data(ind,:) = data(ind,:) ./ repmat(sd,T(j),1);
-        end
+    covmats_unflipped = getAllCovMats(data,T,options);
+    ndim = size(covmats_unflipped,1);
+end
+    
+if nargin>3
+    if length(size(data_ref))==4 % it is an array of autocorrelation matrices already
+        covmats_ref = data_ref; 
+    else
+        covmats_ref = getAllCovMats(data_ref,T_ref,options);
     end
-    covmats_unflipped = getCovMats(data,T,options.maxlag,options.partial);
+    covmats_ref = sum(covmats_ref,4); 
+else
+    covmats_ref = [];
 end
 
 score = -Inf;
@@ -118,7 +94,7 @@ for r = 1:options.noruns
         if cyc==1 || ch
             signmats = getSignMat(flipsr);
             covmats = applySign(covmats_unflipped,signmats);
-            [scorer,scorers] = getscore(covmats);
+            [scorer,scorers] = getscore(covmats,[],[],covmats_ref);
         end
         ScoreMatrix = zeros(N,ndim);
         channels = randperm(ndim,options.nbatch);
@@ -137,7 +113,7 @@ for r = 1:options.noruns
                 flipsr(j,d) = ~flipsr(j,d); % do ...
                 signmats(:,:,j) = getSignMat(flipsr(j,:)); 
                 covmats(:,:,:,j) = applySign(covmats_unflipped(:,:,:,j),signmats(:,:,j));
-                s = getscore(covmats,j,scorers); % ... evaluate ...
+                s = getscore(covmats,j,scorers,covmats_ref); % ... evaluate ...
                 covmats(:,:,:,j) = cm;
                 signmats(:,:,j) = sm;
                 flipsr(j,d) = ~flipsr(j,d); % ... and undo
@@ -189,6 +165,55 @@ for j = 1:N
     end
 end
 
+end
+
+
+function covmats_unflipped = getAllCovMats(data,T,options)
+
+N = length(T);
+if iscell(data)
+    for j = 1:N
+        if ischar(data{j})
+            fsub = data{j};
+            loadfile_sub;
+        else
+            X = data{j};
+        end
+        Tj = T{j}; Nj = length(Tj);
+        if options.standardise
+            for jj = 1:Nj
+                ind = (1:Tj(jj)) + sum(Tj(1:jj-1));
+                X(ind,:) = bsxfun(@minus,X(ind,:),mean(X(ind,:)));
+                sd = std(X(ind,:));
+                if any(sd==0)
+                    error('At least one channel in at least one trial has variance equal to 0')
+                end
+                X(ind,:) = X(ind,:) ./ repmat(sd,Tj(jj),1);
+            end
+        end
+        covmats_unflipped_j = getCovMats(X,Tj,options.maxlag,options.partial);
+        if j==1
+            covmats_unflipped = covmats_unflipped_j;
+        else % do some kind of weighting here according to the number of samples?
+            covmats_unflipped = cat(4,covmats_unflipped,covmats_unflipped_j);
+        end
+    end
+    
+else
+    if isstruct(data), data = data.X; end
+    if options.standardise
+        for j = 1:N
+            ind = (1:T(j)) + sum(T(1:j-1));
+            data(ind,:) = bsxfun(@minus,data(ind,:),mean(data(ind,:)));
+            sd = std(data(ind,:));
+            if any(sd==0)
+                error('At least one channel in at least one trial has variance equal to 0')
+            end
+            data(ind,:) = data(ind,:) ./ repmat(sd,T(j),1);
+        end
+    end
+    covmats_unflipped = getCovMats(data,T,options.maxlag,options.partial);
+end
 
 end
 
