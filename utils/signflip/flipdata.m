@@ -1,4 +1,4 @@
-function data = flipdata(data,T,flips,force)
+function data = flipdata(data,T,flips,outputfile,force)
 % Flip the channels of X according to flips (no. trials x no.channels),
 % which is the output of findflip. If data is a collection of files, then
 % it will write the output on disk.
@@ -8,37 +8,42 @@ function data = flipdata(data,T,flips,force)
 %                             or a list of file names
 % T             length of series
 % flips         The optimal flipping according to findflip.m
+% outputfile    Cell with output file strings
 % force         Flag to avoid the question of overwritting (only applies if
-%               data is a collection of files
+%               data is a collection of files and outputfile is not
+%               specified
 %
 % Author: Diego Vidaurre, University of Oxford.
 
-if nargin<4, force = 0; end 
+if nargin<5, force = 0; end 
+if nargin<4, outputfile = []; end 
 
 N = length(T); 
 
-if iscell(data)
-    if ischar(data{1}) && ~force % check with user
-        while true
-            query = 'The result will overwrite the files, are you sure you want to continue? (0/1) ';
-            answer = input(query);
-            if answer==1 || answer==0, break; end
-            disp('Please respond 0 or 1.')
+if iscell(data)  
+    if isempty(outputfile)
+        if ischar(data{1}) && ~force % check with user
+            while true
+                query = 'The result will overwrite the files, are you sure you want to continue? (0/1) ';
+                answer = input(query);
+                if answer==1 || answer==0, break; end
+                disp('Please respond 0 or 1.')
+            end
+            if answer==0
+                disp('Exiting then...')
+                return;
+            end
         end
-        if answer==0
-            disp('Exiting then...')
-            return; 
-        end     
     end
     for j = 1:N
-        if ischar(data{j})
-            fsub = data{j};
-            loadfile_sub;
-            X = flipdata_subject(X,T{j},flips);
-            writefile_sub;
+        fsub = data{j};
+        loadfile_sub;
+        X = flipdata_subject(X,T{j},flips);
+        if ~isempty(outputfile)
+            fsub = outputfile{j};
         end
+        writefile_sub;
     end
-            
 else
     ndim = size(data,2);
     for j = 1:N
@@ -49,7 +54,9 @@ else
             end
         end
     end
-
+    if ~isempty(outputfile)
+        warning('For outputfile to be used, data must be specified as a cell')
+    end
 end
 
 end
