@@ -38,7 +38,7 @@ if iscell(data)
     for j = 1:N
         fsub = data{j};
         loadfile_sub;
-        X = flipdata_subject(X,T{j},flips);
+        X = flipdata_subject(X,T{j},flips(j,:));
         if ~isempty(outputfile)
             fsub = outputfile{j};
         end
@@ -67,7 +67,7 @@ N = length(T); ndim = size(X,2);
 for j = 1:N
     ind = (1:T(j)) + sum(T(1:j-1));
     for d = 1:ndim
-        if flips(j,d)
+        if flips(d)
             X(ind,d) = -X(ind,d);
         end
     end
