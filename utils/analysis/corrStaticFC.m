@@ -1,4 +1,4 @@
-function C = corrStaticFC (data,T,toPlot)
+function C = corrStaticFC (data,T,embeddedlags,toPlot)
 % When running the HMM on fMRI data (with order=0, i.e. a Gaussian
 % distribution with mean and covariance), 
 % it can happen that states are assigned to entire subjects
@@ -10,10 +10,15 @@ function C = corrStaticFC (data,T,toPlot)
 % similarities (measured in terms of correlation) between each pair of
 % subjects. If the obtained values are too low, then covtype='uniquefull'
 % has a higher chance to do a good job. 
+%
+% If embeddedlags is specified, then it compares the time-embedded
+% covariance matrices in a similar fashion; see Vidaurre et al. (2018) Nature
+% Communications. 
 % 
 % Author: Diego Vidaurre (2017)
 
-if nargin<3, toPlot = 1; end
+if nargin<4, toPlot = 1; end
+if nargin<3, embeddedlags = []; end
 if iscell(data), N = length(data);  
 else, N = length(T);  
 end
@@ -34,13 +39,16 @@ for j = 1:N
         ind = (1:T(j)) + sum(T(1:j-1));
         X = data(ind,:);
     end
+    X = zscore(X); 
+    if ~isempty(embeddedlags)
+        X = embeddata(X,T{j},embeddedlags); 
+    end
+    c = corr(X);
     if j==1
         ndim = size(X,2);
         FC = zeros(ndim*(ndim-1)/2,N);
     end
-    X = zscore(X); 
-    c = corr(X);
-    FC(:,j) =  c(triu(true(ndim),1))';
+    try, FC(:,j) =  c(triu(true(ndim),1))'; catch,keyboard; end
 end
 
 C = corr(FC);
