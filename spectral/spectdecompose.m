@@ -30,23 +30,25 @@ function [sp_fit,sp_fit_group,sp_profiles] = spectdecompose(sp_fit,options,chan)
 % sp_fit                A cell with the spectral components, with the same fields  
 %                       and dimensions that the input 'sp_fit', but with Ncomp 
 %                       components instead of No. frequency bins. If there
-%                       is only one subject, then sp_field is a single struct
+%                       is only one subject, then sp_fit is a single struct
 %                 
 % sp_fit_group          A single struct containing the mean across subjects
 %                       of sp_fit. If there is only one subject, then
-%                       sp_fit_group equals sp_field
+%                       sp_fit_group equals sp_fit
 % sp_profiles           The (frequency bins by spectral components) mixing
 %                       matrix used to project from (no. of frequency bins
 %                       by regions) to (no. of components by regions)
 %
-% Author: Mark Woolrich, OHBA, University of Oxford (2017)
-%         Diego Vidaurre, OHBA, University of Oxford (2017)
+% Authors: Mark Woolrich, OHBA, University of Oxford (2017)
+%          Diego Vidaurre, OHBA, University of Oxford (2017)
+%          Andrew Quinn, OHBA, University of Oxford (2018)
 
 if ~iscell(sp_fit)
     error('Variable fit needs to be a cell, with one estimation per subject')
 end
 
 if nargin < 2, options = struct(); end
+if ~isfield(options,'Niterations'), options.Niterations = 10; end
 if ~isfield(options,'Ncomp'), options.Ncomp = 4; end
 if ~isfield(options,'Method'), options.Method = 'NNMF'; end
 if ~isfield(options,'Base'), options.Base = 'coh'; end
@@ -109,16 +111,36 @@ else
     X = Xcoh;
 end
 
+% Specify fit function, a unimodal gaussian
+gauss_func = @(x,f) f.a1.*exp(-((x-f.b1)/f.c1).^2);
+% Default fit options
+options_fit = fitoptions('gauss1');
+% constrain lower and upper bounds
+options_fit.Lower = [0,1,0];
+options_fit.Upper = [Inf,size(X,1),size(X,1)];
+
 if ~isfield(options,'sp_profiles') || isempty(options.sp_profiles)
     % Doing the decomposition
     if strcmpi(options.Method,'NNMF')
-        try
-            [a,~] = nnmf(X,options.Ncomp,'replicates',500,'algorithm','als');
-        catch
-            error('nnmf not found - perhaps the Matlab version is too old')
+        bestval = Inf; fitval = zeros(options.Niterations,1); 
+        for ii = 1:options.Niterations
+            try
+                [A,~] = nnmf(X,options.Ncomp,'replicates',500,'algorithm','als');
+            catch
+                error('nnmf not found - perhaps the Matlab version is too old')
+            end 
+            for jj = 1:size(A,2)
+                f = fit( linspace(1,size(A,1),size(A,1))',A(:,jj), 'gauss1',options_fit);
+                residuals = A(:,jj) - gauss_func(1:size(A,1),f)';
+                fitval(ii) = fitval(ii) + sum( residuals.^2 ) / size(A,2);
+            end
+            if fitval(ii) < bestval
+                bestval = fitval(ii);
+                bestfit = A; 
+            end
         end
         %sp_profiles = pinv(X') * b'; % you lose non-negativity by doing this
-        sp_profiles = a;
+        sp_profiles = bestfit;
         [~,ind] = max(sp_profiles,[],1);
         [~,neworder_auto] = sort(ind);
         sp_profiles = sp_profiles(:,neworder_auto);
@@ -126,11 +148,11 @@ if ~isfield(options,'sp_profiles') || isempty(options.sp_profiles)
         try
             m = mean(X);
             X = X - repmat(m,Nf,1);
-            [b,a] = pca(X,'NumComponents',options.Ncomp);
+            [~,A] = pca(X,'NumComponents',options.Ncomp);
         catch
             error('Error running pca - maybe not matlab''s own?')
         end
-        sp_profiles = a;
+        sp_profiles = A;
     end
 else
     sp_profiles = options.sp_profiles;
