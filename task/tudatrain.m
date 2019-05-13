@@ -81,12 +81,12 @@ options.S(1:p,p+1:end) = 1;
 %       of the decoding models
 options.updateObs = 0;
 options.updateGamma = 1;
-[tuda,Gamma,~,vpath] = hmmmar(Z,T,options);
+[~,Gamma,~,vpath] = hmmmar(Z,T,options);
 % 2. Update state distributions only, leaving fixed the state time courses
 options.updateObs = 1;
 options.updateGamma = 0;
 options.Gamma = Gamma;
-options.hmm = tuda; 
+%options.hmm = tuda; 
 tudamonitoring = options.tudamonitoring;
 if isfield(options,'behaviour')
     behaviour = options.behaviour;
