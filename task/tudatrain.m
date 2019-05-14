@@ -43,13 +43,17 @@ if isfield(options,'add_noise'), options = rmfield(options,'add_noise'); end
 p = size(X,2); q = size(Y,2);
  
 % init HMM, only if trials are temporally related
-if parallel_trials
-    GammaInit = cluster_decoding(X,Y,T,options.K,'regression','',...
-        options.Pstructure,options.Pistructure);
-    options.Gamma = permute(repmat(GammaInit,[1 1 N]),[1 3 2]);
-    options.Gamma = reshape(options.Gamma,[length(T)*size(GammaInit,1) options.K]);
+if ~isfield(options,'Gamma')
+    if parallel_trials
+        GammaInit = cluster_decoding(X,Y,T,options.K,'regression','',...
+            options.Pstructure,options.Pistructure);
+        options.Gamma = permute(repmat(GammaInit,[1 1 N]),[1 3 2]);
+        options.Gamma = reshape(options.Gamma,[length(T)*size(GammaInit,1) options.K]);
+    else
+        GammaInit = [];
+    end
 else
-    GammaInit = [];
+    GammaInit = options.Gamma; 
 end
 
 % if cyc==0 there is just init and no HMM training 
@@ -86,6 +90,7 @@ options.updateGamma = 1;
 options.updateObs = 1;
 options.updateGamma = 0;
 options.Gamma = Gamma;
+options.tuda = 1;
 %options.hmm = tuda; 
 tudamonitoring = options.tudamonitoring;
 if isfield(options,'behaviour')
