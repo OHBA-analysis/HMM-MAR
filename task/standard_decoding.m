@@ -110,8 +110,8 @@ for icv = 1:NCV
     end
 end
 
-cv_acc = zeros(ttrial,1);
-cv_err = zeros(ttrial,1); 
+cv_acc = NaN(ttrial,1);
+cv_err = NaN(ttrial,1); 
 for t = halfbin+1 : ttrial-halfbin
     Yt = reshape(Y(t,:,:),N,q);
     Ypredt = reshape(Ypred(t,:,:),N,q);
@@ -119,8 +119,8 @@ for t = halfbin+1 : ttrial-halfbin
 end
 
 % non-cross validated
-acc = zeros(ttrial,1);
-err = zeros(ttrial,1); 
+acc = NaN(ttrial,1);
+err = NaN(ttrial,1); 
 Ypred = zeros(size(Y));
 
 for t = halfbin+1 : ttrial-halfbin

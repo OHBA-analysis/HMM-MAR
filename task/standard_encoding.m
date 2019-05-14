@@ -40,7 +40,7 @@ Y = reshape(Y,[ttrial N q]);
 if any(T~=ttrial), error('All trials must have the same length'); end
 if nargin<5, binsize = 1; end
 
-encmodel = zeros(ttrial,p);
+encmodel = NaN(ttrial,p);
 
 for t = halfbin+1 : ttrial-halfbin
     r = t-halfbin:t+halfbin;
