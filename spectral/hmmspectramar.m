@@ -88,6 +88,9 @@ if MLestimation
         error('MAR spectra cannot be estimated for MAR order equal to 0')
     end    
 else
+    if hmm.train.order == 0 
+        error('order needs to be higher than 0')
+    end
     if isfield(hmm.state(1),'W')
         ndim = size(hmm.state(1).W.Mu_W,2);
     else
