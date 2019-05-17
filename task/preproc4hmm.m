@@ -26,6 +26,8 @@ if ~isfield(options,'Nfeatures'), Nfeatures = p;
 else, Nfeatures = options.Nfeatures; end
 if ~isfield(options,'standardise'), standardise = 1;
 else, standardise = options.standardise; end
+if ~isfield(options,'demeanstim'), demeanstim = 1;
+else, demeanstim = options.demeanstim; end
 if ~isfield(options,'onpower'), onpower = 0;
 else, onpower = options.onpower; end
 if ~isfield(options,'embeddedlags'), embeddedlags = 0;
@@ -103,14 +105,24 @@ if size(Y,1) == N % one value for the entire trial
     for n = 1:N
         Y(sum(T(1:n-1)) + (1:T(n)),:) = repmat(Ytmp(n,:),T(n),1);
     end; clear Ytmp
-    Y = Y + 1e-6 * repmat(std(Y),size(Y,1),1) .* randn(size(Y)) ;
+    %Y = Y + 1e-6 * repmat(std(Y),size(Y,1),1) .* randn(size(Y)) ;
 end
 
+if q == 1 && length(unique(Y))==2
+   if ~(ismember(-1,unique(Y)) && ismember(+1,unique(Y)))
+       warning('Seems this is binary classification, transforming stimulus to have elements (-1,+1)')
+       v = unique(Y); 
+       Y(Y==v(1)) = -1; Y(Y==v(2)) = +1; 
+   end
+end
 
 % Demean stimulus
-Y = bsxfun(@minus,Y,mean(Y));
-if add_noise % this avoids numerical problems 
-   Y = Y + 1e-4 * randn(size(Y)); 
+if demeanstim
+    Y = bsxfun(@minus,Y,mean(Y));
+end
+% Add noise, to avoid numerical problems 
+if add_noise 
+   Y = Y + 1e-5 * randn(size(Y)) .* repmat(std(Y),size(Y,1),1); 
 end
 % Filtering
 if ~isempty(filter)

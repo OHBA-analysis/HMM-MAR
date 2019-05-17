@@ -1,4 +1,4 @@
-function [hmm,XW] = updateW(hmm,Gamma,residuals,XX,XXGXX,Tfactor)
+function [hmm,XW] = updateW(hmm,Gamma,residuals,XX,XXGXX,Tfactor) 
 
 K = length(hmm.state); ndim = hmm.train.ndim;
 if ~isempty(hmm.state(1).W.Mu_W)
@@ -7,18 +7,36 @@ else
     XW = [];
 end
 if nargin<6, Tfactor = 1; end
+reweight = 0; % compensate for classes that have fewer instances?  % compensate for classes that have fewer instances?  % compensate for classes that have fewer instances?  % compensate for classes that have fewer instances?  % compensate for classes that have fewer instances?  
 if isfield(hmm.train,'B'), Q = size(hmm.train.B,2);
 else Q = ndim; end
 pcapred = hmm.train.pcapred>0;
 if pcapred, M = hmm.train.pcapred; end
 
+if reweight % assumes there are two classes, encoded by -1 and 1   
+    count = zeros(2,1); 
+    count(1) = mean(residuals(:,end)<0);
+    count(2) = mean(residuals(:,end)>0);
+end
+
 for k=1:K
+    
     if ~hmm.train.active(k), continue; end
     setstateoptions;
     if isempty(orders) && train.zeromean, continue; end
     if strcmp(train.covtype,'diag') || strcmp(train.covtype,'full'), omega = hmm.state(k).Omega;
     else omega = hmm.Omega;
     end
+    
+    if reweight
+        count_k = zeros(2,1);
+        count_k(1) = sum( Gamma(:,k) .* (residuals(:,end)<0) ) / sum(Gamma(:,k));
+        count_k(2) = sum( Gamma(:,k) .* (residuals(:,end)>0) ) / sum(Gamma(:,k));
+        ratio = count ./ count_k;
+        Gamma(residuals(:,end)<0,k) = Gamma(residuals(:,end)<0,k) * ratio(1);
+        Gamma(residuals(:,end)>0,k) = Gamma(residuals(:,end)>0,k) * ratio(2);
+    end
+  
     if train.uniqueAR || ndim==1 % it is assumed that order>0 and cov matrix is diagonal
         if hmm.train.pcapred>0, npred = hmm.train.pcapred;
         else npred = length(orders);

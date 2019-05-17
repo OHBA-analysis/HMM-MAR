@@ -123,6 +123,7 @@ if ~isfield(options,'behaviour'), options.behaviour = []; end
 if ~isempty(options.behaviour), options.tudamonitoring = 1;
 elseif ~isfield(options,'tudamonitoring'), options.tudamonitoring = 0;
 end
+if ~isfield(options,'tuda'), options.tuda = 1; end
 if options.tudamonitoring && stochastic_learning
    error('Stochastic learning is not currently compatible with TUDA monitoring options') 
 end

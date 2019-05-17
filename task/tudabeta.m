@@ -13,9 +13,9 @@ function beta = tudabeta(tuda)
 
 q = size(tuda.train.S,1) - find(tuda.train.S(1,:)>0,1) + 1;
 p = find(tuda.train.S(1,:)>0,1) - 1; 
-beta = zeros(tuda.K,p,q);
+beta = zeros(p,q,tuda.K);
 for k = 1:tuda.K
-    beta(k,:,:) = tuda.state(k).W.Mu_W(1:p,p+1:end);
+    beta(:,:,k) = tuda.state(k).W.Mu_W(1:p,p+1:end);
 end
 
 end

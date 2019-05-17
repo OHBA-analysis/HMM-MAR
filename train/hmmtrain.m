@@ -20,7 +20,7 @@ function [hmm,Gamma,Xi,fehist] = hmmtrain(data,T,hmm,Gamma,residuals,fehist)
 % hmm.P           - state transition matrix
 % hmm.state(k).$$ - whatever parameters there are in the observation model
 %
-% Author: Diego Vidaurre, OHBA, University of Oxford
+% Author: Diego Vidaurre, OHBA, University of Oxford (2018)
 
 if nargin<6, fehist=[]; end
 cyc_to_go = 0;

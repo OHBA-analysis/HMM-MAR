@@ -153,7 +153,7 @@ if hmm.train.useParallel==1 && N>1
             end
             XXt = XX(slicer + s0 - order,:); 
             if isnan(C(t,1))
-                [gammat,xit,Bt] = nodecluster(XXt,K,hmm,R(slicer,:),in);
+                [gammat,xit,Bt] = nodecluster(XXt,K,hmm,R(slicer,:));
             else
                 gammat = zeros(length(slicer),K);
                 if t==order+1, gammat(1,:) = C(slicer(1),:); end
@@ -216,7 +216,7 @@ else
             end
             XXt = XX(slicer + s0 - order,:);
             if isnan(C(t,1))
-                [gammat,xit,Bt] = nodecluster(XXt,K,hmm,R(slicer,:),in);
+                [gammat,xit,Bt] = nodecluster(XXt,K,hmm,R(slicer,:));
                 if any(isnan(gammat(:)))
                     error('State time course inference returned NaN - Out of precision?')
                 end
@@ -258,10 +258,30 @@ Gamma = cell2mat(Gamma);
 Xi = cell2mat(Xi);
 if n_argout>=5, B  = cell2mat(B); end
 
+% orthogonalise = 1; 
+% Gamma0 = Gamma; 
+% if orthogonalise && hmm.train.tuda
+%     T = length(Gamma) / length(T) * ones(length(T),1); 
+%     Gamma = reshape(Gamma,[T(1) length(T) size(Gamma,2) ]);
+%     Y = reshape(residuals(:,end),[T(1) length(T)]);
+%     for t = 1:T(1)
+%        y = Y(t,:)'; 
+%        for k = 1:size(Gamma,3)
+%            x = Gamma(t,:,k)';
+%            b = y \ x;
+%            Gamma(t,:,k) = Gamma(t,:,k) - (y * b)';
+%        end
+%     end
+%     Gamma = reshape(Gamma,[T(1)*length(T) size(Gamma,3) ]);
+%     Gamma = rdiv(Gamma,sum(Gamma,2));
+%     Gamma = Gamma - min(Gamma(:));
+%     Gamma = rdiv(Gamma,sum(Gamma,2));
+% end
+
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [Gamma,Xi,L] = nodecluster(XX,K,hmm,residuals,n)
+function [Gamma,Xi,L] = nodecluster(XX,K,hmm,residuals)
 % inference using normal foward backward propagation
 
 order = hmm.train.maxorder;
