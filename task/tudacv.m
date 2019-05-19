@@ -1,6 +1,9 @@
 function [acc,acc_star,Ypred,Ypred_star,c] = tudacv(X,Y,T,options,do_preproc)
 
 if nargin < 5, do_preproc = 1; end
+
+max_num_classes = 5;
+
 N = length(T); q = size(Y,2); ttrial = T(1); p = size(X,2); K = options.K;
 if ~all(T==T(1)), error('All elements of T must be equal for cross validation'); end 
 
@@ -13,7 +16,6 @@ else
     responses = permute(responses(1,:,:),[2 3 1]); % N x q
 end
 
-max_num_classes = 5;
 classification = length(unique(responses(:))) < max_num_classes;
 
 if classification
@@ -107,6 +109,8 @@ for icv = 1:NCV
             for j = 1:Nte, Gammapred(:,c.test{icv}(j),:) = mGammatrain; end
         case 2 % regression
             Xtest = permute(X(:,c.test{icv},:),[2 3 1]);
+            Xtrain = permute(X(:,c.training{icv},:),[2 3 1]);
+            Gammatrain = permute(reshape(Gammatrain,[ttrial Ntr K]),[2 3 1]);
             for t = 1:ttrial
                 B = (Xtrain(:,:,t)' * Xtrain(:,:,t) + RidgePen) \ ...
                     Xtrain(:,:,t)' * Gammatrain(:,:,t);
@@ -115,7 +119,8 @@ for icv = 1:NCV
                 pred = pred ./ repmat(sum(pred,2),1,K);
                 Gammapred(t,c.test{icv},:) = pred;
             end
-    end          
+    end      
+    if verbose, disp(['CV iteration: ' num2str(icv)]); end
 end
 
 % Perform the prediction 
@@ -133,7 +138,7 @@ end
 
 if classification
     Y = reshape(Y,[ttrial*N q]);
-    Y = round(Y); % get rid of noise we might have injected 
+    Y = continuous_prediction_2class(Ycopy,Y); % get rid of noise we might have injected 
     Ypred = reshape(Ypred,[ttrial*N q]);
     Ypred_star = reshape(continuous_prediction_2class(Ycopy,Ypred),[ttrial N q]);
     Ypred = zeros(N,q); 
@@ -174,6 +179,11 @@ function [tuda,Gamma] = call_tudatrain(X,Y,T,options)
 
 N = length(T); q = size(Y,2); p = size(X,2);
 
+GammaInit = cluster_decoding(X,Y,T,options.K,'regression','',...
+    options.Pstructure,options.Pistructure);
+options.Gamma = permute(repmat(GammaInit,[1 1 N]),[1 3 2]);
+options.Gamma = reshape(options.Gamma,[length(T)*size(GammaInit,1) options.K]);
+
 % Put X and Y together
 Ttmp = T;
 T = T + 1;
@@ -195,6 +205,7 @@ options.S(1:p,p+1:end) = 1;
 %       of the decoding models
 options.updateObs = 0;
 options.updateGamma = 1;
+options.verbose = 0; 
 [~,Gamma] = hmmmar(Z,T,options);
 % 2. Update state distributions only, leaving fixed the state time courses
 options.updateObs = 1;
@@ -204,7 +215,6 @@ options.tuda = 1;
 %options.hmm = tuda; 
 options.tudamonitoring = 0;
 options.behaviour = [];
-options.verbose = 0;
 tuda = hmmmar(Z,T,options); 
 
 end

@@ -11,6 +11,11 @@ function [tuda,Gamma,GammaInit,vpath,stats] = tudatrain(X,Y,T,options)
 % T: Length of series
 % options: structure with the training options - see documentation in 
 %                       https://github.com/OHBA-analysis/HMM-MAR/wiki
+% An important option is option.parallel_trials. If set to 1, then 
+%   all trials have the same experimental design and that the
+%        time points correspond between trials; in this case, all trials
+%        must have the same length. If set to 0, then there is not a fixed
+%        experimental design for all trials. 
 %
 % OUTPUT
 % tuda: Estimated TUDA model (similar to an HMM structure)
@@ -34,9 +39,17 @@ function [tuda,Gamma,GammaInit,vpath,stats] = tudatrain(X,Y,T,options)
 
 stats = struct();
 N = length(T); 
+max_num_classes = 5;
+
+classification = length(unique(Y(:))) < max_num_classes;
+if classification
+    % no demeaning by default if this is a classification problem
+    if ~isfield(options,'demeanstim'), options.demeanstim = 0; end
+end
 
 % Check options and put data in the right format
-[X,Y,T,options,stats.R2_pca,npca,features] = preproc4hmm(X,Y,T,options); 
+options_original = options; 
+[X,Y,T,options,A,stats.R2_pca,npca,features] = preproc4hmm(X,Y,T,options); 
 parallel_trials = options.parallel_trials; 
 options = rmfield(options,'parallel_trials');
 if isfield(options,'add_noise'), options = rmfield(options,'add_noise'); end
@@ -91,22 +104,24 @@ options.updateObs = 1;
 options.updateGamma = 0;
 options.Gamma = Gamma;
 options.tuda = 1;
-%options.hmm = tuda; 
-tudamonitoring = options.tudamonitoring;
-if isfield(options,'behaviour')
-    behaviour = options.behaviour;
-else 
-    behaviour = [];
-end
-verbose = options.verbose;
+% tudamonitoring = options.tudamonitoring;
+% if isfield(options,'behaviour')
+%     behaviour = options.behaviour;
+% else 
+%     behaviour = [];
+% end
 options.tudamonitoring = 0;
 options.behaviour = [];
 options.verbose = 0;
 [tuda,~,~,~,~,~, stats.fe] = hmmmar(Z,T,options); 
 tuda.features = features;
-options.tudamonitoring = tudamonitoring;
-options.behaviour = behaviour;
-options.verbose = verbose;
+if isfield(options_original,'verbose'), tuda.train.verbose = options_original.verbose; end
+if isfield(options_original,'embeddedlags'), tuda.train.embeddedlags = options_original.embeddedlags; end 
+if isfield(options_original,'standardise'), tuda.train.standardise = options_original.standardise; end  
+if isfield(options_original,'onpower'), tuda.train.onpower = options_original.onpower; end 
+if isfield(options_original,'detrend'), tuda.train.detrend = options_original.detrend; end 
+if isfield(options_original,'filter'), tuda.train.filter = options_original.filter; end 
+if isfield(options_original,'downsample'), tuda.train.downsample = options_original.downsample; end 
 
 % Explained variance per state, square error &
 % Square error for the standard time point by time point regression
@@ -118,6 +133,7 @@ else
 end
 
 tuda.train.pca = npca;
+tuda.train.A = A; 
 
 end
 
@@ -134,7 +150,7 @@ mY = reshape(mY,[ttrial N q]);
 Y = reshape(Y,[ttrial N q]);
 e0 = permute(sum((mY - Y).^2,2),[1 3 2]);
 mat1 = ones(ttrial,q);
-mGamma = meanGamma(Gamma,T);
+mGamma = getFractionalOccupancy (Gamma,T,[],1);
 for k = 1:K
     Yhat = X * tuda.state(k).W.Mu_W(1:p,p+1:end);
     Yhat = reshape(Yhat,[ttrial N q]);
@@ -163,161 +179,3 @@ end
 R2 = 1 - sqerr ./ sqerr0;
 end
 
-
-function Gamma = cluster_decoding(X,Y,T,K,cluster_method,...
-    cluster_measure,Pstructure,Pistructure)
-% clustering of the time-point-by-time-point regressions, which is
-% temporally constrained unlike TUDA
-% INPUT
-% X,Y,T are as usual
-% K is the number of states 
-% cluster_method is 'regression', 'kmeans', or 'hierarchical' 
-% cluster_measure is 'error', 'response' or 'beta' 
-% Pstructure and Pistructure are constraints in the transitions 
-%   if these are specified, cluster_method will be set to 'greedy'
-% OUTPUT
-% Gamma: (trial time by K), containing the cluster assignments 
-
-if nargin<5, cluster_method = 'regression'; end
-if nargin>5 && ~isempty(cluster_measure) && strcmp(cluster_method,'regression')
-   warning('cluster_measure is not used when cluster_method is regression') 
-end
-if nargin<6, cluster_measure = 'error'; end
-if nargin<7, Pstructure = true(K,1); end
-if nargin<8, Pistructure = true(K); end
-if ~strcmp(cluster_measure,'beta') && strcmp(cluster_method,'kmeans')
-    error('If kmeans is used, cluster_measure must be beta')
-end
-N = length(T); p = size(X,2); q = size(Y,2); ttrial = T(1);
-X = reshape(X,[ttrial N p]);
-Y = reshape(Y,[ttrial N q]);
-if strcmp(cluster_method,'regression')
-    max_cyc = 100;
-    % start with no constraints
-    Gamma = cluster_decoding(reshape(X,[ttrial*N p]),reshape(Y,[ttrial*N q]),...
-        T,K,'hierarchical','error');
-    assig = zeros(ttrial,1);
-    for t=1:ttrial, assig(t) = find(Gamma(t,:)==1); end
-    j1 = assig(1);
-    if ~Pistructure(j1) % is it consistent with constraint?
-        j = find(Pistructure,1); 
-        Gamma_j = Gamma(:,j);
-        Gamma(:,j) = Gamma(:,j1);
-        Gamma(:,j1) = Gamma_j;
-        for t=1:ttrial, assig(t) = find(Gamma(t,:)==1); end
-    end
-    assig_pr = assig;
-    beta = zeros(p,q,K);
-    err = zeros(ttrial,K);
-    for cyc = 1:max_cyc
-        % M
-        for k=1:K
-           ind = assig==k;
-           Xstar = reshape(X(ind,:,:),[sum(ind)*N p]);
-           Ystar = reshape(Y(ind,:,:),[sum(ind)*N q]);
-           beta(:,:,k) = (Xstar' * Xstar) \ (Xstar' * Ystar);
-        end
-        % E
-        for k=1:K
-           Yhat = reshape(X,[ttrial*N p]) * beta(:,:,k); 
-           e = sum((reshape(Y,[ttrial*N q]) - Yhat).^2,2);
-           e = reshape(e,[ttrial N]); 
-           err(:,k) = sqrt(sum(e,2));
-        end
-        err(1,~Pistructure) = Inf; 
-        [~,assig(1)] = min(err(1,:));
-        for t = 2:ttrial
-           err(t,~Pstructure(assig(t-1),:)) = Inf;
-           [~,assig(t)] = min(err(t,:)); 
-        end
-        % terminate? 
-        if all(assig_pr==assig), break; end
-        assig_pr = assig;
-    end
-    for t = 1:ttrial
-        Gamma(t,:) = 0;
-        Gamma(t,assig(t)) = 1;
-    end
-else
-    beta = zeros(p,q,ttrial);
-    for t = 1:ttrial
-        Xt = permute(X(t,:,:),[2 3 1]);
-        Yt = permute(Y(t,:,:),[2 3 1]);
-        beta(:,:,t) = (Xt' * Xt) \ (Xt' * Yt);
-    end
-    if strcmp(cluster_measure,'response')
-        dist = zeros(ttrial*(ttrial-1)/2,1);
-        Xstar = reshape(X,[ttrial*N p]);
-        c = 1; 
-        for t2 = 1:ttrial-1
-            d2 = Xstar * beta(:,:,t2);
-            for t1 = t2+1:ttrial
-                d1 = Xstar * beta(:,:,t1);
-                dist(c) = sqrt(sum(sum((d1 - d2).^2))); c = c + 1; 
-            end
-        end
-    elseif strcmp(cluster_measure,'error')
-        dist = zeros(ttrial*(ttrial-1)/2,1);
-        c = 1;
-        for t2 = 1:ttrial-1
-            Xt2 = permute(X(t2,:,:),[2 3 1]);
-            Yt2 = permute(Y(t2,:,:),[2 3 1]);
-            for t1 = t2+1:ttrial
-                Xt1 = permute(X(t1,:,:),[2 3 1]);
-                Yt1 = permute(Y(t1,:,:),[2 3 1]);
-                error1 = sqrt(sum(sum((Xt1 * beta(:,:,t2) - Yt1).^2)));
-                error2 = sqrt(sum(sum((Xt2 * beta(:,:,t1) - Yt2).^2)));
-                dist(c) = error1 + error2; c = c + 1; 
-            end
-        end
-    elseif strcmp(cluster_measure,'beta')
-        beta = permute(beta,[3 1 2]);
-        beta = reshape(beta,[ttrial p*q]);
-        if strcmp(cluster_method,'hierarchical')
-            dist = pdist(beta);
-        end
-    end
-    if strcmp(cluster_method,'kmeans')
-        assig = kmeans(beta,K);
-    else % hierarchical
-        if iseuclidean(dist')
-            link = linkage(dist','ward');
-        else
-            link = linkage(dist');
-        end
-        assig = cluster(link,'MaxClust',K);
-    end
-end
-Gamma = zeros(ttrial, K);
-for k = 1:K
-    Gamma(assig==k,k) = 1;
-end
-end
-
-
-function mGamma = meanGamma(Gamma,T)
-% Get the trial-averaged state time courses
-N = length(T); ttrial = sum(T)/N;
-K = size(Gamma,2);
-mGamma = squeeze(mean(reshape(Gamma,[ttrial N K]),2));
-end
-
-
-function t = iseuclidean(D)
-% D is (1 by pairs)
-m = size(D,2);
-% make sure it's a valid dissimilarity matrix
-n = ceil(sqrt(2*m)); % (1+sqrt(1+8*m))/2, but works for large m
-if n*(n-1)/2 == m && all(D >= 0)
-    D = squareform(D);
-else
-    warning(message('stats:iseuclidean:NotDistanceMatrix'))
-    t = false;
-    return
-end
-P = eye(n) - repmat(1/n,n,n);
-B = P * (-.5 * D .* D) * P;
-g = eig((B+B')./2); % guard against spurious complex e-vals from roundoff
-t = all(-eps(class(g))^(3/4) * max(abs(g)) <= g); 
-% all non-negative eigenvals (within roundoff)?
-end

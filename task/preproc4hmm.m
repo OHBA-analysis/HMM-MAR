@@ -1,4 +1,4 @@
-function [X,Y,T,options,R2_pca,pca_opt,features] = preproc4hmm(X,Y,T,options)
+function [X,Y,T,options,A,R2_pca,pca_opt,features] = preproc4hmm(X,Y,T,options)
 % Prepare data to run TUDA
 
 if length(size(X))==3 % 1st dim, time; 2nd dim, trials; 3rd dim, channels
@@ -43,6 +43,9 @@ if ~isfield(options,'parallel_trials'), parallel_trials = all(T==T(1));
 else, parallel_trials = options.parallel_trials; end
 if ~isfield(options,'pca'), pca_opt = 0;
 else, pca_opt = options.pca; end
+if ~isfield(options,'A'), A = [];
+else, A = options.A; end
+
 if isfield(options,'downsample') && options.downsample~=0
     warning('Downsampling is not possible for TUDA')
 end
@@ -77,16 +80,18 @@ options.pca = 0; % it is done here
 options.standardise = 0; % it is done here
 options.onpower = 0; % it is done here
 options.detrend = 0; % it is done here
-options.filter = []; 
-options.downsample = 0; 
+options.filter = []; % it is done here
+options.downsample = 0; % it is done here 
 options.dropstates = 0;
 
 options.inittype = 'HMM-MAR';
 if isfield(options,'econ_embed'), options = rmfield(options,'econ_embed'); end
 if isfield(options,'Nfeatures'), options = rmfield(options,'Nfeatures'); end
+if isfield(options,'demeanstim'), options = rmfield(options,'demeanstim'); end
+
 
 do_embedding = length(embeddedlags)>1;
-do_pca = length(pca_opt)>1 || (pca_opt>0 && pca_opt<p);
+do_pca = ~isempty(A) || length(pca_opt)>1 || (pca_opt>0 && pca_opt<p);
 
 if ~do_embedding && econ_embed
     econ_embed = 0;
@@ -194,13 +199,16 @@ if econ_embed
     end
     
     % do SVD
-    [A,e,~] = svd(C);
-    e = diag(e);
-    e = cumsum(e)/sum(e);
-    p = num_comp_pca(e,pca_opt);
-    A = A(:,1:p);
-    R2_pca = e(p);
-    
+    if isempty(A)
+        [A,e,~] = svd(C);
+        e = diag(e);
+        e = cumsum(e)/sum(e);
+        p = num_comp_pca(e,pca_opt);
+        A = A(:,1:p);
+        R2_pca = e(p);
+    else
+        R2_pca = []; p = size(A,2);
+    end
     % eigendecompose subject by subject
     Xtmp = X; Ttmp = T;
     T = T-emforw-emback;
@@ -216,7 +224,7 @@ if econ_embed
         Xn = Xn - repmat(mean(Xn),size(Xn,1),1); % must center
         X(t,:) = Xn * A;
     end
-    
+        
 else
     
     if do_embedding
@@ -226,12 +234,18 @@ else
         msg = '';
     end
     if do_pca
-        [~,X,e] = pca(X);
-        e = cumsum(e)/sum(e);
-        p = num_comp_pca(e,pca_opt);
-        R2_pca = e(p);
-        X = X(:,1:p);
-        fprintf('Working in PCA %s space, with %d components. \n',msg,p)
+        if isempty(A)
+            [A,X,e] = pca(X);
+            e = cumsum(e)/sum(e);
+            p = num_comp_pca(e,pca_opt);
+            R2_pca = e(p);
+            X = X(:,1:p);
+            A = A(:,1:p);
+            fprintf('Working in PCA %s space, with %d components. \n',msg,p)
+        else
+            X = bsxfun(@minus,X,mean(X));   
+            X = X * A; 
+        end
     else
         R2_pca = 1;
     end

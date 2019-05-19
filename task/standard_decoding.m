@@ -28,6 +28,8 @@ if nargin < 4 || isempty(options), options = struct(); end
 if nargin < 5, binsize = 1; end
 
 if ~all(T==T(1)), error('All elements of T must be equal for cross validation'); end 
+N = length(T); ttrial = T(1); 
+p = size(X,2); q = size(Y,2);
 
 if size(Y,1) == length(T) % one value per trial
     responses = Y;
@@ -45,6 +47,8 @@ if classification
     Ycopy = Y;
     if size(Ycopy,1) == N 
         Ycopy = repmat(reshape(Ycopy,[1 N q]),[ttrial 1 1]);
+    else
+        Ycopy = reshape(Ycopy,[ttrial N q]);
     end
     % no demeaning by default if this is a classification problem
     if ~isfield(options,'demeanstim'), options.demeanstim = 0; end
@@ -58,8 +62,6 @@ options.Nfeatures = 0;
 options.K = 1; 
 [X,Y,T] = preproc4hmm(X,Y,T,options); % this demeans Y
 
-N = length(T); ttrial = T(1); 
-p = size(X,2); q = size(Y,2);
 X = reshape(X,[ttrial N p]);
 Y = reshape(Y,[ttrial N q]);
 
