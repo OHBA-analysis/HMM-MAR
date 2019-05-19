@@ -58,6 +58,10 @@ if isfield(options,'downsample') && options.downsample>0
     r = (options.downsample/options.Fs);
 end
 
+if ~isfield(options,'order') && ~isfield(options,'embeddedlags')
+   options.order = (sum(T) - size(Gamma,1)) / length(T);
+end
+
 if isfield(options,'order') && options.order > 0
     T = ceil(r * T);
     T = T - options.order; 
