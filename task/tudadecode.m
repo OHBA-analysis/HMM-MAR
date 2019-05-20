@@ -6,9 +6,15 @@ function [Gamma,vpath,error] = tudadecode(X,Y,T,tuda,parallel_trials,do_preproc)
 % INPUT
 % X: Brain data, (time by regions)
 % Y: Stimulus, (time by q); q is no. of stimulus features
-% T: Length of series
+%               For binary classification problems, Y is (time by 1) and
+%               has values -1 or 1
+%               For multiclass classification problems, Y is (time by classes) 
+%               with indicators values taking 0 or 1. 
+%           If the stimulus is the same for all trials, Y can have as many
+%           rows as trials, e.g. (trials by q) 
+% T: Length of series or trials
 % tuda: Estimated TUDA model, using tudatrain
-% parallel_trials:  ff set to 1, then 
+% parallel_trials: if set to 1, then 
 %   all trials have the same experimental design and that the
 %   time points correspond between trials; in this case, all trials
 %   must have the same length. If set to 0, then there is not a fixed
@@ -100,9 +106,13 @@ options.cyc = 1;
 T = T - 1; 
 
 if parallel_trials
-    error = zeros(max(T),q,K);
+    if classification, error = zeros(max(T),K);
+    else, error = zeros(max(T),q,K);
+    end
 else
-    error = zeros(size(Gamma,1),q,K);
+    if classification, error = zeros(size(Gamma,1),K);
+    else, error = zeros(size(Gamma,1),q,K);
+    end    
 end
 Betas = tudabeta(tuda);
 
@@ -132,7 +142,9 @@ for k = 1:K
       end
       e = me ./ ntrials;
   end
-  error(:,:,k) = e;
+  if classification, error(:,k) = e;
+  else, error(:,:,k) = e;
+  end
 end
 
 error = squeeze(error); 

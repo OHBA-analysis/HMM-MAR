@@ -1,4 +1,59 @@
-function [acc,acc_star,Ypred,Ypred_star,c] = tudacv(X,Y,T,options,do_preproc)
+function [acc,acc_star,Ypred,Ypred_star] = tudacv(X,Y,T,options,do_preproc)
+%
+% Performs cross-validation of the TUDA model, which can be useful for
+% example to compare different number or states or other parameters
+%
+% NOTE: Specificying options.Nfeatures will lead to a circular assessment
+% (overfitting the accuracy), so this is discouraged
+% ALSO NOTE: the words decoder and state are used below indistinctly
+%
+% INPUT
+%
+% X: Brain data, (time by regions)
+% Y: Stimulus, (time by q); q is no. of stimulus features
+%               For binary classification problems, Y is (time by 1) and
+%               has values -1 or 1
+%               For multiclass classification problems, Y is (time by classes) 
+%               with indicators values taking 0 or 1. 
+%           If the stimulus is the same for all trials, Y can have as many
+%           rows as trials, e.g. (trials by q) 
+% T: Length of series or trials
+% options: structure with the training options - see documentation in
+%                       https://github.com/OHBA-analysis/HMM-MAR/wiki
+%  Apart from the options specified for tudatrain, these are specific to tudacv:
+%  - options.CVmethod, This options establishes how to compute the model time
+%                  courses in the held-out data. Note that it is not
+%                  obvious which state to use in the held-out data, because
+%                  deciding which one is the most appropriate needs to use Y,
+%                  which is precisely what we aim to predict. Ways of
+%                  estimating it in a non-circular way are:
+%                  . options.CVmethod=1: the state time course in held-out trials 
+%                  is taken to be the average from training. That is, if 20% of
+%                  the training trials use decoder 1, and 80% use decoder 2,
+%                  then the prediction in testing will be a weighted average of these  
+%                  two decoders, with weights 0.8 and 0.2. 
+%                  . options.CVmethod=2, the state time courses in testing are estimated 
+%                  using just data and linear regression, i.e. we try to predict
+%                  the state time courses in held-out trials using the data
+%  - options.NCV, containing the number of cross-validation folds (default 10)
+%  - options.lambda, regularisation penalty for estimating the testing
+%  state time courses when options.CVmethod=2.
+%  - options.c      an optional CV fold structure as returned by cvpartition
+%
+% OUTPUT
+%
+% acc: cross-validated accuracy ? explained variance if Y is continuous,
+%           classification accuracy if Y is categorical
+% c: CV folds structure (c.training, c.test)
+% pval: if options.Nperm > 1 and options.mode==2, this is the pvalue for
+%       testing the state tiem courses: are these significantly meaningful,
+%       above the average accuracy?
+% surrogates: if options.Nperm > 1 and options.mode==2, these are the
+%       surrogates created by permuting the state time courses across
+%       trials
+%
+%
+% Author: Diego Vidaurre, OHBA, University of Oxford (2018)
 
 if nargin < 5, do_preproc = 1; end
 
@@ -79,16 +134,16 @@ if ~isfield(options,'c')
         c2 = cvpartition(N,'KFold',NCV);
         %disp('Response is treated as continuous - no CV stratification')
     end
-    c = struct();
-    c.test = cell(NCV,1);
-    c.training = cell(NCV,1);
-    for icv = 1:NCV
-        c.training{icv} = find(c2.training(icv));
-        c.test{icv} = find(c2.test(icv));
-    end; clear c2
 else
-    c = options.c; options = rmfield(options,'c');
+   c2 = options.c; options = rmfield(options,'c');
 end
+c = struct();
+c.test = cell(NCV,1);
+c.training = cell(NCV,1);
+for icv = 1:NCV
+    c.training{icv} = find(c2.training(icv));
+    c.test{icv} = find(c2.test(icv));
+end; clear c2
 
 X = reshape(X,[ttrial N p]);
 Y = reshape(Y,[ttrial N q]);
@@ -158,7 +213,7 @@ if classification
         tmp = sum(abs(Y - Ypred_star),2) < 1e-4;
     end
     acc = mean(tmp);
-    acc_star = squeeze(mean(reshape(tmp, [ttrial N q]),2));
+    acc_star = squeeze(mean(reshape(tmp, [ttrial N 1]),2));
 else   
     Ypred_star = Ypred; 
     Ypred = permute( mean(Ypred_star,1) ,[2 3 1]);
