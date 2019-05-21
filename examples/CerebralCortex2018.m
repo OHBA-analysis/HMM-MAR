@@ -78,6 +78,7 @@ for k = 1:options.K
 end
 hold off
 xlabel('Time (s)'); ylabel('State activation')
+set(gca,'FontSize',16)
 xlim([0 0.45])
 
 subplot(211)
@@ -93,6 +94,8 @@ GammaCol = GammaCol(:,keep,:); % only trials with button press
 GammaCol = permute(GammaCol(:,ord_rt,:),[2 1 3]); % -> (trials by time by states)
 GammaCol = GammaCol(sort(randperm(sum(keep),200)),:,:); % choose some to plot
 imagesc(t,1:200,GammaCol)
+xlabel('Time (s)'); ylabel('Trials')
+set(gca,'FontSize',16)
 xlim([0 0.45])
 
 %% Plot reaction time vs predicted reaction time
@@ -104,11 +107,13 @@ title('Using raw state time courses')
 xlabel('Reaction Time')
 ylabel('Predicted reaction Time')
 disp(['Correlation ' num2str(corr(rt,rt_hat))])
+set(gca,'FontSize',16)
 
 subplot(122)
 scatter(rt,rt_hat_trans,'filled')
-title('Using raw state time courses')
+title('Transition probability matrix')
 xlabel('Reaction Time')
 ylabel('Predicted reaction Time')
 disp(['Correlation ' num2str(corr(rt,rt_hat_trans))])
+set(gca,'FontSize',16)
 
