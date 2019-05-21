@@ -256,7 +256,8 @@ if ~isfield(options,'DirichletDiag')
         options.DirichletDiag = 10;
     end
 end
-if ~isfield(options,'PriorWeighting'), options.PriorWeighting = 1; end
+if ~isfield(options,'PriorWeightingP'), options.PriorWeightingP = 1; end
+if ~isfield(options,'PriorWeightingPi'), options.PriorWeightingPi = 1; end
 
 % Some more hmm model options unrelated to the observational model
 if ~isfield(options,'repetitions'), options.repetitions = 1; end

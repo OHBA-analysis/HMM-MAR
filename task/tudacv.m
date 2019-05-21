@@ -209,11 +209,14 @@ if classification
     acc = mean(tmp);
     acc_star = squeeze(mean(reshape(tmp, [ttrial N 1]),2));
 else   
-    Ypred_star = Ypred; 
-    Ypred = permute( mean(Ypred_star,1) ,[2 3 1]);
+    Y = reshape(Y,[ttrial*N q]);
+    Ypred_star =  reshape(Ypred, [ttrial*N q]); 
+    Ypred = permute( mean(Ypred,1) ,[2 3 1]);
     % acc is explained variance 
-    acc = sum( (Y - Ypred).^2 ) ./ sum(Y.^2) ; 
+    acc = sum( (Y - Ypred_star).^2 ) ./ sum(Y.^2) ; 
     acc_star = zeros(ttrial,q); 
+    Y = reshape(Y,[ttrial N q]);
+    Ypred_star = reshape(Ypred_star, [ttrial N q]);
     for t = 1:ttrial
         y = permute(Y(t,:,:),[2 3 1]); 
         acc_star(t,:) = 1 - sum((y - permute(Ypred_star(t,:,:),[2 3 1])).^2) ./ sum(y.^2);
