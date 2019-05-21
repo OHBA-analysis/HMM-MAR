@@ -126,8 +126,12 @@ if demeanstim
     Y = bsxfun(@minus,Y,mean(Y));
 end
 % Add noise, to avoid numerical problems 
-if add_noise 
-   Y = Y + 1e-5 * randn(size(Y)) .* repmat(std(Y),size(Y,1),1); 
+if add_noise > 0
+    if add_noise == 1
+        Y = Y + 1e-5 * randn(size(Y)) .* repmat(std(Y),size(Y,1),1);
+    else
+        Y = Y + add_noise * randn(size(Y)) .* repmat(std(Y),size(Y,1),1);
+    end
 end
 % Filtering
 if ~isempty(filter)

@@ -1,4 +1,4 @@
-function [Gamma,vpath,error] = tudadecode(X,Y,T,tuda,new_experiment,parallel_trials)
+function [Gamma,vpath,error,Ypred] = tudadecode(X,Y,T,tuda,new_experiment,parallel_trials)
 % Having estimated the TUDA model (i.e. the corresponding decoding models)
 % in the same or a different data set, this function finds the model time
 % courses (with no re-estimation of the decoding parameters) 
@@ -35,6 +35,7 @@ function [Gamma,vpath,error] = tudadecode(X,Y,T,tuda,new_experiment,parallel_tri
 %          (trial tim by no. of stimuli by no. of states);
 %        otherwise, this is 
 %          (total time by no. of stimuli by no. of states).
+% Ypred: Predicted stimulus at each time point
 %
 % Author: Diego Vidaurre, OHBA, University of Oxford (2018)
 
