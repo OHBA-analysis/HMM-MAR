@@ -1,4 +1,4 @@
-function [acc,acc_star,Ypred,Ypred_star] = tudacv(X,Y,T,options,do_preproc)
+function [acc,acc_star,Ypred,Ypred_star] = tudacv(X,Y,T,options)
 %
 % Performs cross-validation of the TUDA model, which can be useful for
 % example to compare different number or states or other parameters
@@ -43,21 +43,15 @@ function [acc,acc_star,Ypred,Ypred_star] = tudacv(X,Y,T,options,do_preproc)
 % OUTPUT
 %
 % acc: cross-validated accuracy ? explained variance if Y is continuous,
-%           classification accuracy if Y is categorical
-% c: CV folds structure (c.training, c.test)
-% pval: if options.Nperm > 1 and options.mode==2, this is the pvalue for
-%       testing the state tiem courses: are these significantly meaningful,
-%       above the average accuracy?
-% surrogates: if options.Nperm > 1 and options.mode==2, these are the
-%       surrogates created by permuting the state time courses across
-%       trials
-%
+%           classification accuracy if Y is categorical (one value)
+% acc_star: cross-validated accuracy across time (trial time by 1) 
+% Ypred: predicted stimulus (trials by stimuli/classes)
+% Ypred_star: predicted stimulus across time (time by trials by stimuli/classes)
 %
 % Author: Diego Vidaurre, OHBA, University of Oxford (2018)
 
-if nargin < 5, do_preproc = 1; end
-
 max_num_classes = 5;
+do_preproc = 1; 
 
 N = length(T); q = size(Y,2); ttrial = T(1); p = size(X,2); K = options.K;
 if ~all(T==T(1)), error('All elements of T must be equal for cross validation'); end 
@@ -218,7 +212,7 @@ else
     Ypred_star = Ypred; 
     Ypred = permute( mean(Ypred_star,1) ,[2 3 1]);
     % acc is explained variance 
-    acc = sum( (response - Ypred).^2 ) ./ sum(response.^2) ; 
+    acc = sum( (Y - Ypred).^2 ) ./ sum(Y.^2) ; 
     acc_star = zeros(ttrial,q); 
     for t = 1:ttrial
         y = permute(Y(t,:,:),[2 3 1]); 

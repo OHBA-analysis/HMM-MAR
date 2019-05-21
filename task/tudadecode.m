@@ -1,4 +1,4 @@
-function [Gamma,vpath,error] = tudadecode(X,Y,T,tuda,parallel_trials,do_preproc)
+function [Gamma,vpath,error] = tudadecode(X,Y,T,tuda,new_experiment,parallel_trials)
 % Having estimated the TUDA model (i.e. the corresponding decoding models)
 % in the same or a different data set, this function finds the model time
 % courses (with no re-estimation of the decoding parameters) 
@@ -14,6 +14,11 @@ function [Gamma,vpath,error] = tudadecode(X,Y,T,tuda,parallel_trials,do_preproc)
 %           rows as trials, e.g. (trials by q) 
 % T: Length of series or trials
 % tuda: Estimated TUDA model, using tudatrain
+% new_experiment: Whether or not the estimated model is going to be applied
+%   on data that follows the same paradigm used to train the model. If the
+%   paradigm changes, then new_experiment should be 1. For example, that
+%   would be the case if we train the model on perception and test it on
+%   recalling. 
 % parallel_trials: if set to 1, then 
 %   all trials have the same experimental design and that the
 %   time points correspond between trials; in this case, all trials
@@ -33,10 +38,11 @@ function [Gamma,vpath,error] = tudadecode(X,Y,T,tuda,parallel_trials,do_preproc)
 %
 % Author: Diego Vidaurre, OHBA, University of Oxford (2018)
 
-if nargin < 5, parallel_trials = 0; end
-if nargin < 6, do_preproc = 1; end
+if nargin < 5, new_experiment = 0; end
+if nargin < 6, parallel_trials = 0; end
 
 max_num_classes = 5;
+do_preproc = 1; 
 
 N = length(T); q = size(Y,2); ttrial = T(1); p = size(X,2); K = tuda.train.K;
 
@@ -92,6 +98,15 @@ for n = 1:N
     Z(t1(1:end-1),1:p) = X(t2,:);
     Z(t1(2:end),(p+1):end) = Y(t2,:);
 end 
+
+if new_experiment
+    off_diagonal = [tuda.P(triu(true(K),1)); tuda.P(tril(true(K),-1))];
+    in_diagonal = tuda.P(eye(K)==1);
+    tuda.P(triu(true(K),1)) = mean(off_diagonal);
+    tuda.P(tril(true(K),-1)) = mean(off_diagonal);
+    tuda.P(eye(K)==1) = mean(in_diagonal);    
+    tuda.Pi(:) = mean(tuda.Pi);
+end
 
 % Run TUDA inference
 options.S = -ones(p+q);
