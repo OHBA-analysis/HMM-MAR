@@ -31,7 +31,7 @@ options = struct();
 options.K = 4; % number of states / decoders
 options.pca = 48; % there are a lot of channels, so we work on PCA space
 options.detrend = 1; % detrend the data
-options.standardise = 1; % standardize the brain data
+options.standardise = 0; % standardize the brain data
 options.DirichletDiag = 200; % regularize the state transitions
 options.parallel_trials = 1; % we assume same experimental paradigm for all trials
 
@@ -98,9 +98,19 @@ xlabel('Time (s)'); ylabel('Trials')
 set(gca,'FontSize',16)
 xlim([0 0.45])
 
-%% Plot reaction time vs predicted reaction time
+%% Plot cross-validated accuracy 
 
 figure(2)
+
+plot(t,accuracy_star,'LineWidth',3)
+hold on; plot(t,zeros(size(t)),'k'); hold off
+xlabel('Time (s)'); ylabel('Explained variance')
+set(gca,'FontSize',16)
+
+
+%% Plot reaction time vs predicted reaction time
+
+figure(3)
 subplot(121)
 scatter(rt,rt_hat,'filled')
 title('Using raw state time courses')

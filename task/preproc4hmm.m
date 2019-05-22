@@ -88,7 +88,10 @@ options.inittype = 'HMM-MAR';
 if isfield(options,'econ_embed'), options = rmfield(options,'econ_embed'); end
 if isfield(options,'Nfeatures'), options = rmfield(options,'Nfeatures'); end
 if isfield(options,'demeanstim'), options = rmfield(options,'demeanstim'); end
-
+% Set a high prior for the initial probabilities because otherwise the
+% model is biased to have the first time point of each trial to be assigned
+% to just one state.
+if ~isfield(options,'PriorWeightingPi'), options.PriorWeightingPi = length(T)*10; end
 
 do_embedding = length(embeddedlags)>1;
 do_pca = ~isempty(A) || length(pca_opt)>1 || (pca_opt>0 && pca_opt<p);
@@ -142,6 +145,10 @@ if detrend
     X = detrenddata(X,T);
 end
 % Standardise data
+if standardise
+   warning(['You have set standardise=1, so each channel and trial will be standardized. ' ...
+       'This will probably result in a loss of information in terms of how each stimulus is processed'])
+end
 X = standardisedata(X,T,standardise);
 
 % adjust dimension of Y according to embedding
