@@ -213,7 +213,7 @@ else
     Ypred_star =  reshape(Ypred, [ttrial*N q]); 
     Ypred = permute( mean(Ypred,1) ,[2 3 1]);
     % acc is explained variance 
-    acc = sum( (Y - Ypred_star).^2 ) ./ sum(Y.^2) ; 
+    acc = 1 - sum( (Y - Ypred_star).^2 ) ./ sum(Y.^2) ; 
     acc_star = zeros(ttrial,q); 
     Y = reshape(Y,[ttrial N q]);
     Ypred_star = reshape(Ypred_star, [ttrial N q]);
