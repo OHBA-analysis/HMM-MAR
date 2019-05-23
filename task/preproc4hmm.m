@@ -24,7 +24,7 @@ end
 % options relative to the regression setting
 if ~isfield(options,'Nfeatures'), Nfeatures = p;
 else, Nfeatures = options.Nfeatures; end
-if ~isfield(options,'standardise'), standardise = 1;
+if ~isfield(options,'standardise'), standardise = 0;
 else, standardise = options.standardise; end
 if ~isfield(options,'demeanstim'), demeanstim = 1;
 else, demeanstim = options.demeanstim; end
@@ -91,7 +91,7 @@ if isfield(options,'demeanstim'), options = rmfield(options,'demeanstim'); end
 % Set a high prior for the initial probabilities because otherwise the
 % model is biased to have the first time point of each trial to be assigned
 % to just one state.
-if ~isfield(options,'PriorWeightingPi'), options.PriorWeightingPi = length(T)*10; end
+if ~isfield(options,'PriorWeightingPi'), options.PriorWeightingPi = length(T); end
 
 do_embedding = length(embeddedlags)>1;
 do_pca = ~isempty(A) || length(pca_opt)>1 || (pca_opt>0 && pca_opt<p);

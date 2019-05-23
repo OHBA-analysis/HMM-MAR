@@ -188,7 +188,7 @@ if hmm.train.useParallel==1 && N>1
     
 else
     
-    for in=1:N % this is exactly the same than the code above but changing parfor by for
+    for in = 1:N % this is exactly the same than the code above but changing parfor by for
         Bt = [];  
         t0 = sum(T(1:in-1)); s0 = t0 - order*(in-1);
         if order>0

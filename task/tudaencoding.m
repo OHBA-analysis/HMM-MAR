@@ -1,4 +1,4 @@
-function encmodel = tudaencoding(X,Y,T,options,Gamma)
+function [beta,r2] = tudaencoding(X,Y,T,options,Gamma)
 % Compute maps representing the "encoding" model for each
 % state from the TUDA model. There are two approaches for achieving this:
 % For each state, 
@@ -12,31 +12,37 @@ function encmodel = tudaencoding(X,Y,T,options,Gamma)
 % 
 % Author: Diego Vidaurre, OHBA, University of Oxford (2017)
 
+options.Nfeatures = 0; 
+options.pca = 0;
+options.embeddedlags = 0;
+options.K = 1; 
+[X,Y,T] = preproc4hmm(X,Y,T,options); % this demeans Y
+mx = mean(X);
+X = bsxfun(@minus,X,mx);
+K = size(Gamma,2); p = size(X,2); q = size(Y,2);
 
 if ~isfield(options,'embeddedlags'), embeddedlags = 0;
 else, embeddedlags = options.embeddedlags; end
 do_embedding = length(embeddedlags)>1;
+
 if ~isfield(options,'CCA'), CCA = 0;
 else, CCA = options.CCA; end
+if do_embedding && ~CCA
+   warning('Embedding will not be used') 
+   do_embedding = 0;
+end
 nlags = length(embeddedlags);
 
-options.Nfeatures = 0; 
-options.pca = 0;
-options.embeddedlags = 0;
-
-[X,Y,T] = preproc4hmm(X,Y,T,options); 
-
-K = size(Gamma,2);
-p = size(X,2);
-q = size(Y,2);
-encmodel = zeros(p,K);
+beta = zeros(p,K,q);
+r2 = zeros(p,K);
 
 for j = 1:p
     if do_embedding
-        Xj = embeddata(X(:,j),T,embeddedlags);
+       Xj = embeddata(X(:,j),T,embeddedlags);
     else
-        Xj = X(:,j);
+       Xj = X(:,j);
     end
+    Xj = X(:,j);
     for k = 1:K
         if CCA
             G = repmat(Gamma(:,k),1,nlags);
@@ -46,16 +52,18 @@ for j = 1:p
             m = sum(G .* Y) / sum(Gamma(:,k));
             Yw = sqrt(G) .* (Y - repmat(m,size(G,1),1));
             [~,~,r] = canoncorr(Xw,Yw); % weighted CCA
-            encmodel(j,k) = sum(r);
+            r2(j,k) = sum(r);
         else       
             G1 = repmat(Gamma(:,k),1,nlags);
             Xw = sqrt(G1) .* Xj;
             G2 = repmat(Gamma(:,k),1,q);
-            Yw = sqrt(G2) .* Y;
-            beta = (Yw' * Yw) \ (Yw' * Xw);
-            res = ((Xj - Y * beta).^2) .* G1; 
+            Y1 = [ones(size(Y,1),1) Y];
+            Yw = sqrt(G2) .* Y1;
+            b = (Yw' * Yw + 1e-6 * eye(size(Yw,2))) \ (Yw' * Xw);
+            res = ((Xj - Y1 * b).^2) .* G1; 
             res0 = (Xj.^2) .* G1;
-            encmodel(j,k) = 1 - sum(res(:))/sum(res0(:)); 
+            beta(j,k,:) = b(2:end); 
+            r2(j,k) = 1 - sum(res(:))/sum(res0(:)); 
         end
     end
 end

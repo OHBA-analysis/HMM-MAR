@@ -29,7 +29,7 @@ if nargin < 5, binsize = 1; end
 
 if ~all(T==T(1)), error('All elements of T must be equal for cross validation'); end 
 N = length(T); ttrial = T(1); 
-p = size(X,2); q = size(Y,2);
+q = size(Y,2);
 
 if size(Y,1) == length(T) % one value per trial
     responses = Y;
@@ -61,6 +61,7 @@ end
 options.Nfeatures = 0; 
 options.K = 1; 
 [X,Y,T] = preproc4hmm(X,Y,T,options); % this demeans Y
+p = size(X,2);
 
 X = reshape(X,[ttrial N p]);
 Y = reshape(Y,[ttrial N q]);

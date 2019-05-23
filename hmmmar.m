@@ -319,6 +319,7 @@ else
     else % Gamma specified
         if ~isempty(options.hmm)
            warning('options.hmm will not be used because options.Gamma was specified') 
+           options.hmm = [];
         end
         % hmm unspecified, or both specified
         GammaInit = options.Gamma;

@@ -5,7 +5,7 @@
 % This pipeline must be adapted to your particular configuration of files.
 %%%%%%%%%%%%%%%%%%%%%%%%%
 %% Setup
-DO_PLOT = 0;
+DO_PLOT = 1;
 
 mydir = '/home/diegov/MATLAB/';
 addpath(genpath([ mydir 'HMM-MAR']))
@@ -64,17 +64,27 @@ options_cv = options; options.NCV = 10;
 [accuracy,accuracy_star] = tudacv(data,Y,T,options_cv);
 
 %% See if the between-temporal variability in the states predict behaviour
+% Here we predict reaction time is predicted by using the state time
+% courses. It is assumed that there exists a variable response, telling which
+% trials have a button press; and rt, which contains the reaction time itself
 keep = response == 1; % which trials the subject pressed the button?
 rt = resptime(keep); % reaction time
+% State time courses for the trials where there is a button prese
 Gamma_keep = reshape(Gamma,[T(1) length(T) options.K]);
 Gamma_keep = Gamma_keep(:,keep,:);
 Gamma_keep = reshape(Gamma_keep,[T(1)*sum(keep) options.K]);
 [rt_hat,ev] = tudaregressbeh(Gamma_keep,T(keep),rt,60);
 [rt_hat_trans,ev_trans] = tudaregressbeh(Gamma_keep,T(keep),rt,-1);
 
+save('Outputs.mat','accuracy','accuracy_star','rt_hat','ev',...
+    'rt_hat_trans','ev_trans','tuda','Gamma')
+
 %% Do plotting
 
 if DO_PLOT
+    
+    keep = response == 1; % which trials the subject pressed the button?
+    rt = resptime(keep); % reaction time
     
     % Plot the state activation trial by trial and on average
     
@@ -105,7 +115,7 @@ if DO_PLOT
     GammaCol = GammaCol(:,keep,:); % only trials with button press
     GammaCol = permute(GammaCol(:,ord_rt,:),[2 1 3]); % -> (trials by time by states)
     GammaCol = GammaCol(sort(randperm(sum(keep),200)),:,:); % choose some to plot
-    imagesc(t,1:200,GammaCol)
+    imagesc(t,1:size(GammaCol,1),GammaCol)
     xlabel('Time (s)'); ylabel('Trials')
     set(gca,'FontSize',16)
     xlim([0 0.45])
