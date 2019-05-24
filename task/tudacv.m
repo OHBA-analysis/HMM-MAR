@@ -231,7 +231,7 @@ function [tuda,Gamma] = call_tudatrain(X,Y,T,options)
 
 N = length(T); q = size(Y,2); p = size(X,2);
 
-GammaInit = cluster_decoding(X,Y,T,options.K,'regression','',...
+GammaInit = cluster_decoding(X,Y,T,options.K,classification,'regression','',...
     options.Pstructure,options.Pistructure);
 options.Gamma = permute(repmat(GammaInit,[1 1 N]),[1 3 2]);
 options.Gamma = reshape(options.Gamma,[length(T)*size(GammaInit,1) options.K]);

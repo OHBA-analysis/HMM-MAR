@@ -92,6 +92,7 @@ if isfield(options,'demeanstim'), options = rmfield(options,'demeanstim'); end
 % model is biased to have the first time point of each trial to be assigned
 % to just one state.
 if ~isfield(options,'PriorWeightingPi'), options.PriorWeightingPi = length(T); end
+if ~isfield(options,'DirichletDiag'), options.DirichletDiag = 100; end
 
 do_embedding = length(embeddedlags)>1;
 do_pca = ~isempty(A) || length(pca_opt)>1 || (pca_opt>0 && pca_opt<p);

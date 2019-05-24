@@ -62,7 +62,7 @@ p = size(X,2); q = size(Y,2);
 % init HMM, only if trials are temporally related
 if ~isfield(options,'Gamma')
     if parallel_trials
-        GammaInit = cluster_decoding(X,Y,T,options.K,'regression','',...
+        GammaInit = cluster_decoding(X,Y,T,options.K,classification,'regression','',...
             options.Pstructure,options.Pistructure);
         options.Gamma = permute(repmat(GammaInit,[1 1 N]),[1 3 2]);
         options.Gamma = reshape(options.Gamma,[length(T)*size(GammaInit,1) options.K]);
@@ -98,15 +98,23 @@ end
 % Run TUDA inference
 options.S = -ones(p+q);
 options.S(1:p,p+1:end) = 1;
-% 1. Estimate state time courses, trans prob mat, and first approximation
-%       of the decoding models
+% 1. With the restriction that, for each time point, 
+%   all trials have the same state (i.e. no between-trial variability),
+%   we estimate a first approximation of the decoding models
+options.updateObs = 1; 
+options.updateGamma = 0; 
+tuda = hmmmar(Z,T,options);
+% 2. Estimate state time courses and transition probability matrix 
 options.updateObs = 0;
 options.updateGamma = 1;
+options = rmfield(options,'Gamma');
+options.hmm = tuda; 
 [~,Gamma,~,vpath] = hmmmar(Z,T,options);
-% 2. Update state distributions only, leaving fixed the state time courses
+% 3. Final update of state distributions, leaving fixed the state time courses
 options.updateObs = 1;
 options.updateGamma = 0;
 options.Gamma = Gamma;
+options = rmfield(options,'hmm');
 options.tuda = 1;
 % tudamonitoring = options.tudamonitoring;
 % if isfield(options,'behaviour')
@@ -118,6 +126,7 @@ options.tudamonitoring = 0;
 options.behaviour = [];
 options.verbose = 0;
 [tuda,~,~,~,~,~, stats.fe] = hmmmar(Z,T,options); 
+
 tuda.features = features;
 if isfield(options_original,'verbose'), tuda.train.verbose = options_original.verbose; end
 if isfield(options_original,'embeddedlags'), tuda.train.embeddedlags = options_original.embeddedlags; end 
