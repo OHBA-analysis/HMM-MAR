@@ -1,14 +1,17 @@
 function Gamma = cluster_decoding(X,Y,T,K,classification,cluster_method,...
-    cluster_measure,Pstructure,Pistructure,GammaInit)
+    cluster_measure,Pstructure,Pistructure,GammaInit,repetitions)
 % clustering of the time-point-by-time-point regressions, which is
 % temporally constrained unlike TUDA
 % INPUT
 % X,Y,T are as usual
 % K is the number of states
-% cluster_method is 'regression' or 'hierarchical'
-% cluster_measure is 'error', 'response' or 'beta'
+% cluster_method is 'regression', 'hierarchical', or 'sequential'
+% cluster_measure is 'error', 'response' or 'beta', only used if 
+%       cluster_method is 'hierarchical'
 % Pstructure and Pistructure are constraints in the transitions
-%   if these are specified, cluster_method will be set to 'greedy'
+% GammaInit: Initial state time course (optional)
+% repetitions: How many times to repeat the init (only used if
+%       cluster_method is 'sequential'
 % OUTPUT
 % Gamma: (trial time by K), containing the cluster assignments
 
@@ -20,6 +23,8 @@ if nargin<7, cluster_measure = 'error'; end
 if nargin<8, Pstructure = true(K,1); end
 if nargin<9, Pistructure = true(K); end
 if nargin<10, GammaInit = []; end
+if nargin<11, repetitions = 100; end
+
 
 N = length(T); p = size(X,2); q = size(Y,2); ttrial = T(1);
 X = reshape(X,[ttrial N p]);
@@ -28,17 +33,8 @@ if strcmp(cluster_method,'regression')
     max_cyc = 100;
     % start with no constraints
     if isempty(GammaInit)
-        %Gamma = cluster_decoding(reshape(X,[ttrial*N p]),reshape(Y,[ttrial*N q]),...
-        %    T,K,'hierarchical','response');
-        % Initial is sequence with identical dwell times
-        GammaInit = cluster_decoding(reshape(X,[ttrial*N p]),reshape(Y,[ttrial*N q]),...
-            T,K,classification,'sequential');
-%         P = eye(K); for k = 1:K-1, P(k,k+1) = 1; end
-%         Pi = zeros(K,1); Pi(1) = 1; 
-%         % Then get the best sequence with non-identical dwell times
-%         Gamma = cluster_decoding(reshape(X,[ttrial*N p]),reshape(Y,[ttrial*N q]),...
-%             T,K,classification,'regression',[],P,Pi,GammaInit);
-        Gamma = GammaInit; 
+        Gamma = cluster_decoding(reshape(X,[ttrial*N p]),reshape(Y,[ttrial*N q]),...
+            T,K,classification,'sequential',[],[],[],[],5000);
     else
         Gamma = GammaInit; 
     end
@@ -139,8 +135,42 @@ elseif strcmp(cluster_method,'hierarchical')
     assig = cluster(link,'MaxClust',K);
 else % 'sequential'
     assig = zeros(ttrial,1);
+    err = 0;
     changes = [1 (1:(K-1)) * round(ttrial / K) ttrial];
-    for k = 1:K, assig(changes(k):changes(k+1)) = k; end
+    Ystar = reshape(Y,[ttrial*N q]);
+    for k = 1:K
+        assig(changes(k):changes(k+1)) = k;
+        ind = assig==k;
+        Xstar = reshape(X(ind,:,:),[sum(ind)*N p]);
+        Ystar = reshape(Y(ind,:,:),[sum(ind)*N q]);
+        beta = (Xstar' * Xstar + 0.0001*eye(size(Xstar,2))) \ (Xstar' * Ystar);
+        err = err + sqrt(sum(sum((Ystar - Xstar * beta).^2,2)));
+    end
+    err_best = err; assig_best = assig;
+    for rep = 1:repetitions
+        assig = zeros(ttrial,1);
+        while 1
+            changes = cumsum(rand(1,K));
+            changes = [1 round(ttrial * changes / max(changes))];
+            if ~any(changes==0) && length(unique(changes))==length(changes) 
+                break 
+            end
+        end
+        err = 0;
+        for k = 1:K
+            assig(changes(k):changes(k+1)) = k;
+            ind = assig==k;
+            Xstar = reshape(X(ind,:,:),[sum(ind)*N p]);
+            Ystar = reshape(Y(ind,:,:),[sum(ind)*N q]);
+            beta = (Xstar' * Xstar + 0.0001*eye(size(Xstar,2))) \ (Xstar' * Ystar);
+            err = err + sqrt(sum(sum((Ystar - Xstar * beta).^2,2)));
+        end
+        if err < err_best
+            err_best = err; assig_best = assig;
+        end
+    end
+    assig = assig_best;
+        
 end
 
 Gamma = zeros(ttrial, K);
@@ -148,3 +178,4 @@ for k = 1:K
     Gamma(assig==k,k) = 1;
 end
 end
+

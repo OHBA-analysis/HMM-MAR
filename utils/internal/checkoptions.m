@@ -154,7 +154,7 @@ end
 if ~isfield(options,'Pistructure')
     options.Pistructure = true(1,options.K);
 else
-    if length(options.Pistructure) ~=options.K 
+    if length(options.Pistructure) ~= options.K 
         error('The dimensions of options.Pistructure are incorrect')
     end
     options.Pistructure = (options.Pistructure~=0);
