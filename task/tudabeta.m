@@ -6,7 +6,7 @@ function beta = tudabeta(tuda)
 % tuda: Estimated TUDA model, using tudatrain
 %
 % OUTPUT
-% beta: (no. states by no. channels by no. predicted features) array of
+% beta: (no. channels by no. predicted stimuli by no. states) array of
 %           decoding coefficients
 %
 % Author: Diego Vidaurre, OHBA, University of Oxford (2018)
@@ -17,7 +17,7 @@ beta = zeros(p,q,tuda.K);
 for k = 1:tuda.K
     beta(:,:,k) = tuda.state(k).W.Mu_W(1:p,p+1:end);
 end
-beta = squeeze(beta); 
+%beta = squeeze(beta); 
 
 end
 
