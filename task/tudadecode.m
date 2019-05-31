@@ -25,8 +25,6 @@ function [Gamma,vpath,error,Ypred] = tudadecode(X,Y,T,tuda,new_experiment,parall
 %   must have the same length. If set to 0, then there is not a fixed
 %   experimental design for all trials. 
 %
-%
-%
 % OUTPUT 
 % Gamma: Time courses of the states (decoding models) probabilities given data
 % vpath: Most likely state path of hard assignments

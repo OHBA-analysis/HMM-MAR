@@ -17,6 +17,7 @@ beta = zeros(p,q,tuda.K);
 for k = 1:tuda.K
     beta(:,:,k) = tuda.state(k).W.Mu_W(1:p,p+1:end);
 end
+beta = squeeze(beta); 
 
 end
 

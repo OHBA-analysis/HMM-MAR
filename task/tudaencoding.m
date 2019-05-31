@@ -16,6 +16,14 @@ options.Nfeatures = 0;
 options.pca = 0;
 options.embeddedlags = 0;
 options.K = 1; 
+
+max_num_classes = 5; 
+
+classification = length(unique(Y(:))) < max_num_classes;
+if classification
+    if ~isfield(options,'demeanstim'), options.demeanstim = 0; end
+end
+
 [X,Y,T] = preproc4hmm(X,Y,T,options); % this demeans Y
 mx = mean(X);
 X = bsxfun(@minus,X,mx);
