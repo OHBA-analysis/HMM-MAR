@@ -66,17 +66,17 @@ mg = getFractionalOccupancy(Gamma,T,tuda.train,1);
 mg_sparse = zeros(size(mg));
 
 % Temporal sparsification
-for k = 1:K
-    % Specify fit function, a unimodal gaussian
-    gauss_func = @(x,f) f.a1.*exp(-((x-f.b1)/f.c1).^2);
-    options_fit = fitoptions('gauss1');
-    [~,m] = max(mg(:,k));
-    options_fit.Lower = [0,m,0];
-    options_fit.Upper = [Inf,m,ttrial];
-    f = fit( linspace(1,ttrial,ttrial)',mg(:,k), 'gauss1',options_fit);
-    mg_sparse(:,k) = gauss_func(1:ttrial,f)';
-    mu = f.b1; s = f.c1;
-    if temp_sparsity > 0
+if temp_sparsity > 0
+    for k = 1:K
+        % Specify fit function, a unimodal gaussian
+        gauss_func = @(x,f) f.a1.*exp(-((x-f.b1)/f.c1).^2);
+        options_fit = fitoptions('gauss1');
+        [~,m] = max(mg(:,k));
+        options_fit.Lower = [0,m,0];
+        options_fit.Upper = [Inf,m,ttrial];
+        f = fit( linspace(1,ttrial,ttrial)',mg(:,k), 'gauss1',options_fit);
+        mg_sparse(:,k) = gauss_func(1:ttrial,f)';
+        mu = f.b1; s = f.c1;
         pp = temp_sparsity / 2;
         d = norminv(pp,mu,s);
         if d >= 1, mg_sparse(1:round(d),k) = 0; end
@@ -84,7 +84,10 @@ for k = 1:K
         d = norminv(pp,mu,s);
         if d <= ttrial, mg_sparse(round(d):ttrial,k) = 0; end
     end
+else
+    mg_sparse = mg;
 end
+    
 
 for j = 1:N
     ind = (1:T(j)) + sum(T(1:j-1));
@@ -97,11 +100,13 @@ end
 Gamma = rdiv(Gamma,sum(Gamma,2));
 
 % Spatial sparsification
-for k = 1:K
-   ind = Gamma(:,k) > 0;
-   beta = lassoglm(X(ind,:),Y(ind,:),'normal','Weights',Gamma(ind,k),...
-       'Alpha',0.1,'DFmax',round(p*(1-spatial_sparsity)));
-   tuda.state(k).W.Mu_W(1:end-1,end-q+1:end) = beta(:,1); 
+if spatial_sparsity > 0
+    for k = 1:K
+        ind = Gamma(:,k) > 0;
+        beta = lassoglm(X(ind,:),Y(ind,:),'normal','Weights',Gamma(ind,k),...
+            'Alpha',0.1,'DFmax',round(p*(1-spatial_sparsity)));
+        tuda.state(k).W.Mu_W(1:end-1,end-q+1:end) = beta(:,1);
+    end
 end
 
 decmodel = tudabeta(tuda); % channels by states
