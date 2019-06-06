@@ -251,7 +251,10 @@ if ~isfield(options,'DirichletDiag')
         if iscell(T), sumT = sum(cell2mat(T));
         else, sumT = sum(T);
         end
-        options.DirichletDiag = sumT/5;
+        %options.DirichletDiag = sumT/5;
+        options.DirichletDiag = 100;
+        warning(['With options.order > 0, you might want to specify options.DirichletDiag ' ...
+            'to a larger value if your state time courses are too volatile'])
     else
         options.DirichletDiag = 10;
     end
