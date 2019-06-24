@@ -49,7 +49,9 @@ if isempty(Gamma) && K>1 % Gamma is not provided, so we simulate it too
     % discrete, we end up with "new" states that are lin. combinations of 
     % other states
     [~, maxGammaInd] = max(Gamma, [], 2);
-    Gamma = maxGammaInd == 1:max(maxGammaInd);
+    Gamma = zeros(size(Gamma));
+    for k = 1:K, Gamma(maxGammaInd==k,k) = 1; end
+    %Gamma = maxGammaInd == 1:max(maxGammaInd);
 elseif isempty(Gamma) && K==1
     Gamma = ones(sum(T),1);
 end
