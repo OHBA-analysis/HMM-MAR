@@ -315,6 +315,14 @@ save(outputfile,'hmm','Gamma','vpath')
 explained_var = explainedvar_PCA(mat_files,T_all,options);
 figure; plot(explained_var,'LineWidth',3);
 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Get the auto-covariance matrix, or cross-correlation matrix, for each state
+
+k = 1; 
+C = getAutoCovMat(hmm,k);
+figure; imagesc(C); 
+
 %%%%%%%%%%%%%%%%%%%%%%%%%
 %% Compute the spectra, at the group level and per subject
 
