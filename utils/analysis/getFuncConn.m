@@ -31,7 +31,7 @@ catch
         'Most probably, the inference did not assign enough time points to this state.'])
 end
 
-if length(hmm.train.embeddedlags) > 1 && verbose
+if isfield(hmm.train,'embeddedlags') && length(hmm.train.embeddedlags) > 1 && verbose
     disp(['Because you are using options.embedded lags, the resulting matrices will ' ...
         'be (lags x regions) by (lags x regions)'])
 end
