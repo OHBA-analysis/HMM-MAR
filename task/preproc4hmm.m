@@ -137,6 +137,12 @@ if add_noise > 0
         Y = Y + add_noise * randn(size(Y)) .* repmat(std(Y),size(Y,1),1);
     end
 end
+% Standardise data
+if standardise
+   warning(['You have set standardise=1, so each channel and trial will be standardized. ' ...
+       'This will probably result in a loss of information in terms of how each stimulus is processed'])
+end
+X = standardisedata(X,T,standardise);
 % Filtering
 if ~isempty(filter)
     data = filterdata(X,T,options.Fs,filter);
@@ -145,12 +151,6 @@ end
 if detrend
     X = detrenddata(X,T);
 end
-% Standardise data
-if standardise
-   warning(['You have set standardise=1, so each channel and trial will be standardized. ' ...
-       'This will probably result in a loss of information in terms of how each stimulus is processed'])
-end
-X = standardisedata(X,T,standardise);
 
 % adjust dimension of Y according to embedding
 if do_embedding

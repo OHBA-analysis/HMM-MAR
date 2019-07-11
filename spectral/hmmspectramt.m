@@ -83,6 +83,10 @@ else
     if nargin<3 || isempty(Gamma)
         Gamma = ones(sum(T),1); options.order = 0; options.embeddedlags = 0;
     end 
+    % Standardise data and control for ackward trials
+    if options.standardise
+        data = standardisedata(data,T,options.standardise);
+    end
     % Filtering
     if ~isempty(options.filter)
        data = filterdata(data,T,options.Fs,options.filter);
@@ -90,10 +94,6 @@ else
     % Detrend data
     if options.detrend
        data = detrenddata(data,T); 
-    end
-    % Standardise data and control for ackward trials
-    if options.standardise
-        data = standardisedata(data,T,options.standardise);
     end
     % Leakage correction
     if options.leakagecorr ~= 0 

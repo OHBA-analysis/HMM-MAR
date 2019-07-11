@@ -207,6 +207,8 @@ if stochastic_learn
     
 else
     
+    % Standardise data and control for ackward trials
+    data = standardisedata(data,T,options.standardise); 
     % Filtering
     if ~isempty(options.filter)
        data = filterdata(data,T,options.Fs,options.filter);
@@ -215,8 +217,6 @@ else
     if options.detrend
        data = detrenddata(data,T); 
     end
-    % Standardise data and control for ackward trials
-    data = standardisedata(data,T,options.standardise); 
     % Leakage correction
     if options.leakagecorr ~= 0 
         data = leakcorr(data,T,options.leakagecorr);

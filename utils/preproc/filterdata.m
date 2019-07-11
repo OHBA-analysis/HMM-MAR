@@ -3,10 +3,10 @@ function data = filterdata(data,T,Fs,freqbands)
 % Author: Diego Vidaurre (2017)
 
 Fn = Fs/2;  % Nyquist frequency
-filterorder = 5;
+filterorder = 6;
 [B, A] = buttfilter(filterorder,freqbands,Fn);
 
-for n=1:length(T)
+for n = 1:length(T)
     fo = filterorder; Bn = B; An = A; 
     ind = sum(T(1:n-1))+ (1:T(n));
     while 1

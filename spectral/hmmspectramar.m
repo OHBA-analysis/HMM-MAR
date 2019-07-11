@@ -148,6 +148,8 @@ if MLestimation
     % Check options
     [options,~,ndim] = checkoptions_spectra(options,data,T,0);
     hmm.train.S = options.S;
+    % Standardise data and control for ackward trials
+    data = standardisedata(data,T,options.standardise);
     % Filtering
     if ~isempty(options.filter)
         data = filterdata(data,T,options.Fs,options.filter);
@@ -156,8 +158,6 @@ if MLestimation
     if options.detrend
         data = detrenddata(data,T);
     end
-    % Standardise data and control for ackward trials
-    data = standardisedata(data,T,options.standardise);
     % Leakage correction
     if options.leakagecorr ~= 0
         data = leakcorr(data,T,options.leakagecorr);

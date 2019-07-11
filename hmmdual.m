@@ -38,6 +38,8 @@ N = length(T);
 train = hmm.train;
 checkdatacell;
 data = data2struct(data,T,train);
+% Standardise data and control for ackward trials
+data = standardisedata(data,T,train.standardise);
 % Filtering
 if ~isempty(train.filter)
     data = filterdata(data,T,train.Fs,train.filter);
@@ -46,8 +48,6 @@ end
 if train.detrend
     data = detrenddata(data,T);
 end
-% Standardise data and control for ackward trials
-data = standardisedata(data,T,train.standardise);
 % Leakage correction
 if train.leakagecorr ~= 0
     data = leakcorr(data,T,train.leakagecorr);
@@ -101,7 +101,6 @@ if isempty(residuals)
     residuals =  getresiduals(data.X,T,hmm.train.Sind,hmm.train.maxorder,hmm.train.order,...
         hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag,hmm.train.zeromean);
 end
-
 
 if isempty(Gamma) || isempty(Xi)  
     [Gamma,~,Xi] = hsinference(data,T,hmm,residuals); 
