@@ -63,7 +63,7 @@ if is_cell_strings || is_cell_matrices
     [A,e,~] = svd(C);
     e = diag(e);
 else
-    X = standardisedata(X,T,standardise);
+    X = standardisedata(X,T,options.standardise);
     if ~isempty(options.filter)
         X = filterdata(X,T,options.Fs,options.filter);
     end
@@ -83,7 +83,7 @@ else
         X = bsxfun(@minus,X,mean(X)); % must center
         X = X * options.As;
     end
-    if length(embeddedlags)>1
+    if length(options.embeddedlags)>1
         X = embeddata(X,T,options.embeddedlags);
     end
     if isstruct(X)
