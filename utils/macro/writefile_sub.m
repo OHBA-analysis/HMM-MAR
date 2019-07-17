@@ -1,5 +1,5 @@
 if ~isempty(strfind(fsub,'.mat'))
-    if exist(fsub)
+    if exist(fsub,'file')
         save(fsub,'X','-append')
     else
         save(fsub,'X')
