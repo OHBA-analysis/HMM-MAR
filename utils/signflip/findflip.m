@@ -56,9 +56,6 @@ score = -Inf;
 scorepath = cell(options.noruns,1);
 if ~isfield(options,'nbatch'), options.nbatch = ndim; end
 if ~isfield(options,'maxcyc'), options.maxcyc = 100*N*ndim; end
-if options.maxcyc<options.mincyc
-    error('maxcyc cannot be lower than mincyc')
-end
 
 for r = 1:options.noruns
     
