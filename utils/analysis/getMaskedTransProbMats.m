@@ -38,6 +38,8 @@ if nargin<6 || isempty(Xi)
 end
 
 order = hmm.train.maxorder;
+embeddedlags = abs(hmm.train.embeddedlags); 
+L = order + embeddedlags(1) + embeddedlags(end);
 
 if ~iscell(Masks), Masks = {Masks}; end
 N = length(T);
@@ -55,12 +57,17 @@ for im = 1:np
     for n = 1:N
         t0 = sum(T(1:n-1)); t1 = sum(T(1:n));
         ind_ix = mask(mask>=t0+1 & mask<=t1); % the ones belonging to this trial
-        if length(ind_ix)<=(order+2), continue; end
+        if length(ind_ix)<=L, continue; end
         T0 = [T0; length(ind_ix)];
-        ind_ig = ind_ix(ind_ix>=t0+order+1);
-        ind_ig = ind_ig - n*order;
+        if order > 0
+            ind_ig = ind_ix(ind_ix>=t0+order+1);
+            ind_ig = ind_ig - n*order;
+        elseif length(embeddedlags) > 1
+            ind_ig = ind_ix((ind_ix>=t0+embeddedlags(1)+1) & (ind_ix<=t1-embeddedlags(end))  ); 
+            ind_ig = ind_ig - (n-1)*L - embeddedlags(1);
+        end
+        ind_ixi = ind_ig(1:end-1) - (n-1);    
         Gamma0 = cat(1,Gamma0,Gamma(ind_ig,:));
-        ind_ixi = ind_ig(1:end-1) - (n-1);
         Xi0 = cat(1,Xi0,Xi(ind_ixi,:,:));
     end
     if isempty(Gamma0), error('Invalid mask?'); end
