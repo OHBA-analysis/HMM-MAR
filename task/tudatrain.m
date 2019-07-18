@@ -103,16 +103,19 @@ options.S(1:p,p+1:end) = 1;
 %   we estimate a first approximation of the decoding models
 options.updateObs = 1; 
 options.updateGamma = 0; 
+options.updateP = 0;
 tuda = hmmmar(Z,T,options);
 % 2. Estimate state time courses and transition probability matrix 
 options.updateObs = 0;
 options.updateGamma = 1;
+options.updateP = 1;
 options = rmfield(options,'Gamma');
 options.hmm = tuda; 
 [~,Gamma,~,vpath] = hmmmar(Z,T,options);
 % 3. Final update of state distributions, leaving fixed the state time courses
 options.updateObs = 1;
 options.updateGamma = 0;
+options.updateP = 0;
 options.Gamma = Gamma;
 options = rmfield(options,'hmm');
 options.tuda = 1;

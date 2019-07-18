@@ -273,6 +273,7 @@ if ~isfield(options,'hmm'), options.hmm = []; end
 if ~isfield(options,'fehist'), options.fehist = []; end
 if ~isfield(options,'updateObs'), options.updateObs = 1; end
 if ~isfield(options,'updateGamma'), options.updateGamma = 1; end
+if ~isfield(options,'updateP'), options.updateP = options.updateGamma; end
 if ~isfield(options,'decodeGamma'), options.decodeGamma = 1; end
 if ~isfield(options,'keepS_W'), options.keepS_W = 1; end
 
@@ -301,7 +302,7 @@ if options.K>1 && options.updateGamma == 0 && isempty(options.Gamma)
 end
 if options.updateGamma == 1 && options.K == 1
     %warning('Since K is one, updateGamma was set to 0');  
-    options.updateGamma = 0; 
+    options.updateGamma = 0; options.updateP = 0; 
 end
 if options.updateGamma == 0 && options.repetitions>1
     error('If Gamma is not going to be updated, repetitions>1 is unnecessary')

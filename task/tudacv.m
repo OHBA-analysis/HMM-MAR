@@ -257,11 +257,13 @@ options.S(1:p,p+1:end) = 1;
 %       of the decoding models
 options.updateObs = 0;
 options.updateGamma = 1;
+options.updateP = 1;
 options.verbose = 0; 
 [~,Gamma] = hmmmar(Z,T,options);
 % 2. Update state distributions only, leaving fixed the state time courses
 options.updateObs = 1;
 options.updateGamma = 0;
+options.updateP = 0;
 options.Gamma = Gamma;
 options.tuda = 1;
 %options.hmm = tuda; 

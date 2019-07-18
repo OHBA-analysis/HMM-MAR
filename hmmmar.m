@@ -186,7 +186,7 @@ if stochastic_learn
         GammaInit = options.Gamma;
         options = rmfield(options,'Gamma');
         [hmm,info] = hmmsinitg(data,T,options,GammaInit);
-    end
+    end % If both are specified, hmm is not used
     if options.BIGcyc>1
         [hmm,fehist,feterms,rho] = hmmstrain(data,T,hmm,info,options);
     else
@@ -329,7 +329,7 @@ else
         end
         % hmm unspecified, or both specified
         GammaInit = options.Gamma;
-    end
+    end % If both are specified, hmm is not used
     options = rmfield(options,'Gamma');
 
     % If initialization Gamma has fewer states than options.K, put those states back in
@@ -390,10 +390,10 @@ else
     for it = 1:options.repetitions
         hmm0 = hmm_wr;
         [hmm0,Gamma0,Xi0,fehist0] = hmmtrain(data,T,hmm0,GammaInit,residuals_wr,fehistInit);
-        if options.updateGamma==1 && fehist0(end)<fehist(end)
+        if options.updateGamma && (fehist0(end)<fehist(end))
             fehist = fehist0; hmm = hmm0;
             residuals = residuals_wr; Gamma = Gamma0; Xi = Xi0;
-        elseif options.updateGamma==0
+        elseif ~options.updateGamma
             fehist = []; hmm = hmm0;
             residuals = []; Gamma = GammaInit; Xi = [];
         end

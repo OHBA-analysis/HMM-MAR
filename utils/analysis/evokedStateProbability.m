@@ -26,9 +26,14 @@ if mod(window,2)==0
     window = window + 1; 
 end
 if size(stimulus,1)==1, stimulus = stimulus'; end
-if (sum(T)~=length(stimulus) || size(stimulus,2)>1) && ...
-        (size(Gamma,1)~=length(stimulus) || size(stimulus,2)>1)
+if size(stimulus,2)>1
+    error('Argument stimulus was wrong dimensions - it needs to has one column')
+end
+if (sum(T)~=length(stimulus)) && (size(Gamma,1)~=length(stimulus))
     error('Argument stimulus was wrong dimensions - it needs to has the same elements as sum(T)')
+end
+if length(unique(stimulus))>2
+    error('stimulus must be made of 0s and 1s')
 end
  
 if embedding

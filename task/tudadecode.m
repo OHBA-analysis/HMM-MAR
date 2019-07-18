@@ -112,6 +112,7 @@ options.S = -ones(p+q);
 options.S(1:p,p+1:end) = 1;
 options.updateObs = 0;
 options.updateGamma = 1;
+options.updateP = 1; 
 options.hmm = tuda; 
 options.repetitions = 0;
 options.pca = 0; 

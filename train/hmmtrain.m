@@ -86,7 +86,7 @@ for cycle=1:hmm.train.cyc
         if cyc_to_go>0, cyc_to_go = cyc_to_go - 1; end
         
     else
-        Xi=[]; fehist=0;
+        Xi = []; fehist = 0;
     end
     
     %%%% M STEP
@@ -96,11 +96,22 @@ for cycle=1:hmm.train.cyc
         hmm = obsupdate(T,Gamma,hmm,residuals,XX,XXGXX);
     end
     
-    if hmm.train.updateGamma
-        % transition matrices and initial state
-        hmm = hsupdate(Xi,Gamma,T,hmm);
-    else
-        break; % one is enough
+    % Transition matrices and initial state
+    if hmm.train.updateP
+        if hmm.train.updateGamma  
+            hmm = hsupdate(Xi,Gamma,T,hmm);
+        else
+            [Gamma_0,~,Xi_0] = hsinference(data,T,hmm,residuals,[],XX);
+            hmm = hsupdate(Xi_0,Gamma_0,T,hmm);
+        end
+    end
+    
+    if ~hmm.train.updateGamma    
+        break % one iteration is enough
+    end
+    
+    if sum(hmm.train.updateObs + hmm.train.updateGamma + hmm.train.updateP) < 2
+        break % one iteration is enough
     end
     
     if hmm.train.tudamonitoring

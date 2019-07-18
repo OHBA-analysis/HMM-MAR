@@ -34,7 +34,7 @@ checkdatacell;
 % Check options
 if isfield(options,'AR'), options.AR = 0; end
 options = checkspelling(options);
-options.K = 1; options.updateGamma = 0; 
+options.K = 1; options.updateGamma = 0; options.updateP = 0; 
 [options,data] = checkoptions(options,data,T,0);
 if length(options.embeddedlags) > 1
     error('It is not currently possible to generate data with options.embeddedlags ~= 0'); 

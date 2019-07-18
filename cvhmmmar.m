@@ -24,6 +24,7 @@ end
 options.verbose = options.cvverbose;
 options.dropstates = 0;
 options.updateGamma = options.K>1;
+options.updateP = options.updateGamma;
 
 if length(options.embeddedlags)>1
     X = []; C = [];
