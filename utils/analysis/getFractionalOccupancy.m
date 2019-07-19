@@ -4,7 +4,7 @@ function [FO,ntrials] = getFractionalOccupancy (Gamma,T,options,dim,alignment)
 % - across trials if dim==1 (i.e. FO is time by no.states)
 %   This is indicating how the fractional occupancy evolves as a function
 %   of time across trials.
-% - across time if dim==2 (i.e. FO is no.trials by no.states) 
+% - across time if dim==2 (i.e. FO is no.trials/subjects by no.states) 
 %   This is indicating how much of each state each subject has.
 % (default, dim=2)
 % 

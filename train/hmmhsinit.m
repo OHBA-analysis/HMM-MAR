@@ -37,7 +37,7 @@ else
     end
 end
 
-if nargin > 1 && ~isempty(GammaInit)
+if nargin > 1 && ~isempty(GammaInit) && hmm.train.updateP
     hmm = hsupdate([],GammaInit,T,hmm);
 else
     % Initial state
