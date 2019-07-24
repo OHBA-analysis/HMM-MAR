@@ -18,6 +18,12 @@ end
 if ~isfield(hmm.train,'leida')
     hmm.train.leida = 0;
 end
+if ~isfield(hmm.train,'embeddedlags')
+    hmm.train.embeddedlags = 0;
+end
+if ~isfield(hmm.train,'pca')
+    hmm.train.pca = 0;
+end
 if ~isfield(hmm.train,'filter')
     hmm.train.filter = [];
 end
@@ -44,6 +50,15 @@ if ~isfield(hmm.train,'PriorWeightingPi')
 end
 if ~isfield(hmm.train,'firsteigv')
     hmm.train.firsteigv = 0;
+end
+if ~isfield(hmm.train,'updateObs')
+    hmm.train.updateObs = 1;
+end
+if ~isfield(hmm.train,'updateGamma')
+    hmm.train.updateGamma = 1;
+end
+if ~isfield(hmm.train,'updateP')
+    hmm.train.updateP = 1;
 end
 
 end

@@ -91,12 +91,14 @@ if stochastic_learning
     if ~isfield(options,'cyc'), options.cyc = 15; end
     if ~isfield(options,'initcyc'), options.initcyc = 5; end
     if ~isfield(options,'initrep'), options.initrep = 3; end
+    if ~isfield(options,'initcriterion'), options.initcriterion = 'FreeEnergy'; end
     if ~isfield(options,'verbose'), options.verbose = 0; end
     if ~isfield(options,'useParallel'), options.useParallel = 1; end
 else
     if ~isfield(options,'cyc'), options.cyc = 500; end
     if ~isfield(options,'initcyc'), options.initcyc = 100; end
     if ~isfield(options,'initrep'), options.initrep = 4; end
+    if ~isfield(options,'initcriterion'), options.initcriterion = 'FreeEnergy'; end
     if ~isfield(options,'verbose'), options.verbose = 1; end
     % the rest of the stuff will get assigned in the recursive calls
     if ~isfield(options,'tol'), options.tol = 1e-5; end
@@ -124,7 +126,7 @@ if ~isfield(options,'behaviour'), options.behaviour = []; end
 if ~isempty(options.behaviour), options.tudamonitoring = 1;
 elseif ~isfield(options,'tudamonitoring'), options.tudamonitoring = 0;
 end
-if ~isfield(options,'tuda'), options.tuda = 1; end
+if ~isfield(options,'tuda'), options.tuda = 0; end
 if options.tudamonitoring && stochastic_learning
    error('Stochastic learning is not currently compatible with TUDA monitoring options') 
 end
