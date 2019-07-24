@@ -92,8 +92,6 @@ for k=1:K
         % Set Y and X: 
         Xdim = size(XX,2)-hmm.train.logisticYdim;
         X=XX(:,1:Xdim);
-        %Y=XX(2:end,(Xdim+1):end);
-        %Y((end+1),1)=Y(end,1);
         Y=residuals;
         T=size(X,1);
         
@@ -124,14 +122,8 @@ for k=1:K
             if ~isfield(hmm,'psi')
                 hmm = updatePsi(hmm,Gamma,X);
             end
-            % note this could be optimised with better use of XXGXX:
-%             W_sigsum{k}=zeros(T,ndim_n,ndim_n);
-%             for t=1:T
-%                 W_sigsum{k}(t,:,:)=2*lambdafunc(hmm.psi(t))*Gamma(t,k)*X(t,:)'*X(t,:);
-%             end
             W_sigsum = (XX(:,1:ndim_n)' .* repmat(2*lambdafunc(hmm.psi)'.*Gammaweighted(:,k)',ndim_n,1))* XX(:,1:ndim_n);
             %update parameter entries:
-            %hmm.state(k).W.S_W(n,S(:,n),S(:,n)) = inv(squeeze(sum(W_sigsum{k},1))+inv(W_sig0));
             hmm.state(k).W.S_W(n,S(:,n),S(:,n)) = inv(squeeze(W_sigsum)+inv(W_sig0));
             hmm.state(k).W.Mu_W(S(:,n),n) = squeeze(hmm.state(k).W.S_W(n,S(:,n),S(:,n))) * 0.5 * X' * (Y.*Gammaweighted(:,k)) ... %sum(W_musum{k},1)') ...
                 +(W_sig0\W_mu0);

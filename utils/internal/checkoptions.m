@@ -44,6 +44,7 @@ if ~isfield(options,'standardise_pc')
     options.standardise_pc = length(options.embeddedlags)>1; 
 end
 if ~isfield(options,'logisticYdim'),options.logisticYdim=0;end
+if ~isfield(options,'timedependent'),options.timedependent=0;end
 if ~isfield(options,'balancedata'),options.balancedata=1;end
 if length(options.embeddedlags)>1 && isfield(options,'covtype') && ...
         ~strcmpi(options.covtype,'full')
@@ -159,6 +160,14 @@ else
         error('The dimensions of options.Pistructure are incorrect')
     end
     options.Pistructure = (options.Pistructure~=0);
+end
+if ~isfield(options,'Pestructure')
+    options.Pestructure = true(1,options.K);
+else
+    if length(options.Pestructure) ~=options.K 
+        error('The dimensions of options.Pestructure are incorrect')
+    end
+    options.Pestructure = (options.Pestructure~=0);
 end
 
 % Drop states? 

@@ -291,7 +291,7 @@ end
 % else 
 %     P = hmm.P; Pi = hmm.Pi;
 % end
-P = hmm.P; Pi = hmm.Pi;
+P = hmm.P; Pi = hmm.Pi; Pe = hmm.Pe;
 
 try
     if ~strcmp(hmm.train.covtype,'logistic')
@@ -335,17 +335,29 @@ beta = zeros(T,K);
 alpha(1+order,:) = Pi.*L(1+order,:);
 scale(1+order) = sum(alpha(1+order,:));
 alpha(1+order,:) = alpha(1+order,:)/scale(1+order);
+
 for i = 2+order:T
-    alpha(i,:) = (alpha(i-1,:)*P).*L(i,:);
+    if hmm.train.timedependent
+        P_timedependent = computeP_TD(i,P,K,T);
+        alpha(i,:) = (alpha(i-1,:)*P_timedependent).*L(i,:);
+    else
+        alpha(i,:) = (alpha(i-1,:)*P).*L(i,:);
+    end
     scale(i) = sum(alpha(i,:));		% P(X_i | X_1 ... X_{i-1})
     alpha(i,:) = alpha(i,:)/scale(i);
 end
 
 scale(scale<realmin) = realmin;
 
-beta(T,:) = ones(1,K)/scale(T);
+%beta(T,:) = ones(1,K)/scale(T);
+beta(T,:) = Pe/scale(T);
 for i = T-1:-1:1+order
-    beta(i,:) = (beta(i+1,:).*L(i+1,:))*(P')/scale(i);
+    if hmm.train.timedependent
+        P_timedependent = computeP_TD(i,P,K,T);
+        beta(i,:) = (beta(i+1,:).*L(i+1,:))*(P_timedependent')/scale(i);
+    else
+        beta(i,:) = (beta(i+1,:).*L(i+1,:))*(P')/scale(i);
+    end
     beta(i,beta(i,:)>realmax) = realmax;
 end
 Gamma = (alpha.*beta);
@@ -354,8 +366,21 @@ Gamma = rdiv(Gamma,sum(Gamma,2));
 
 Xi = zeros(T-1-order,K*K);
 for i = 1+order:T-1
-    t = P.*( alpha(i,:)' * (beta(i+1,:).*L(i+1,:)));
+    if hmm.train.timedependent
+        P_timedependent = computeP_TD(i,P,K,T);
+        t = P_timedependent.*( alpha(i,:)' * (beta(i+1,:).*L(i+1,:)));
+    else
+        t = P.*( alpha(i,:)' * (beta(i+1,:).*L(i+1,:)));
+    end
     Xi(i-order,:) = t(:)'/sum(t(:));
 end
 
 end
+
+% function P_timedependent = computeP_TD(i,P,K,T)
+%     alp = logsig(i - [1:K]'*T/K);
+%     bet = logsig([1:K]'*T/K - i);
+%     %P_timedependent = diag(logsig(alp*(logit(diag(P)) - bet*(i - [1:K]'*T/K))));
+%     P_timedependent = diag(bet.*(diag(P).^alp));
+%     P_timedependent = P_timedependent + diag(1-diag(P_timedependent(1:K-1,1:K-1)),1);
+% end

@@ -70,7 +70,7 @@ for n = 1:N
 end
 if relative
     for nf = 1:Nf
-        m = squeeze(mean(X(:,:,:,nf),2)); % N by p
+        m = squeeze(mean(X(:,:,:,nf),2))'; % N by p
         for k = 1:K
             X(:,k,:,nf) = permute(X(:,k,:,nf),[1 3 2 4]) - m;
         end
@@ -119,7 +119,7 @@ for n = 1:N
 end
 if relative
     for nf = 1:Nf
-        m = squeeze(mean(X(:,:,:,nf),2)); % N by p
+        m = squeeze(mean(X(:,:,:,nf),2))'; % N by p
         for k = 1:K
             X(:,k,:,nf) = permute(X(:,k,:,nf),[1 3 2 4]) - m;
         end

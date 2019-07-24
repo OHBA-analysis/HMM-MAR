@@ -44,16 +44,21 @@ if nargin > 1 && ~isempty(GammaInit)
 else
     % Initial state
     kk = hmm.train.Pistructure;
+    ke = hmm.train.Pestructure;
     if Q==1
         hmm.Dir_alpha = zeros(1,hmm.K);
         hmm.Dir_alpha(kk) = 1;
         hmm.Pi = zeros(1,hmm.K);
         hmm.Pi(kk) = ones(1,sum(kk)) / sum(kk);
+        hmm.Pe = zeros(1,hmm.K);
+        hmm.Pe(ke) = ones(1,sum(ke)) / sum(ke);
     else
         hmm.Dir_alpha = zeros(hmm.K,Q);
         hmm.Dir_alpha(kk,:) = 1;
         hmm.Pi = zeros(hmm.K,Q);
         hmm.Pi(kk,:) = ones(sum(kk),Q) / sum(kk);
+        hmm.Pe = zeros(hmm.K,Q);
+        hmm.Pe(ke) = ones(sum(ke),Q) / sum(ke);
     end
     % State transitions
     hmm.Dir2d_alpha = zeros(hmm.K,hmm.K,Q);

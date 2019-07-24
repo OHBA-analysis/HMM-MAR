@@ -458,11 +458,11 @@ save(outputfile,'LifeTimes','Intervals','FO','switchingRate','-append')
 %%%%%%%%%%%%%%%%%%%%%%%%%
 %% Get glass connectivity brains
 % doing data-driven thresholding
-osldir = 1;
-addpath([codedir '/ohba-external/netlab3.3/netlab'])
-addpath([codedir '/ohba-external/osl-core/util'])
-parcdir = [codedir '/parcellations'];
-parcfile = [parcdir '/fmri_d100_parcellation_with_3PCC_ips_reduced_2mm_ss5mm_ds8mm_adj.nii.gz'];
+%osldir = 1;
+% addpath([codedir '/ohba-external/netlab3.3/netlab'])
+% addpath([codedir '/ohba-external/osl-core/util'])
+% parcdir = [codedir '/parcellations'];
+% parcfile = [parcdir '/fmri_d100_parcellation_with_3PCC_ips_reduced_2mm_ss5mm_ds8mm_adj.nii.gz'];
 
 K = length(fitmt_group_fact_4b.state); ndim = 42; 
 spatialRes = 8; edgeLims = [4 8];
@@ -474,9 +474,9 @@ for k = 1:K
 end
 for k = 1:K
     graph = squeeze(abs(fitmt_group_fact_wb.state(k).coh(1,:,:)));
-    graph = (graph - M);  
+    %graph = (graph - M);  
     tmp = squash(triu(graph));
-    inds2 = find(tmp>1e-10);
+    inds2 = find(tmp>1+1e-10);
     data = tmp(inds2);
     S2 = [];
     S2.data = data;

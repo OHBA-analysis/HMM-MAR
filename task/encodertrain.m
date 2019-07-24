@@ -93,7 +93,9 @@ if ~options.useUnsupervisedGamma
     end
     %options.Gamma = Gamma;
     options.hmm = tuda; 
-    options.cyc=2;
+    if ~isfield(options,'cyc')
+        options.cyc=50;
+    end
     [tuda,Gamma,~,~,~,~, stats.fe] = hmmmar(Z,T,options); 
 end
 tuda.features = features;

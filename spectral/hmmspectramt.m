@@ -156,6 +156,7 @@ for k=1:K
     stime = zeros(length(TT),1);
     c = 1;  
     t00 = 0; 
+    if k==1, NwinsALL = 0; end
     for n = 1:length(T)
         if iscell(data)
             X = loadfile(data{n},T{n},options); % includes preprocessing
@@ -196,6 +197,7 @@ for k=1:K
                 error('Index exceeds matrix dimensions - Did you specify options correctly? ')
             end
             Nwins = round(TT(c)/options.win); % pieces are going to be included as windows only if long enough
+            if k==1, NwinsALL = NwinsALL + Nwins; end
             
             for iwin = 1:Nwins
                 ranget = (iwin-1)*options.win+1:iwin*options.win;
@@ -238,7 +240,7 @@ for k=1:K
         sumgamma = sumgamma(1:c-1); 
         stime = stime(1:c-1); 
         psdc = psdc(:,:,:,1:c-1,:);
-        psd = sum(sum(psdc,5),4) / (sum(sumgamma) / sum(stime)) / ntapers / Nwins;
+        psd = sum(sum(psdc,5),4) / (sum(sumgamma) / sum(stime)) / ntapers / NwinsALL;
         for iNf = 1:Nf
             for tp = 1:ntapers
                 for indim=1:ndim
@@ -251,7 +253,7 @@ for k=1:K
         end
         psdc = reshape(psdc,[Nf,ndim,ndim,size(psdc,4)*ntapers]);
     else
-        psd = psdc / (sum(sumgamma) / sum(stime)) / ntapers / Nwins;
+        psd = psdc / (sum(sumgamma) / sum(stime)) / ntapers / NwinsALL;
     end
     ipsd = zeros(Nf,ndim,ndim);
     
