@@ -17,7 +17,7 @@ function [evokedGamma,t] = evokedStateProbability(stimulus,T,Gamma,window,option
 if nargin<5, options = struct(); options.Fs = 1; options.downsample = 1; end
 if ~isfield(options,'Fs'), options.Fs = 1; end
 if ~isfield(options,'downsample'), options.downsample = options.Fs; end
-embedding = isfield(options,'embeddedlags') && length(options.embeddedlags) > 1;
+
 downsampling = (options.Fs~=options.downsample) && (options.downsample>0);
 N = length(T);
 
@@ -36,37 +36,12 @@ if length(unique(stimulus))>2
     error('stimulus must be made of 0s and 1s')
 end
  
-if embedding
-    d1 = -min(0,options.embeddedlags(1));
-    d2 = max(0,options.embeddedlags(end));
-    ind = false(size(stimulus,1),1);
-    for j = 1:N
-        jj = sum(T(1:j-1)) + (d1+1:T(j)-d2);
-        ind(jj) = true;
-    end    
-    stimulus = stimulus(ind);
-    T = T - (d1+d2);
-    if downsampling
-        [stimulus,T] = downsampledata(stimulus,T,options.downsample,options.Fs);
-    end
-else
-    if isfield(options,'order') && options.order > 0
-        order = options.order;
-    else
-        order =  (sum(T) - size(Gamma,1)) / N;
-    end
-    if downsampling
-        [stimulus,T] = downsampledata(stimulus,T,options.downsample,options.Fs);
-    end
-    ind = false(size(stimulus,1),1);
-    for j = 1:N
-        jj = sum(T(1:j-1)) + (order+1:T(j));
-        ind(jj) = true;
-    end
-    stimulus = stimulus(ind);
-    T = T - order;
-end
+Gamma = padGamma(Gamma,T,options);
 
+if downsampling
+    [stimulus,T] = downsampledata(stimulus,T,options.downsample,options.Fs);
+end
+    
 K = size(Gamma,2);
 halfwin = (window-1)/2; 
 evokedGamma = zeros(window,K);
