@@ -114,14 +114,14 @@ end
 
 function options = checkoptions_flip(options)
 if ~isfield(options,'maxlag'), options.maxlag = 10; end
-if ~isfield(options,'noruns'), options.noruns = 10; end
+if ~isfield(options,'noruns'), options.noruns = 1; end
 if ~isfield(options,'probinitflip'), options.probinitflip = 0.25; end
 if ~isfield(options,'standardise'), options.standardise = 1; end
 if ~isfield(options,'partial'), options.partial = 0; end
 if ~isfield(options,'verbose'), options.verbose = 1; end
 if ~isfield(options,'nbatch'), options.nbatch = 0; end
 if ~isfield(options,'maxcyc'), options.maxcyc = 10000; end
-if ~isfield(options,'threshold'), options.threshold = 10000; end
+if ~isfield(options,'threshold'), options.threshold = 0.00001; end
 end
 
 
