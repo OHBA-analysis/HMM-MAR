@@ -65,6 +65,8 @@ for im = 1:np
         elseif length(embeddedlags) > 1
             ind_ig = ind_ix((ind_ix>=t0+embeddedlags(1)+1) & (ind_ix<=t1-embeddedlags(end))  ); 
             ind_ig = ind_ig - (n-1)*L - embeddedlags(1);
+        else 
+            ind_ig = ind_ix;
         end
         ind_ixi = ind_ig(1:end-1) - (n-1);    
         Gamma0 = cat(1,Gamma0,Gamma(ind_ig,:));
