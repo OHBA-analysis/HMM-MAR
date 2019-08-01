@@ -2,6 +2,7 @@ function covmats_unflipped = getAllCovMats(data,T,options)
 
 if ~isfield(options,'maxlag'), options.maxlag = 10; end
 if ~isfield(options,'partial'), options.partial = 0; end
+if ~isfield(options,'standardise'), options.standardise = 1; end
 
 N = length(T);
 if iscell(data)

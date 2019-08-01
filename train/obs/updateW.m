@@ -97,6 +97,8 @@ for k=1:K
             regterm = diag(regterm);
             hmm.state(k).W.iS_W(n,Sind(:,n),Sind(:,n)) = ...
                 regterm + Tfactor * (omega.Gam_shape / omega.Gam_rate(n)) * XXGXX{k}(Sind(:,n),Sind(:,n));
+            hmm.state(k).W.iS_W(n,Sind(:,n),Sind(:,n)) = (squeeze(hmm.state(k).W.iS_W(n,Sind(:,n),Sind(:,n))) + ...
+                squeeze(hmm.state(k).W.iS_W(n,Sind(:,n),Sind(:,n)))' ) / 2;
             hmm.state(k).W.S_W(n,Sind(:,n),Sind(:,n)) = ...
                 inv(permute(hmm.state(k).W.iS_W(n,Sind(:,n),Sind(:,n)),[2 3 1]));
             hmm.state(k).W.Mu_W(Sind(:,n),n) = (( permute(hmm.state(k).W.S_W(n,Sind(:,n),Sind(:,n)),[2 3 1]) * ...
@@ -133,6 +135,7 @@ for k=1:K
         prec = omega.Gam_shape * omega.Gam_irate;
         gram = kron(XXGXX{k}, prec);
         hmm.state(k).W.iS_W = regterm + Tfactor * gram;
+        hmm.state(k).W.S_W = (hmm.state(k).W.S_W + hmm.state(k).W.S_W') / 2; 
         hmm.state(k).W.S_W = inv(hmm.state(k).W.iS_W);
         muW = Tfactor * hmm.state(k).W.S_W * gram * mlW(:);
         if pcapred
