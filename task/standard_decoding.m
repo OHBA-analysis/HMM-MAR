@@ -5,10 +5,10 @@ function [cv_acc,acc] = standard_decoding(X,Y,T,options,binsize)
 % regressing X on the stimulus.
 %
 % INPUT
-% X: Brain data, (time by regions) or (time by trials by regions)
-% Y: Stimulus, (time by q); q is no. of stimulus features OR
+% X: Brain data, (total time by regions) or (time by trials by regions)
+% Y: Stimulus, (total time by q), where q is no. of stimulus features; OR
 %              (no.trials by q), meaning that each trial has a single
-%              stimulus value
+%              stimulus value for the entire length of the trial
 % T: Length of series
 % options: structure with the preprocessing options - see documentation in 
 %                       https://github.com/OHBA-analysis/HMM-MAR/wiki
@@ -33,11 +33,13 @@ q = size(Y,2);
 
 if size(Y,1) == length(T) % one value per trial
     responses = Y;
-    Ystar = reshape(repmat(reshape(responses,[1 N q]),[ttrial,1,1]),[ttrial*N q]);
 else
     responses = reshape(Y,[ttrial N q]);
     Ystar = reshape(repmat(responses(1,:,:),[ttrial,1,1]),[ttrial*N q]);
     responses = permute(responses(1,:,:),[2 3 1]); % N x q
+    if ~all(Y(:)==Ystar(:))
+        error('For cross-validating, the same stimulus must be presented for the entire trial');
+    end
 end
 
 max_num_classes = 5;
@@ -52,10 +54,6 @@ if classification
     end
     % no demeaning by default if this is a classification problem
     if ~isfield(options,'demeanstim'), options.demeanstim = 0; end
-end
-
-if ~all(Y(:)==Ystar(:))
-    error('For cross-validating, the same stimulus must be presented for the entire trial'); 
 end
 
 options.Nfeatures = 0; 
