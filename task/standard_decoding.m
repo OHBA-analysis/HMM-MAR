@@ -33,6 +33,8 @@ q = size(Y,2);
 
 if size(Y,1) == length(T) % one value per trial
     responses = Y;
+elseif length(Y(:)) ~= (ttrial*N*q)
+    error('Incorrect dimensions in Y')
 else
     responses = reshape(Y,[ttrial N q]);
     Ystar = reshape(repmat(responses(1,:,:),[ttrial,1,1]),[ttrial*N q]);

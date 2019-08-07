@@ -88,9 +88,9 @@ end
 Ttmp = T;
 T = T + 1;
 Z = zeros(sum(T),q+p,'single');
-for n=1:N
-    t1 = (1:T(n)) + sum(T(1:n-1));
-    t2 = (1:Ttmp(n)) + sum(Ttmp(1:n-1));
+for j = 1:N
+    t1 = (1:T(j)) + sum(T(1:j-1));
+    t2 = (1:Ttmp(j)) + sum(Ttmp(1:j-1));
     Z(t1(1:end-1),1:p) = X(t2,:);
     Z(t1(2:end),(p+1):end) = Y(t2,:);
 end 

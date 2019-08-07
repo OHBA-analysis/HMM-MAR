@@ -131,7 +131,8 @@ if stochastic_learn
         options.As = [];
     end    
     % get PCA loadings 
-    if length(options.pca) > 1 || (options.pca > 0 && options.pca ~= 1)
+    if length(options.pca) > 1 || (options.pca > 0 && options.pca ~= 1) || ...
+            isfield(options,'A')
         if ~isfield(options,'A')
             options.A = highdim_pca(data,T,options.pca,...
                 options.embeddedlags,options.standardise,...
@@ -244,7 +245,8 @@ else
         [data,T] = embeddata(data,T,options.embeddedlags);
     end
     % PCA transform
-    if length(options.pca) > 1 || (options.pca > 0 && options.pca ~= 1)
+    if length(options.pca) > 1 || (options.pca > 0 && options.pca ~= 1) || ...
+            isfield(options,'A')
         if isfield(options,'A')
             data.X = bsxfun(@minus,data.X,mean(data.X));   
             data.X = data.X * options.A; 

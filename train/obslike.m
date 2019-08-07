@@ -170,7 +170,9 @@ for k=1:K
                 end
         end
     end
+    
     L(hmm.train.maxorder+1:T,k)= - ltpi - ldetWishB + PsiWish_alphasum + dist - NormWishtrace; 
+    
 end
 L = exp(L);
 end

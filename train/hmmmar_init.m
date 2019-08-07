@@ -90,16 +90,25 @@ data.C = data.C(:,1:options.K);
 % Note - initGamma_random uses DD=1 so that there are lots of transition times, which
 % helps the inference not get stuck in a local minimum. options.DirichletDiag is
 % then used inside hmmtrain when computing the free energy
-options.Gamma = initGamma_random(T-options.maxorder,options.K,max(min(double(T))/10,500),...
-    options.Pstructure,options.Pistructure);
-hmm = struct('train',struct());
-hmm.K = options.K;
-hmm.train = options;
-hmm.train.Sind = Sind;
-hmm.train.cyc = hmm.train.initcyc;
-hmm.train.verbose = 0;
-hmm = hmmhsinit(hmm);
-[hmm,residuals] = obsinit(data,T,hmm,options.Gamma);
-[~,Gamma,~,fehist] = hmmtrain(data,T,hmm,options.Gamma,residuals);
+keep_trying = true; 
+while keep_trying
+    options.Gamma = initGamma_random(T-options.maxorder,options.K,...
+        min(median(double(T))/10,500),...
+        options.Pstructure,options.Pistructure);
+    hmm = struct('train',struct());
+    hmm.K = options.K;
+    hmm.train = options;
+    hmm.train.Sind = Sind;
+    hmm.train.cyc = hmm.train.initcyc;
+    hmm.train.verbose = 0;
+    hmm = hmmhsinit(hmm);
+    [hmm,residuals] = obsinit(data,T,hmm,options.Gamma);
+    try
+        [~,Gamma,~,fehist] = hmmtrain(data,T,hmm,options.Gamma,residuals);
+        keep_trying = false;
+    catch
+        disp('Something strange happened in the initialisation - repeating')
+    end
+end
 %fe = fehist(end);
 end

@@ -89,6 +89,8 @@ for cycle=1:hmm.train.cyc
         Xi = []; fehist = 0;
     end
     
+    %disp(['mean MaxFO = ' num2str(mean(getMaxFractionalOccupancy(Gamma,T,hmm.train)))])
+    
     %%%% M STEP
        
     % Observation model
@@ -129,6 +131,11 @@ for cycle=1:hmm.train.cyc
                 hmm.tudamonitor.behaviour.(fs{ifs}) = f;
             end
         end
+    end
+    
+    if max(getMaxFractionalOccupancy(Gamma,T,hmm.train)) > hmm.train.maxFOth
+        disp('Training has been stopped for reaching the threshold of maximum FO')
+        break
     end
    
 end
