@@ -367,11 +367,11 @@ save(outputfile,'fitmt_subj','fitmt','-append')
 options_fact = struct();
 options_fact.Ncomp = 4; 
 options_fact.Base = 'coh';
-[fitmt_subj_fact_4b,fitmt_group_fact_4b,sp_profiles_4b] = spectdecompose(fitmt_subj,options_fact);
+[fitmt_group_fact_4b,sp_profiles_4b,fitmt_subj_fact_4b] = spectdecompose(fitmt_subj,options_fact);
 save(outputfile,'fitmt_subj_fact_4b','fitmt_group_fact_4b','sp_profiles_4b','-append') 
 % Get the wideband maps (the second is capturing noise)
 options_fact.Ncomp = 2; 
-[fitmt_subj_fact_wb,fitmt_group_fact_wb,sp_profiles_wb] = spectdecompose(fitmt_subj,options_fact);
+[fitmt_group_fact_wb,sp_profiles_wb,fitmt_subj_fact_wb] = spectdecompose(fitmt_subj,options_fact);
 save(outputfile,'fitmt_subj_fact_wb','fitmt_group_fact_wb','sp_profiles_wb','-append') 
 
 % check if the spectral profiles make sense, if not you might like to repeat

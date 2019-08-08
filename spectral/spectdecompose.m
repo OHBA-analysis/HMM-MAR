@@ -1,4 +1,4 @@
-function [sp_fit,sp_fit_group,sp_profiles] = spectdecompose(sp_fit,options,chan)
+function [sp_fit_group,sp_profiles,sp_fit] = spectdecompose(sp_fit,options,chan)
 %
 % From a multitaper or MAR estimation of the states spectra (per subject),  
 % it factorises the spectral information (which is given by frequency bin)
@@ -26,19 +26,18 @@ function [sp_fit,sp_fit_group,sp_profiles] = spectdecompose(sp_fit,options,chan)
 %                       if not specified, all will beused
 % 
 % OUTPUT:
-% 
-% sp_fit                A cell with the spectral components, with the same fields  
-%                       and dimensions that the input 'sp_fit', but with Ncomp 
-%                       components instead of No. frequency bins. If there
-%                       is only one subject, then sp_fit is a single struct
-%                 
+%               
 % sp_fit_group          A single struct containing the mean across subjects
 %                       of sp_fit. If there is only one subject, then
 %                       sp_fit_group equals sp_fit
 % sp_profiles           The (frequency bins by spectral components) mixing
 %                       matrix used to project from (no. of frequency bins
 %                       by regions) to (no. of components by regions)
-%
+% sp_fit                A cell with the spectral components, with the same fields  
+%                       and dimensions that the input 'sp_fit', but with Ncomp 
+%                       components instead of No. frequency bins. If there
+%                       is only one subject, then sp_fit is a single struct
+%   
 % Authors: Mark Woolrich, OHBA, University of Oxford (2017)
 %          Diego Vidaurre, OHBA, University of Oxford (2017)
 %          Andrew Quinn, OHBA, University of Oxford (2018)
@@ -78,8 +77,8 @@ for n = 1:N
 end
 
 % put coh and psd in temporary arrays
-coh_comps = zeros(N,K,Nf,ndim,ndim);
 psd_comps = zeros(N,K,Nf,ndim);
+coh_comps = zeros(N,K,Nf,ndim,ndim);
 for n = 1:N
     for k = 1:K
         psd = sp_fit{n}.state(k).psd(:,chan,chan);
@@ -95,20 +94,33 @@ end
 
 % Build the matrix that is to be factorised
 Xpsd = zeros(Nf,ndim*K);
-for k=1:K
+keep_psd = true(1,ndim*K);
+for k = 1:K
     ind = (1:ndim) + (k-1)*ndim;
-    Xpsd(:,ind)= squeeze(mean(abs(psd_comps(:,k,:,:)),1));
+    notnan = ~isnan(psd_comps(:,k,1,1));
+    if any(notnan)
+        Xpsd(:,ind)= squeeze(mean(abs(psd_comps(notnan,k,:,:)),1)); % mean across subjects
+    else
+        keep_psd(ind) = false;
+    end
 end
 Xcoh = zeros(Nf,K*ndim2);
+keep_coh = true(1,ndim*K);
 for k = 1:K
     ind = (1:ndim2) + (k-1)*ndim2;
-    ck = squeeze(mean(abs(coh_comps(:,k,:,:,:)),1));
-    Xcoh(:,ind) = ck(:,ind_offdiag);
+    notnan = ~isnan(coh_comps(:,k,1,1,2));
+    if any(notnan)
+        ck = squeeze(mean(abs(coh_comps(notnan,k,:,:,:)),1));
+        Xcoh(:,ind) = ck(:,ind_offdiag);
+    else
+        Xcoh(:,ind) = false;
+    end
+    
 end
 if strcmpi(options.Base,'psd')
-    X = Xpsd;
+    X = Xpsd(:,keep_psd);
 else
-    X = Xcoh;
+    X = Xcoh(:,keep_coh);
 end
 
 % Specify fit function, a unimodal gaussian
@@ -175,10 +187,13 @@ end
 % group level
 sp_fit_group = struct();
 sp_fit_group.state = struct();
+
 % NNMF / PCA
+psd = zeros(ndim*K,options.Ncomp);
+coh = zeros(ndim2*K,options.Ncomp);
 if strcmpi(options.Method,'NNMF')
-   psd = (Xpsd' * sp_profiles); % ndim by components
-   coh = (Xcoh' * sp_profiles);
+   psd(keep_psd,:) = (Xpsd(:,keep_psd)' * sp_profiles); % ndim by components
+   coh(keep_coh,:) = (Xcoh(:,keep_coh)' * sp_profiles);
 %     opt = statset('maxiter',0);
 %     [~,b] = nnmf(Xpsd,options.Ncomp,'algorithm','als',...
 %         'w0',sp_profiles,'Options',opt);
@@ -187,10 +202,13 @@ if strcmpi(options.Method,'NNMF')
 %         'w0',sp_profiles,'Options',opt);
 %     coh = b'; % pairs of regions by components
 else
-    Xpsd = Xpsd - repmat(mean(Xpsd),Nf,1);
-    Xcoh = Xcoh - repmat(mean(Xcoh),Nf,1);
-    psd = (Xpsd' * sp_profiles); % ndim by components
-    coh = (Xcoh' * sp_profiles);
+    Xpsd(:,keep_psd) = Xpsd(:,keep_psd) - repmat(mean(Xpsd(:,keep_psd)),Nf,1);
+    Xcoh(:,keep_coh) = Xcoh(:,keep_coh) - repmat(mean(Xcoh(:,keep_coh)),Nf,1);
+    psd(keep_psd,:) = (Xpsd(:,keep_psd)' * sp_profiles); % ndim by components
+    coh(keep_coh,:) = (Xcoh(:,keep_coh)' * sp_profiles);
+end
+if any(isnan(psd(:))) || any(isnan(coh(:))) 
+   warning('There are NaNs in the estimations for those states that were not used') 
 end
 for k = 1:K
     sp_fit_group.state(k).psd = zeros(options.Ncomp,ndim,ndim);
@@ -209,36 +227,48 @@ for k = 1:K
 end
 
 % Subject level
-if N>1
+if N > 1 && nargout == 3
     for n = 1:N
         sp_fit{n} = struct();
         sp_fit{n}.state = struct();
         % prepare matrix
         Xpsd = zeros(Nf,ndim*K);
-        for k=1:K
+        keep_psd = true(1,ndim*K);
+        for k = 1:K
             ind = (1:ndim) + (k-1)*ndim;
             Xpsd(:,ind)= squeeze(abs(psd_comps(n,k,:,:)));
+            if any(isnan(var(Xpsd(:,ind)))) 
+                keep_psd(ind) = false;
+                warning(['Session ' num2str(n) ' did not use state ' num2str(k) '; PSD set to NaN'])
+            end
         end
         Xcoh = zeros(Nf,K*ndim2);
+        keep_coh = true(1,ndim*K);
         for k = 1:K
             ind = (1:ndim2) + (k-1)*ndim2;
             ck = squeeze(abs(coh_comps(n,k,:,:,:)));
             Xcoh(:,ind) = ck(:,ind_offdiag);
+            if any(isnan(var(Xcoh(:,ind))))
+                warning(['Session ' num2str(n) ' did not use state ' num2str(k) '; Coh set to NaN'])
+                keep_coh(ind) = false; 
+            end
         end
         % NNMF / PCA
+        psd = zeros(ndim*K,options.Ncomp);
+        coh = zeros(ndim2*K,options.Ncomp);
         if strcmpi(options.Method,'NNMF')
             opt = statset('maxiter',1);
-            [~,b] = nnmf(Xpsd,options.Ncomp,'algorithm','als',...
+            [~,b] = nnmf(Xpsd(:,keep_psd),options.Ncomp,'algorithm','als',...
                 'w0',sp_profiles,'Options',opt);
-            psd = b'; % regions by components
-            [~,b] = nnmf(Xcoh,options.Ncomp,'algorithm','als',...
+            psd(keep_psd,:) = b'; % regions by components
+            [~,b] = nnmf(Xcoh(:,keep_coh),options.Ncomp,'algorithm','als',...
                 'w0',sp_profiles,'Options',opt);
-            coh = b';
+            coh(keep_coh,:) = b';
         else
-            Xpsd = Xpsd - repmat(mean(Xpsd),Nf,1);
-            Xcoh = Xcoh - repmat(mean(Xcoh),Nf,1);
-            psd = (Xpsd' * sp_profiles);
-            coh = (Xcoh' * sp_profiles);
+            Xpsd(:,keep_psd) = Xpsd(:,keep_psd) - repmat(mean(Xpsd(:,keep_psd)),Nf,1);
+            Xcoh(:,keep_coh) = Xcohh(:,keep_coh) - repmat(mean(Xcohh(:,keep_coh)),Nf,1);
+            psd(keep_psd,:) = (Xpsd(:,keep_psd)' * sp_profiles);
+            coh(keep_coh,:) = (Xcohh(:,keep_coh)' * sp_profiles);
         end
         % Reshape stuff
         for k = 1:K
