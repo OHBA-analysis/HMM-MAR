@@ -97,7 +97,7 @@ Xpsd = zeros(Nf,ndim*K);
 keep_psd = true(1,ndim*K);
 for k = 1:K
     ind = (1:ndim) + (k-1)*ndim;
-    notnan = ~isnan(psd_comps(:,k,1,1));
+    notnan = ~isnan(psd_comps(:,k,1,1)) & ~isinf(psd_comps(:,k,1,1));
     if any(notnan)
         Xpsd(:,ind)= squeeze(mean(abs(psd_comps(notnan,k,:,:)),1)); % mean across subjects
     else
@@ -108,7 +108,7 @@ Xcoh = zeros(Nf,K*ndim2);
 keep_coh = true(1,ndim*K);
 for k = 1:K
     ind = (1:ndim2) + (k-1)*ndim2;
-    notnan = ~isnan(coh_comps(:,k,1,1,2));
+    notnan = ~isnan(coh_comps(:,k,1,1,2)) & ~isinf(coh_comps(:,k,1,1,2));
     if any(notnan)
         ck = squeeze(mean(abs(coh_comps(notnan,k,:,:,:)),1));
         Xcoh(:,ind) = ck(:,ind_offdiag);
@@ -237,7 +237,7 @@ if N > 1 && nargout == 3
         for k = 1:K
             ind = (1:ndim) + (k-1)*ndim;
             Xpsd(:,ind)= squeeze(abs(psd_comps(n,k,:,:)));
-            if any(isnan(var(Xpsd(:,ind)))) 
+            if any(isnan(var(Xpsd(:,ind)))) || any(isinf(var(Xpsd(:,ind))))
                 keep_psd(ind) = false;
                 warning(['Session ' num2str(n) ' did not use state ' num2str(k) '; PSD set to NaN'])
             end
@@ -248,9 +248,9 @@ if N > 1 && nargout == 3
             ind = (1:ndim2) + (k-1)*ndim2;
             ck = squeeze(abs(coh_comps(n,k,:,:,:)));
             Xcoh(:,ind) = ck(:,ind_offdiag);
-            if any(isnan(var(Xcoh(:,ind))))
-                warning(['Session ' num2str(n) ' did not use state ' num2str(k) '; Coh set to NaN'])
+            if any(isnan(var(Xcoh(:,ind)))) || any(isinf(var(Xcoh(:,ind))))
                 keep_coh(ind) = false; 
+                warning(['Session ' num2str(n) ' did not use state ' num2str(k) '; Coh set to NaN'])
             end
         end
         % NNMF / PCA
@@ -266,9 +266,9 @@ if N > 1 && nargout == 3
             coh(keep_coh,:) = b';
         else
             Xpsd(:,keep_psd) = Xpsd(:,keep_psd) - repmat(mean(Xpsd(:,keep_psd)),Nf,1);
-            Xcoh(:,keep_coh) = Xcohh(:,keep_coh) - repmat(mean(Xcohh(:,keep_coh)),Nf,1);
+            Xcoh(:,keep_coh) = Xcoh(:,keep_coh) - repmat(mean(Xcoh(:,keep_coh)),Nf,1);
             psd(keep_psd,:) = (Xpsd(:,keep_psd)' * sp_profiles);
-            coh(keep_coh,:) = (Xcohh(:,keep_coh)' * sp_profiles);
+            coh(keep_coh,:) = (Xcoh(:,keep_coh)' * sp_profiles);
         end
         % Reshape stuff
         for k = 1:K
