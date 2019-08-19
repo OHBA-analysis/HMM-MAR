@@ -12,10 +12,18 @@ function [P,Pi] = getMaskedTransProbMats (data,T,hmm,Masks,Gamma,Xi)
 % T             Number of time points for each time series
 % hmm           An hmm structure 
 % Masks         A cell where each element is a vector containing the indexes
-%               (e.g. [1001:2000]) for which we wish to compute the LMTPM; 
-%               indexes are with respect to the data (not the state time courses, 
-%               which are typically shorter)
-% Gamma         State courses (optional)
+%               for which we wish to compute the LMTPM.
+%               For example, if Masks is {[1001:2000],[2001:5000]}, then  
+%               P{1} and Pi{1} will be computed for time points between
+%               1001 to 2000; and P{2} and Pi{2} will be computed for time
+%               points 2001 to 5000. This way, it is possible,for instance, 
+%               to compute a separate LMTPM for each session or trial. 
+%               Note that the indexes are with respect to the data, not to
+%               the state time courses which can be shorter if
+%               options.order or options.embeddedlags were used. For
+%               example, if options.order=2 was used, the state time courses (Gamma) 
+%               for each segment will have 2 fewer time points.
+% Gamma         State courses (optional) - will be recomputed if not provided
 % Xi            Joint Prob. of child and parent states given the data (optional)
 %
 % OUTPUTS:
