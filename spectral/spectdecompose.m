@@ -105,7 +105,7 @@ for k = 1:K
     end
 end
 Xcoh = zeros(Nf,K*ndim2);
-keep_coh = true(1,ndim*K);
+keep_coh = true(1,ndim2*K);
 for k = 1:K
     ind = (1:ndim2) + (k-1)*ndim2;
     notnan = ~isnan(coh_comps(:,k,1,1,2)) & ~isinf(coh_comps(:,k,1,1,2));
@@ -243,7 +243,7 @@ if N > 1 && nargout == 3
             end
         end
         Xcoh = zeros(Nf,K*ndim2);
-        keep_coh = true(1,ndim*K);
+        keep_coh = true(1,K*ndim2);
         for k = 1:K
             ind = (1:ndim2) + (k-1)*ndim2;
             ck = squeeze(abs(coh_comps(n,k,:,:,:)));
