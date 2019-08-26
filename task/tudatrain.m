@@ -98,6 +98,17 @@ end
 % Run TUDA inference
 options.S = -ones(p+q);
 options.S(1:p,p+1:end) = 1;
+% 0. In case parallel_trials is false and no Gamma was provided
+if isempty(GammaInit) 
+    options.updateObs = 1;
+    options.updateGamma = 1;
+    options.updateP = 1;
+    cyc = options.cyc; 
+    options.cyc = 1;
+    [~,GammaInit] = hmmmar(Z,T,options);
+    options.Gamma = GammaInit;
+    options.cyc = cyc; 
+end
 % 1. With the restriction that, for each time point, 
 %   all trials have the same state (i.e. no between-trial variability),
 %   we estimate a first approximation of the decoding models

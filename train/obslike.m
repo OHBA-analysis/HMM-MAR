@@ -71,7 +71,7 @@ switch hmm.train.covtype
         C = hmm.Omega.Gam_shape * hmm.Omega.Gam_irate;
 end
 
-for k=1:K
+for k = 1:K
 
     if use_cache
         train = cache.train{k};
@@ -107,7 +107,7 @@ for k=1:K
         
     meand = zeros(size(XX,1),sum(regressed));
     if train.uniqueAR
-        for n=1:ndim
+        for n = 1:ndim
             ind = n:ndim:size(XX,2);
             meand(:,n) = XX(:,ind) * hmm.state(k).W.Mu_W;
         end
@@ -130,7 +130,7 @@ for k=1:K
     if do_normwishtrace
         switch train.covtype
             case {'diag','uniquediag'}
-                for n=1:ndim
+                for n = 1:ndim
                     if ~regressed(n), continue; end
                     if train.uniqueAR
                         ind = n:ndim:size(XX,2);
@@ -156,7 +156,7 @@ for k=1:K
                     else
                         I = (0:length(orders)*Q+(~train.zeromean)-1) * ndim;
                     end
-                    for n1=1:ndim
+                    for n1 = 1:ndim
                         if ~regressed(n1), continue; end
                         index1 = I + n1; index1 = index1(Sind(:,n1)); 
                         tmp = (XX(:,Sind(:,n1)) * hmm.state(k).W.S_W(index1,:));
@@ -171,7 +171,7 @@ for k=1:K
         end
     end
     
-    L(hmm.train.maxorder+1:T,k)= - ltpi - ldetWishB + PsiWish_alphasum + dist - NormWishtrace; 
+    L(hmm.train.maxorder+1:T,k)= -ltpi - ldetWishB + PsiWish_alphasum + dist - NormWishtrace; 
     
 end
 L = exp(L);

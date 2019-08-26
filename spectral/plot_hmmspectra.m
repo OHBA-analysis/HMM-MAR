@@ -1,12 +1,12 @@
 function plot_hmmspectra (spectra,err,coh,figure_number,colmap,channels)
 % Plot PSD and Coherence or PDC for all states
-% 
+%
 % INPUT
 % spectra: estimation from hmmspectramt or hmmspectramar
 % err: whether or not to show confidence intervals (only if they were computed)
 % coh: show coherence or PDC (latter only if it were computed)
 % figure_number: number of figure to display
-% colmap: (no. states by 3) matrix of colours 
+% colmap: (no. states by 3) matrix of colours
 % channels: subset of the channels to show (default: all)
 %
 % Diego Vidaurre, University of Oxford (2019)
@@ -14,13 +14,13 @@ function plot_hmmspectra (spectra,err,coh,figure_number,colmap,channels)
 
 if nargin < 2 || isempty(err), err = 0; end
 if nargin < 3 || isempty(coh), coh = 1; end
-if nargin < 4  || isempty(figure_number) 
+if nargin < 4  || isempty(figure_number)
     figure;
 else
     figure(figure_number);
 end
-  
-K = length(spectra.state); 
+
+K = length(spectra.state);
 d = size(spectra.state(1).psd,2);
 
 if d>10, warning('This is probably too many channels'); end
@@ -40,11 +40,11 @@ else
             col(k,:) = cm(r(k),:);
         end
     else % a matrix of colours
-        col = colmap; 
+        col = colmap;
     end
 end
 
-if nargin < 6  || isempty(channels) 
+if nargin < 6  || isempty(channels)
     channels = 1:d;
 end
 
@@ -52,7 +52,7 @@ ci_color = [0.8 0.8 0.8]; % some grey.
 
 for i = channels
     for j = channels % one panel per source-target ch combination
-             
+        
         subplot(length(channels),length(channels),(i-1)*length(channels) + j)
         
         if i == j   % on diagonal, show PSDs
@@ -68,31 +68,32 @@ for i = channels
             m = 0;
             for k = 1:K
                 s = spectra.state(k);
+                if any(isnan(s.psd(:,i,i))), continue; end
                 m = max(m,max(s.psd(:,i,i)));
                 plot(s.f, (s.psd(:,i,i)), ...
-                    'Color', col(k,:), 'LineWidth', 2);  
+                    'Color', col(k,:), 'LineWidth', 2);
             end
             
-            yrng = [0 m]; 
+            yrng = [0 m];
             string_panel = ['(PSD ' num2str(i) ')'];
             text(0.7*s.f(end), 0.95*(yrng(2)-yrng(1))+yrng(1),string_panel)
             ylim([0 1.05*m]); xlim([s.f(1) s.f(end)])
             
             
             hold off
-
+            
         else        % off diagonal, show PDCs or coherences
             if coh
                 try
                     if err
-                        ciplot(s.coherr(1,:,i,j), s.coherr(2,:,i,j), s.f, ci_color); 
+                        ciplot(s.coherr(1,:,i,j), s.coherr(2,:,i,j), s.f, ci_color);
                         hold on;
                     end
                 end
             else
                 try
                     if err
-                        ciplot(s.pdcerr(1,:,i,j), s.pdcerr(2,:,i,j), s.f, ci_color); 
+                        ciplot(s.pdcerr(1,:,i,j), s.pdcerr(2,:,i,j), s.f, ci_color);
                         hold on;
                     end
                 end
@@ -103,6 +104,7 @@ for i = channels
             if coh
                 for k = 1:K
                     s = spectra.state(k);
+                    if any(isnan(s.coh(:,i,j))), continue; end
                     plot(s.f, (s.coh(:,i,j)),'Color', col(k,:), 'LineWidth', 2);
                     m = max(m,max(s.coh(:,i,j)));
                     string_panel = ['(Coh ' num2str(i) ',' num2str(j) ')'];
@@ -110,6 +112,7 @@ for i = channels
             else
                 for k = 1:K
                     s = spectra.state(k);
+                    if any(isnan(s.pdc(:,i,j))), continue; end
                     plot(s.f, (s.pdc(:,i,j)),'Color', col(k,:), 'LineWidth', 2);
                     m = max(m,max(s.pdc(:,i,j)));
                     string_panel = ['(PDC ' num2str(i) '->' num2str(j) ')'];
@@ -125,15 +128,14 @@ for i = channels
             ylim([0 1.05*m]); xlim([s.f(1) s.f(end)])
             
         end
-
-        %if i == 1 && j == 1, ylabel('Power'); end 
+        
+        %if i == 1 && j == 1, ylabel('Power'); end
         
         if i == 1, title(['Parcel ' num2str(j)],'FontSize',10); end
         if i == length(channels), xlabel('Frequency (Hz)'); end
         if j == 1, ylabel(['Parcel ' num2str(i)],'FontSize',10,'FontWeight','bold'); end
     end
-       
+    
 end
 end
 
-    
