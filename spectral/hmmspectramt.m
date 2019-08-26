@@ -145,7 +145,7 @@ Nf = length(f); options.Nf = Nf;
 tapers=dpsschk(options.tapers,options.win,Fs); % check tapers
 ntapers = options.tapers(2);
 
-for k=1:K
+for k = 1:K
            
     % Multitaper Cross-frequency matrix calculation
     if options.p > 0
@@ -157,7 +157,7 @@ for k=1:K
     stime = zeros(length(TT),1);
     c = 1;  
     t00 = 0; 
-    if k==1, NwinsALL = 0; end
+    NwinsALL = 0;
     for n = 1:length(T)
         if iscell(data)
             X = loadfile(data{n},T{n},options); % includes preprocessing
@@ -198,7 +198,7 @@ for k=1:K
                 error('Index exceeds matrix dimensions - Did you specify options correctly? ')
             end
             Nwins = round(TT(c)/options.win); % pieces are going to be included as windows only if long enough
-            if k==1, NwinsALL = NwinsALL + Nwins; end
+            NwinsALL = NwinsALL + Nwins; 
             
             for iwin = 1:Nwins
                 ranget = (iwin-1)*options.win+1:iwin*options.win;
@@ -270,8 +270,8 @@ for k=1:K
     coh = []; pcoh = []; phase = []; pdc = [];
     if (options.to_do(1)==1) && ndim>1
         coh = zeros(Nf,ndim,ndim); phase = zeros(Nf,ndim,ndim);
-        for j=1:ndim
-            for l=1:ndim
+        for j = 1:ndim
+            for l = 1:ndim
                 cjl = psd(:,j,l)./sqrt(psd(:,j,j) .* psd(:,l,l));
                 coh(:,j,l) = abs(cjl); 
                 cjlp = -ipsd(:,j,l)./sqrt(ipsd(:,j,j) .* ipsd(:,l,l));
