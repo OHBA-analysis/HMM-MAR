@@ -26,7 +26,7 @@ if nargin<6, fehist=[]; end
 cyc_to_go = 0;
 setxx;
 
-for cycle=1:hmm.train.cyc
+for cycle = 1:hmm.train.cyc
     
     if hmm.train.updateGamma
         
@@ -64,6 +64,20 @@ for cycle=1:hmm.train.cyc
                 end
             end
             setxx;
+            
+            if hmm.train.plotAverageGamma
+                if hmm.train.order > 0, dg = hmm.train.order; end
+                if length(hmm.train.embeddedlags) > 1
+                    dg = -hmm.train.embeddedlags(1) + hmm.train.embeddedlags(end);
+                end
+                plot(double((1:(T(1)-dg)))/hmm.train.Fs,...
+                    squeeze(mean(reshape(Gamma,[(T(1)-dg) length(T) size(Gamma,2)]),2)),...
+                    'LineWidth',3)
+                ylim([0 1]); xlim(double([1 (T(1)-dg)])/hmm.train.Fs)
+                title(sprintf('iteration #%i',cycle));
+                drawnow
+            end
+            
         end
         
         %%%% Free energy computation

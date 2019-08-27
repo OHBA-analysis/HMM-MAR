@@ -29,8 +29,9 @@ if nargin < 5, binsize = 1; end
 
 if ~all(T==T(1)), error('All elements of T must be equal for cross validation'); end 
 N = length(T); ttrial = T(1); 
-q = size(Y,2);
 
+if size(Y,1) < size(Y,2); Y = Y'; end
+q = size(Y,2);
 if size(Y,1) == length(T) % one value per trial
     responses = Y;
 elseif length(Y(:)) ~= (ttrial*N*q)

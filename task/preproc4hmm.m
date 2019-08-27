@@ -5,14 +5,15 @@ if length(size(X))==3 % 1st dim, time; 2nd dim, trials; 3rd dim, channels
     X = reshape(X,[size(X,1)*size(X,2), size(X,3)]);
 end
 
-q = size(Y,2);
 N = length(T);
 p = size(X,2);
 
 if size(X,1) ~= sum(T), error('Dimension of X not correct'); end
+if size(Y,1) < size(Y,2); Y = Y'; end
 if (size(Y,1) ~= sum(T)) && (size(Y,1) ~= length(T))
     error('Dimension of Y not correct');
 end
+q = size(Y,2);
 
 if isfield(options,'downsample') && options.downsample
    error('Downsampling is not currently an option') 
@@ -39,7 +40,7 @@ else, detrend = options.detrend; end
 % econ_embed saves memory at the expense of speed, when pca is applied
 if ~isfield(options,'econ_embed'), econ_embed = 0;
 else, econ_embed = options.econ_embed; end
-if ~isfield(options,'parallel_trials'), parallel_trials = all(T==T(1));
+if ~isfield(options,'parallel_trials'), parallel_trials = all(T==T(1)) & length(T)>1;
 else, parallel_trials = options.parallel_trials; end
 if ~isfield(options,'pca'), pca_opt = 0;
 else, pca_opt = options.pca; end
@@ -63,6 +64,7 @@ end
 
 options.parallel_trials = parallel_trials;
 if ~isfield(options,'tudamonitoring'), options.tudamonitoring = 0; end
+if ~isfield(options,'plotAverageGamma'), options.plotAverageGamma = 0; end
 
 if parallel_trials && ~all(T==T(1))
     error('parallel_trials can be used only when all trials have equal length');
@@ -118,11 +120,12 @@ if size(Y,1) == N % one value for the entire trial
 end
 
 if q == 1 && length(unique(Y))==2
-   if ~(ismember(-1,unique(Y)) && ismember(+1,unique(Y)))
-       warning('Seems this is binary classification, transforming stimulus to have elements (-1,+1)')
-       v = unique(Y); 
-       Y(Y==v(1)) = -1; Y(Y==v(2)) = +1; 
-   end
+    if ismember(0,unique(Y)) || all(unique(Y)>0)
+        warning('Seems this is binary classification, transforming stimulus to have elements (-1,+1)')
+        v = unique(Y);
+        Y(Y==v(1)) = -1; Y(Y==v(2)) = +1;
+        Y = Y - mean(Y);
+    end
 end
 
 % Demean stimulus

@@ -54,6 +54,8 @@ end
 if options.FC && ~strcmpi(options.covtype,'full')
    error('If options.FC, then options.covtype must be ''full''') 
 end
+% display options
+if ~isfield(options,'plotAverageGamma'), options.plotAverageGamma = 0; end
 
 % stochastic options
 if stochastic_learning
@@ -89,6 +91,15 @@ if stochastic_learning
     if ~isfield(options,'Gamma'), options.Gamma = []; end
     if ~isfield(options,'hmm'), options.hmm = []; end
     if options.BIGdelay > 1, warning('BIGdelay is recommended to be 1.'); end
+    if options.plotAverageGamma 
+        options.plotAverageGamma = 0;
+        warning('Using stochastic learning, plotAverageGamma will be made 0.'); 
+    end
+else
+    if options.plotAverageGamma && any(~(T(1)==T))
+        options.plotAverageGamma = 0;
+        warning('plotAverageGamma is designed to average across trials, but trials have not the same length')
+    end
 end
 
 % non-stochastic training options

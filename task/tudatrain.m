@@ -55,6 +55,8 @@ end
 options_original = options; 
 [X,Y,T,options,A,stats.R2_pca,npca,features] = preproc4hmm(X,Y,T,options); 
 parallel_trials = options.parallel_trials; 
+plotAverageGamma = options.plotAverageGamma;
+options.plotAverageGamma = 0; 
 options = rmfield(options,'parallel_trials');
 if isfield(options,'add_noise'), options = rmfield(options,'add_noise'); end
 p = size(X,2); q = size(Y,2);
@@ -120,9 +122,11 @@ tuda = hmmmar(Z,T,options);
 options.updateObs = 0;
 options.updateGamma = 1;
 options.updateP = 1;
+options.plotAverageGamma = plotAverageGamma;
 options = rmfield(options,'Gamma');
 options.hmm = tuda; 
 [~,Gamma,~,vpath] = hmmmar(Z,T,options);
+options.plotAverageGamma = 0;
 % 3. Final update of state distributions, leaving fixed the state time courses
 options.updateObs = 1;
 options.updateGamma = 0;
