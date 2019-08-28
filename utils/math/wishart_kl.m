@@ -38,6 +38,7 @@ try
 catch 
     disp('Probably, part of your time series has no information and can be removed.')
     disp('For example, check if there are segments such that data(during_segment,:) == 0')
+    disp('It could also be that your have your own logdet function, that is not Matlab''s own - remove')
     error('Error computing the inverse of the covariance matrix.')
 end
 

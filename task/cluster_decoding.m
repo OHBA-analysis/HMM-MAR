@@ -30,7 +30,7 @@ N = length(T); p = size(X,2); q = size(Y,2); ttrial = T(1);
 X = reshape(X,[ttrial N p]);
 Y = reshape(Y,[ttrial N q]);
 if strcmp(cluster_method,'regression')
-    max_cyc = 100;
+    max_cyc = 100; smooth_parameter = 1; reg_parameter = 1e-5;
     % start with no constraints
     if isempty(GammaInit)
         Gamma = cluster_decoding(reshape(X,[ttrial*N p]),reshape(Y,[ttrial*N q]),...
@@ -57,7 +57,7 @@ if strcmp(cluster_method,'regression')
             ind = assig==k;
             Xstar = reshape(X(ind,:,:),[sum(ind)*N p]);
             Ystar = reshape(Y(ind,:,:),[sum(ind)*N q]);
-            beta(:,:,k) = (Xstar' * Xstar) \ (Xstar' * Ystar);
+            beta(:,:,k) = (Xstar' * Xstar + reg_parameter * eye(size(Xstar,2))) \ (Xstar' * Ystar);
         end
         % E
         Y = reshape(Y,[ttrial*N q]);
@@ -66,6 +66,7 @@ if strcmp(cluster_method,'regression')
             e = sum((Y - Yhat).^2,2);
             e = reshape(e,[ttrial N]);
             err(:,k) = sum(e,2);
+            %err(:,k) = smooth(err(:,k),smooth_parameter);
         end
         Y = reshape(Y,[ttrial N q]);
         err(1,~Pistructure) = Inf;
@@ -76,6 +77,11 @@ if strcmp(cluster_method,'regression')
         end
         % terminate?
         %if ~all(Pstructure(:)), keyboard; end
+        if 0
+           area(assig)
+           drawnow
+           pause(1)
+        end
         if all(assig_pr==assig), break; end
         assig_pr = assig;
     end
