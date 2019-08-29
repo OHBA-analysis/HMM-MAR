@@ -97,7 +97,7 @@ if ~isfield(options,'PriorWeightingPi'), options.PriorWeightingPi = length(T); e
 if ~isfield(options,'DirichletDiag'), options.DirichletDiag = 100; end
 
 do_embedding = length(embeddedlags)>1;
-do_pca = ~isempty(A) || length(pca_opt)>1 || (pca_opt>0 && pca_opt<p);
+do_pca = ~isempty(A) || length(pca_opt)>1 || (pca_opt>0 && pca_opt<(p*length(embeddedlags)));
 
 if ~do_embedding && econ_embed
     econ_embed = 0;

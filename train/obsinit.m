@@ -131,7 +131,7 @@ Gammasum = sum(Gamma);
 setxx; % build XX and get orders
 
 % W
-for k=1:K
+for k = 1:K
     setstateoptions;
     if pcapred, npred = hmm.train.pcapred;
     else npred = Q*length(orders);
@@ -159,7 +159,7 @@ for k=1:K
             hmm.state(k).W.Mu_W = zeros((~train.zeromean)+npred,ndim);
             hmm.state(k).W.iS_W = zeros(ndim,(~train.zeromean)+npred,(~train.zeromean)+npred);
             hmm.state(k).W.S_W = zeros(ndim,(~train.zeromean)+npred,(~train.zeromean)+npred);
-            for n=1:ndim
+            for n = 1:ndim
                 ndim_n = sum(S(:,n)>0);
                 if ndim_n==0, continue; end
                 hmm.state(k).W.iS_W(n,Sind(:,n),Sind(:,n)) = XXGXX{k}(Sind(:,n),Sind(:,n)) + 0.01*eye(sum(Sind(:,n))) ;
