@@ -1,5 +1,5 @@
 function Gamma = cluster_decoding(X,Y,T,K,classification,cluster_method,...
-    cluster_measure,Pstructure,Pistructure,GammaInit,repetitions)
+    cluster_measure,Pstructure,Pistructure,GammaInit,repetitions,nwin)
 % clustering of the time-point-by-time-point regressions, which is
 % temporally constrained unlike TUDA
 % INPUT
@@ -25,16 +25,42 @@ if nargin<9, Pistructure = true(K); end
 if nargin<10, GammaInit = []; end
 if nargin<11, repetitions = 100; end
 
-
 N = length(T); p = size(X,2); q = size(Y,2); ttrial = T(1);
+
+if nargin < 12, nwin = min(50,ttrial); swin = floor(ttrial/nwin); 
+else swin = 1; 
+end
+
+to_use = true(ttrial,1);
+if swin > 1
+    r = rem(ttrial,nwin);
+    if r > 0, to_use(end-r+1:end) = false; end
+end
+
 X = reshape(X,[ttrial N p]);
 Y = reshape(Y,[ttrial N q]);
+
+if swin > 1
+   X = X(to_use,:,:);
+   X = reshape(X,[swin nwin N p]);
+   X = permute(X,[2 1 3 4]);
+   X = reshape(X,[nwin N*swin p]);
+   Y = Y(to_use,:,:);
+   Y = reshape(Y,[swin nwin N q]);
+   Y = permute(Y,[2 1 3 4]);
+   Y = reshape(Y,[nwin N*swin q]);
+   ttrial0 = ttrial; N0 = N;
+   ttrial = nwin; N = N*swin; T = nwin * ones(N,1);
+end
+
 if strcmp(cluster_method,'regression')
-    max_cyc = 100; smooth_parameter = 1; reg_parameter = 1e-5;
+    max_cyc = 100; reg_parameter = 1e-5; smooth_parameter = 1;
     % start with no constraints
     if isempty(GammaInit)
+        tic
         Gamma = cluster_decoding(reshape(X,[ttrial*N p]),reshape(Y,[ttrial*N q]),...
-            T,K,classification,'sequential',[],[],[],[],1000);
+            T,K,classification,'sequential',[],[],[],[],10,1);
+        toc
     else
         Gamma = GammaInit; 
     end
@@ -52,6 +78,11 @@ if strcmp(cluster_method,'regression')
     beta = zeros(p,q,K);
     err = zeros(ttrial,K);
     for cyc = 1:max_cyc
+        if 0
+            area(assig)
+            drawnow
+            pause(1)
+        end
         % M
         for k = 1:K
             ind = assig==k;
@@ -66,7 +97,7 @@ if strcmp(cluster_method,'regression')
             e = sum((Y - Yhat).^2,2);
             e = reshape(e,[ttrial N]);
             err(:,k) = sum(e,2);
-            %err(:,k) = smooth(err(:,k),smooth_parameter);
+            err(:,k) = smooth(err(:,k),smooth_parameter);
         end
         Y = reshape(Y,[ttrial N q]);
         err(1,~Pistructure) = Inf;
@@ -77,11 +108,6 @@ if strcmp(cluster_method,'regression')
         end
         % terminate?
         %if ~all(Pstructure(:)), keyboard; end
-        if 0
-           area(assig)
-           drawnow
-           pause(1)
-        end
         if all(assig_pr==assig), break; end
         assig_pr = assig;
     end
@@ -89,6 +115,7 @@ if strcmp(cluster_method,'regression')
         Gamma(t,:) = 0;
         Gamma(t,assig(t)) = 1;
     end
+    
 elseif strcmp(cluster_method,'hierarchical')
     beta = zeros(p,q,ttrial);
     for t = 1:ttrial
@@ -139,7 +166,9 @@ elseif strcmp(cluster_method,'hierarchical')
         link = linkage(dist');
     end
     assig = cluster(link,'MaxClust',K);
-else % 'sequential'
+    
+elseif strcmp(cluster_method,'sequential')
+    regularization = 1.0;
     assig = zeros(ttrial,1);
     err = 0;
     changes = [1 (1:(K-1)) * round(ttrial / K) ttrial];
@@ -156,7 +185,7 @@ else % 'sequential'
     for rep = 1:repetitions
         assig = zeros(ttrial,1);
         while 1
-            changes = cumsum(rand(1,K));
+            changes = cumsum(regularization+rand(1,K));
             changes = [1 round(ttrial * changes / max(changes))];
             if ~any(changes==0) && length(unique(changes))==length(changes) 
                 break 
@@ -176,12 +205,28 @@ else % 'sequential'
         end
     end
     assig = assig_best;
-        
+%     
+% else % 'fixedsequential'
+%     
+    
 end
 
 Gamma = zeros(ttrial, K);
 for k = 1:K
     Gamma(assig==k,k) = 1;
 end
+
+if swin > 1
+   Gamma1 = Gamma;
+   Gamma = zeros(ttrial0-r,K);
+   for k = 1:K
+       g = repmat(Gamma1(:,k)',[swin 1]);
+       Gamma(:,k) = g(:);
+   end
+   if r > 0
+       Gamma = [Gamma; repmat(Gamma(end,:),[r 1])];
+   end
+end
+
 end
 
