@@ -57,10 +57,8 @@ if strcmp(cluster_method,'regression')
     max_cyc = 100; reg_parameter = 1e-5; smooth_parameter = 1;
     % start with no constraints
     if isempty(GammaInit)
-        tic
         Gamma = cluster_decoding(reshape(X,[ttrial*N p]),reshape(Y,[ttrial*N q]),...
             T,K,classification,'sequential',[],[],[],[],10,1);
-        toc
     else
         Gamma = GammaInit; 
     end

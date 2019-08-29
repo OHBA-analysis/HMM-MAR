@@ -71,8 +71,14 @@ if classification
 end
 
 if do_preproc
+    if isfield(tuda.train,'embeddedlags'), el = tuda.train.embeddedlags; end
     [X,Y,T,options] = preproc4hmm(X,Y,T,tuda.train); % this demeans Y
     p = size(X,2);
+    if classification && length(el) > 1
+        Ycopy = reshape(Ycopy,[ttrial N q]);
+        Ycopy = Ycopy(-el(1)+1:end-el(end),:,:);
+        Ycopy = reshape(Ycopy,[T(1)*N q]);
+    end
 end
 if ~isempty(active), tuda.train.active = active; end 
 if ~isempty(orders),  tuda.train.orders = orders;  end 
@@ -117,6 +123,7 @@ options.hmm = tuda;
 options.repetitions = 0;
 options.pca = 0; 
 options.cyc = 1; 
+options.tuda = 0;
 [~,Gamma,~,vpath] = hmmmar(Z,T,options);
 T = T - 1; 
 

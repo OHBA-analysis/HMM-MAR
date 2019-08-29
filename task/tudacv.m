@@ -63,6 +63,9 @@ else
     responses = reshape(Y,[ttrial N q]);
     Ystar = reshape(repmat(responses(1,:,:),[ttrial,1,1]),[ttrial*N q]);
     responses = permute(responses(1,:,:),[2 3 1]); % N x q
+    if ~all(Y(:)==Ystar(:))
+        error('For cross-validating, the same stimulus must be presented for the entire trial');
+    end
 end
 
 classification = length(unique(responses(:))) < max_num_classes;
@@ -76,14 +79,17 @@ if classification
     if ~isfield(options,'demeanstim'), options.demeanstim = 0; end
 end
 
-if ~all(Y(:)==Ystar(:))
-    error('For cross-validating, the same stimulus must be presented for the entire trial'); 
-end
-
 % Preproc data and put in the right format 
 if do_preproc
+    if isfield(options,'embeddedlags'), el = options.embeddedlags; end
     [X,Y,T,options] = preproc4hmm(X,Y,T,options); % this demeans Y
     p = size(X,2);
+    if classification && length(el) > 1
+        Ycopy = reshape(Ycopy,[ttrial N q]);
+        Ycopy = Ycopy(-el(1)+1:end-el(end),:,:);
+        Ycopy = reshape(Ycopy,[T(1)*N q]);
+    end
+    ttrial = T(1); 
 end
 
 if isfield(options,'CVmethod') 
@@ -150,7 +156,7 @@ for icv = 1:NCV
     Xtrain = reshape(X(:,c.training{icv},:),[Ntr*ttrial p] ) ;
     Ytrain = reshape(Y(:,c.training{icv},:),[Ntr*ttrial q] ) ;
     Ttr = T(c.training{icv});
-    [tuda,Gammatrain] = call_tudatrain(Xtrain,Ytrain,Ttr,options);
+    [tuda,Gammatrain] = call_tudatrain(Xtrain,Ytrain,Ttr,options,classification);
     Betas(:,:,:,icv) = tudabeta(tuda);
     switch CVmethod
         case 1 % training average
@@ -227,7 +233,7 @@ end
 end
 
 
-function [tuda,Gamma] = call_tudatrain(X,Y,T,options)
+function [tuda,Gamma] = call_tudatrain(X,Y,T,options,classification)
 
 N = length(T); q = size(Y,2); p = size(X,2);
 
@@ -251,24 +257,32 @@ options = rmfield(options,'parallel_trials');
 if isfield(options,'add_noise'), options = rmfield(options,'add_noise'); end
 
 % Run TUDA inference
+options.plotAverageGamma = 0;
+options.tudamonitoring = 0;
+options.behaviour = [];
 options.S = -ones(p+q);
 options.S(1:p,p+1:end) = 1;
-% 1. Estimate state time courses, trans prob mat, and first approximation
-%       of the decoding models
+% 1. With the restriction that, for each time point, 
+%   all trials have the same state (i.e. no between-trial variability),
+%   we estimate a first approximation of the decoding models
+options.updateObs = 1; 
+options.updateGamma = 0; 
+options.updateP = 0;
+tuda = hmmmar(Z,T,options);
+% 2. Estimate state time courses and transition probability matrix 
 options.updateObs = 0;
 options.updateGamma = 1;
 options.updateP = 1;
-options.verbose = 0; 
+options = rmfield(options,'Gamma');
+options.hmm = tuda; 
 [~,Gamma] = hmmmar(Z,T,options);
-% 2. Update state distributions only, leaving fixed the state time courses
+% 3. Final update of state distributions, leaving fixed the state time courses
 options.updateObs = 1;
 options.updateGamma = 0;
 options.updateP = 0;
 options.Gamma = Gamma;
+options = rmfield(options,'hmm');
 options.tuda = 1;
-%options.hmm = tuda; 
-options.tudamonitoring = 0;
-options.behaviour = [];
 tuda = hmmmar(Z,T,options); 
 
 end

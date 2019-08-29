@@ -147,9 +147,11 @@ for cycle = 1:hmm.train.cyc
         end
     end
     
-    if max(getMaxFractionalOccupancy(Gamma,T,hmm.train)) > hmm.train.maxFOth
-        disp('Training has been stopped for reaching the threshold of maximum FO')
-        break
+    if hmm.train.maxFOth < Inf
+        if max(getMaxFractionalOccupancy(Gamma,T,hmm.train)) > hmm.train.maxFOth
+            disp('Training has been stopped for reaching the threshold of maximum FO')
+            break
+        end
     end
    
 end
