@@ -7,10 +7,10 @@ function [tuda,Gamma,encmodel,decmodel] = tudasparsify(X,Y,T,tuda,...
 %   occupancy for each state, anything out of the center of mass of this
 %   Gaussian disitribution is made zero; that is, those visits to the
 %   decoders that are far away from the time point of maximal occupancy are
-%   eliminated. This is controlled by parameter temp_sparsity; for example,
-%   for temp_sparsity=0.1, we'll be getting rid of everything out of the 90% 
-%   area of probability density of the fitted Gaussian distribution. For a
-%   visualisation of what it does, set doplot = 1.
+%   eliminated. This is controlled by parameter temp_sparsity; the higher
+%   temp_sparsity, the narrower will be this Gaussian distribution - and
+%   therefore the more we will focus on data points around the maximum.
+%   For a visualisation of what it does, set doplot = 1.
 % - Spatially: Using only the time points dictated by the temporal sparsity
 %   constraint, the decoding models are re-estimated with a elastic-net
 %   sparsity constraint, so that some decoding coefficients are driven to
@@ -56,8 +56,15 @@ if classification
 end
 
 if do_preproc
+    if isfield(tuda.train,'embeddedlags'), el = tuda.train.embeddedlags; end
     [X,Y,T,options] = preproc4hmm(X,Y,T,tuda.train); % this demeans Y
     p = size(X,2);
+%     if classification && length(el) > 1
+%         Ycopy = reshape(Ycopy,[ttrial N q]);
+%         Ycopy = Ycopy(-el(1)+1:end-el(end),:,:);
+%         Ycopy = reshape(Ycopy,[T(1)*N q]);
+%     end
+    ttrial = T(1); 
 end
 if ~isempty(active), tuda.train.active = active; end 
 if ~isempty(orders),  tuda.train.orders = orders;  end 
@@ -67,22 +74,30 @@ mg_sparse = zeros(size(mg));
 
 % Temporal sparsification
 if temp_sparsity > 0
+    pp = 1 - temp_sparsity;
     for k = 1:K
         % Specify fit function, a unimodal gaussian
         gauss_func = @(x,f) f.a1.*exp(-((x-f.b1)/f.c1).^2);
         options_fit = fitoptions('gauss1');
-        [~,m] = max(mg(:,k));
+        [~,m] = max(mg(:,k)); 
+        mg_aux = mg(:,k); 
+        if m > round(pp*ttrial)
+            mg_aux(1:m-round(pp*ttrial)) = 0; 
+        end
+        if (m+round(pp*ttrial)) < ttrial 
+            mg_aux((m+round(pp*ttrial)):end) = 0; 
+        end
         options_fit.Lower = [0,m,0];
         options_fit.Upper = [Inf,m,ttrial];
-        f = fit( linspace(1,ttrial,ttrial)',mg(:,k), 'gauss1',options_fit);
+        f = fit( linspace(1,ttrial,ttrial)',mg_aux, 'gauss1',options_fit);
         mg_sparse(:,k) = gauss_func(1:ttrial,f)';
-        mu = f.b1; s = f.c1;
-        pp = temp_sparsity / 2;
-        d = norminv(pp,mu,s);
-        if d >= 1, mg_sparse(1:round(d),k) = 0; end
-        pp = 1 - temp_sparsity / 2;
-        d = norminv(pp,mu,s);
-        if d <= ttrial, mg_sparse(round(d):ttrial,k) = 0; end
+%         mu = f.b1; s = f.c1;
+%         pp = temp_sparsity / 2;
+%         d = norminv(pp,mu,s);
+%         if d >= 1, mg_sparse(1:round(d),k) = 0; end
+%         pp = 1 - temp_sparsity / 2;
+%         d = norminv(pp,mu,s);
+%         if d <= ttrial, mg_sparse(round(d):ttrial,k) = 0; end
     end
 else
     mg_sparse = mg;
@@ -123,14 +138,17 @@ if doplot
     title('Fitted Gaussian distributions')
     set(gca,'FontSize',16)
     figure
-    subplot(121)
-    imagesc(decmodel);colorbar
-    title('Sparse decoding models'); ylabel('Sensors'); xlabel('Decoders')
-    set(gca,'FontSize',16)
-    subplot(122)
+    if q == 1
+        subplot(121)
+        imagesc(squeeze(decmodel));colorbar
+        title('Sparse decoding models'); ylabel('Sensors'); xlabel('Decoders')
+        set(gca,'FontSize',16)
+        subplot(122)
+    end
     imagesc(encmodel);colorbar
     title('Sparse encoding models'); ylabel('Sensors'); xlabel('Encoders')
     set(gca,'FontSize',16)   
+    
 end
 
 end
