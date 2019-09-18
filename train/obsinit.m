@@ -144,7 +144,7 @@ for k=1:K
     else npred = Q*length(orders);
     end
     hmm.state(k).W = struct('Mu_W',[],'S_W',[]);
-    if order>0 || ~train.zeromean || train.logisticYdim>0
+    if order>0 || ~train.zeromean || train.logisticYdim>0 || strcmp(train.covtype,'poisson')
         if train.uniqueAR || ndim==1 % it is assumed that order>0 and cov matrix is diagonal
             XY = zeros(npred+(~train.zeromean),1);
             XGX = zeros(npred+(~train.zeromean));
@@ -174,6 +174,8 @@ for k=1:K
                 hmm.state(k).W.Mu_W(Sind(:,n),n) = (( permute(hmm.state(k).W.S_W(n,Sind(:,n),Sind(:,n)),[2 3 1])...
                     * XX(:,Sind(:,n))') .* repmat(Gamma(:,k)',sum(Sind(:,n)),1)) * residuals(:,n);
             end
+        elseif strcmp(train.covtype,'poisson')    
+            hmm = updateW(hmm,Gamma,residuals);
         else
             gram = kron(XXGXX{k},eye(ndim));
             hmm.state(k).W.iS_W = gram + 0.01*eye(size(gram,1));
@@ -227,7 +229,7 @@ elseif strcmp(hmm.train.covtype,'uniquefull')
     end
     hmm.Omega.Gam_irate(regressed,regressed) = inv(hmm.Omega.Gam_rate(regressed,regressed));   
     
-elseif ~strcmp(hmm.train.covtype,'logistic') % state dependent
+elseif ~strcmp(hmm.train.covtype,'logistic') & ~strcmp(hmm.train.covtype,'poisson') % state dependent
     for k=1:K
         setstateoptions;
         if train.uniqueAR

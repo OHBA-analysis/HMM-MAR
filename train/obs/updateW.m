@@ -17,7 +17,7 @@ for k=1:K
     setstateoptions;
     if isempty(orders) && train.zeromean, continue; end
     if strcmp(train.covtype,'diag') || strcmp(train.covtype,'full'), omega = hmm.state(k).Omega;
-    elseif ~strcmp(train.covtype,'logistic'), omega = hmm.Omega;
+    elseif ~strcmp(train.covtype,'logistic') & ~strcmp(train.covtype,'poisson'), omega = hmm.Omega;
     end
     if train.uniqueAR || ndim==1 % it is assumed that order>0 and cov matrix is diagonal
         if hmm.train.pcapred>0, npred = hmm.train.pcapred;
@@ -65,6 +65,9 @@ for k=1:K
             if ~isempty(orders)
                 if pcapred
                     regterm = [regterm; hmm.state(k).beta.Gam_shape(:,n) ./ hmm.state(k).beta.Gam_rate(:,n)];
+                elseif train.grouphierarchy
+                    % implement prior:
+                    regterm = hmm.state(k).W.prior.iSigma(Sind(:,n),Sind(:,n),n);
                 else
                     alphaterm = repmat( (hmm.state(k).alpha.Gam_shape ./  hmm.state(k).alpha.Gam_rate), ndim_n, 1);
                     if ndim>1
@@ -76,14 +79,21 @@ for k=1:K
                 end
             end
             if isempty(regterm), regterm = 0; end
-            regterm = diag(regterm);
+            if ~train.grouphierarchy;regterm = diag(regterm);end
             hmm.state(k).W.iS_W(n,Sind(:,n),Sind(:,n)) = ...
                 regterm + Tfactor * (omega.Gam_shape / omega.Gam_rate(n)) * XXGXX{k}(Sind(:,n),Sind(:,n));
             hmm.state(k).W.S_W(n,Sind(:,n),Sind(:,n)) = ...
                 inv(permute(hmm.state(k).W.iS_W(n,Sind(:,n),Sind(:,n)),[2 3 1]));
-            hmm.state(k).W.Mu_W(Sind(:,n),n) = (( permute(hmm.state(k).W.S_W(n,Sind(:,n),Sind(:,n)),[2 3 1]) * ...
-                Tfactor * (omega.Gam_shape / omega.Gam_rate(n)) * XX(:,Sind(:,n))') .* ...
-                repmat(Gamma(:,k)',sum(Sind(:,n)),1)) * residuals(:,n);
+            if ~train.grouphierarchy
+                hmm.state(k).W.Mu_W(Sind(:,n),n) = (( permute(hmm.state(k).W.S_W(n,Sind(:,n),Sind(:,n)),[2 3 1]) * ...
+                    Tfactor * (omega.Gam_shape / omega.Gam_rate(n)) * XX(:,Sind(:,n))') .* ...
+                    repmat(Gamma(:,k)',sum(Sind(:,n)),1)) * residuals(:,n);
+            else
+                hmm.state(k).W.Mu_W(Sind(:,n),n) = (( permute(hmm.state(k).W.S_W(n,Sind(:,n),Sind(:,n)),[2 3 1]) * ...
+                    Tfactor * (omega.Gam_shape / omega.Gam_rate(n)) * XX(:,Sind(:,n))') .* ...
+                    repmat(Gamma(:,k)',sum(Sind(:,n)),1)) * residuals(:,n) + ...
+                    ( permute(hmm.state(k).W.S_W(n,Sind(:,n),Sind(:,n)),[2 3 1]) * hmm.state(k).W.prior.mu(:,n));
+            end
         end
         XW(:,:,k) = XX * hmm.state(k).W.Mu_W;
         
@@ -134,6 +144,14 @@ for k=1:K
             psiupdate = sum(((X .* repmat(Gamma(:,k),1,size(X,2))) * WWupdate).*X , 2);
             hmm.psi = sqrt(hmm.psi.^2+psiupdate);
         end
+    elseif strcmp(train.covtype,'poisson')
+        % unsupervised Poisson model:
+        a0=1;b0=1; %prior terms
+        X=residuals;
+        hmm.state(k).W.W_shape = a0 + sum(X .* repmat(Gamma(:,k),1,size(X,2)));
+        hmm.state(k).W.W_rate = b0 + sum(Gamma(:,k));
+        
+        hmm.state(k).W.W_mean = hmm.state(k).W.W_shape./hmm.state(k).W.W_rate;
         
     else % full or unique full - this only works if all(S(:)==1); any(S(:)~=1) is just not yet implemented 
         if pcapred

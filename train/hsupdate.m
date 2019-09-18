@@ -88,6 +88,13 @@ if Q==1
         hmm.Pi(k) = exp(psi(hmm.Dir_alpha(k))-PsiSum);
     end
     hmm.Pi = hmm.Pi ./ sum(hmm.Pi);
+    hmm.Pe = zeros(1,K);
+    PsiSum = psi(sum(hmm.Dir_alpha));
+    for k = 1:K
+        if ~hmm.train.Pestructure(k), continue; end
+        hmm.Pe(k) = exp(psi(hmm.Dir_alpha(k))-PsiSum);
+    end
+    hmm.Pe = hmm.Pe ./ sum(hmm.Pe);
 else
     hmm.Pi = zeros(K,Q);
     for i = 1:Q
@@ -97,6 +104,15 @@ else
             hmm.Pi(k,i) = exp(psi(hmm.Dir_alpha(k,i))-PsiSum);
         end
         hmm.Pi(:,i) = hmm.Pi(:,i) ./ sum(hmm.Pi(:,i));
+    end
+    hmm.Pe = zeros(K,Q);
+    for i = 1:Q
+        PsiSum = psi(sum(hmm.Dir_alpha(:,i)));
+        for k = 1:K
+            if ~hmm.train.Pestructure(k), continue; end
+            hmm.Pe(k,i) = exp(psi(hmm.Dir_alpha(k,i))-PsiSum);
+        end
+        hmm.Pe(:,i) = hmm.Pe(:,i) ./ sum(hmm.Pi(:,i));
     end
 end
 

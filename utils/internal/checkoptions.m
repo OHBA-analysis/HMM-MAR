@@ -46,6 +46,7 @@ end
 if ~isfield(options,'logisticYdim'),options.logisticYdim=0;end
 if ~isfield(options,'timedependent'),options.timedependent=0;end
 if ~isfield(options,'balancedata'),options.balancedata=1;end
+if ~isfield(options,'grouphierarchy'),options.grouphierarchy=0;end
 if length(options.embeddedlags)>1 && isfield(options,'covtype') && ...
         ~strcmpi(options.covtype,'full')
     options.covtype = 'full';

@@ -26,7 +26,7 @@ obs_it = 1;
 Gammasum = sum(Gamma);
 if nargin<7, Tfactor = 1; end
 
-if ~strcmp(hmm.train.covtype,'logistic')
+if ~strcmp(hmm.train.covtype,'logistic') & ~strcmp(hmm.train.covtype,'poisson')
     while mean_change>obs_tol && obs_it<=obs_maxit
 
         last_state = hmm.state;
@@ -57,7 +57,7 @@ if ~strcmp(hmm.train.covtype,'logistic')
         end
         mean_change = mean_changew;
     end
-else
+elseif strcmp(hmm.train.covtype,'logistic')
     % note that logistic models are slower to converge, so more iterations
     % may need to be allowed here
     obs_maxit = 1;
@@ -93,5 +93,7 @@ else
         fprintf(['\nObservation params updated, free energy: ',num2str(sum(fehist(obs_it,:)))]);
         obs_it = obs_it + 1;
     end
+elseif strcmp(hmm.train.covtype,'poisson')
+    hmm = updateW(hmm,Gamma,residuals,XX,XXGXX,Tfactor);
 end
 end
