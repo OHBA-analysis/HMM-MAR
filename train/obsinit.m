@@ -73,7 +73,7 @@ for k=1:hmm.K
         defstateprior(k).Mean.S = rangresiduals2';
         defstateprior(k).Mean.iS = 1./rangresiduals2';
     end
-    priorcov_rate = rangeerror(X,T,hmm.train.maxorder,orders,residuals);
+    priorcov_rate = rangeerror(X,T,residuals,orders,hmm.train);
     if strcmp(train.covtype,'full')
         defstateprior(k).Omega.Gam_rate = diag(priorcov_rate);
         defstateprior(k).Omega.Gam_shape = ndim+0.1-1;

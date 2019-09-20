@@ -112,8 +112,8 @@ if stochastic_learning
     if ~isfield(options,'useParallel'), options.useParallel = 1; end
 else
     if ~isfield(options,'cyc'), options.cyc = 500; end
-    if ~isfield(options,'initcyc'), options.initcyc = 100; end
-    if ~isfield(options,'initrep'), options.initrep = 4; end
+    if ~isfield(options,'initcyc'), options.initcyc = 25; end
+    if ~isfield(options,'initrep'), options.initrep = 5; end
     if ~isfield(options,'initcriterion'), options.initcriterion = 'FreeEnergy'; end
     if ~isfield(options,'verbose'), options.verbose = 1; end
     % the rest of the stuff will get assigned in the recursive calls

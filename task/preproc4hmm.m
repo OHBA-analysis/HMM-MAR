@@ -8,6 +8,8 @@ end
 N = length(T);
 p = size(X,2);
 
+if any(isnan(Y(:))), error('NaN found in Y'); end
+
 if size(X,1) ~= sum(T), error('Dimension of X not correct'); end
 if size(Y,1) < size(Y,2); Y = Y'; end
 if (size(Y,1) ~= sum(T)) && (size(Y,1) ~= length(T))
@@ -141,7 +143,7 @@ if add_noise > 0
     end
 end
 % Standardise data
-if standardise
+if standardise && N > 1
    warning(['You have set standardise=1, so each channel and trial will be standardized. ' ...
        'This will probably result in a loss of information in terms of how each stimulus is processed'])
 end

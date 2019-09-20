@@ -19,7 +19,7 @@ if reweight % assumes there are two classes, encoded by -1 and 1
     count(2) = mean(residuals(:,end)>0);
 end
 
-for k=1:K
+for k = 1:K
     
     if ~hmm.train.active(k), continue; end
     setstateoptions;
@@ -69,13 +69,13 @@ for k=1:K
             hmm.state(k).W.S_W = inv(regterm + Tfactor * XGX);
             hmm.state(k).W.Mu_W = Tfactor * hmm.state(k).W.S_W * XY; % order by 1
         end        
-        for n=1:ndim
+        for n = 1:ndim
             ind = n:ndim:size(XX,2);
             XW(:,n,k) = XX(:,ind) * hmm.state(k).W.Mu_W;
         end
         
     elseif strcmp(train.covtype,'diag') || strcmp(train.covtype,'uniquediag')
-        for n=1:ndim
+        for n = 1:ndim
             ndim_n = sum(S(:,n)>0);
             if ndim_n==0 && train.zeromean==1, continue; end
             regterm = [];
