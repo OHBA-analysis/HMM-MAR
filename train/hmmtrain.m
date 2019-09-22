@@ -109,7 +109,6 @@ for cycle=1:hmm.train.cyc
     % Observation model
     if hmm.train.updateObs
         hmm = obsupdate(T,Gamma,hmm,residuals,XX,XXGXX);
-        
     end
     
     if hmm.train.updateGamma

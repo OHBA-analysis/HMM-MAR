@@ -118,7 +118,7 @@ for k = 1:K
         C = hmm.state(k).Omega.Gam_shape * hmm.state(k).Omega.Gam_irate;
     end
     
-    if ~strcmp(train.covtype,'logistic')
+    if ~strcmp(train.covtype,'logistic') & ~strcmp(train.covtype,'poisson')
         hmm.cache.ldetWishB{k} = ldetWishB;
         hmm.cache.PsiWish_alphasum{k} = PsiWish_alphasum;
         hmm.cache.C{k} = C;
