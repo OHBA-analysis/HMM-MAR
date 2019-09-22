@@ -84,6 +84,8 @@ if stochastic_learn
     
 else
     
+    % Standardise data and control for ackward trials
+    data = standardisedata(data,T,options.standardise);
     % Filtering
     if ~isempty(options.filter)
         data = filterdata(data,T,options.Fs,options.filter);
@@ -92,8 +94,6 @@ else
     if options.detrend
         data = detrenddata(data,T);
     end
-    % Standardise data and control for ackward trials
-    data = standardisedata(data,T,options.standardise);
     % Hilbert envelope
     if options.onpower
         data = rawsignal2power(data,T);

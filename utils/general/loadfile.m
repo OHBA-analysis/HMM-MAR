@@ -26,6 +26,10 @@ else
     end
 end
 
+% Standardise data and control for ackward trials
+if isfield(options,'standardise')
+    X = standardisedata(X,T,options.standardise);
+end
 % Filtering
 if isfield(options,'filter') && ~isempty(options.filter)
     X = filterdata(X,T,options.Fs,options.filter);
@@ -33,10 +37,6 @@ end
 % Detrend data
 if isfield(options,'detrend') && options.detrend
     X = detrenddata(X,T);
-end
-% Standardise data and control for ackward trials
-if isfield(options,'standardise')
-    X = standardisedata(X,T,options.standardise);
 end
 % Leakage correction
 if isfield(options,'leakagecorr') && options.leakagecorr ~= 0

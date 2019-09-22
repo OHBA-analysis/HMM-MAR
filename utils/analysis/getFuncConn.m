@@ -1,4 +1,4 @@
-function [covmat,corrmat] = getFuncConn(hmm,k)
+function [covmat,corrmat] = getFuncConn(hmm,k,verbose)
 % Get the covariance and correlation matrices for state k, 
 %   from the estimated model hmm
 % If order==0 (Gaussian distribution), these purely represents functional
@@ -6,6 +6,8 @@ function [covmat,corrmat] = getFuncConn(hmm,k)
 % If order>0 (MAR), these refer to the covariance matrix of the residual
 %
 % Diego Vidaurre, OHBA, University of Oxford (2016)
+
+if nargin < 3, verbose = 1; end
 
 if ~isfield(hmm.state(1),'Omega')
     error('The model was defined with a unique covariance matrix'); 
@@ -27,6 +29,11 @@ catch
     warning(['The covariance matrix of this state is not well-defined, ' ...
         'so the correlation matrix was not computed (second output argument is empty).' ... 
         'Most probably, the inference did not assign enough time points to this state.'])
+end
+
+if isfield(hmm.train,'embeddedlags') && length(hmm.train.embeddedlags) > 1 && verbose
+    disp(['Because you are using options.embedded lags, the resulting matrices will ' ...
+        'be (lags x regions) by (lags x regions)'])
 end
 
 if isfield(hmm.train,'A')

@@ -80,7 +80,7 @@ for k=1:hmm.K
         defstateprior(k).Mean.S = rangresiduals2';
         defstateprior(k).Mean.iS = 1./rangresiduals2';
     end
-    priorcov_rate = rangeerror(X,T,hmm.train.maxorder,orders,residuals);
+    priorcov_rate = rangeerror(X,T,residuals,orders,hmm.train);
     if strcmp(train.covtype,'full')
         defstateprior(k).Omega.Gam_rate = diag(priorcov_rate);
         defstateprior(k).Omega.Gam_shape = ndim+0.1-1;
@@ -138,7 +138,7 @@ Gammasum = sum(Gamma);
 setxx; % build XX and get orders
 
 % W
-for k=1:K
+for k = 1:K
     setstateoptions;
     if pcapred, npred = hmm.train.pcapred;
     else npred = Q*length(orders);
@@ -166,7 +166,7 @@ for k=1:K
             hmm.state(k).W.Mu_W = zeros((~train.zeromean)+npred,ndim);
             hmm.state(k).W.iS_W = zeros(ndim,(~train.zeromean)+npred,(~train.zeromean)+npred);
             hmm.state(k).W.S_W = zeros(ndim,(~train.zeromean)+npred,(~train.zeromean)+npred);
-            for n=1:ndim
+            for n = 1:ndim
                 ndim_n = sum(S(:,n)>0);
                 if ndim_n==0, continue; end
                 hmm.state(k).W.iS_W(n,Sind(:,n),Sind(:,n)) = XXGXX{k}(Sind(:,n),Sind(:,n)) + 0.01*eye(sum(Sind(:,n))) ;

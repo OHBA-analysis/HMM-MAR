@@ -88,6 +88,9 @@ if MLestimation
         error('MAR spectra cannot be estimated for MAR order equal to 0')
     end    
 else
+    if hmm.train.order == 0 
+        error('order needs to be higher than 0')
+    end
     if isfield(hmm.state(1),'W')
         ndim = size(hmm.state(1).W.Mu_W,2);
     else
@@ -145,6 +148,8 @@ if MLestimation
     % Check options
     [options,~,ndim] = checkoptions_spectra(options,data,T,0);
     hmm.train.S = options.S;
+    % Standardise data and control for ackward trials
+    data = standardisedata(data,T,options.standardise);
     % Filtering
     if ~isempty(options.filter)
         data = filterdata(data,T,options.Fs,options.filter);
@@ -153,8 +158,6 @@ if MLestimation
     if options.detrend
         data = detrenddata(data,T);
     end
-    % Standardise data and control for ackward trials
-    data = standardisedata(data,T,options.standardise);
     % Leakage correction
     if options.leakagecorr ~= 0
         data = leakcorr(data,T,options.leakagecorr);
@@ -236,10 +239,10 @@ for j=1:NN
         hmm = mlhmmmar(Xj,Tj,hmm0,Gammaj,options.completelags);
     end
     
-    for k=1:K
+    for k = 1:K
         setstateoptions;
         W = zeros(length(orders),ndim,ndim);
-        for i=1:length(orders)
+        for i = 1:length(orders)
             W(i,:,:) = hmm.state(k).W.Mu_W(~train.zeromean + ((1:ndim) + (i-1)*ndim),:);
         end
         switch train.covtype
@@ -272,8 +275,8 @@ for j=1:NN
             psdc(ff,:,:,j,k) = iaf_tmp * covmk * iaf_tmp'; 
             % Get PDC
             if options.to_do(2)==1 && ndim>1
-                for n=1:ndim
-                    for l=1:ndim
+                for n = 1:ndim
+                    for l = 1:ndim
                         pdcc(ff,n,l,j,k) = sqrt(preckd(n)) * abs(af_tmp(n,l)) / ...
                             sqrt( preckd * (abs(af_tmp(:,l)).^2) );
                     end
@@ -285,9 +288,9 @@ end
 
 % Normalise psdc and pdcc by the amount of fractional occupancy per trial
 if options.p > 0
-    for ff=1:options.Nf
-        for n=1:ndim
-            for l=1:ndim
+    for ff = 1:options.Nf
+        for n = 1:ndim
+            for l = 1:ndim
                 psdc(ff,n,l,:,:) = permute(psdc(ff,n,l,:,:),[4 5 1 2 3]) ./ Gammasum;
                 pdcc(ff,n,l,:,:) = permute(pdcc(ff,n,l,:,:),[4 5 1 2 3]) ./ Gammasum;
             end
@@ -296,7 +299,7 @@ if options.p > 0
 end
     
 % For each state compute coherence, and do jackknifing
-for k=1:K
+for k = 1:K
     fit.state(k).pdc = []; fit.state(k).coh = []; fit.state(k).pcoh = []; fit.state(k).phase = [];
     if options.p > 0
         fit.state(k).psd = sum(psdc(:,:,:,:,k),4) / sum(Gammasum(:,k));
@@ -311,7 +314,7 @@ for k=1:K
         end
     end
     fit.state(k).ipsd = zeros(options.Nf,ndim,ndim);
-    for ff=1:options.Nf
+    for ff = 1:options.Nf
         fit.state(k).ipsd(ff,:,:) = inv(permute(fit.state(k).psd(ff,:,:),[3 2 1]));
     end
     fit.state(k).f = freqs;
@@ -321,8 +324,8 @@ for k=1:K
         fit.state(k).coh = zeros(options.Nf,ndim,ndim);
         fit.state(k).pcoh = zeros(options.Nf,ndim,ndim);
         fit.state(k).phase = zeros(options.Nf,ndim,ndim);
-        for n=1:ndim
-            for l=1:ndim
+        for n = 1:ndim
+            for l = 1:ndim
                 rkj=fit.state(k).psd(:,n,l)./(sqrt(fit.state(k).psd(:,n,n)).*sqrt(fit.state(k).psd(:,l,l)));
                 fit.state(k).coh(:,n,l)=abs(rkj);
                 fit.state(k).pcoh(:,n,l)=-fit.state(k).ipsd(:,n,l)./...

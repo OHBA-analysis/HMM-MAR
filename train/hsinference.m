@@ -162,7 +162,7 @@ if hmm.train.useParallel==1 && N>1
 %             else Gamma_slice=NaN; end
             slicepoints=slicer + s0 - order;
             if isnan(C(t,1))
-                [gammat,xit,Bt] = nodecluster(XXt,K,hmm,R(slicer,:),in,slicepoints);
+                [gammat,xit,Bt] = nodecluster(XXt,K,hmm,R(slicer,:));
             else
                 gammat = zeros(length(slicer),K);
                 if t==order+1, gammat(1,:) = C(slicer(1),:); end
@@ -197,7 +197,7 @@ if hmm.train.useParallel==1 && N>1
     
 else
     
-    for in=1:N % this is exactly the same than the code above but changing parfor by for
+    for in = 1:N % this is exactly the same than the code above but changing parfor by for
         Bt = [];  
         t0 = sum(T(1:in-1)); s0 = t0 - order*(in-1);
         if order>0
@@ -228,7 +228,7 @@ else
 %             else Gamma_slice=NaN; end
             slicepoints=slicer + s0 - order;
             if isnan(C(t,1))
-                [gammat,xit,Bt] = nodecluster(XXt,K,hmm,R(slicer,:),in,slicepoints);
+                [gammat,xit,Bt] = nodecluster(XXt,K,hmm,R(slicer,:));
                 if any(isnan(gammat(:)))
                     error('State time course inference returned NaN - Out of precision?')
                 end
@@ -270,10 +270,30 @@ Gamma = cell2mat(Gamma);
 Xi = cell2mat(Xi);
 if n_argout>=5, B  = cell2mat(B); end
 
+% orthogonalise = 1; 
+% Gamma0 = Gamma; 
+% if orthogonalise && hmm.train.tuda
+%     T = length(Gamma) / length(T) * ones(length(T),1); 
+%     Gamma = reshape(Gamma,[T(1) length(T) size(Gamma,2) ]);
+%     Y = reshape(residuals(:,end),[T(1) length(T)]);
+%     for t = 1:T(1)
+%        y = Y(t,:)'; 
+%        for k = 1:size(Gamma,3)
+%            x = Gamma(t,:,k)';
+%            b = y \ x;
+%            Gamma(t,:,k) = Gamma(t,:,k) - (y * b)';
+%        end
+%     end
+%     Gamma = reshape(Gamma,[T(1)*length(T) size(Gamma,3) ]);
+%     Gamma = rdiv(Gamma,sum(Gamma,2));
+%     Gamma = Gamma - min(Gamma(:));
+%     Gamma = rdiv(Gamma,sum(Gamma,2));
+% end
+
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [Gamma,Xi,L] = nodecluster(XX,K,hmm,residuals,n,slicepoints)
+function [Gamma,Xi,L] = nodecluster(XX,K,hmm,residuals)
 % inference using normal foward backward propagation
 
 
@@ -291,7 +311,7 @@ end
 % else 
 %     P = hmm.P; Pi = hmm.Pi;
 % end
-P = hmm.P; Pi = hmm.Pi; %Pe = hmm.Pe;
+P = hmm.P; Pi = hmm.Pi;
 
 try
     if ~strcmp(hmm.train.covtype,'logistic') & ~strcmp(hmm.train.covtype,'poisson')
@@ -300,19 +320,6 @@ try
         L = obslikepoisson(residuals,hmm);
     elseif strcmp(hmm.train.covtype,'logistic')
         L = obslikelogistic([],hmm,residuals,XX,slicepoints);
-%         % debugging test:
-%         Xhat=XX(:,1:50);
-%         Yhat=XX(:,51);
-%         Yhat=(2.*Yhat) -1;
-%         for k=1:length(hmm.state)
-%             params.state(k).w_mu=hmm.state(k).W.Mu_W(1:end-1,51);
-%             params.state(k).w_sig=squeeze(hmm.state(k).W.S_W(end,2:end,2:end));
-%         end
-%         params.gamma=hmm.Gamma;
-%         xi=hmm.psi;
-%         for t=slicepoints
-%             L_test(t)=bayeslogregress_loglikelihoodofH(Yhat(t),Xhat(t,:),params,xi(t),t);
-%         end
     end
 catch
     error('obslike function is giving trouble - Out of precision?')
@@ -339,12 +346,7 @@ scale(1+order) = sum(alpha(1+order,:));
 alpha(1+order,:) = alpha(1+order,:)/scale(1+order);
 
 for i = 2+order:T
-    if hmm.train.timedependent
-        P_timedependent = computeP_TD(i,P,K,T);
-        alpha(i,:) = (alpha(i-1,:)*P_timedependent).*L(i,:);
-    else
-        alpha(i,:) = (alpha(i-1,:)*P).*L(i,:);
-    end
+    alpha(i,:) = (alpha(i-1,:)*P).*L(i,:);
     scale(i) = sum(alpha(i,:));		% P(X_i | X_1 ... X_{i-1})
     alpha(i,:) = alpha(i,:)/scale(i);
 end
@@ -352,14 +354,8 @@ end
 scale(scale<realmin) = realmin;
 
 beta(T,:) = ones(1,K)/scale(T);
-%beta(T,:) = Pe/scale(T);
 for i = T-1:-1:1+order
-    if hmm.train.timedependent
-        P_timedependent = computeP_TD(i,P,K,T);
-        beta(i,:) = (beta(i+1,:).*L(i+1,:))*(P_timedependent')/scale(i);
-    else
-        beta(i,:) = (beta(i+1,:).*L(i+1,:))*(P')/scale(i);
-    end
+    beta(i,:) = (beta(i+1,:).*L(i+1,:))*(P')/scale(i);
     beta(i,beta(i,:)>realmax) = realmax;
 end
 Gamma = (alpha.*beta);
@@ -368,12 +364,7 @@ Gamma = rdiv(Gamma,sum(Gamma,2));
 
 Xi = zeros(T-1-order,K*K);
 for i = 1+order:T-1
-    if hmm.train.timedependent
-        P_timedependent = computeP_TD(i,P,K,T);
-        t = P_timedependent.*( alpha(i,:)' * (beta(i+1,:).*L(i+1,:)));
-    else
-        t = P.*( alpha(i,:)' * (beta(i+1,:).*L(i+1,:)));
-    end
+    t = P.*( alpha(i,:)' * (beta(i+1,:).*L(i+1,:)));
     Xi(i-order,:) = t(:)'/sum(t(:));
 end
 

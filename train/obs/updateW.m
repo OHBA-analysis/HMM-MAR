@@ -1,4 +1,4 @@
-function [hmm,XW] = updateW(hmm,Gamma,residuals,XX,XXGXX,Tfactor)
+function [hmm,XW] = updateW(hmm,Gamma,residuals,XX,XXGXX,Tfactor) 
 
 K = length(hmm.state); ndim = hmm.train.ndim;
 if ~isempty(hmm.state(1).W.Mu_W)
@@ -7,18 +7,36 @@ else
     XW = [];
 end
 if nargin<6, Tfactor = 1; end
+reweight = 0; % compensate for classes that have fewer instances?  % compensate for classes that have fewer instances?  % compensate for classes that have fewer instances?  % compensate for classes that have fewer instances?  % compensate for classes that have fewer instances?  
 if isfield(hmm.train,'B'), Q = size(hmm.train.B,2);
 else Q = ndim; end
 pcapred = hmm.train.pcapred>0;
 if pcapred, M = hmm.train.pcapred; end
 
-for k=1:K
+if reweight % assumes there are two classes, encoded by -1 and 1   
+    count = zeros(2,1); 
+    count(1) = mean(residuals(:,end)<0);
+    count(2) = mean(residuals(:,end)>0);
+end
+
+for k = 1:K
+    
     if ~hmm.train.active(k), continue; end
     setstateoptions;
     if isempty(orders) && train.zeromean, continue; end
     if strcmp(train.covtype,'diag') || strcmp(train.covtype,'full'), omega = hmm.state(k).Omega;
     elseif ~strcmp(train.covtype,'logistic') & ~strcmp(train.covtype,'poisson'), omega = hmm.Omega;
     end
+    
+    if reweight
+        count_k = zeros(2,1);
+        count_k(1) = sum( Gamma(:,k) .* (residuals(:,end)<0) ) / sum(Gamma(:,k));
+        count_k(2) = sum( Gamma(:,k) .* (residuals(:,end)>0) ) / sum(Gamma(:,k));
+        ratio = count ./ count_k;
+        Gamma(residuals(:,end)<0,k) = Gamma(residuals(:,end)<0,k) * ratio(1);
+        Gamma(residuals(:,end)>0,k) = Gamma(residuals(:,end)>0,k) * ratio(2);
+    end
+  
     if train.uniqueAR || ndim==1 % it is assumed that order>0 and cov matrix is diagonal
         if hmm.train.pcapred>0, npred = hmm.train.pcapred;
         else npred = length(orders);
@@ -51,13 +69,13 @@ for k=1:K
             hmm.state(k).W.S_W = inv(regterm + Tfactor * XGX);
             hmm.state(k).W.Mu_W = Tfactor * hmm.state(k).W.S_W * XY; % order by 1
         end        
-        for n=1:ndim
+        for n = 1:ndim
             ind = n:ndim:size(XX,2);
             XW(:,n,k) = XX(:,ind) * hmm.state(k).W.Mu_W;
         end
         
     elseif strcmp(train.covtype,'diag') || strcmp(train.covtype,'uniquediag')
-        for n=1:ndim
+        for n = 1:ndim
             ndim_n = sum(S(:,n)>0);
             if ndim_n==0 && train.zeromean==1, continue; end
             regterm = [];
@@ -82,6 +100,8 @@ for k=1:K
             if ~train.grouphierarchy;regterm = diag(regterm);end
             hmm.state(k).W.iS_W(n,Sind(:,n),Sind(:,n)) = ...
                 regterm + Tfactor * (omega.Gam_shape / omega.Gam_rate(n)) * XXGXX{k}(Sind(:,n),Sind(:,n));
+            hmm.state(k).W.iS_W(n,Sind(:,n),Sind(:,n)) = (squeeze(hmm.state(k).W.iS_W(n,Sind(:,n),Sind(:,n))) + ...
+                squeeze(hmm.state(k).W.iS_W(n,Sind(:,n),Sind(:,n)))' ) / 2;
             hmm.state(k).W.S_W(n,Sind(:,n),Sind(:,n)) = ...
                 inv(permute(hmm.state(k).W.iS_W(n,Sind(:,n),Sind(:,n)),[2 3 1]));
             if ~train.grouphierarchy
@@ -181,6 +201,7 @@ for k=1:K
         prec = omega.Gam_shape * omega.Gam_irate;
         gram = kron(XXGXX{k}, prec);
         hmm.state(k).W.iS_W = regterm + Tfactor * gram;
+        hmm.state(k).W.S_W = (hmm.state(k).W.S_W + hmm.state(k).W.S_W') / 2; 
         hmm.state(k).W.S_W = inv(hmm.state(k).W.iS_W);
         muW = Tfactor * hmm.state(k).W.S_W * gram * mlW(:);
         if pcapred

@@ -86,6 +86,8 @@ if preproc % Adjust the data if necessary
     train = hmm.train;
     checkdatacell;
     data = data2struct(data,T,train);
+    % Standardise data and control for ackward trials
+    data = standardisedata(data,T,train.standardise);
     % Filtering
     if ~isempty(train.filter)
         data = filterdata(data,T,train.Fs,train.filter);
@@ -94,8 +96,6 @@ if preproc % Adjust the data if necessary
     if train.detrend
         data = detrenddata(data,T);
     end
-    % Standardise data and control for ackward trials
-    data = standardisedata(data,T,train.standardise);
     % Leakage correction
     if train.leakagecorr ~= 0 
         data = leakcorr(data,T,train.leakagecorr);

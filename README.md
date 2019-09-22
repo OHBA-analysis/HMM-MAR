@@ -12,7 +12,7 @@ For more detailed description and applications, please refer to
 
 Diego Vidaurre, Andrew J. Quinn, Adam P. Baker, David Dupret, Alvaro Tejero-Cantero and Mark W. Woolrich (2016) _Spectrally resolved fast transient brain states in electrophysiological data._ NeuroImage. Volume 126, Pages 81–95.
 
-Diego Vidaurre, Romesh Abeysuriya, Robert Becker, Andrew J. Quinn, F. Alfaro-Almagro, S.M Smith and Mark W. Woolrich (2017) _Discovering dynamic brain networks from big data in rest and task._ NeuroImage.    
+Diego Vidaurre, Romesh Abeysuriya, Robert Becker, Andrew J. Quinn, F. Alfaro-Almagro, S.M Smith and Mark W. Woolrich (2018) _Discovering dynamic brain networks from big data in rest and task._ NeuroImage.    
 
 Diego Vidaurre, S.M. Smith and Mark W. Woolrich (2017). _Brain network dynamics are hierarchically organized in time_. Proceedings of the National Academy of Sciences of the USA.
 

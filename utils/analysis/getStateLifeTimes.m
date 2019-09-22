@@ -37,11 +37,11 @@ if iscell(T)
         trials2subjects(ii:ii+Ntrials-1) = i;
         ii = ii + Ntrials;
     end
-    T = int64(cell2mat(T));
+    %T = int64(cell2mat(T));
 else 
     Nsubj = length(T);
     trials2subjects = 1:Nsubj;
-    T = int64(T);
+    %T = int64(T);
 end
 N = length(T);
 
@@ -58,6 +58,9 @@ elseif isfield(options,'embeddedlags') && length(options.embeddedlags) > 1
     d2 = max(0,options.embeddedlags(end));
     T = T - (d1+d2);
     T = ceil(r * T);
+else
+    options.order = (sum(T) - size(Gamma,1)) / length(T); 
+    T = T - options.order; 
 end
 
 if is_vpath % viterbi path

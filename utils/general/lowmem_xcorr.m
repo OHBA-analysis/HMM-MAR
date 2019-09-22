@@ -1,12 +1,19 @@
 function C = lowmem_xcorr(X,maxlag)
-ndim = size(X,2);
-C = zeros(2*maxlag+1,ndim,ndim);
-for i=0:maxlag
-    for n1=1:ndim
-        for n2=1:ndim
-            C(maxlag+1+i,n1,n2) = corr(X(1:end-i,n1),X(1+i:end,n2));
-            C(maxlag+1-i,n1,n2) = C(maxlag+1+i,n1,n2);
-        end
+
+T = size(X,1); ndim = size(X,2);
+Y = embeddata(X,T,-maxlag:maxlag);
+CY = corr(Y);
+L = 2*maxlag+1;
+I = false(L); for j = 1:L, I(j,L+1-j) = true; end
+C = zeros(ndim,ndim,L);
+
+for n1 = 1:ndim
+    ind1 = (1:L) + (n1-1)*L;
+    for n2 = 1:ndim
+        ind2 = (1:L) + (n2-1)*L;
+        cy = CY(ind1,ind2); 
+        C(n1,n2,:) = cy(I);
     end
-end
+end     
+            
 end

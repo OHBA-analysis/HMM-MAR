@@ -88,6 +88,8 @@ elseif strcmp(hmm.train.covtype,'uniquefull')
         end
         hmm.Omega.Gam_rate(regressed,regressed) = hmm.Omega.Gam_rate(regressed,regressed) + Tfactor * (e + swx2(regressed,regressed));
     end
+    hmm.Omega.Gam_rate(regressed,regressed) = (hmm.Omega.Gam_rate(regressed,regressed) + ...
+        hmm.Omega.Gam_rate(regressed,regressed)') / 2;
     hmm.Omega.Gam_irate(regressed,regressed) = inv(hmm.Omega.Gam_rate(regressed,regressed));
     hmm.Omega.Gam_shape = hmm.prior.Omega.Gam_shape + Tfactor * Tres;
     
@@ -171,6 +173,8 @@ else % state dependent
                 hmm.state(k).Omega.Gam_rate(regressed,regressed) = hmm.state(k).prior.Omega.Gam_rate(regressed,regressed) + ...
                     Tfactor * (e + swx2(regressed,regressed));
             end
+            hmm.state(k).Omega.Gam_rate(regressed,regressed) = (hmm.state(k).Omega.Gam_rate(regressed,regressed) + ...
+                hmm.state(k).Omega.Gam_rate(regressed,regressed)') / 2;
             hmm.state(k).Omega.Gam_irate(regressed,regressed) = inv(hmm.state(k).Omega.Gam_rate(regressed,regressed));
             hmm.state(k).Omega.Gam_shape = hmm.state(k).prior.Omega.Gam_shape + Tfactor * Gammasum(k);
         end

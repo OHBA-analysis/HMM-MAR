@@ -1,27 +1,30 @@
-function [P,Pi] = getMaskedTransProbMats (data,T,hmm,Masks,Gamma,Xi,residuals)
+function [P,Pi] = getMaskedTransProbMats (data,T,hmm,Masks,Gamma,Xi)
 % Obtain local Markov transitive probability matrices (LMTPM) for each of the 
 % masks specified by the variable masks (see description of parameters).
 % The matrices include state persistency probabilities 
 % (see getTransProbs.m to obtain just the transition probabilities) 
 %
-% Note that this function does not the preproc that is done by hmmmar. so
-% it shouldn't be used if Gamma was obtained using options.downsample,
-% options.filter, options.detrend, etc. This is yet to be implemented.
-%
 % INPUTS:
 %
-% data          observations - a struct with X (time series) and C (classes)
-%               This is only necessary if Xi and residuals are not specified, 
-%               in order to compute them
+% data          observations; either a struct with X (time series) and C (classes, optional),
+%                             or a matrix containing the time series,
+%                             or a list of file names
 % T             Number of time points for each time series
 % hmm           An hmm structure 
 % Masks         A cell where each element is a vector containing the indexes
-%               (e.g. [1001:2000]) for which we wish to compute the LMTPM;  are
-%               indexes with respect to the data (not the state time courses, 
-%               which are typically shorter)
-% Gamma         State courses (optional)
+%               for which we wish to compute the LMTPM.
+%               For example, if Masks is {[1001:2000],[2001:5000]}, then  
+%               P{1} and Pi{1} will be computed for time points between
+%               1001 to 2000; and P{2} and Pi{2} will be computed for time
+%               points 2001 to 5000. This way, it is possible,for instance, 
+%               to compute a separate LMTPM for each session or trial. 
+%               Note that the indexes are with respect to the data, not to
+%               the state time courses which can be shorter if
+%               options.order or options.embeddedlags were used. For
+%               example, if options.order=2 was used, the state time courses (Gamma) 
+%               for each segment will have 2 fewer time points.
+% Gamma         State courses (optional) - will be recomputed if not provided
 % Xi            Joint Prob. of child and parent states given the data (optional)
-% residuals     in case we train on residuals, the value of those (optional)
 %
 % OUTPUTS:
 % P             A cell where each element is a LMTPM, computed for the
@@ -29,22 +32,22 @@ function [P,Pi] = getMaskedTransProbMats (data,T,hmm,Masks,Gamma,Xi,residuals)
 %
 % Author: Diego Vidaurre, OHBA, University of Oxford (2017)
 
-if nargin<6
-    if ~isfield(data,'C')
-        if hmm.K>1, data.C = NaN(size(data.X,1),hmm.K);
-        else data.C = ones(size(data.X,1),1);
-        end
-    end
-    if nargin<7
-        orders = formorders(hmm.train.order,hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag);
-        hmm.train.Sind = formindexes(orders,hmm.train.S);
-        residuals = getresiduals(data.X,T,hmm.train.Sind,hmm.train.maxorder,hmm.train.order,...
-            hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag,hmm.train.zeromean);
-    end
-    [Gamma,~,Xi]=hsinference(data,T,hmm,residuals);    
+if nargin<6 || isempty(Xi)
+    options = hmm.train;
+    options.updateGamma = 1; 
+    options.updateP = 0; 
+    options.updateObs = 0; 
+    options.verbose = 0;
+    if isfield(options,'Gamma'), options = rmfield(options,'Gamma'); end
+    if isfield(options,'orders'), options = rmfield(options,'orders'); end
+    if isfield(options,'active'), options = rmfield(options,'active'); end
+    options.hmm = hmm;
+    [hmm, Gamma, Xi] = hmmmar (data,T,options);  
 end
 
 order = hmm.train.maxorder;
+embeddedlags = abs(hmm.train.embeddedlags); 
+L = order + embeddedlags(1) + embeddedlags(end);
 
 if ~iscell(Masks), Masks = {Masks}; end
 N = length(T);
@@ -62,12 +65,19 @@ for im = 1:np
     for n = 1:N
         t0 = sum(T(1:n-1)); t1 = sum(T(1:n));
         ind_ix = mask(mask>=t0+1 & mask<=t1); % the ones belonging to this trial
-        if length(ind_ix)<=(order+2), continue; end
+        if length(ind_ix)<=L, continue; end
         T0 = [T0; length(ind_ix)];
-        ind_ig = ind_ix(ind_ix>=t0+order+1);
-        ind_ig = ind_ig - n*order;
+        if order > 0
+            ind_ig = ind_ix(ind_ix>=t0+order+1);
+            ind_ig = ind_ig - n*order;
+        elseif length(embeddedlags) > 1
+            ind_ig = ind_ix((ind_ix>=t0+embeddedlags(1)+1) & (ind_ix<=t1-embeddedlags(end))  ); 
+            ind_ig = ind_ig - (n-1)*L - embeddedlags(1);
+        else 
+            ind_ig = ind_ix;
+        end
+        ind_ixi = ind_ig(1:end-1) - (n-1);    
         Gamma0 = cat(1,Gamma0,Gamma(ind_ig,:));
-        ind_ixi = ind_ig(1:end-1) - (n-1);
         Xi0 = cat(1,Xi0,Xi(ind_ixi,:,:));
     end
     if isempty(Gamma0), error('Invalid mask?'); end

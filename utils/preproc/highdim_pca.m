@@ -18,6 +18,7 @@ function [A,B,e,e_subj] = highdim_pca(X,T,d,embeddedlags,...
 %
 % Author: Diego Vidaurre, University of Oxford (2016)
 
+if nargin<3, d = []; end
 if nargin<4, embeddedlags = 0; end
 if nargin<5, standardise = 0; end
 if nargin<6, onpower = 0; end
@@ -52,8 +53,8 @@ verbose = 1;
 
 if is_cell_strings || is_cell_matrices
     B = [];
-    for i=1:length(X)
-        X_i = loadfile(X{i},T{i},options); % zscoring/embedding are done here
+    for i = 1:length(X)
+        X_i = loadfile(X{i},T{i},options); % preproc is done here
         X_i = bsxfun(@minus,X_i,mean(X_i)); % must center
         if isempty(d), d = size(X_i,2); verbose = 0; end
         if i==1, C = zeros(size(X_i,2)); end
@@ -62,13 +63,13 @@ if is_cell_strings || is_cell_matrices
     [A,e,~] = svd(C);
     e = diag(e);
 else
+    X = standardisedata(X,T,options.standardise);
     if ~isempty(options.filter)
         X = filterdata(X,T,options.Fs,options.filter);
     end
     if options.detrend
         X = detrenddata(X,T);
     end
-    X = standardisedata(X,T,standardise);
     if options.leakagecorr ~= 0
         X = leakcorr(X,T,options.leakagecorr);
     end
@@ -82,7 +83,7 @@ else
         X = bsxfun(@minus,X,mean(X)); % must center
         X = X * options.As;
     end
-    if length(embeddedlags)>1
+    if length(options.embeddedlags)>1
         X = embeddata(X,T,options.embeddedlags);
     end
     if isstruct(X)

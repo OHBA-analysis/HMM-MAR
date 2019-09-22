@@ -42,6 +42,7 @@ if ~isfield(options,'order') && ~isfield(options,'embeddedlags')
         'these need to be specified too here'])
 end
 
+if isfield(options,'Gamma'), options = rmfield(options,'Gamma'); end
 if ~isfield(options,'order'), order = 0; options.order = 0;
 else, order = options.order; 
 end
@@ -82,6 +83,10 @@ else
     if nargin<3 || isempty(Gamma)
         Gamma = ones(sum(T),1); options.order = 0; options.embeddedlags = 0;
     end 
+    % Standardise data and control for ackward trials
+    if options.standardise
+        data = standardisedata(data,T,options.standardise);
+    end
     % Filtering
     if ~isempty(options.filter)
        data = filterdata(data,T,options.Fs,options.filter);
@@ -89,10 +94,6 @@ else
     % Detrend data
     if options.detrend
        data = detrenddata(data,T); 
-    end
-    % Standardise data and control for ackward trials
-    if options.standardise
-        data = standardisedata(data,T,options.standardise);
     end
     % Leakage correction
     if options.leakagecorr ~= 0 
@@ -144,7 +145,7 @@ Nf = length(f); options.Nf = Nf;
 tapers=dpsschk(options.tapers,options.win,Fs); % check tapers
 ntapers = options.tapers(2);
 
-for k=1:K
+for k = 1:K
            
     % Multitaper Cross-frequency matrix calculation
     if options.p > 0
@@ -156,7 +157,7 @@ for k=1:K
     stime = zeros(length(TT),1);
     c = 1;  
     t00 = 0; 
-    if k==1, NwinsALL = 0; end
+    NwinsALL = 0;
     for n = 1:length(T)
         if iscell(data)
             X = loadfile(data{n},T{n},options); % includes preprocessing
@@ -197,7 +198,7 @@ for k=1:K
                 error('Index exceeds matrix dimensions - Did you specify options correctly? ')
             end
             Nwins = round(TT(c)/options.win); % pieces are going to be included as windows only if long enough
-            if k==1, NwinsALL = NwinsALL + Nwins; end
+            NwinsALL = NwinsALL + Nwins; 
             
             for iwin = 1:Nwins
                 ranget = (iwin-1)*options.win+1:iwin*options.win;
@@ -269,8 +270,8 @@ for k=1:K
     coh = []; pcoh = []; phase = []; pdc = [];
     if (options.to_do(1)==1) && ndim>1
         coh = zeros(Nf,ndim,ndim); phase = zeros(Nf,ndim,ndim);
-        for j=1:ndim
-            for l=1:ndim
+        for j = 1:ndim
+            for l = 1:ndim
                 cjl = psd(:,j,l)./sqrt(psd(:,j,j) .* psd(:,l,l));
                 coh(:,j,l) = abs(cjl); 
                 cjlp = -ipsd(:,j,l)./sqrt(ipsd(:,j,j) .* ipsd(:,l,l));
@@ -278,7 +279,7 @@ for k=1:K
                 phase(:,j,l) = angle(cjl); %atan(imag(rkj)./real(rkj));
             end
         end
-    end
+    end 
     
     if (options.to_do(2)==1) && ndim>1
         [pdc, dtf] = subrutpdc(psd,options.numIterations,options.tol);

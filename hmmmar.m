@@ -1,4 +1,4 @@
- function [hmm, Gamma, Xi, vpath, GammaInit, residuals, fehist, feterms, rho] = ...
+function [hmm, Gamma, Xi, vpath, GammaInit, residuals, fehist, feterms, rho] = ...
     hmmmar (data,T,options)
 % Main function to train the HMM-MAR model, compute the Viterbi path and,
 % if requested, obtain the cross-validated sum of prediction quadratic errors.
@@ -131,7 +131,8 @@ if stochastic_learn
         options.As = [];
     end    
     % get PCA loadings 
-    if length(options.pca) > 1 || (options.pca > 0 && options.pca ~= 1)
+    if length(options.pca) > 1 || (options.pca > 0 && options.pca ~= 1) || ...
+            isfield(options,'A')
         if ~isfield(options,'A')
             options.A = highdim_pca(data,T,options.pca,...
                 options.embeddedlags,options.standardise,...
@@ -186,7 +187,7 @@ if stochastic_learn
         GammaInit = options.Gamma;
         options = rmfield(options,'Gamma');
         [hmm,info] = hmmsinitg(data,T,options,GammaInit);
-    end
+    end % If both are specified, hmm is not used
     if options.BIGcyc>1
         [hmm,fehist,feterms,rho] = hmmstrain(data,T,hmm,info,options);
     else
@@ -207,6 +208,8 @@ if stochastic_learn
     
 else
     
+    % Standardise data and control for ackward trials
+    data = standardisedata(data,T,options.standardise); 
     % Filtering
     if ~isempty(options.filter)
        data = filterdata(data,T,options.Fs,options.filter);
@@ -214,10 +217,6 @@ else
     % Detrend data
     if options.detrend
        data = detrenddata(data,T); 
-    end
-    % Standardise data and control for ackward trials
-    if options.standardise
-        data = standardisedata(data,T,options.standardise); 
     end
     % Leakage correction
     if options.leakagecorr ~= 0 
@@ -246,7 +245,8 @@ else
         [data,T] = embeddata(data,T,options.embeddedlags);
     end
     % PCA transform
-    if length(options.pca) > 1 || (options.pca > 0 && options.pca ~= 1)
+    if length(options.pca) > 1 || (options.pca > 0 && options.pca ~= 1) || ...
+            isfield(options,'A')
         if isfield(options,'A')
             data.X = bsxfun(@minus,data.X,mean(data.X));   
             data.X = data.X * options.A; 
@@ -262,6 +262,12 @@ else
         if ~options.zeromean, options.Sind = [true(1,size(options.Sind,2)); options.Sind]; end
     else
         options.ndim = size(data.X,2);
+    end
+    % Rank reduction
+    if options.rank > 0 
+        [options.A,data.X] = highdim_pca(data.X,T,options.rank,0,0,0);
+        data.X =  data.X * options.A';
+        data.X =  data.X + 1e-2 * randn(size(data.X)); % add some noise to avoid ill-conditioning
     end
     % Downsampling
     if options.downsample > 0 
@@ -321,10 +327,11 @@ else
     else % Gamma specified
         if ~isempty(options.hmm)
            warning('options.hmm will not be used because options.Gamma was specified') 
+           options.hmm = [];
         end
         % hmm unspecified, or both specified
         GammaInit = options.Gamma;
-    end
+    end % If both are specified, hmm is not used
     options = rmfield(options,'Gamma');
 
     % If initialization Gamma has fewer states than options.K, put those states back in
@@ -393,10 +400,10 @@ else
     for it = 1:options.repetitions
         hmm0 = hmm_wr;
         [hmm0,Gamma0,Xi0,fehist0] = hmmtrain(data,T,hmm0,GammaInit,residuals_wr,fehistInit);
-        if options.updateGamma==1 && fehist0(end)<fehist(end)
+        if options.updateGamma && (fehist0(end)<fehist(end))
             fehist = fehist0; hmm = hmm0;
             residuals = residuals_wr; Gamma = Gamma0; Xi = Xi0;
-        elseif options.updateGamma==0
+        elseif ~options.updateGamma
             fehist = []; hmm = hmm0;
             residuals = []; Gamma = GammaInit; Xi = [];
         end

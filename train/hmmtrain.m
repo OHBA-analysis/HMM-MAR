@@ -20,13 +20,13 @@ function [hmm,Gamma,Xi,fehist] = hmmtrain(data,T,hmm,Gamma,residuals,fehist)
 % hmm.P           - state transition matrix
 % hmm.state(k).$$ - whatever parameters there are in the observation model
 %
-% Author: Diego Vidaurre, OHBA, University of Oxford
+% Author: Diego Vidaurre, OHBA, University of Oxford (2018)
 
 if nargin<6, fehist=[]; end
 cyc_to_go = 0;
 setxx;
 
-for cycle=1:hmm.train.cyc
+for cycle = 1:hmm.train.cyc
     
     if hmm.train.updateGamma
         
@@ -64,6 +64,20 @@ for cycle=1:hmm.train.cyc
                 end
             end
             setxx;
+            
+            if hmm.train.plotAverageGamma
+                if hmm.train.order > 0, dg = hmm.train.order; end
+                if length(hmm.train.embeddedlags) > 1
+                    dg = -hmm.train.embeddedlags(1) + hmm.train.embeddedlags(end);
+                end
+                plot(double((1:(T(1)-dg)))/hmm.train.Fs,...
+                    squeeze(mean(reshape(Gamma,[(T(1)-dg) length(T) size(Gamma,2)]),2)),...
+                    'LineWidth',3)
+                ylim([0 1]); xlim(double([1 (T(1)-dg)])/hmm.train.Fs)
+                title(sprintf('iteration #%i',cycle));
+                drawnow
+            end
+            
         end
         
         if strcmp(hmm.train.covtype,'logistic')
@@ -101,8 +115,10 @@ for cycle=1:hmm.train.cyc
         if cyc_to_go>0, cyc_to_go = cyc_to_go - 1; end
         
     else
-        Xi=[]; fehist=0;
+        Xi = []; fehist = 0;
     end
+    
+    %disp(['mean MaxFO = ' num2str(mean(getMaxFractionalOccupancy(Gamma,T,hmm.train)))])
     
     %%%% M STEP
        
@@ -111,11 +127,22 @@ for cycle=1:hmm.train.cyc
         hmm = obsupdate(T,Gamma,hmm,residuals,XX,XXGXX);
     end
     
-    if hmm.train.updateGamma
-        % transition matrices and initial state
-        hmm = hsupdate(Xi,Gamma,T,hmm);
-    else
-        break; % one is enough
+    % Transition matrices and initial state
+    if hmm.train.updateP
+        if hmm.train.updateGamma  
+            hmm = hsupdate(Xi,Gamma,T,hmm);
+        else
+            [Gamma_0,~,Xi_0] = hsinference(data,T,hmm,residuals,[],XX);
+            hmm = hsupdate(Xi_0,Gamma_0,T,hmm);
+        end
+    end
+    
+    if ~hmm.train.updateGamma    
+        break % one iteration is enough
+    end
+    
+    if sum(hmm.train.updateObs + hmm.train.updateGamma + hmm.train.updateP) < 2
+        break % one iteration is enough
     end
     
     if hmm.train.tudamonitoring
@@ -132,6 +159,13 @@ for cycle=1:hmm.train.cyc
                 f(cycle+1,:) = getBehAssociation(Gamma,y,T);
                 hmm.tudamonitor.behaviour.(fs{ifs}) = f;
             end
+        end
+    end
+    
+    if hmm.train.maxFOth < Inf
+        if max(getMaxFractionalOccupancy(Gamma,T,hmm.train)) > hmm.train.maxFOth
+            disp('Training has been stopped for reaching the threshold of maximum FO')
+            break
         end
     end
    

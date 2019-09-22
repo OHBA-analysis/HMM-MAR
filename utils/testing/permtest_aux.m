@@ -11,7 +11,7 @@ function pval = permtest_aux(X,D,Nperm,confounds)
 
 [N,p] = size(X);
 %if nargin<4, grouping = []; end
-if (nargin>4) && ~isempty(confounds)
+if (nargin>3) && ~isempty(confounds)
     confounds = confounds - repmat(mean(confounds),N,1);
     X = bsxfun(@minus,X,mean(X));   
     X = X - confounds * pinv(confounds) * X;

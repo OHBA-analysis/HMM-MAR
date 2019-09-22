@@ -1,4 +1,4 @@
-function [hmm,Gamma] = hmmdual(data,T,hmm,Gamma,Xi,residuals)
+function [hmm,Gamma,vpath] = hmmdual(data,T,hmm,Gamma,Xi,residuals)
 %
 % Dual estimation of the HMM
 %
@@ -14,6 +14,7 @@ function [hmm,Gamma] = hmmdual(data,T,hmm,Gamma,Xi,residuals)
 % OUTPUTS
 % hmm           estimated HMMMAR model
 % Gamma         estimated p(state | data)
+% vpath            estimated Viterbi path
 %
 % Author: Diego Vidaurre, OHBA, University of Oxford (2019)
 
@@ -37,6 +38,8 @@ N = length(T);
 train = hmm.train;
 checkdatacell;
 data = data2struct(data,T,train);
+% Standardise data and control for ackward trials
+data = standardisedata(data,T,train.standardise);
 % Filtering
 if ~isempty(train.filter)
     data = filterdata(data,T,train.Fs,train.filter);
@@ -45,8 +48,6 @@ end
 if train.detrend
     data = detrenddata(data,T);
 end
-% Standardise data and control for ackward trials
-data = standardisedata(data,T,train.standardise);
 % Leakage correction
 if train.leakagecorr ~= 0
     data = leakcorr(data,T,train.leakagecorr);
@@ -101,8 +102,7 @@ if isempty(residuals)
         hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag,hmm.train.zeromean);
 end
 
-
-if isempty(Gamma) || isempty(Xi)
+if isempty(Gamma) || isempty(Xi)  
     [Gamma,~,Xi] = hsinference(data,T,hmm,residuals); 
 end
 setxx;
@@ -110,7 +110,12 @@ setxx;
 hmm = obsupdate(T,Gamma,hmm,residuals,XX,XXGXX);
 hmm = hsupdate(Xi,Gamma,T,hmm);
 
-Gamma = hsinference(data,T,hmm,residuals); 
+if nargout > 1
+    Gamma = hsinference(data,T,hmm,residuals);
+end
+if nargout > 2
+    vpath = hmmdecode(data,T,hmm,1,residuals,0);
+end
 
 end
 

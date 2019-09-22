@@ -117,6 +117,9 @@ if stochastic_learn
 else % the entire pipeline of preprocessing is applied on data and T, 
      % and all options are removed from options 
     
+    % Standardise data and control for ackward trials
+    data = standardisedata(data,T,options.standardise); 
+    options = rmfield(options,'standardise');
     % Filtering
     if ~isempty(options.filter)
        data = filterdata(data,T,options.Fs,options.filter);
@@ -127,9 +130,6 @@ else % the entire pipeline of preprocessing is applied on data and T,
        data = detrenddata(data,T); 
        options = rmfield(options,'detrend');
     end
-    % Standardise data and control for ackward trials
-    data = standardisedata(data,T,options.standardise); 
-    options = rmfield(options,'standardise');
     % Leakage correction
     if options.leakagecorr ~= 0 
         data = leakcorr(data,T,options.leakagecorr);

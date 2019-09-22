@@ -17,7 +17,7 @@ X = D(:,:,:);
 X = reshape(X,[D.nchannels,D.nsamples*D.ntrials]);
 
 % select only good data
-goodsamples = good_samples(D);
+goodsamples = good_samples(D,[],[],[],0);
 goodsamples = reshape(goodsamples,1,D.nsamples*D.ntrials);
 X = X(:,goodsamples)';
 options = struct(); 

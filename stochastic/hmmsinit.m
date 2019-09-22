@@ -55,6 +55,8 @@ subj_time_init = zeros(N,K);
 Dir2d_alpha_init = zeros(K,K,N); Dir_alpha_init = zeros(K,N);
 
 best_fe = Inf;
+best_maxFO = 1;
+
 for rep = 1:options.BIGinitrep
     
     % train individual HMMs
@@ -99,6 +101,10 @@ for rep = 1:options.BIGinitrep
             options.onpower = 0; 
             options.downsample = 0; % done in loadfile.m
             options.grouping = [];
+            if isfield(options,'A')
+                options = rmfield(options,'A');
+            end
+            %options.initcriterion = 'FreeEnergy';
             if length(Ti)==1, options.useParallel = 0; end
             [hmm_i,Gamma,Xi] = hmmmar(X,Ti,options);
             options = options_copy;
@@ -275,8 +281,9 @@ for rep = 1:options.BIGinitrep
     hmm_init.Dir2d_alpha = sum(Dir2d_alpha_init,3) + Dir2d_alpha_prior;
     [hmm_init.P,hmm_init.Pi] =  computePandPi(hmm_init.Dir_alpha,hmm_init.Dir2d_alpha);
     
-    % Compute free energy
+    % Compute free energy and maxFO
     hmm_init_i = hmm_init;
+    maxFO = zeros(N,1);
     for i = 1:N
         [X,XX,Y,Ti] = loadfile(Xin{i},T{i},options);
         data = struct('X',X,'C',NaN(size(XX,1),K));
@@ -284,13 +291,26 @@ for rep = 1:options.BIGinitrep
         checkGamma(Gamma,Ti,hmm_init_i.train,i);
         subjfe_init(i,1:2) = evalfreeenergy([],Ti,Gamma,Xi,hmm_init_i,[],[],[1 0 1 0 0]); % Gamma entropy&LL
         loglik_init(i) = sum(l);
+        maxFO(i) = mean(getMaxFractionalOccupancy(Gamma,Ti,options));
     end
     subjfe_init(:,3) = evalfreeenergy([],[],[],[],hmm_init,[],[],[0 0 0 1 0]) / N; % "share" P and Pi KL
     statekl_init = sum(evalfreeenergy([],[],[],[],hmm_init,[],[],[0 0 0 0 1])); % state KL
     fe = - sum(loglik_init) + sum(subjfe_init(:)) + statekl_init;
+    maxFO = mean(maxFO);
     
-    if fe<best_fe
-        best_fe = fe;
+    this_is_best = false; 
+    if isfield(options,'initcriterion') && strcmpi(options.initcriterion,'FreeEnergy')
+        if fe < best_fe
+            best_fe = fe;
+            this_is_best = true;
+        end
+    else
+        if maxFO < best_maxFO
+            best_maxFO = maxFO;
+            this_is_best = true;
+        end
+    end
+    if this_is_best
         hmm = hmm_init;
         info.Dir2d_alpha = Dir2d_alpha_init; info.Dir_alpha = Dir_alpha_init;
         info.subjfe = subjfe_init;
@@ -298,7 +318,7 @@ for rep = 1:options.BIGinitrep
         info.statekl = statekl_init;
         info.fehist = (-sum(info.loglik) + sum(info.statekl) + sum(sum(info.subjfe)));
     end
-    
+
     if options.BIGverbose
         fprintf('Init run %d, free energy = %g (best=%g) \n',rep,fe,best_fe);
     end

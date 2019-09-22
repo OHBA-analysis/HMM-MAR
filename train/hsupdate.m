@@ -23,7 +23,7 @@ Q = 1;
 N = length(T); K = hmm.K;
 [~,order] = formorders(hmm.train.order,hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag);
 
-if isempty(Xi)
+if isempty(Xi) % non-exact estimation
     Xi = zeros(hmm.K);
     for n = 1:N
         t = (1:T(n)-order) + sum(T(1:n-1)) - order*(n-1);

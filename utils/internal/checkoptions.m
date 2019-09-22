@@ -30,8 +30,11 @@ if ~isfield(options,'leida'), options.leida = 0; end
 if ~isfield(options,'embeddedlags'), options.embeddedlags = 0; end
 if ~isfield(options,'pca'), options.pca = 0; end
 if ~isfield(options,'pca_spatial'), options.pca_spatial = 0; end
+if ~isfield(options,'rank'), options.rank = 0; end
 if ~isfield(options,'firsteigv'), options.firsteigv = 0; end
 if ~isfield(options,'varimax'), options.varimax = 0; end
+if ~isfield(options,'FC'), options.FC = 0; end
+if ~isfield(options,'maxFOth'), options.maxFOth = Inf; end
 if ~isfield(options,'pcamar'), options.pcamar = 0; end
 if ~isfield(options,'pcapred'), options.pcapred = 0; end
 if ~isfield(options,'vcomp') && options.pcapred>0, options.vcomp = 1; end
@@ -52,6 +55,11 @@ if length(options.embeddedlags)>1 && isfield(options,'covtype') && ...
     options.covtype = 'full';
     warning('options.covtype will be set to ''full'' because embeddedlags is used')
 end
+if options.FC && ~strcmpi(options.covtype,'full')
+   error('If options.FC, then options.covtype must be ''full''') 
+end
+% display options
+if ~isfield(options,'plotAverageGamma'), options.plotAverageGamma = 0; end
 
 % stochastic options
 if stochastic_learning
@@ -87,6 +95,15 @@ if stochastic_learning
     if ~isfield(options,'Gamma'), options.Gamma = []; end
     if ~isfield(options,'hmm'), options.hmm = []; end
     if options.BIGdelay > 1, warning('BIGdelay is recommended to be 1.'); end
+    if options.plotAverageGamma 
+        options.plotAverageGamma = 0;
+        warning('Using stochastic learning, plotAverageGamma will be made 0.'); 
+    end
+else
+    if options.plotAverageGamma && any(~(T(1)==T))
+        options.plotAverageGamma = 0;
+        warning('plotAverageGamma is designed to average across trials, but trials have not the same length')
+    end
 end
 
 % non-stochastic training options
@@ -94,12 +111,14 @@ if stochastic_learning
     if ~isfield(options,'cyc'), options.cyc = 15; end
     if ~isfield(options,'initcyc'), options.initcyc = 5; end
     if ~isfield(options,'initrep'), options.initrep = 3; end
+    if ~isfield(options,'initcriterion'), options.initcriterion = 'FreeEnergy'; end
     if ~isfield(options,'verbose'), options.verbose = 0; end
     if ~isfield(options,'useParallel'), options.useParallel = 1; end
 else
     if ~isfield(options,'cyc'), options.cyc = 500; end
-    if ~isfield(options,'initcyc'), options.initcyc = 100; end
-    if ~isfield(options,'initrep'), options.initrep = 4; end
+    if ~isfield(options,'initcyc'), options.initcyc = 25; end
+    if ~isfield(options,'initrep'), options.initrep = 5; end
+    if ~isfield(options,'initcriterion'), options.initcriterion = 'FreeEnergy'; end
     if ~isfield(options,'verbose'), options.verbose = 1; end
     % the rest of the stuff will get assigned in the recursive calls
     if ~isfield(options,'tol'), options.tol = 1e-5; end
@@ -127,6 +146,7 @@ if ~isfield(options,'behaviour'), options.behaviour = []; end
 if ~isempty(options.behaviour), options.tudamonitoring = 1;
 elseif ~isfield(options,'tudamonitoring'), options.tudamonitoring = 0;
 end
+if ~isfield(options,'tuda'), options.tuda = 0; end
 if options.tudamonitoring && stochastic_learning
    error('Stochastic learning is not currently compatible with TUDA monitoring options') 
 end
@@ -157,7 +177,7 @@ end
 if ~isfield(options,'Pistructure')
     options.Pistructure = true(1,options.K);
 else
-    if length(options.Pistructure) ~=options.K 
+    if length(options.Pistructure) ~= options.K 
         error('The dimensions of options.Pistructure are incorrect')
     end
     options.Pistructure = (options.Pistructure~=0);
@@ -229,6 +249,9 @@ if options.leida
        error('Option leida and embeddedlags are not compatible')
    end
 end
+if ~(length(options.pca)==1 && options.pca == 0) && options.rank > 0
+   error('Options pca and rank are not compatible') 
+end
 
 if iscell(data)
     X = loadfile(data{1},T{1},options); 
@@ -262,12 +285,16 @@ if ~isfield(options,'DirichletDiag')
         if iscell(T), sumT = sum(cell2mat(T));
         else, sumT = sum(T);
         end
-        options.DirichletDiag = sumT/5;
+        %options.DirichletDiag = sumT/5;
+        options.DirichletDiag = 100;
+        warning(['With options.order > 0, you might want to specify options.DirichletDiag ' ...
+            'to a larger value if your state time courses are too volatile'])
     else
         options.DirichletDiag = 10;
     end
 end
-if ~isfield(options,'PriorWeighting'), options.PriorWeighting = 1; end
+if ~isfield(options,'PriorWeightingP'), options.PriorWeightingP = 1; end
+if ~isfield(options,'PriorWeightingPi'), options.PriorWeightingPi = 1; end
 
 % Some more hmm model options unrelated to the observational model
 if ~isfield(options,'repetitions'), options.repetitions = 1; end
@@ -276,6 +303,7 @@ if ~isfield(options,'hmm'), options.hmm = []; end
 if ~isfield(options,'fehist'), options.fehist = []; end
 if ~isfield(options,'updateObs'), options.updateObs = 1; end
 if ~isfield(options,'updateGamma'), options.updateGamma = 1; end
+if ~isfield(options,'updateP'), options.updateP = options.updateGamma; end
 if ~isfield(options,'decodeGamma'), options.decodeGamma = 1; end
 if ~isfield(options,'keepS_W'), options.keepS_W = 1; end
 
@@ -304,7 +332,7 @@ if options.K>1 && options.updateGamma == 0 && isempty(options.Gamma)
 end
 if options.updateGamma == 1 && options.K == 1
     %warning('Since K is one, updateGamma was set to 0');  
-    options.updateGamma = 0; 
+    options.updateGamma = 0; options.updateP = 0; 
 end
 if options.updateGamma == 0 && options.repetitions>1
     error('If Gamma is not going to be updated, repetitions>1 is unnecessary')

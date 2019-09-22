@@ -52,6 +52,7 @@ if nargin==3 && any(T<options.win)
 end
 
 options.updateGamma = 1; 
+options.DirichletDiag = 100; % to avoid a warning later
 [options,data] = checkoptions(options,data,[]);
 options.leida = 0;
 options.onpower = 0;

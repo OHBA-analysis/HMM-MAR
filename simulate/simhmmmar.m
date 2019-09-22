@@ -30,6 +30,7 @@ if nargin<6, grouping=[]; end
 if isfield(hmm.train,'embeddedlags') && length(hmm.train.embeddedlags) > 1
     error('It is not currently possible to generate data with options.embeddedlags ~= 0'); 
 end
+if ~isfield(hmm.train,'order'), hmm.train.order = 0; end
 if ~isfield(hmm.train,'timelag'), hmm.train.timelag = 1; end
 if ~isfield(hmm.train,'exptimelag'), hmm.train.exptimelag = 1; end
 if ~isfield(hmm.train,'orderoffset'), hmm.train.orderoffset = 0; end
@@ -48,7 +49,9 @@ if isempty(Gamma) && K>1 % Gamma is not provided, so we simulate it too
     % discrete, we end up with "new" states that are lin. combinations of 
     % other states
     [~, maxGammaInd] = max(Gamma, [], 2);
-    Gamma = maxGammaInd == 1:max(maxGammaInd);
+    Gamma = zeros(size(Gamma));
+    for k = 1:K, Gamma(maxGammaInd==k,k) = 1; end
+    %Gamma = maxGammaInd == 1:max(maxGammaInd);
 elseif isempty(Gamma) && K==1
     Gamma = ones(sum(T),1);
 end

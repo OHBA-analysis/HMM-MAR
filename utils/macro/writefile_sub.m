@@ -1,5 +1,9 @@
 if ~isempty(strfind(fsub,'.mat'))
-    save(fsub,'X','-append')
+    if exist(fsub,'file')
+        save(fsub,'X','-append')
+    else
+        save(fsub,'X')
+    end
 elseif ~isempty(strfind(fsub,'.txt'))
     dlmwrite(fsub,X);
 else % no extension - assumed to be an SPM file
