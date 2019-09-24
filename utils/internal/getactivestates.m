@@ -19,13 +19,17 @@ actstates = ones(1,K); % length = to the last no. of states (=the original K if 
 for k=1:K
     if Gammasum(:,k) <= threshold
         if ~hmm.train.dropstates && hmm.train.active(k)==1
-            fprintf('State %d has been switched off with %f points\n',k,Gammasum(k))
+            if hmm.train.verbose
+                fprintf('State %d has been switched off with %f points\n',k,Gammasum(k))
+            end
             hmm.train.active(k) = 0;
         end
         actstates(k) = 0;
     else
         if ~hmm.train.dropstates && hmm.train.active(k)==0
-            fprintf('State %d has been switched on with %f points\n',k,Gammasum(k))
+            if hmm.train.verbose
+                fprintf('State %d has been switched on with %f points\n',k,Gammasum(k))
+            end
             hmm.train.active(k) = 1;
         end
     end
@@ -37,7 +41,7 @@ end
 %     Q = 1;
 % end
 Q = 1; 
-if hmm.train.dropstates==1
+if hmm.train.dropstates == 1
     is_active = logical(actstates);
     Gamma = Gamma(:,is_active);
     Gamma = bsxfun(@rdivide,Gamma,sum(Gamma,2));
