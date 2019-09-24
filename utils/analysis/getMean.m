@@ -23,6 +23,7 @@ if nargin < 2
         end
         m = [m; mk];
     end
+    m = m'; 
 else
     m = hmm.state(k).W.Mu_W(1,:);
     if isfield(hmm.train,'A')

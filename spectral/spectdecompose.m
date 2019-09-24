@@ -43,7 +43,11 @@ function [sp_fit_group,sp_profiles,sp_fit] = spectdecompose(sp_fit,options,chan)
 %          Andrew Quinn, OHBA, University of Oxford (2018)
 
 if ~iscell(sp_fit)
-    error('Variable fit needs to be a cell, with one estimation per subject')
+    warning('Only one subject was provided; recommended to run at the group level')
+    aux = sp_fit;
+    sp_fit = {};
+    sp_fit{1} = aux;   
+    clear aux
 end
 
 if nargin < 2, options = struct(); end
