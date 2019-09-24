@@ -82,11 +82,12 @@ if MLestimation
     else
         hmm.train.zeromean = 1; 
     end
-    for k=1:K, hmm.state(k) = struct('W',struct('Mu_W',[])); end
+    for k = 1:K, hmm.state(k) = struct('W',struct('Mu_W',[])); end
     order = options.order;
     if order == 0
         error('MAR spectra cannot be estimated for MAR order equal to 0')
     end    
+    options.K = K; 
 else
     if hmm.train.order == 0 
         error('order needs to be higher than 0')
