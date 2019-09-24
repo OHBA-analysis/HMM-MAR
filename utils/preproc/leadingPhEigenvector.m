@@ -15,7 +15,7 @@ if isstruct(data), ndim = size(data.X,2);
 else, ndim = size(data,2);
 end
 
-for n=1:length(T)
+for n = 1:length(T)
     ind = sum(T(1:n-1))+1:sum(T(1:n));
     Ph = zeros(length(ind),ndim);
     if isstruct(data)
@@ -47,11 +47,11 @@ end
 end
 
 
-function c=adif(a,b)
+function c = adif(a,b)
 d = abs(a-b);
-if d>pi
-    c=2*pi-d;
+if d > pi
+    c = 2*pi-d;
 else
-    c=d;
+    c = d;
 end
 end
