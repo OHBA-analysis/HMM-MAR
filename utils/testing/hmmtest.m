@@ -1,6 +1,10 @@
 function tests = hmmtest (Gamma,T,Tsubject,Y,options,hmm)
-% 
-% Test fractional occupancy and switching rates against a 
+% Statistical testing to differenciate between groups according to how much
+% time they spend on the different states, or how quickly they switch between states. 
+% For statistical testing on how the probability of the states is modulated
+% by a stimulus, time point by time point, use hmmtest_epoched.  
+%
+% More specifically, it tests fractional occupancy and switching rates against a 
 % (no. trials by no. conditions) design matrix Y using permutation testing.
 % Fractional occupancy is tested per state, and also aggregated across states
 % using the NPC algorithm; see Winkler et al., 2016 NI; Vidaurre et al. 2018 HBM
@@ -16,7 +20,7 @@ function tests = hmmtest (Gamma,T,Tsubject,Y,options,hmm)
 % T: length of time series (no. trials by 1) in number of time points
 % Tsubject: length of time series per subject (no. subjects by 1); 
 %       if empty it will be interpreted that there is only one subject
-% Y: (no. trials by no. conditions) design matrix 
+% Y: design matrix  (no. trials by no. conditions) 
 % options: testing related options
 %   .Nperm: number of permutations (default 1000)
 %   .subjectlevel: run subject-level tests? 
@@ -25,7 +29,7 @@ function tests = hmmtest (Gamma,T,Tsubject,Y,options,hmm)
 %           (default 1, if there are at least 2 subjects)
 %   .confounds: (no. trials by q) matrix of confounds that are to be
 %           regressed out before doing the testing (default none)
-% hmm: first output of the hmm structure
+% hmm: hmm structure
 % 
 % OUTPUTS:
 %
