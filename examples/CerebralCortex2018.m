@@ -87,7 +87,7 @@ if DO_PLOT
     rt = resptime(keep); % reaction time
     
     % Plot the state activation trial by trial and on average
-    
+ 
     figure(1);clf(1)
     colors = {[0,0,0.8],[0.2,0.7,0.2],[1,0,0],[0.8 0.8 0.2],[0.8 0 0.8]}; % b,g,r,y,m
     
@@ -119,7 +119,7 @@ if DO_PLOT
     xlabel('Time (s)'); ylabel('Trials')
     set(gca,'FontSize',16)
     xlim([0 0.45])
-    
+  
     % Plot cross-validated accuracy
     figure(2)
     plot(t,accuracy_star,'LineWidth',3)

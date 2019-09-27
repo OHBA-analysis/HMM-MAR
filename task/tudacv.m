@@ -63,9 +63,9 @@ else
     responses = reshape(Y,[ttrial N q]);
     Ystar = reshape(repmat(responses(1,:,:),[ttrial,1,1]),[ttrial*N q]);
     responses = permute(responses(1,:,:),[2 3 1]); % N x q
-    if ~all(Y(:)==Ystar(:))
-        error('For cross-validating, the same stimulus must be presented for the entire trial');
-    end
+    %if ~all(Y(:)==Ystar(:))
+    %    error('For cross-validating, the same stimulus must be presented for the entire trial');
+    %end
 end
 
 classification = length(unique(responses(:))) < max_num_classes;
@@ -106,7 +106,7 @@ if isfield(options,'lambda')
 else, lambda = 0.0001; 
 end
 if isfield(options,'Nfeatures') && options.Nfeatures>0 && options.Nfeatures<p
-    warning('Specifying Nfeatures can lead to a biased calculation of CV-R2')
+    error('Specifying Nfeatures can lead to a biased calculation of CV-R2')
 end
 if isfield(options,'verbose') 
     verbose = options.verbose; options = rmfield(options,'verbose');
