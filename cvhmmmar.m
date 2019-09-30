@@ -59,9 +59,10 @@ options.updateP = options.updateGamma;
 
 mcv = 0; 
 if length(options.cvfolds)==1
-    options.cvfolds = crossvalind('Kfold', length(T), options.cvfolds);
+    %options.cvfolds = crossvalind('Kfold', length(T), options.cvfolds);
+    options.cvfolds = cvpartition(length(T),'KFold',options.cvfolds);
 end
-nfolds = max(options.cvfolds);
+nfolds = options.cvfolds.NumTestSets;
 [orders,order] = formorders(options.order,options.orderoffset,options.timelag,options.exptimelag);
 Sind = formindexes(orders,options.S);
 if ~options.zeromean, Sind = [true(1,size(Sind,2)); Sind]; end
@@ -168,12 +169,12 @@ for fold = 1:nfolds
     indtr = []; Ttr = [];
     indte = []; Tte = []; 
     test = [];
+    cvtest = options.cvfolds.test(fold);
     % build fold
     for i = 1:length(T)
         t0 = sum(T(1:(i-1)))+1; t1 = sum(T(1:i)); 
-        s0 = sum(T(1:(i-1)))-order*(i-1)+1; s1 = sum(T(1:i))-order*i;
         Ti = t1-t0+1;
-        if options.cvfolds(i)==fold % in testing
+        if cvtest(i) % in testing
             indte = [indte (t0:t1)];
             Tte = [Tte Ti];
             test = [test; ones(Ti,1)];
@@ -184,8 +185,8 @@ for fold = 1:nfolds
     end
     datatr.X = data.X(indtr,:); 
     datate.X = data.X(indte,:); 
-    datatr.C = data.C(indtr,:); 
-    datate.C = data.C(indte,:);     
+    %datatr.C = data.C(indtr,:); 
+    %datate.C = data.C(indte,:);     
         
     Fe = Inf;
       
