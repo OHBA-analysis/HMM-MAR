@@ -129,11 +129,19 @@ if hmm.train.useParallel==1 && N>1
         Bt = [];  
         t0 = sum(T(1:in-1)); s0 = t0 - order*(in-1);
         if order>0
-            C = [zeros(order,K); data.C(s0+1:s0+T(in)-order,:)];
             R = [zeros(order,size(residuals,2));  residuals(s0+1:s0+T(in)-order,:)];
+            if isfield(data,'C')
+                C = [zeros(order,K); data.C(s0+1:s0+T(in)-order,:)];
+            else
+                C = NaN(size(R,1),K);
+            end
         else
-            C = data.C(s0+1:s0+T(in)-order,:);
             R = residuals(s0+1:s0+T(in)-order,:);
+            if isfield(data,'C')
+                C = data.C(s0+1:s0+T(in)-order,:);
+            else
+                C = NaN(size(R,1),K);
+            end
         end
         % we jump over the fixed parts of the chain
         t = order+1;
@@ -192,11 +200,19 @@ else
         Bt = [];  
         t0 = sum(T(1:in-1)); s0 = t0 - order*(in-1);
         if order>0
-            C = [zeros(order,K); data.C(s0+1:s0+T(in)-order,:)];
-            R = [zeros(order,size(residuals,2));  residuals(s0+1:s0+T(in)-order,:)];
+            R = [zeros(order,size(residuals,2)); residuals(s0+1:s0+T(in)-order,:)];
+            if isfield(data,'C')
+                C = [zeros(order,K); data.C(s0+1:s0+T(in)-order,:)];
+            else
+                C = NaN(size(R,1),K);
+            end
         else
-            C = data.C(s0+1:s0+T(in)-order,:);
             R = residuals(s0+1:s0+T(in)-order,:);
+            if isfield(data,'C')
+                C = data.C(s0+1:s0+T(in)-order,:);
+            else
+                C = NaN(size(R,1),K);
+            end
         end
         % we jump over the fixed parts of the chain
         t = order+1;
