@@ -10,7 +10,9 @@ if nargin < 3
     Gamma = ones(sum(T),1);
 end
 
-ndim = size(hmm.state(1).W.Mu_W,2); K = size(Gamma,2);
+ndim = size(hmm.state(1).W.Mu_W,2); 
+if ndim==0, ndim = size(hmm.state(1).Omega.Gam_rate,1); end
+K = size(Gamma,2);
 X = zeros(T,ndim);
 mu = zeros(T,ndim);
 
