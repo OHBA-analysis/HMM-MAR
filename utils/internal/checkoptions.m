@@ -27,7 +27,9 @@ end
 if ~isfield(options,'Fs'), options.Fs = 1; end
 if ~isfield(options,'onpower'), options.onpower = 0; end
 if ~isfield(options,'leida'), options.leida = 0; end
-if ~isfield(options,'embeddedlags'), options.embeddedlags = 0; end
+if ~isfield(options,'embeddedlags') || isempty(options.embeddedlags) 
+    options.embeddedlags = 0; 
+end
 if ~isfield(options,'pca'), options.pca = 0; end
 if ~isfield(options,'pca_spatial'), options.pca_spatial = 0; end
 if ~isfield(options,'rank'), options.rank = 0; end
@@ -56,6 +58,9 @@ if options.FC && ~strcmpi(options.covtype,'full')
 end
 % display options
 if ~isfield(options,'plotAverageGamma'), options.plotAverageGamma = 0; end
+
+% classic HMM or mixture?
+if ~isfield(options,'id_mixture'), options.id_mixture = 0; end
 
 % stochastic options
 if stochastic_learning
@@ -406,6 +411,7 @@ if ~isfield(options,'zeromean')
     else, options.zeromean = 0; % i.e. when Gaussian or LEiDA
     end
 end
+if ~isfield(options,'priorcov_rate'), options.priorcov_rate = []; end
 if ~isfield(options,'timelag'), options.timelag = 1; end
 if ~isfield(options,'exptimelag'), options.exptimelag = 1; end
 if ~isfield(options,'orderoffset'), options.orderoffset = 0; end

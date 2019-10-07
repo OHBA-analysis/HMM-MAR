@@ -35,7 +35,7 @@ end
 pcapred = hmm.train.pcapred>0;
 if pcapred, M = hmm.train.pcapred; end
 
-for k=1:hmm.K
+for k = 1:hmm.K
 
     train = hmm.train;
     orders = train.orders;
@@ -73,7 +73,11 @@ for k=1:hmm.K
         defstateprior(k).Mean.S = rangresiduals2';
         defstateprior(k).Mean.iS = 1./rangresiduals2';
     end
-    priorcov_rate = rangeerror(X,T,residuals,orders,hmm.train);
+    if isempty(hmm.train.priorcov_rate) 
+        priorcov_rate = rangeerror(X,T,residuals,orders,hmm.train);
+    else
+        priorcov_rate = hmm.train.priorcov_rate * ones(1,ndim);
+    end
     if strcmp(train.covtype,'full')
         defstateprior(k).Omega.Gam_rate = diag(priorcov_rate);
         defstateprior(k).Omega.Gam_shape = ndim+0.1-1;
@@ -94,11 +98,11 @@ end
 
 % assigning default priors for observation models
 if ~isfield(hmm,'state') || ~isfield(hmm.state,'prior')
-    for k=1:hmm.K
+    for k = 1:hmm.K
         hmm.state(k).prior=defstateprior(k);
     end
 else
-    for k=1:hmm.K
+    for k = 1:hmm.K
         % prior not specified are set to default
         statepriorlist=fieldnames(defstateprior(k));
         fldname=fieldnames(hmm.state(k).prior);

@@ -1,4 +1,4 @@
-function [r] = rangeerror(X,T,Y,orders,options)
+function r = rangeerror(X,T,Y,orders,options)
 % estimates the range of the error
 
 maxorder = options.maxorder; 
