@@ -20,6 +20,7 @@ function [X,T,Gamma] = simhmmmar(T,hmm,Gamma,nrep,sim_state_tcs_only,grouping)
 
 N = length(T); K = length(hmm.state);
 ndim = size(hmm.state(1).W.Mu_W,2);
+if ndim==0, ndim = size(hmm.state(1).Omega.Gam_rate,1); end
 
 if nargin<3, Gamma = []; end
 if nargin<4 || isempty(nrep), nrep = 1; end
