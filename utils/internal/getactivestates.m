@@ -71,7 +71,9 @@ if hmm.train.dropstates == 1
     if all(hmm.train.Pistructure==0)
        error('All states with Pistructure = true have been kicked out')
     end
-    Xi = Xi(:,is_active,is_active);
+    if ~isempty(Xi)
+        Xi = Xi(:,is_active,is_active);
+    end
     hmm.train.active = ones(1,sum(is_active));
     % Renormalize 
     for i = 1:Q

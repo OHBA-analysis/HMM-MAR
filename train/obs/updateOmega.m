@@ -166,6 +166,7 @@ else % state dependent
                     end
                 end
             end
+            hmm.state(k).Omega.Gam_shape = hmm.state(k).prior.Omega.Gam_shape + Tfactor * Gammasum(k);
             if hmm.train.firsteigv
                 [V,D] = svd(Tfactor * e);
                 hmm.state(k).Omega.Gam_rate = sum(diag(D)) * (V(:,1) * V(:,1)') + hmm.state(k).prior.Omega.Gam_rate;
@@ -175,8 +176,12 @@ else % state dependent
             end
             hmm.state(k).Omega.Gam_rate(regressed,regressed) = (hmm.state(k).Omega.Gam_rate(regressed,regressed) + ...
                 hmm.state(k).Omega.Gam_rate(regressed,regressed)') / 2;
+            if train.FC
+                hmm.state(k).Omega.Gam_rate(regressed,regressed) = corrcov(hmm.state(k).Omega.Gam_rate(regressed,regressed));
+                hmm.state(k).Omega.Gam_rate(regressed,regressed) = hmm.state(k).Omega.Gam_shape * ...
+                    hmm.state(k).Omega.Gam_rate(regressed,regressed);
+            end
             hmm.state(k).Omega.Gam_irate(regressed,regressed) = inv(hmm.state(k).Omega.Gam_rate(regressed,regressed));
-            hmm.state(k).Omega.Gam_shape = hmm.state(k).prior.Omega.Gam_shape + Tfactor * Gammasum(k);
         end
     end
     
