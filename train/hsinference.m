@@ -22,6 +22,8 @@ function [Gamma,Gammasum,Xi,LL,B] = hsinference(data,T,hmm,residuals,options,XX)
 N = length(T);
 K = length(hmm.state);
 
+mixture_model = isfield(hmm.train,'id_mixture') && hmm.train.id_mixture;
+
 if ~isfield(hmm,'train')
     if nargin<5 || isempty(options)
         error('You must specify the field options if hmm.train is missing');
@@ -60,7 +62,11 @@ end
 Gamma = cell(N,1);
 LL = zeros(N,1);
 Gammasum = zeros(N,K);
-Xi = cell(N,1);
+if ~mixture_model
+    Xi = cell(N,1);
+else
+    Xi = [];
+end
 B = cell(N,1);
 
 n_argout = nargout;
@@ -81,7 +87,7 @@ for k = 1:K
     if k == 1 && strcmp(train.covtype,'uniquediag')
         ldetWishB=0;
         PsiWish_alphasum=0;
-        for n=1:ndim
+        for n = 1:ndim
             if ~regressed(n), continue; end
             ldetWishB=ldetWishB+0.5*log(hmm.Omega.Gam_rate(n));
             PsiWish_alphasum=PsiWish_alphasum+0.5*psi(hmm.Omega.Gam_shape);
@@ -90,7 +96,7 @@ for k = 1:K
     elseif k == 1 && strcmp(train.covtype,'uniquefull')
         ldetWishB=0.5*logdet(hmm.Omega.Gam_rate(regressed,regressed));
         PsiWish_alphasum=0;
-        for n=1:sum(regressed)
+        for n = 1:sum(regressed)
             PsiWish_alphasum=PsiWish_alphasum+psi(hmm.Omega.Gam_shape/2+0.5-n/2);
         end
         PsiWish_alphasum=PsiWish_alphasum*0.5;
@@ -107,7 +113,7 @@ for k = 1:K
     elseif strcmp(train.covtype,'full')
         ldetWishB=0.5*logdet(hmm.state(k).Omega.Gam_rate(regressed,regressed));
         PsiWish_alphasum=0;
-        for n=1:sum(regressed)
+        for n = 1:sum(regressed)
             PsiWish_alphasum=PsiWish_alphasum+0.5*psi(hmm.state(k).Omega.Gam_shape/2+0.5-n/2);
         end
         C = hmm.state(k).Omega.Gam_shape * hmm.state(k).Omega.Gam_irate;
@@ -126,6 +132,7 @@ if hmm.train.useParallel==1 && N>1
     % to duplicate this code is really ugly but there doesn't seem to be
     % any other way - more Matlab's fault than mine
     parfor in = 1:N
+        xit = [];
         Bt = [];  
         t0 = sum(T(1:in-1)); s0 = t0 - order*(in-1);
         if order>0
@@ -165,18 +172,20 @@ if hmm.train.useParallel==1 && N>1
             else
                 gammat = zeros(length(slicer),K);
                 if t==order+1, gammat(1,:) = C(slicer(1),:); end
-                xit = zeros(length(slicer)-1, K^2);
-                for i=2:length(slicer)
+                if ~mixture_model, xit = zeros(length(slicer)-1, K^2); end
+                for i = 2:length(slicer)
                     gammat(i,:) = C(slicer(i),:);
-                    xitr = gammat(i-1,:)' * gammat(i,:) ;
-                    xit(i-1,:) = xitr(:)';
+                    if ~mixture_model
+                        xitr = gammat(i-1,:)' * gammat(i,:) ;
+                        xit(i-1,:) = xitr(:)';
+                    end
                 end
                 if n_argout>=4, Bt = obslike([],hmm,R(slicer,:),XXt,hmm.cache); end
             end
             if t>order+1
                 gammat = gammat(2:end,:);
             end
-            xi = [xi; xit];
+            if ~mixture_model, xi = [xi; xit]; end
             gamma = [gamma; gammat];
             gammasum = gammasum + sum(gamma);
             if n_argout>=4 
@@ -191,7 +200,7 @@ if hmm.train.useParallel==1 && N>1
         Gammasum(in,:) = gammasum;
         if n_argout>=4, LL(in) = ll; end
         %Xi=cat(1,Xi,reshape(xi,T(in)-order-1,K,K));
-        Xi{in} = reshape(xi,T(in)-order-1,K,K);
+        if ~mixture_model, Xi{in} = reshape(xi,T(in)-order-1,K,K); end
     end
     
 else
@@ -217,11 +226,11 @@ else
         % we jump over the fixed parts of the chain
         t = order+1;
         xi = []; gamma = []; gammasum = zeros(1,K); ll = 0;
-        while t<=T(in)
+        while t <= T(in)
             if isnan(C(t,1)), no_c = find(~isnan(C(t:T(in),1)));
             else no_c = find(isnan(C(t:T(in),1)));
             end
-            if t>order+1
+            if t > order+1
                 if isempty(no_c), slicer = (t-1):T(in); %slice = (t-order-1):T(in);
                 else slicer = (t-1):(no_c(1)+t-2); %slice = (t-order-1):(no_c(1)+t-2);
                 end
@@ -239,18 +248,20 @@ else
             else
                 gammat = zeros(length(slicer),K);
                 if t==order+1, gammat(1,:) = C(slicer(1),:); end
-                xit = zeros(length(slicer)-1, K^2);
+                if ~mixture_model, xit = zeros(length(slicer)-1, K^2); end
                 for i=2:length(slicer)
                     gammat(i,:) = C(slicer(i),:);
-                    xitr = gammat(i-1,:)' * gammat(i,:) ;
-                    xit(i-1,:) = xitr(:)';
+                    if ~mixture_model
+                        xitr = gammat(i-1,:)' * gammat(i,:) ;
+                        xit(i-1,:) = xitr(:)';
+                    end
                 end
                 if nargout>=4, Bt = obslike([],hmm,R(slicer,:),XXt,hmm.cache); end
             end
-            if t>order+1
+            if t > order+1
                 gammat = gammat(2:end,:);
             end
-            xi = [xi; xit];
+            if ~mixture_model, xi = [xi; xit]; end
             gamma = [gamma; gammat];
             gammasum = gammasum + sum(gamma);
             if nargout>=4 
@@ -265,13 +276,13 @@ else
         Gammasum(in,:) = gammasum;
         if nargout>=4, LL(in) = ll; end
         %Xi=cat(1,Xi,reshape(xi,T(in)-order-1,K,K));
-        Xi{in} = reshape(xi,T(in)-order-1,K,K);
+        if ~mixture_model, Xi{in} = reshape(xi,T(in)-order-1,K,K); end
     end
 end
 
 % join
 Gamma = cell2mat(Gamma);
-Xi = cell2mat(Xi);
+if ~mixture_model, Xi = cell2mat(Xi); end
 if n_argout>=5, B  = cell2mat(B); end
 
 % orthogonalise = 1; 
@@ -302,6 +313,7 @@ function [Gamma,Xi,L] = nodecluster(XX,K,hmm,residuals)
 
 order = hmm.train.maxorder;
 T = size(residuals,1) + order;
+Xi = [];
 
 % if isfield(hmm.train,'grouping') && length(unique(hmm.train.grouping))>1
 %     i = hmm.train.grouping(n); 
@@ -315,6 +327,11 @@ try
     L = obslike([],hmm,residuals,XX,hmm.cache);
 catch
     error('obslike function is giving trouble - Out of precision?')
+end
+
+if ~isfield(hmm.train,'id_mixture') && hmm.train.id_mixture
+    Gamma = id_Gamma_inference(L,Pi,order);
+    return
 end
 
 L(L<realmin) = realmin;
@@ -360,3 +377,15 @@ for i = 1+order:T-1
 end
 
 end
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function Gamma = id_Gamma_inference(L,Pi,order)
+% inference for independent samples (ignoring time structure)
+
+Gamma = zeros(T,K);
+Gamma(1+order,:) = repmat(Pi,size(L,1),1) .* L(1+order,:);
+Gamma = rdiv(Gamma,sum(Gamma,2));
+
+end
+

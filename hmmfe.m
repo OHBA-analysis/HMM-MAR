@@ -16,7 +16,10 @@ function fe = hmmfe(data,T,hmm,Gamma,Xi,preproc,grouping)
 
 % to fix potential compatibility issues with previous versions
 hmm = versCompatibilityFix(hmm); 
+mixture_model = isfield(hmm.train,'id_mixture') && hmm.train.id_mixture;
 
+if nargin<4, Gamma = []; end 
+if nargin<5, Xi = []; end 
 if nargin<6 || isempty(preproc), preproc = 1; end 
 if nargin<7 , grouping = ones(length(T),1); end
 if size(grouping,1)==1,  grouping = grouping'; end
@@ -115,8 +118,10 @@ else
 end
 
 % get state time courses
-if nargin < 5 || isempty(Gamma) || isempty(Xi)
-   [Gamma,Xi] = hmmdecode(data,T,hmm,0,residuals,0);
+if isempty(Gamma) || isempty(Xi)
+   if ~(mixture_model && ~isempty(Gamma)) % we have Gamma and Xi is not needed 
+       [Gamma,Xi] = hmmdecode(data,T,hmm,0,residuals,0);
+   end
 end
 
 if stochastic_learn
@@ -143,7 +148,11 @@ if stochastic_learn
         t = (1:(sum(Ti)-length(Ti)*maxorder)) + tacc;
         t2 = (1:(sum(Ti)-length(Ti)*(maxorder+1))) + tacc2;
         tacc = tacc + length(t); tacc2 = tacc2 + length(t2);
-        fell = fell + sum(evalfreeenergy(X,Ti,Gamma(t,:),Xi(t2,:,:),hmm,residuals,XX,[0 1 0 0 0])); % state KL
+        if ~isempty(Xi)
+            fell = fell + sum(evalfreeenergy(X,Ti,Gamma(t,:),Xi(t2,:,:),hmm,residuals,XX,[0 1 0 0 0])); % state KL
+        else
+            fell = fell + sum(evalfreeenergy(X,Ti,Gamma(t,:),[],hmm,residuals,XX,[0 1 0 0 0])); % state KL
+        end
     end
     fe = fe + fell;
 else

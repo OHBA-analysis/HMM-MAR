@@ -17,11 +17,13 @@ else
     end
 end
 % KL-divergence for transition prob
-K = length(hmm.state);
-for i = 1:Q
-    for k = 1:K
-        kk = hmm.train.Pstructure(k,:);
-        KLdiv = KLdiv + dirichlet_kl(hmm.Dir2d_alpha(k,kk,i),hmm.prior.Dir2d_alpha(k,kk));
+if ~isfield(hmm.train,'id_mixture') || ~hmm.train.id_mixture % proper HMM?
+    K = length(hmm.state);
+    for i = 1:Q
+        for k = 1:K
+            kk = hmm.train.Pstructure(k,:);
+            KLdiv = KLdiv + dirichlet_kl(hmm.Dir2d_alpha(k,kk,i),hmm.prior.Dir2d_alpha(k,kk));
+        end
     end
 end
 if isnan(KLdiv)

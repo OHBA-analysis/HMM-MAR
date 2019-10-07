@@ -22,6 +22,8 @@ function [FrEn,avLL] = evalfreeenergy(X,T,Gamma,Xi,hmm,residuals,XX,todo)
 
 if nargin<8, todo = ones(1,5); end
 
+mixture_model = isfield(hmm.train,'id_mixture') && hmm.train.id_mixture;
+
 K = length(hmm.state);
 if (nargin<7 || isempty(XX)) && todo(2)==1
     setxx; % build XX and get orders
@@ -86,7 +88,7 @@ if todo(5)==1
             hmm.Omega.Gam_shape,hmm.prior.Omega.Gam_shape);
         KLdiv = [KLdiv OmegaKL];
     end
-    for k=1:K
+    for k = 1:K
         hs=hmm.state(k);
         pr=hmm.state(k).prior;
         setstateoptions;
@@ -240,11 +242,11 @@ if todo(2)==1
         C = hmm.Omega.Gam_shape * hmm.Omega.Gam_irate;
         avLL = avLL + (-ltpi-ldetWishB+PsiWish_alphasum+0.5*sum(regressed)*log(2));
     end
-    for k=1:K
-        hs=hmm.state(k);
+    for k = 1:K
+        hs = hmm.state(k);
         setstateoptions;
         if strcmp(train.covtype,'diag')
-            ldetWishB=0;
+            ldetWishB = 0;
             PsiWish_alphasum=0;
             for n=1:ndim
                 if ~regressed(n), continue; end
