@@ -95,15 +95,15 @@ for k=1:K
         %Y=XX(2:end,(Xdim+1):end);
         %Y((end+1),1)=Y(end,1);
         Y=residuals;
+        vp = Y~=0; % for multinomial logistic regression, only include valid points
         T=size(X,1);
-        
         if hmm.train.balancedata
             w=(1/(hmm.train.origlogisticYdim))*sum(Gamma(:,k))./(sum([Y==1] .* Gamma(:,k)));%(1+hmm.train.origlogisticYdim));
             w_star=((hmm.train.origlogisticYdim-1)/hmm.train.origlogisticYdim)*sum(Gamma(:,k))./(sum([Y==-1] .* Gamma(:,k)));
             weightvector = [Y==1].*w + [Y==-1].*w_star;
-            Gammaweighted(:,k)=Gamma(:,k) .*weightvector;
+            Gammaweighted=Gamma(vp,k) .*weightvector;
         else
-            Gammaweighted(:,k)=Gamma(:,k);
+            Gammaweighted=Gamma(vp,k);
         end
         % initialise priors - with ARD:
         W_mu0 = zeros(Xdim,1);
@@ -122,25 +122,25 @@ for k=1:K
                             squeeze(hmm.state(i).W.S_W(n,S(:,n),S(:,n)));
             end
             if ~isfield(hmm,'psi')
-                hmm = updatePsi(hmm,Gamma,X);
+                hmm = updatePsi(hmm,Gamma,X,Y);
             end
             % note this could be optimised with better use of XXGXX:
 %             W_sigsum{k}=zeros(T,ndim_n,ndim_n);
 %             for t=1:T
 %                 W_sigsum{k}(t,:,:)=2*lambdafunc(hmm.psi(t))*Gamma(t,k)*X(t,:)'*X(t,:);
 %             end
-            W_sigsum = (XX(:,1:ndim_n)' .* repmat(2*lambdafunc(hmm.psi)'.*Gammaweighted(:,k)',ndim_n,1))* XX(:,1:ndim_n);
+            W_sigsum = (XX(vp,1:ndim_n)' .* repmat(2*lambdafunc(hmm.psi(vp))'.*Gammaweighted',ndim_n,1))* XX(vp,1:ndim_n);
             %update parameter entries:
             %hmm.state(k).W.S_W(n,S(:,n),S(:,n)) = inv(squeeze(sum(W_sigsum{k},1))+inv(W_sig0));
             hmm.state(k).W.S_W(n,S(:,n),S(:,n)) = inv(squeeze(W_sigsum)+inv(W_sig0));
-            hmm.state(k).W.Mu_W(S(:,n),n) = squeeze(hmm.state(k).W.S_W(n,S(:,n),S(:,n))) * 0.5 * X' * (Y.*Gammaweighted(:,k)) ... %sum(W_musum{k},1)') ...
+            hmm.state(k).W.Mu_W(S(:,n),n) = squeeze(hmm.state(k).W.S_W(n,S(:,n),S(:,n))) * 0.5 * X(vp,:)' * (Y(vp).*Gammaweighted) ... %sum(W_musum{k},1)') ...
                 +(W_sig0\W_mu0);
             
             % Also increment optimal tuning parameters psi:
-            WWupdate = hmm.state(k).W.Mu_W(Sind(:,n),n)*hmm.state(k).W.Mu_W(Sind(:,n),n)' + ...
-                             squeeze(hmm.state(k).W.S_W(n,S(:,n),S(:,n))) - WW{k};
-            psiupdate = sum(((X .* repmat(Gamma(:,k),1,size(X,2))) * WWupdate).*X , 2);
-            hmm.psi = sqrt(hmm.psi.^2+psiupdate);
+             WWupdate = hmm.state(k).W.Mu_W(Sind(:,n),n)*hmm.state(k).W.Mu_W(Sind(:,n),n)' + ...
+                              squeeze(hmm.state(k).W.S_W(n,S(:,n),S(:,n))) - WW{k};
+             psiupdate = sum(((X .* repmat(Gamma(:,k),1,size(X,2))) * WWupdate).*X , 2);
+             hmm.psi = sqrt(hmm.psi.^2+psiupdate);
         end
         
     else % full or unique full - this only works if all(S(:)==1); any(S(:)~=1) is just not yet implemented 
