@@ -27,7 +27,8 @@ L = zeros(T,K);
 for k=1:K
     constterm = -gammaln(X+1);
     % note the expectation of log(lambda) is -log(lambda_b) + psigamma(lambda_a)
-    num = (X.*(repmat(psi(hmm.state(k).W.W_shape),T,1)-log(hmm.state(k).W.W_rate)))- hmm.state(k).W.W_mean;
+    num = (X.*(repmat(psi(hmm.state(k).W.W_shape),T,1)-log(hmm.state(k).W.W_rate)))- ...
+        repmat(hmm.state(k).W.W_mean,T,1);
     L(:,k) = sum(num+constterm,2);
 end
 
@@ -35,9 +36,6 @@ end
 S = hmm.train.S==1;
 Sind = hmm.train.S==1; 
 %setstateoptions;
-
-%for Y with >2 dimensions, change here!!!
-%n=Xdim+hmm.train.logisticYdim;
 
 L=exp(L);
 end

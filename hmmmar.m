@@ -209,7 +209,9 @@ if stochastic_learn
 else
     
     % Standardise data and control for ackward trials
-    data = standardisedata(data,T,options.standardise); 
+    if options.standardise
+        data = standardisedata(data,T,options.standardise); 
+    end
     % Filtering
     if ~isempty(options.filter)
        data = filterdata(data,T,options.Fs,options.filter);

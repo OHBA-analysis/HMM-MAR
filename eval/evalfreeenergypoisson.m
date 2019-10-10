@@ -48,17 +48,17 @@ if (nargin<6 || isempty(residuals)) && todo(2)==1
         hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag,hmm.train.zeromean);
 end
 
-% Entropy of Gamma - NO NOT USED IN LOGISTIC MODEL
-% Entr = [];
-% if todo(1)==1
-%     Entr = GammaEntropy(Gamma,Xi,T,hmm.train.maxorder);
-% end
+%Entropy of Gamma 
+Entr = [];
+if todo(1)==1
+    Entr = GammaEntropy(Gamma,Xi,T,hmm.train.maxorder);
+end
 
-% % loglikelihood of Gamma
-% avLLGamma = [];
-% if todo(3)==1
-%     avLLGamma = GammaavLL(hmm,Gamma,Xi,T);
-% end
+% loglikelihood of Gamma
+avLLGamma = [];
+if todo(3)==1
+    avLLGamma = GammaavLL(hmm,Gamma,Xi,T);
+end
 
 % P and Pi KL
 KLdivTran = [];
@@ -99,7 +99,7 @@ end
 
 avLL=sum(L(:));
 
-FrEn=[ -avLL +KLdivTran +KLdiv];
+FrEn=[-Entr -avLL -avLLGamma +KLdivTran +KLdiv];
 
 
 

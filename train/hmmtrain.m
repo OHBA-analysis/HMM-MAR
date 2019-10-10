@@ -82,12 +82,7 @@ for cycle = 1:hmm.train.cyc
         
         if strcmp(hmm.train.covtype,'logistic')
             % update psi parameters also:
-            
             hmm=updatePsi(hmm,Gamma,XX(:,1:(hmm.train.ndim-hmm.train.logisticYdim)));
-
-            % check for overfitting to labels - do mean state timecourses
-            % match over different labels:
-%            Gamma = checkGammaOverfitting(Gamma,residuals,hmm,T,orders);
         end
         %%%% Free energy computation
         if strcmp(hmm.train.covtype,'logistic')
