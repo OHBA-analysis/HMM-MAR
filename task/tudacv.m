@@ -56,6 +56,8 @@ do_preproc = 1;
 N = length(T); q = size(Y,2); ttrial = T(1); p = size(X,2); K = options.K;
 if ~all(T==T(1)), error('All elements of T must be equal for cross validation'); end 
 
+
+
 if size(Y,1) == length(T) % one value per trial
     responses = Y;
     Ystar = reshape(repmat(reshape(responses,[1 N q]),[ttrial,1,1]),[ttrial*N q]);
@@ -81,7 +83,7 @@ end
 
 % Preproc data and put in the right format 
 if do_preproc
-    if isfield(options,'embeddedlags'), el = options.embeddedlags; end
+    if isfield(options,'embeddedlags'), el = options.embeddedlags; else;el=0;end
     [X,Y,T,options] = preproc4hmm(X,Y,T,options); % this demeans Y
     p = size(X,2);
     if classification && length(el) > 1
