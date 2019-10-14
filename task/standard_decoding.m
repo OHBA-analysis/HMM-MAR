@@ -1,4 +1,4 @@
-function [cv_acc,acc] = standard_decoding(X,Y,T,options,binsize)
+function [cv_acc,acc,genplot] = standard_decoding(X,Y,T,options,binsize)
 % Compute cross-validated (CV) accuracies from a "decoding" model trained 
 % at each time point (or window, see below) in the trial  
 % The reported statistic is the cross-validated explained variance from
@@ -47,6 +47,7 @@ end
 
 max_num_classes = 5;
 classification = length(unique(responses(:))) < max_num_classes;
+if ~isfield(options,'temporalgeneralisation');options.temporalgeneralisation=false;end;
 
 if classification
     Ycopy = Y;
@@ -128,6 +129,7 @@ RidgePen = lambda * eye(p);
 
 % Perform the prediction 
 Ypred = NaN(size(Y));
+beta=cell(length(halfbin+1 : ttrial-halfbin),NCV);
 for icv = 1:NCV
     Ntr = sum(c.training{icv}); Nte = sum(c.test{icv});
     for t = halfbin+1 : ttrial-halfbin
@@ -136,8 +138,8 @@ for icv = 1:NCV
         Xtr = reshape(X(r,c.training{icv},:),binsize*Ntr,p);
         Ytr = reshape(Y(r,c.training{icv},:),binsize*Ntr,q);
         Xte = reshape(X(t,c.test{icv},:),Nte,p);
-        beta = (Xtr' * Xtr + RidgePen) \ (Xtr' * Ytr);
-        Ypred(t,c.test{icv},:) = reshape(Xte * beta,Nte,q);
+        beta{t,icv} = (Xtr' * Xtr + RidgePen) \ (Xtr' * Ytr);
+        Ypred(t,c.test{icv},:) = reshape(Xte * beta{t,icv},Nte,q);
     end
 end
 
@@ -158,6 +160,38 @@ for t = halfbin+1 : ttrial-halfbin
         cv_acc(t) = 1 - sum((Yt - Ypredt).^2) ./ sum(Yt.^2);
     end
 end
+% compute temporal generalisation plots
+if options.temporalgeneralisation
+    Ypred=zeros(length(halfbin+1 : ttrial-halfbin),length(halfbin+1 : ttrial-halfbin),N,q);
+    for icv=1:NCV
+        Ntr = sum(c.training{icv}); Nte = sum(c.test{icv});
+        for t_train = halfbin+1 : ttrial-halfbin
+            beta_temp=beta{t_train,icv};
+            for t_test = halfbin+1 : ttrial-halfbin
+                Xte = reshape(X(t_test,c.test{icv},:),Nte,p);
+                Ypred(t_test,t_train,c.test{icv},:) = reshape(Xte * beta_temp,Nte,q);
+            end
+        end
+    end
+    
+    for t_train = halfbin+1 : ttrial-halfbin
+        Yt = reshape(Y(t_test,:,:),N,q);
+        Ycopyt = reshape(Ycopy(t_test,:,:),N,q);
+        for t_test = halfbin+1 : ttrial-halfbin
+            Ypredt_test = reshape(Ypred(t_test,t_train,:,:),N,q);
+            if classification
+                Ypredt_star = continuous_prediction_2class(Ycopyt,Ypredt_test);
+                if q == 1
+                    genplot(t_test,t_train) = mean(abs(Ycopyt - Ypredt_star) < 1e-4);
+                else
+                    genplot(t_test,t_train) = mean(sum(abs(Ycopyt - Ypredt_star),2) < 1e-4);
+                end        
+            else
+                genplot(t_test,t_train) = 1 - sum((Yt - Ypredt_test).^2) ./ sum(Yt.^2);
+            end
+        end
+    end
+end
 
 % non-cross validated
 acc = NaN(ttrial,1);
@@ -167,10 +201,10 @@ for t = halfbin+1 : ttrial-halfbin
     r = t-halfbin:t+halfbin;
     Xt = reshape(X(r,:,:),binsize*N,p);
     Yt = reshape(Y(r,:,:),binsize*N,q);
-    beta = (Xt' * Xt + RidgePen) \ (Xt' * Yt);
+    beta_t = (Xt' * Xt + RidgePen) \ (Xt' * Yt);
     Xt = reshape(X(t,:,:),N,p);
     Yt = reshape(Y(t,:,:),N,q);
-    Ypred(t,:,:) = reshape(Xt * beta,N,q);
+    Ypred(t,:,:) = reshape(Xt * beta_t,N,q);
     Ypredt = permute(Ypred(t,:,:),[2 3 1]);
     Ycopyt = reshape(Ycopy(t,:,:),N,q);
     if classification
@@ -184,5 +218,6 @@ for t = halfbin+1 : ttrial-halfbin
         acc(t) = 1 - sum((Yt - Ypredt).^2) ./ sum(Yt.^2);
     end
 end
+
 
 end

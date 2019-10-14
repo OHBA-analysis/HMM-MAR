@@ -81,7 +81,7 @@ end
 
 % Preproc data and put in the right format 
 if do_preproc
-    if isfield(options,'embeddedlags'), el = options.embeddedlags; end
+    if isfield(options,'embeddedlags'), el = options.embeddedlags;else;el=0;end
     [X,Y,T,options] = preproc4hmm(X,Y,T,options); % this demeans Y
     p = size(X,2);
     if classification && length(el) > 1
