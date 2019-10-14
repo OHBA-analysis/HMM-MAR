@@ -25,8 +25,8 @@ function intervals = getStateIntervalTimes (Gamma,T,options,threshold,threshold_
 if nargin<3, options = struct(); options.Fs = 1; options.downsample = 1; end
 if ~isfield(options,'Fs'), options.Fs = 1; end
 if ~isfield(options,'downsample'), options.downsample = options.Fs; end
-if nargin<4, threshold = 0; end
-if nargin<5, threshold_Gamma = (2/3); end
+if nargin<4 || isempty(threshold), threshold = 0; end
+if nargin<5 || isempty(threshold_Gamma), threshold_Gamma = (2/3); end
 if nargin<6 || isempty(do_concat), do_concat = true; end
 
 is_vpath = (size(Gamma,2)==1 && all(rem(Gamma,1)==0)); 
