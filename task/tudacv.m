@@ -56,6 +56,8 @@ do_preproc = 1;
 N = length(T); q = size(Y,2); ttrial = T(1); p = size(X,2); K = options.K;
 if ~all(T==T(1)), error('All elements of T must be equal for cross validation'); end 
 
+
+
 if size(Y,1) == length(T) % one value per trial
     responses = Y;
     Ystar = reshape(repmat(reshape(responses,[1 N q]),[ttrial,1,1]),[ttrial*N q]);
