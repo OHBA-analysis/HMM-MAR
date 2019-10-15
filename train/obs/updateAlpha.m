@@ -39,6 +39,17 @@ for k=1:K
             hmm.state(k).alpha.Gam_shape = hmm.state(k).alpha.Gam_shape + 0.5 * sum(indr);
         end
         
+    elseif strcmp(train.covtype,'logistic')
+        for i=1:train.logisticYdim %note dimension iterated over outside this code
+            D=ndim-orders;
+            if isfield(hmm.state(k).alpha,'Gam_rate')
+                hmm.state(k).alpha=rmfield(hmm.state(k).alpha,'Gam_rate');
+            end
+            w_mu=hmm.state(k).W.Mu_W(1:D,end-train.logisticYdim+i);
+            w_sig=squeeze(hmm.state(k).W.S_W(end-train.logisticYdim+i,1:D,1:D));
+            hmm.state(k).alpha.Gam_rate(:,i) = hmm.state(k).prior.alpha.Gam_rate + 0.5 *(w_mu.^2 + diag(w_sig));
+        end
+        hmm.state(k).alpha.Gam_shape = hmm.state(k).prior.alpha.Gam_shape + 0.5;
     else
         for n=1:Q,
             indr = S(n,:)==1;

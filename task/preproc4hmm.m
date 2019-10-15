@@ -48,12 +48,15 @@ if ~isfield(options,'pca'), pca_opt = 0;
 else, pca_opt = options.pca; end
 if ~isfield(options,'A'), A = [];
 else, A = options.A; end
-
+if ~isfield(options,'logisticYdim'), logisticYdim=0; 
+else, logisticYdim = options.logisticYdim; end
+if ~isfield(options,'add_noise') && logisticYdim==0, add_noise = 1;
+elseif logisticYdim==0, add_noise = options.add_noise; 
+else add_noise = 0; end
 if isfield(options,'downsample') && options.downsample~=0
     warning('Downsampling is not possible for TUDA')
 end
-if ~isfield(options,'add_noise'), add_noise = 1;
-else, add_noise = options.add_noise; end
+
 
 % Options relative to constraints in the trans prob mat
 if ~isfield(options,'K'), error('K was not specified'); end
@@ -77,6 +80,9 @@ end
 
 % options relative to the HMM
 if ~isfield(options,'covtype'), options.covtype = 'uniquediag'; end
+if logisticYdim>0; 
+    options.covtype = 'logistic';
+end
 options.order = 1;
 options.zeromean = 1;
 options.embeddedlags = 0; % it is done here
@@ -126,13 +132,18 @@ if q == 1 && length(unique(Y))==2
         warning('Seems this is binary classification, transforming stimulus to have elements (-1,+1)')
         v = unique(Y);
         Y(Y==v(1)) = -1; Y(Y==v(2)) = +1;
-        Y = Y - mean(Y);
+        if logisticYdim==0
+            Y = Y - mean(Y);
+        end
     end
 end
 
-% Demean stimulus
-if demeanstim
+if logisticYdim==0
+    % Demean stimulus
     Y = bsxfun(@minus,Y,mean(Y));
+    if add_noise % this avoids numerical problems 
+       Y = Y + 1e-4 * randn(size(Y)); 
+    end
 end
 % Add noise, to avoid numerical problems 
 if add_noise > 0

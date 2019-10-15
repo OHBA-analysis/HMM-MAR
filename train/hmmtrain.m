@@ -80,8 +80,21 @@ for cycle = 1:hmm.train.cyc
             
         end
         
+        if strcmp(hmm.train.covtype,'logistic')
+            % update psi parameters also:
+            nX=hmm.train.ndim-hmm.train.logisticYdim;
+            hmm=updatePsi(hmm,Gamma,XX(:,1:nX),residuals);
+
+            % check for overfitting to labels - do mean state timecourses
+            % match over different labels:
+%            Gamma = checkGammaOverfitting(Gamma,residuals,hmm,T,orders);
+        end
         %%%% Free energy computation
-        fehist(end+1) = sum(evalfreeenergy(data.X,T,Gamma,Xi,hmm,residuals,XX));
+        if strcmp(hmm.train.covtype,'logistic')
+            fehist(end+1) = sum(evalfreeenergylogistic(T,Gamma,Xi,hmm,residuals,XX));
+        else
+            fehist(end+1) = sum(evalfreeenergy(data.X,T,Gamma,Xi,hmm,residuals,XX));
+        end
         strwin = ''; if hmm.train.meancycstop>1, strwin = 'windowed'; end
         if cycle>(hmm.train.meancycstop+1) 
             chgFrEn = mean( fehist(end:-1:(end-hmm.train.meancycstop+1)) - ...
@@ -110,6 +123,7 @@ for cycle = 1:hmm.train.cyc
     % Observation model
     if hmm.train.updateObs
         hmm = obsupdate(T,Gamma,hmm,residuals,XX,XXGXX);
+        
     end
     
     % Transition matrices and initial state

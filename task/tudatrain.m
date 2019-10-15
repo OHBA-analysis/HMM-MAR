@@ -100,6 +100,7 @@ end
 % Run TUDA inference
 options.S = -ones(p+q);
 options.S(1:p,p+1:end) = 1;
+
 % 0. In case parallel_trials is false and no Gamma was provided
 if isempty(GammaInit) && ~parallel_trials
     options.updateObs = 1;
@@ -143,7 +144,6 @@ else
     options.verbose = 0;
     [tuda,~,~,~,~,~, stats.fe] = hmmmar(Z,T,options);
 end
-
 
 tuda.features = features;
 if isfield(options_original,'verbose'), tuda.train.verbose = options_original.verbose; end
@@ -195,18 +195,23 @@ end
 function R2 = R2_standard_dec(X,Y,T)
 % squared error for time point by time point decoding (time by q)
 N = length(T); ttrial = sum(T)/N; p = size(X,2); q = size(Y,2);
-X = reshape(X,[ttrial N p]);
-Y = reshape(Y,[ttrial N q]);
-sqerr = zeros(ttrial,1);
-sqerr0 = zeros(ttrial,1);
-for t = 1:ttrial
-    Xt = permute(X(t,:,:),[2 3 1]);
-    Yt = permute(Y(t,:,:),[2 3 1]);
-    beta = (Xt' * Xt) \ (Xt' * Yt);
-    Yhat = Xt * beta; 
-    sqerr(t) = sum(sum( (Yhat - Yt).^2 ));
-    sqerr0(t) = sum(sum( (Yt).^2 ));
+if p < N
+    X = reshape(X,[ttrial N p]);
+    Y = reshape(Y,[ttrial N q]);
+    sqerr = zeros(ttrial,1);
+    sqerr0 = zeros(ttrial,1);
+    for t = 1:ttrial
+        Xt = permute(X(t,:,:),[2 3 1]);
+        Yt = permute(Y(t,:,:),[2 3 1]);
+        beta = (Xt' * Xt) \ (Xt' * Yt);
+        Yhat = Xt * beta; 
+        sqerr(t) = sum(sum( (Yhat - Yt).^2 ));
+        sqerr0(t) = sum(sum( (Yt).^2 ));
+    end
+    R2 = 1 - sqerr ./ sqerr0;
+else %implies prioblem is unconstrained, so perfect solution found
+    R2=NaN;
 end
-R2 = 1 - sqerr ./ sqerr0;
+
 end
 

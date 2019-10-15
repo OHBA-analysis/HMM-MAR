@@ -84,6 +84,7 @@ for k = 1:K
     hmm.cache.orders{k} = orders;
     hmm.cache.Sind{k} = Sind;
     hmm.cache.S{k} = S;
+   
     if k == 1 && strcmp(train.covtype,'uniquediag')
         ldetWishB=0;
         PsiWish_alphasum=0;
@@ -119,11 +120,12 @@ for k = 1:K
         C = hmm.state(k).Omega.Gam_shape * hmm.state(k).Omega.Gam_irate;
     end
     
-    hmm.cache.ldetWishB{k} = ldetWishB;
-    hmm.cache.PsiWish_alphasum{k} = PsiWish_alphasum;
-    hmm.cache.C{k} = C;
-    hmm.cache.do_normwishtrace(k) = ~isempty(hmm.state(k).W.Mu_W);
-    
+    if ~strcmp(train.covtype,'logistic')
+        hmm.cache.ldetWishB{k} = ldetWishB;
+        hmm.cache.PsiWish_alphasum{k} = PsiWish_alphasum;
+        hmm.cache.C{k} = C;
+        hmm.cache.do_normwishtrace(k) = ~isempty(hmm.state(k).W.Mu_W);
+    end
 end
 
 
@@ -167,6 +169,7 @@ if hmm.train.useParallel==1 && N>1
                 end
             end
             XXt = XX(slicer + s0 - order,:); 
+            slicepoints=slicer + s0 - order;
             if isnan(C(t,1))
                 [gammat,xit,Bt] = nodecluster(XXt,K,hmm,R(slicer,:));
             else
@@ -311,9 +314,15 @@ end
 function [Gamma,Xi,L] = nodecluster(XX,K,hmm,residuals)
 % inference using normal foward backward propagation
 
-order = hmm.train.maxorder;
+
+if strcmp(hmm.train.covtype,'logistic'); order=0;
+else order = hmm.train.maxorder; end
 T = size(residuals,1) + order;
 Xi = [];
+
+if nargin<6
+    slicepoints=[];
+end
 
 % if isfield(hmm.train,'grouping') && length(unique(hmm.train.grouping))>1
 %     i = hmm.train.grouping(n); 
@@ -324,7 +333,11 @@ Xi = [];
 P = hmm.P; Pi = hmm.Pi;
 
 try
-    L = obslike([],hmm,residuals,XX,hmm.cache);
+    if ~strcmp(hmm.train.covtype,'logistic')
+        L = obslike([],hmm,residuals,XX,hmm.cache);
+    else
+        L = obslikelogistic([],hmm,residuals,XX,slicepoints);
+    end
 catch
     error('obslike function is giving trouble - Out of precision?')
 end

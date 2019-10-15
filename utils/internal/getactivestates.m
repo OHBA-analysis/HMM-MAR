@@ -13,7 +13,8 @@ Gammasum = sum(Gamma);
 if isfield(hmm.train,'B'), Q = size(hmm.train.B,2);
 else, Q = ndim; end
 
-threshold = max(4*length(orders)*Q+5,10);
+threshold = max(4*length(orders)*Q+5,1);
+threshold = min(threshold,size(Gamma,1)/(4*size(Gamma,2)));
 
 actstates = ones(1,K); % length = to the last no. of states (=the original K if dropstates==0)
 for k=1:K
