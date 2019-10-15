@@ -120,7 +120,7 @@ for k = 1:K
         C = hmm.state(k).Omega.Gam_shape * hmm.state(k).Omega.Gam_irate;
     end
     
-    if ~strcmp(train.covtype,'logistic')
+    if ~strcmp(train.distribution,'logistic')
         hmm.cache.ldetWishB{k} = ldetWishB;
         hmm.cache.PsiWish_alphasum{k} = PsiWish_alphasum;
         hmm.cache.C{k} = C;
@@ -171,7 +171,7 @@ if hmm.train.useParallel==1 && N>1
             slicepoints=slicer + s0 - order;
             XXt = XX(slicepoints,:); 
             if isnan(C(t,1))
-                [gammat,xit,Bt] = nodecluster(XXt,K,hmm,R(slicer,:),in,slicepoints);
+                [gammat,xit,Bt] = nodecluster(XXt,K,hmm,R(slicer,:),slicepoints);
             else
                 gammat = zeros(length(slicer),K);
                 if t==order+1, gammat(1,:) = C(slicer(1),:); end
@@ -245,7 +245,7 @@ else
             slicepoints=slicer + s0 - order;
             XXt = XX(slicepoints,:);
             if isnan(C(t,1))
-                [gammat,xit,Bt] = nodecluster(XXt,K,hmm,R(slicer,:),in,slicepoints);
+                [gammat,xit,Bt] = nodecluster(XXt,K,hmm,R(slicer,:),slicepoints);
                 if any(isnan(gammat(:)))
                     error('State time course inference returned NaN - Out of precision?')
                 end
@@ -312,14 +312,18 @@ if n_argout>=5, B  = cell2mat(B); end
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [Gamma,Xi,L] = nodecluster(XX,K,hmm,residuals,n,slicepoints)
+function [Gamma,Xi,L] = nodecluster(XX,K,hmm,residuals,slicepoints)
 % inference using normal foward backward propagation
 
 
-if strcmp(hmm.train.covtype,'logistic'); order=0;
+if strcmp(hmm.train.distribution,'logistic'); order=0;
 else order = hmm.train.maxorder; end
 T = size(residuals,1) + order;
 Xi = [];
+
+if nargin<5
+    slicepoints=[];
+end
 
 % if isfield(hmm.train,'grouping') && length(unique(hmm.train.grouping))>1
 %     i = hmm.train.grouping(n); 
@@ -330,7 +334,7 @@ Xi = [];
 P = hmm.P; Pi = hmm.Pi;
 
 try
-    if ~strcmp(hmm.train.covtype,'logistic')
+    if ~strcmp(hmm.train.distribution,'logistic')
         L = obslike([],hmm,residuals,XX,hmm.cache);
     else
         L = obslikelogistic([],hmm,residuals,XX,slicepoints);

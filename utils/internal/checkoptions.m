@@ -48,8 +48,6 @@ if ~isfield(options,'standardise'), options.standardise = 1; end
 if ~isfield(options,'standardise_pc') 
     options.standardise_pc = length(options.embeddedlags)>1; 
 end
-if ~isfield(options,'logisticYdim'),options.logisticYdim=0;end
-if ~isfield(options,'balancedata'),options.balancedata=1;end
 if length(options.embeddedlags)>1 && isfield(options,'covtype') && ...
         ~strcmpi(options.covtype,'full')
     options.covtype = 'full';

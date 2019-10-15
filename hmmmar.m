@@ -219,10 +219,6 @@ else
        data = detrenddata(data,T); 
     end
 
-    % Standardise data and control for ackward trials
-    if options.standardise
-        data = standardisedata(data,T,options.standardise); 
-    end
     % Leakage correction
     if options.leakagecorr ~= 0 
         data = leakcorr(data,T,options.leakagecorr);
@@ -354,7 +350,7 @@ else
         hmm_wr.train = options;
         hmm_wr = hmmhsinit(hmm_wr,GammaInit,T);
         [hmm_wr,residuals_wr] = obsinit(data,T,hmm_wr,GammaInit);
-        if strcmp(options.covtype,'logistic');
+        if strcmp(options.distribution,'logistic');
             residuals_wr = getresidualslogistic(data.X,T,options.logisticYdim); 
         end
         if ~isfield(options,'Gamma'); hmm_wr.Gamma = GammaInit;end
@@ -372,7 +368,7 @@ else
         hmm_wr.Dir2d_alpha = Dir2d_alpha; hmm_wr.Dir_alpha = Dir_alpha; hmm_wr.P = P; hmm_wr.Pi = Pi; 
         if exist('Omega_prior','var'), hmm_wr.prior.Omega = Omega_prior; end
         % get residuals
-        if ~strcmp(options.covtype,'logistic')
+        if ~strcmp(options.distribution,'logistic')
             residuals_wr = getresiduals(data.X,T,hmm_wr.train.Sind,hmm_wr.train.maxorder,hmm_wr.train.order,...
                 hmm_wr.train.orderoffset,hmm_wr.train.timelag,hmm_wr.train.exptimelag,hmm_wr.train.zeromean);
         else

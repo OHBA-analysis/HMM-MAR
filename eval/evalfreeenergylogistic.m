@@ -11,12 +11,14 @@ function [FrEn,avLL] = evalfreeenergylogistic(T,Gamma,Xi,hmm,residuals,XX,todo)
 %
 % OUTPUT
 % FrEn         the variational free energy, separated in different terms:
-%                   element 1: data negative loglikelihood
-%                   element 2: KL for initial and transition probabilities
-%                   elements 3: KL for the state parameters
+%                   element 1: Gamma Entropy
+%                   element 2: data negative loglikelihood
+%                   element 3: Gamma negative loglikelihood
+%                   element 4: KL for initial and transition probabilities
+%                   element 5: KL for the state parameters
 % avLL         log likelihood of the observed data, per trial
 %
-% Author: Diego Vidaurre, OHBA, University of Oxford
+% Author: Cam Higgins, OHBA, University of Oxford
 
 if nargin<8, todo = ones(1,5); end
 
@@ -46,7 +48,7 @@ X=XX(:,1:Xdim);
 % Y((end+1),1)=Y(end,1);
 
 Y=residuals;
-T=size(X,1);
+T_full=size(X,1);
 
 if (nargin<6 || isempty(residuals)) && todo(2)==1
     if ~isfield(hmm.train,'Sind')
@@ -58,17 +60,17 @@ if (nargin<6 || isempty(residuals)) && todo(2)==1
         hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag,hmm.train.zeromean);
 end
 
-% Entropy of Gamma - NO NOT USED IN LOGISTIC MODEL
-% Entr = [];
-% if todo(1)==1
-%     Entr = GammaEntropy(Gamma,Xi,T,hmm.train.maxorder);
-% end
+% Entropy of Gamma 
+Entr = [];
+if todo(1)==1
+    Entr = GammaEntropy(Gamma,Xi,T,hmm.train.maxorder);
+end
 
-% % loglikelihood of Gamma
-% avLLGamma = [];
-% if todo(3)==1
-%     avLLGamma = GammaavLL(hmm,Gamma,Xi,T);
-% end
+% loglikelihood of Gamma
+avLLGamma = [];
+if todo(3)==1
+    avLLGamma = GammaavLL(hmm,Gamma,Xi,T);
+end
 
 % P and Pi KL
 KLdivTran = [];
@@ -77,26 +79,28 @@ if todo(4)==1
 end
 
 % state KL
-KLdiv = [];
 n=Xdim+1;
 if todo(5)==1
     W_mu0=zeros(Xdim,1);
     %W_sig0=eye(Xdim);
-    alphaKL=0;
+    alphaKL=[];
+    beta_KL = [];
     for k=1:K
         hs=hmm.state(k);
         pr=hmm.state(k).prior;
         for ly = n:n+hmm.train.logisticYdim-1
             W_sig0 = diag(hs.alpha.Gam_shape ./ (hs.alpha.Gam_rate(1:Xdim,ly-Xdim)));
-            KLdiv = [ KLdiv, gauss_kl(hs.W.Mu_W(1:Xdim,ly),W_mu0, ...
+            beta_KL = [ beta_KL, gauss_kl(hs.W.Mu_W(1:Xdim,ly),W_mu0, ...
                 squeeze(hs.W.S_W(ly,1:Xdim,1:Xdim)),W_sig0)];
+            alphaKL_st=zeros(Xdim,1);
             for xd=1:Xdim
-                alphaKL = alphaKL + sum(gamma_kl(hs.alpha.Gam_shape,pr.alpha.Gam_shape, ...
+                alphaKL_st(xd) = sum(gamma_kl(hs.alpha.Gam_shape,pr.alpha.Gam_shape, ...
                     hs.alpha.Gam_rate(xd,ly-Xdim),pr.alpha.Gam_rate));
             end
+            alphaKL = [alphaKL,sum(alphaKL_st)];
         end
     end
-    KLdiv = KLdiv + alphaKL;      
+    KLdiv = sum(beta_KL) + sum(alphaKL);      
 end
 
 % data log likelihood:
@@ -106,7 +110,7 @@ hmm.Gamma = Gamma;
 exp_H_LL = loglikelihoodofH(Y,X,hmm);
 avLL=sum(exp_H_LL);
 
-FrEn=[ -avLL +KLdivTran +KLdiv];
+FrEn=[-Entr -avLL -avLLGamma +KLdivTran +KLdiv];
 
 % %debugging / hack to get working, using old code (this only works to check
 % %W updates, not HS states!)

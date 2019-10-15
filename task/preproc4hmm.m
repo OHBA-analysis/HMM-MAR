@@ -57,7 +57,6 @@ if isfield(options,'downsample') && options.downsample~=0
     warning('Downsampling is not possible for TUDA')
 end
 
-
 % Options relative to constraints in the trans prob mat
 if ~isfield(options,'K'), error('K was not specified'); end
 if ~isfield(options,'Pstructure')
@@ -79,10 +78,17 @@ if options.tudamonitoring && ~all(T==T(1))
 end
 
 % options relative to the HMM
-if ~isfield(options,'covtype'), options.covtype = 'uniquediag'; end
+if ~isfield(options,'distribution'),options.distribution='Gaussian';end
 if logisticYdim>0; 
-    options.covtype = 'logistic';
+    options.distribution = 'logistic';
 end
+if strcmp(options.distribution,'logistic')
+    options.covtype='';
+end
+if ~isfield(options,'covtype') && strcmp(options.distribution,'Gaussian')
+    options.covtype = 'uniquediag'; 
+end
+
 options.order = 1;
 options.zeromean = 1;
 options.embeddedlags = 0; % it is done here

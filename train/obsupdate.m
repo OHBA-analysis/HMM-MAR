@@ -26,7 +26,7 @@ obs_it = 1;
 Gammasum = sum(Gamma);
 if nargin<7, Tfactor = 1; end
 
-if ~strcmp(hmm.train.covtype,'logistic')
+if ~strcmp(hmm.train.distribution,'logistic')
     while mean_change>obs_tol && obs_it<=obs_maxit
 
         last_state = hmm.state;

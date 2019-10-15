@@ -30,14 +30,7 @@ else
     [T,ndim] = size(residuals);
 %    T = T + hmm.train.maxorder;
 end
-if nargin==6
-    Gamma=hmm.Gamma(slicepoints,:);
-    if isfield(hmm,'psi');
-    psi=hmm.psi(slicepoints,1:Ydim);
-    hmm=rmfield(hmm,'psi');
-    hmm.psi=psi;
-    end
-end
+
     
 % if isfield(hmm.train,'B'), Q = size(hmm.train.B,2);
 % else Q = ndim; end
@@ -88,19 +81,7 @@ for iY =validdimensions
         WW{k,iY}=hmm.state(k).W.Mu_W(Sind(:,n),n)*hmm.state(k).W.Mu_W(Sind(:,n),n)' + ...
                             squeeze(hmm.state(k).W.S_W(n,S(:,n),S(:,n)));
     end
-    
-
-    if ~isfield(hmm,'psi') 
-        hmm.psi=zeros(T,Ydim);
-        gamWW=zeros(Xdim,Xdim,K);
-        for t=1:T
-            for i=1:K
-                gamWW(:,:,i) = Gamma(t,i)* WW{i,n};  
-            end
-            hmm.psi(t,iY)=sqrt(X(t,:) * sum(gamWW,3) * X(t,:)');
-            %if mod(t,100)==0;fprintf(['\n',int2str(t)]);end
-        end
-    end    
+     
     psi = hmm.psi(slicepoints,iY);
     
 %     if size(hmm.psi,2)>size(hmm.psi,1)
