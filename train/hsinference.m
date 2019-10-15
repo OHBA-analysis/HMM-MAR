@@ -168,10 +168,10 @@ if hmm.train.useParallel==1 && N>1
                 else slicer = t:(no_c(1)+t-2); %slice = (t-order):(no_c(1)+t-2);
                 end
             end
-            XXt = XX(slicer + s0 - order,:); 
             slicepoints=slicer + s0 - order;
+            XXt = XX(slicepoints,:); 
             if isnan(C(t,1))
-                [gammat,xit,Bt] = nodecluster(XXt,K,hmm,R(slicer,:));
+                [gammat,xit,Bt] = nodecluster(XXt,K,hmm,R(slicer,:),in,slicepoints);
             else
                 gammat = zeros(length(slicer),K);
                 if t==order+1, gammat(1,:) = C(slicer(1),:); end
@@ -242,9 +242,10 @@ else
                 else slicer = t:(no_c(1)+t-2); %slice = (t-order):(no_c(1)+t-2);
                 end
             end
-            XXt = XX(slicer + s0 - order,:);
+            slicepoints=slicer + s0 - order;
+            XXt = XX(slicepoints,:);
             if isnan(C(t,1))
-                [gammat,xit,Bt] = nodecluster(XXt,K,hmm,R(slicer,:));
+                [gammat,xit,Bt] = nodecluster(XXt,K,hmm,R(slicer,:),in,slicepoints);
                 if any(isnan(gammat(:)))
                     error('State time course inference returned NaN - Out of precision?')
                 end
@@ -311,7 +312,7 @@ if n_argout>=5, B  = cell2mat(B); end
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [Gamma,Xi,L] = nodecluster(XX,K,hmm,residuals)
+function [Gamma,Xi,L] = nodecluster(XX,K,hmm,residuals,n,slicepoints)
 % inference using normal foward backward propagation
 
 
@@ -319,10 +320,6 @@ if strcmp(hmm.train.covtype,'logistic'); order=0;
 else order = hmm.train.maxorder; end
 T = size(residuals,1) + order;
 Xi = [];
-
-if nargin<6
-    slicepoints=[];
-end
 
 % if isfield(hmm.train,'grouping') && length(unique(hmm.train.grouping))>1
 %     i = hmm.train.grouping(n); 

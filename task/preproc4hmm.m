@@ -157,8 +157,9 @@ end
 if standardise && N > 1
    warning(['You have set standardise=1, so each channel and trial will be standardized. ' ...
        'This will probably result in a loss of information in terms of how each stimulus is processed'])
+   X = standardisedata(X,T,standardise); 
 end
-X = standardisedata(X,T,standardise);
+
 % Filtering
 if ~isempty(filter)
     data = filterdata(X,T,options.Fs,filter);
