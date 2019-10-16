@@ -184,8 +184,13 @@ if hmm.train.tudamonitoring
 end
 
 if hmm.train.verbose
-    fprintf('Model: %d states, %d data samples, covariance: %s \n', ...
-        K,sum(T),hmm.train.covtype);
+    if strcmp(hmm.train.distribution,'Gaussian')
+        fprintf('Model: %d states, %d data samples, covariance: %s \n', ...
+            K,sum(T),hmm.train.covtype);
+    elseif strcmp(hmm.train.distribution,'logistic')
+        fprintf('Model: %d states, %d data samples, logistic regression model. \n', ...
+            K,sum(T));
+    end
     if hmm.train.exptimelag>1
         fprintf('Exponential lapse: %g, order %g, offset %g \n', ...
             hmm.train.exptimelag,hmm.train.order,hmm.train.orderoffset)

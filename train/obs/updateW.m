@@ -107,13 +107,11 @@ for k = 1:K
         end
         XW(:,:,k) = XX * hmm.state(k).W.Mu_W;
         
-    elseif strcmp(train.distribution,'logistic');
+    elseif strcmp(train.distribution,'logistic')
         
         % Set Y and X: 
         Xdim = size(XX,2)-hmm.train.logisticYdim;
         X=XX(:,1:Xdim);
-        %Y=XX(2:end,(Xdim+1):end);
-        %Y((end+1),1)=Y(end,1);
         Y=residuals;
         vp = Y~=0; % for multinomial logistic regression, only include valid points
         T=size(X,1);
@@ -151,7 +149,6 @@ for k = 1:K
 %             end
             W_sigsum = (XX(vp,1:ndim_n)' .* repmat(2*lambdafunc(hmm.psi(vp))'.*Gammaweighted',ndim_n,1))* XX(vp,1:ndim_n);
             %update parameter entries:
-            %hmm.state(k).W.S_W(n,S(:,n),S(:,n)) = inv(squeeze(sum(W_sigsum{k},1))+inv(W_sig0));
             hmm.state(k).W.S_W(n,S(:,n),S(:,n)) = inv(squeeze(W_sigsum)+inv(W_sig0));
             hmm.state(k).W.Mu_W(S(:,n),n) = squeeze(hmm.state(k).W.S_W(n,S(:,n),S(:,n))) * 0.5 * X(vp,:)' * (Y(vp).*Gammaweighted) ... %sum(W_musum{k},1)') ...
                 +(W_sig0\W_mu0);

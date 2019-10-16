@@ -48,14 +48,65 @@ if ~isfield(options,'pca'), pca_opt = 0;
 else, pca_opt = options.pca; end
 if ~isfield(options,'A'), A = [];
 else, A = options.A; end
+if isfield(options,'downsample') && options.downsample~=0
+    warning('Downsampling is not possible for TUDA')
+end
+
+%options relative to classification models:
+if isfield(options,'classifier')
+    if strcmp(options.classifier,'logistic')
+        options.distribution='logistic';
+        %determine if multinomial or binomial
+        vals = unique(Y(:));
+        if length(vals)==2
+            if all(vals == [0;1])
+                Y=2*(Y)-1;
+            elseif ~all(vals == [-1;1])
+                ME = MException(preproc4hmm:wrongYformat,'Error: format of Y incorrect for classification tasks');
+                throw ME;
+            end
+        elseif length(vals)>2 && size(Y,2)==1
+            % Y entered as categorical format
+            fprintf(['\nFitting multinomial logistic classifier with classes ',int2str(vals'), '\n']);
+            Y=convertToMultinomial(Y);
+        elseif length(vals)==3
+            if ~all(vals == [-1;0;1])
+                throw exception;
+            end
+        end
+        options.logisticYdim=size(Y,2);
+        if ~isfield(options,'balancedata')
+            options.balancedata=0;
+        else
+            options.balancedata=options.balancedata;
+        end
+        if ~isfield(options,'intercept'),options.intercept=0;end
+        if options.intercept
+           X = [X,ones(size(X,1),1)];
+        end
+        options=rmfield(options,'intercept');
+        if ~isfield(options,'sequential')
+            options.sequential=true;
+        end
+        if options.sequential
+            options.Pstructure = eye(options.K) + diag(ones(1,options.K-1),1);
+            options.Pistructure = zeros(1,options.K);
+            options.Pistructure(1)=1;
+        end
+    elseif strcmp(options.classifier,'LDA')
+        options.distribution='Gaussian';
+        % not updated yet!
+    end
+    options = rmfield(options,'classifier');
+else
+    options.distribution='Gaussian'; %default for all non-classification models
+end
 if ~isfield(options,'logisticYdim'), logisticYdim=0; 
 else, logisticYdim = options.logisticYdim; end
 if ~isfield(options,'add_noise') && logisticYdim==0, add_noise = 1;
 elseif logisticYdim==0, add_noise = options.add_noise; 
 else add_noise = 0; end
-if isfield(options,'downsample') && options.downsample~=0
-    warning('Downsampling is not possible for TUDA')
-end
+
 
 % Options relative to constraints in the trans prob mat
 if ~isfield(options,'K'), error('K was not specified'); end

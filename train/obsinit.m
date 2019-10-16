@@ -286,9 +286,11 @@ if ~pcapred
     hmm = updateSigma(hmm);
     %%% alpha - one per order
     hmm = updateAlpha(hmm);
-    if train.logisticYdim>1
-        for k=1:train.K
-            hmm.state(k).alpha.Gam_rate = repmat(hmm.state(k).alpha.Gam_rate(1:ndim_n,end),1,train.logisticYdim);
+    if strcmp(train.distribution,'logistic')
+        if train.logisticYdim>1
+            for k=1:train.K
+                hmm.state(k).alpha.Gam_rate = repmat(hmm.state(k).alpha.Gam_rate(1:ndim_n,end),1,train.logisticYdim);
+            end
         end
     end
 else
