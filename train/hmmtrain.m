@@ -81,7 +81,7 @@ for cycle = 1:hmm.train.cyc
         end
         
         %%%% Free energy computation
-        if strcmp(hmm.train.distribution,'logistic')
+        if isfield(hmm.train,'distribution') && strcmp(hmm.train.distribution,'logistic')
             fehist(end+1) = sum(evalfreeenergylogistic(T,Gamma,Xi,hmm,residuals,XX));
         else
             fehist(end+1) = sum(evalfreeenergy(data.X,T,Gamma,Xi,hmm,residuals,XX));
@@ -184,7 +184,7 @@ if hmm.train.tudamonitoring
 end
 
 if hmm.train.verbose
-    if strcmp(hmm.train.distribution,'Gaussian')
+    if ~isfield(hmm.train,'distribution') || strcmp(hmm.train.distribution,'Gaussian')
         fprintf('Model: %d states, %d data samples, covariance: %s \n', ...
             K,sum(T),hmm.train.covtype);
     elseif strcmp(hmm.train.distribution,'logistic')

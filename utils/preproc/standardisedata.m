@@ -1,6 +1,9 @@
 function data = standardisedata(data,T,standardise,valid_dims)
 
 N = length(T);
+if nargin<4
+    valid_dims=[1:size(data,2)];
+end
 
 if standardise
     for i = 1:N

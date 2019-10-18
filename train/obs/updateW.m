@@ -25,7 +25,7 @@ for k = 1:K
     setstateoptions;
     if isempty(orders) && train.zeromean, continue; end
     if strcmp(train.covtype,'diag') || strcmp(train.covtype,'full'), omega = hmm.state(k).Omega;
-    elseif ~strcmp(train.distribution,'logistic'), omega = hmm.Omega;
+    elseif ~isfield(train,'distribution') || ~strcmp(train.distribution,'logistic'), omega = hmm.Omega;
     end
     
     if reweight
@@ -107,7 +107,7 @@ for k = 1:K
         end
         XW(:,:,k) = XX * hmm.state(k).W.Mu_W;
         
-    elseif strcmp(train.distribution,'logistic')
+    elseif isfield(train,'distribution') && strcmp(train.distribution,'logistic')
         
         % Set Y and X: 
         Xdim = size(XX,2)-hmm.train.logisticYdim;
