@@ -120,7 +120,7 @@ for k = 1:K
         C = hmm.state(k).Omega.Gam_shape * hmm.state(k).Omega.Gam_irate;
     end
     
-    if ~isfield(hmm.train,'distribution') || ~strcmp(train.distribution,'logistic')
+    if ~isfield(train,'distribution') || ~strcmp(train.distribution,'logistic')
         hmm.cache.ldetWishB{k} = ldetWishB;
         hmm.cache.PsiWish_alphasum{k} = PsiWish_alphasum;
         hmm.cache.C{k} = C;

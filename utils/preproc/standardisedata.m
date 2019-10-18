@@ -1,8 +1,12 @@
 function data = standardisedata(data,T,standardise,valid_dims)
 
 N = length(T);
-if nargin<4
-    valid_dims=[1:size(data,2)];
+if nargin<4 
+    if isstruct(data)
+        valid_dims=[1:size(data.X,2)];
+    else
+        valid_dims=[1:size(data,2)];
+    end
 end
 
 if standardise
