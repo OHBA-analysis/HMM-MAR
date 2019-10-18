@@ -55,8 +55,10 @@ end
 %options relative to classification models:
 if isfield(options,'classifier')
     if strcmp(options.classifier,'logistic')
+        %set default options for logistic regression classification:
         options.distribution='logistic';
-        %determine if multinomial or binomial
+        demeanstim=false;
+        %determine if multinomial or binomial:
         vals = unique(Y(:));
         if length(vals)==2
             if all(vals == [0;1])
@@ -88,24 +90,45 @@ if isfield(options,'classifier')
         if ~isfield(options,'sequential')
             options.sequential=true;
         end
-        if options.sequential
-            options.Pstructure = eye(options.K) + diag(ones(1,options.K-1),1);
-            options.Pistructure = zeros(1,options.K);
-            options.Pistructure(1)=1;
+        options.add_noise=0;
+   elseif strcmp(options.classifier,'LDA')
+       % set default options for LDA model:
+       options.distribution='Gaussian';
+       demeanstim=false;
+        if ~isfield(options,'intercept'),options.intercept=1;end
+        if options.intercept
+            if size(Y,2)==1
+                Y=[ones(size(Y,1),1),Y==1,Y~=1];
+            else
+                Y=[ones(size(Y,1),1),Y];
+            end
+            q = size(Y,2);
         end
-    elseif strcmp(options.classifier,'LDA')
-        options.distribution='Gaussian';
-        % not updated yet!
+        if ~isfield(options,'covtype')
+            options.covtype = 'uniquediag';
+        end
+        options=rmfield(options,'intercept');
+        if ~isfield(options,'sequential')
+            options.sequential=true;
+        end
+        options.add_noise=0;
+    elseif strcmp(options.classifier,'SVM')
+        options.add_noise=0;
+        demeanstim=false;
+        options.sequential=false
+    end
+    % general classification options:
+    if options.sequential
+        options.Pstructure = eye(options.K) + diag(ones(1,options.K-1),1);
+        options.Pistructure = zeros(1,options.K);
+        options.Pistructure(1)=1;
     end
     options = rmfield(options,'classifier');
 else
     options.distribution='Gaussian'; %default for all non-classification models
 end
-if ~isfield(options,'logisticYdim'), logisticYdim=0; 
-else, logisticYdim = options.logisticYdim; end
-if ~isfield(options,'add_noise') && logisticYdim==0, add_noise = 1;
-elseif logisticYdim==0, add_noise = options.add_noise; 
-else add_noise = 0; end
+if ~isfield(options,'logisticYdim'), options.logisticYdim=0;end
+if ~isfield(options,'add_noise'), add_noise = 1;else add_noise = options.add_noise; end
 
 
 % Options relative to constraints in the trans prob mat
@@ -130,7 +153,7 @@ end
 
 % options relative to the HMM
 if ~isfield(options,'distribution'),options.distribution='Gaussian';end
-if logisticYdim>0; 
+if options.logisticYdim>0; 
     options.distribution = 'logistic';
 end
 if strcmp(options.distribution,'logistic')
@@ -189,13 +212,13 @@ if q == 1 && length(unique(Y))==2
         warning('Seems this is binary classification, transforming stimulus to have elements (-1,+1)')
         v = unique(Y);
         Y(Y==v(1)) = -1; Y(Y==v(2)) = +1;
-        if logisticYdim==0
+        if options.logisticYdim==0
             Y = Y - mean(Y);
         end
     end
 end
 
-if logisticYdim==0
+if demeanstim
     % Demean stimulus
     Y = bsxfun(@minus,Y,mean(Y));
     if add_noise % this avoids numerical problems 

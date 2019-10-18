@@ -209,7 +209,7 @@ if stochastic_learn
 else
     
     % Standardise data and control for ackward trials
-    valid_dims=any(options.S'==1);valid_dims(sum(valid_dims))=0;
+    valid_dims=1:find(diff(any(options.S==1)),1);valid_dims(end)=[];
     data = standardisedata(data,T,options.standardise,valid_dims); 
     % Filtering
     if ~isempty(options.filter)
