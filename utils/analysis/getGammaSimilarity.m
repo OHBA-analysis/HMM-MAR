@@ -2,6 +2,8 @@ function [S,assig, gamma1] = getGammaSimilarity (gamma1, gamma2)
 % Computes a measure of similarity between two sets of state time courses.
 % These can have different number of states, but they must have the same
 % number of time points. 
+% If gamma2 is a cell, then it aggregates the similarity measures across
+% elements of gamma2 
 % S: similarity, measured as the sum of overlapping probabilities under the
 %       optimal state alignment
 % assig: optimal state aligmnent (uses munkres' algorithm)
@@ -9,30 +11,49 @@ function [S,assig, gamma1] = getGammaSimilarity (gamma1, gamma2)
 %
 % Author: Diego Vidaurre, University of Oxford (2017)
 
-[T, K] = size(gamma1);
-K2 = size(gamma2,2);
-
-if K<K2
-    gamma1 = [gamma1 zeros(T,K2-K)];
-    K = K2;
-else
-    if K>K2
-        gamma2 = [gamma2 zeros(T,K-K2)];
-    end
+if iscell(gamma2), N = length(gamma2); 
+else, N = 1; 
 end
 
-M = zeros(K,K); % minus similarities
-for i=1:K 
-    for j=1:K
-        M(i,j) = - sum(gamma1(:,i) .* gamma2(:,j));
-    end
-end 
+[T, K] = size(gamma1);
 
-[assig,cost] = munkres(M);
-S = - cost / T;
+gamma1_0 = gamma1; 
+
+Mmax = 0; 
+M = zeros(K,K); % minus similarities
+
+for j = 1:N
+    
+    if iscell(gamma2), g = gamma2{j};
+    else g = gamma2;
+    end
+    
+    K2 = size(g,2);
+    
+    if K < K2
+        gamma1 = [gamma1_0 zeros(T,K2-K)];
+        K = K2;
+    else
+        if K>K2
+            g = [g zeros(T,K-K2)];
+        end
+    end
+    
+    Mmax = Mmax + size(g,1); 
+    for k1 = 1:K
+        for k2 = 1:K
+            %M(k1,k2) = sum(gamma1(:,k1) .* g(:,k2));
+            M(k1,k2) = sum(min(gamma1(:,k1), g(:,k2)));
+        end
+    end
+    
+end
+
+[assig,cost] = munkres(Mmax - M);
+S = (Mmax - cost) / T;
 
 if nargout > 2
-    gamma1(:,assig) = gamma1; 
+    gamma1(:,assig) = gamma1;
 end
 
 end
