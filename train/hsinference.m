@@ -120,7 +120,7 @@ for k = 1:K
         C = hmm.state(k).Omega.Gam_shape * hmm.state(k).Omega.Gam_irate;
     end
     
-    if ~strcmp(train.distribution,'logistic')
+    if ~isfield(train,'distribution') || ~strcmp(train.distribution,'logistic')
         hmm.cache.ldetWishB{k} = ldetWishB;
         hmm.cache.PsiWish_alphasum{k} = PsiWish_alphasum;
         hmm.cache.C{k} = C;
@@ -316,7 +316,7 @@ function [Gamma,Xi,L] = nodecluster(XX,K,hmm,residuals,slicepoints)
 % inference using normal foward backward propagation
 
 
-if strcmp(hmm.train.distribution,'logistic'); order=0;
+if isfield(hmm.train,'distribution') && strcmp(hmm.train.distribution,'logistic'); order=0;
 else order = hmm.train.maxorder; end
 T = size(residuals,1) + order;
 Xi = [];
@@ -334,7 +334,7 @@ end
 P = hmm.P; Pi = hmm.Pi;
 
 try
-    if ~strcmp(hmm.train.distribution,'logistic')
+    if ~isfield(hmm.train,'distribution') || ~strcmp(hmm.train.distribution,'logistic')
         L = obslike([],hmm,residuals,XX,hmm.cache);
     else
         L = obslikelogistic([],hmm,residuals,XX,slicepoints);
