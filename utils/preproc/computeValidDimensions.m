@@ -12,12 +12,10 @@ else
     else
          X = data;
     end
-    if var(X(:,lastdatadim))<1e-4
-        lastdatadim=lastdatadim-1;
+    if var(X(:,lastdatadim))==0
+        lastdatadim = lastdatadim-1;
     end
-    valid_dims=[1:lasdatadim];
-    
+    valid_dims = [1:lasdatadim];
 end
-
 
 end

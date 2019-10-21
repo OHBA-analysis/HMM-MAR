@@ -26,10 +26,7 @@ if iscell(T)
     if size(T,1)==1, T = T'; end
     for i = 1:length(T)
         if size(T{i},1)==1, T{i} = T{i}'; end
-        T{i} = int64(T{i});
     end
-else
-    T = int64(T);
 end
 N = length(T);
 
@@ -147,13 +144,6 @@ if stochastic_learn
     else
         options.As = [];
     end
-    % get global eigendecomposition
-    if options.firsteigv
-       [options.eigvec,options.eigval] = globaleig(data,T,...
-                options.embeddedlags,options.standardise,...
-                options.onpower,options.detrend,...
-                options.filter,options.downsample,options.Fs); 
-    end
     if isfield(options,'A') && ~isempty(options.A)
         options.ndim = size(options.A,2);
     elseif isfield(options,'As') && ~isempty(options.As)
@@ -209,7 +199,7 @@ if stochastic_learn
 else
     
     % Standardise data and control for ackward trials
-    valid_dims=computeValidDimensions(data,options.S);
+    valid_dims = computeValidDimensions(data,options.S);
     data = standardisedata(data,T,options.standardise,valid_dims); 
     % Filtering
     if ~isempty(options.filter)
@@ -274,18 +264,6 @@ else
     % Downsampling
     if options.downsample > 0 
        [data,T] = downsampledata(data,T,options.downsample,options.Fs); 
-    end
-    % get global eigendecomposition
-    if options.firsteigv
-        if isstruct(data)
-            data.X = bsxfun(@minus,data.X,mean(data.X));
-            options.gram = data.X' * data.X;
-        else
-            data = bsxfun(@minus,data,mean(data));
-            options.gram = X' * X;
-        end
-        [options.eigvec,options.eigval] = svd(options.gram);
-        options.eigval = diag(options.eigval);
     end
     if options.pcamar > 0 && ~isfield(options,'B')
         % PCA on the predictors of the MAR regression, per lag: X_t = \sum_i X_t-i * B_i * W_i + e
