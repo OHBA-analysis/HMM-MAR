@@ -115,7 +115,7 @@ if isfield(options,'classifier')
     elseif strcmp(options.classifier,'SVM')
         options.add_noise=0;
         demeanstim=false;
-        options.sequential=false
+        options.sequential=false;
     end
     % general classification options:
     if options.sequential
