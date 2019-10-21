@@ -106,17 +106,17 @@ end
 % assigning default priors for observation models
 if ~isfield(hmm,'state') || ~isfield(hmm.state,'prior')
     for k = 1:hmm.K
-        hmm.state(k).prior=defstateprior(k);
+        hmm.state(k).prior = defstateprior(k);
     end
 else
     for k = 1:hmm.K
         % prior not specified are set to default
-        statepriorlist=fieldnames(defstateprior(k));
-        fldname=fieldnames(hmm.state(k).prior);
-        misfldname=find(~ismember(statepriorlist,fldname));
-        for i=1:length(misfldname)
-            priorval=getfield(defstateprior(k),statepriorlist{i});
-            hmm.state(k).prior=setfield(hmm.state,k,'prior',statepriorlist{i}, ...
+        statepriorlist = fieldnames(defstateprior(k));
+        fldname = fieldnames(hmm.state(k).prior);
+        misfldname = find(~ismember(statepriorlist,fldname));
+        for i = 1:length(misfldname)
+            priorval = getfield(defstateprior(k),statepriorlist{i});
+            hmm.state(k).prior = setfield(hmm.state,k,'prior',statepriorlist{i}, ...
                 priorval);
         end
     end
@@ -232,7 +232,7 @@ elseif strcmp(hmm.train.covtype,'uniquefull')
     hmm.Omega.Gam_irate(regressed,regressed) = inv(hmm.Omega.Gam_rate(regressed,regressed));   
     
 elseif ~isfield(hmm.train,'distribution') || ~strcmp(hmm.train.distribution,'logistic') % state dependent
-    for k=1:K
+    for k = 1:K
         setstateoptions;
         if train.uniqueAR
             XW = zeros(size(XX,1),ndim);

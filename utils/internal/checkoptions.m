@@ -33,7 +33,7 @@ end
 if ~isfield(options,'pca'), options.pca = 0; end
 if ~isfield(options,'pca_spatial'), options.pca_spatial = 0; end
 if ~isfield(options,'rank'), options.rank = 0; end
-if ~isfield(options,'firsteigv'), options.firsteigv = 0; end
+if ~isfield(options,'lowrank'), options.lowrank = 0; end
 if ~isfield(options,'varimax'), options.varimax = 0; end
 if ~isfield(options,'FC'), options.FC = 0; end
 if ~isfield(options,'maxFOth'), options.maxFOth = Inf; end
@@ -61,6 +61,8 @@ if ~isfield(options,'plotAverageGamma'), options.plotAverageGamma = 0; end
 
 % classic HMM or mixture?
 if ~isfield(options,'id_mixture'), options.id_mixture = 0; end
+% clustering of time series? 
+if ~isfield(options,'cluster'), options.cluster = 0; end
 
 % stochastic options
 if stochastic_learning
@@ -321,9 +323,9 @@ if options.maxorder+1 >= min(T)
    error('There is at least one trial that is too short for the specified order') 
 end
 if options.K~=size(data.C,2), error('Matrix data.C should have K columns'); end
-if options.K>1 && options.updateGamma == 0 && isempty(options.Gamma)
-    warning('Gamma is unspecified, so updateGamma was set to 1');  options.updateGamma = 1; 
-end
+% if options.K>1 && options.updateGamma == 0 && isempty(options.Gamma)
+%     warning('Gamma is unspecified, so updateGamma was set to 1');  options.updateGamma = 1; 
+% end
 if options.updateGamma == 1 && options.K == 1
     %warning('Since K is one, updateGamma was set to 0');  
     options.updateGamma = 0; options.updateP = 0; 
@@ -487,19 +489,19 @@ else
 end
 if ~options.zeromean, options.Sind = [true(1,ndim); options.Sind]; end
 
-if ~strcmp(options.covtype,'full') && options.firsteigv
-    error('firsteigv can only be used for covtype=full')
+if ~strcmp(options.covtype,'full') && options.lowrank > 0 
+    error('lowrank can only be used for covtype=full')
 end
-if options.zeromean==0 && options.firsteigv
-    error('firsteigv can only be used for zeromean=1')
+if options.zeromean==0 && options.lowrank > 0 
+    error('lowrank can only be used for zeromean=1')
 end
-if options.order > 1 && options.firsteigv
-    error('firsteigv can only be used for order=0')
+if options.order > 1 && options.lowrank > 0 
+    error('lowrank can only be used for order=0')
 end
-if options.pca>0 && options.firsteigv
-    error('firsteigv and pca are not compatible')
+if options.pca>0 && options.lowrank > 0 
+    error('lowrank and pca are not compatible')
 end
-if options.pcamar>0 && options.pcapred>0
+if options.pcamar > 0 && options.pcapred > 0
     error('Options pcamar and pcapred are not compatible')
 end
 if ~isfield(options,'orders') || ~isfield(options,'maxorder')

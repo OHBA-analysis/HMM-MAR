@@ -53,21 +53,21 @@ L = zeros(T,K);
 
 switch hmm.train.covtype
     case 'uniquediag'
-        ldetWishB=0;
-        PsiWish_alphasum=0;
-        for n=1:ndim
+        ldetWishB = 0;
+        PsiWish_alphasum = 0;
+        for n = 1:ndim
             if ~regressed(n), continue; end
-            ldetWishB=ldetWishB+0.5*log(hmm.Omega.Gam_rate(n));
-            PsiWish_alphasum=PsiWish_alphasum+0.5*psi(hmm.Omega.Gam_shape);
+            ldetWishB = ldetWishB+0.5*log(hmm.Omega.Gam_rate(n));
+            PsiWish_alphasum = PsiWish_alphasum+0.5*psi(hmm.Omega.Gam_shape);
         end
         C = hmm.Omega.Gam_shape ./ hmm.Omega.Gam_rate;
     case 'uniquefull'
-        ldetWishB=0.5*logdet(hmm.Omega.Gam_rate(regressed,regressed));
-        PsiWish_alphasum=0;
-        for n=1:sum(regressed)
-            PsiWish_alphasum=PsiWish_alphasum+psi(hmm.Omega.Gam_shape/2+0.5-n/2); 
+        ldetWishB = 0.5*logdet(hmm.Omega.Gam_rate(regressed,regressed));
+        PsiWish_alphasum = 0;
+        for n = 1:sum(regressed)
+            PsiWish_alphasum = PsiWish_alphasum+psi(hmm.Omega.Gam_shape/2+0.5-n/2); 
         end
-        PsiWish_alphasum=PsiWish_alphasum*0.5;
+        PsiWish_alphasum = PsiWish_alphasum*0.5;
         C = hmm.Omega.Gam_shape * hmm.Omega.Gam_irate;
 end
 
@@ -122,7 +122,7 @@ for k = 1:K
     end
     
     dist = zeros(Tres,1);
-    for n=1:sum(regressed)
+    for n = 1:sum(regressed)
         dist = dist-0.5*d(:,n).*Cd(n,:)';
     end
     
@@ -160,7 +160,7 @@ for k = 1:K
                         if ~regressed(n1), continue; end
                         index1 = I + n1; index1 = index1(Sind(:,n1)); 
                         tmp = (XX(:,Sind(:,n1)) * hmm.state(k).W.S_W(index1,:));
-                        for n2=1:ndim
+                        for n2 = 1:ndim
                             if ~regressed(n2), continue; end
                             index2 = I + n2; index2 = index2(Sind(:,n2));
                             NormWishtrace = NormWishtrace + 0.5 * C(n1,n2) * ...

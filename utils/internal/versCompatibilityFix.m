@@ -48,8 +48,8 @@ end
 if ~isfield(hmm.train,'PriorWeightingPi')
     hmm.train.PriorWeightingPi = 1;
 end
-if ~isfield(hmm.train,'firsteigv')
-    hmm.train.firsteigv = 0;
+if ~isfield(hmm.train,'lowrank')
+    hmm.train.lowrank = 0;
 end
 if ~isfield(hmm.train,'updateObs')
     hmm.train.updateObs = 1;

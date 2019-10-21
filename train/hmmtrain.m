@@ -26,6 +26,13 @@ if nargin<6, fehist=[]; end
 cyc_to_go = 0;
 setxx;
 
+do_clustering = isfield(hmm.train,'cluster') && hmm.train.cluster;
+if do_clustering
+    root_P = 0.75;
+    hmm.P = root_P * ones(hmm.K);
+    hmm.P(eye(hmm.K)==1) = 1; 
+end
+
 for cycle = 1:hmm.train.cyc
     
     if hmm.train.updateGamma
@@ -158,7 +165,25 @@ for cycle = 1:hmm.train.cyc
             break
         end
     end
-   
+    
+    if do_clustering
+        if cycle < 20
+            hmm.P = root_P^(cycle+1) * ones(hmm.K);
+            hmm.P(eye(hmm.K)==1) = 1;
+        else
+            hmm.P = eye(K);
+        end
+    end
+    
+%     if 1
+%         figure(500)
+%         %area(Gamma(1:sum(T(1:5)),:)); ylim([0 1])
+%         area(Gamma); ylim([0 1])
+%         title([num2str(cycle) ' ' num2str(hmm.P(1,2))])
+%         drawnow
+%         pause(0.1)
+%     end
+    
 end
 
 for k = 1:K
@@ -203,6 +228,27 @@ if hmm.train.verbose
     else
         fprintf('MEX file was used for acceleration \n')
     end
+end
+
+if do_clustering
+    kk = [];
+    Gamma0 = Gamma;
+    for k = 1:hmm.K
+        t = find(sum(Gamma0,2)>0,1);
+        [~,m] = max(Gamma0(t,:));
+        if isempty(m)
+            break;
+        end
+        kk = [kk m];
+        Gamma0(:,m) = 0; 
+    end
+    if length(kk) < hmm.K 
+        kk = [kk setdiff((1:hmm.K), kk)];
+    end
+    Gamma = Gamma(:,kk);
+    hmm.state = hmm.state(kk);
+    hmm.Pi = hmm.Pi(kk);
+    hmm.Dir_alpha = hmm.Dir_alpha(kk);      
 end
 
 end
