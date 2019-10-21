@@ -28,9 +28,7 @@ if iscell(T)
     for i = 1:length(T)
         if size(T{i},1)==1, T{i} = T{i}'; end
     end
-    T = int64(cell2mat(T));
-else
-    T = int64(T);
+    T = cell2mat(T);
 end
 N = length(T);
 

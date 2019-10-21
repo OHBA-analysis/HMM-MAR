@@ -54,15 +54,11 @@ function tests = hmmtest (Gamma,T,Tsubject,Y,options,hmm)
 % Put T,Tsubject in the format
 if iscell(T)
     if size(T,1)==1, T = T'; end
-    T = int64(cell2mat(T));
-else
-    T = int64(T);
+    T = cell2mat(T);
 end
 if iscell(Tsubject)
     if size(Tsubject,1)==1, Tsubject = Tsubject'; end
-    Tsubject = int64(cell2mat(Tsubject));
-else
-    Tsubject = int64(Tsubject);
+    Tsubject = cell2mat(Tsubject);
 end
 if size(T,1)==1, T = T'; end
 if isempty(Tsubject), Tsubject = sum(T); end  % One subject
