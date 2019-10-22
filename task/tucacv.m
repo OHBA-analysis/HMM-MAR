@@ -212,7 +212,7 @@ for icv = 1:NCV
                 reshape( (Xtest * Betas(:,:,k,icv)) .* sGamma , [ttrial Nte Q_star]);
         end
     elseif strcmp(classifier,'LDA')
-         predictions = invertEncodeModel(LDAmodel{icv},Gammatest,Xtest);
+         predictions = LDApredict(LDAmodel{icv},Gammatest,Xtest);
          Ypred(:,c.test{icv},:) = reshape(predictions,[ttrial Nte q]);
     end
 end

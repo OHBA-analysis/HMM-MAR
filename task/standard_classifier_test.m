@@ -155,7 +155,7 @@ elseif strcmp(classifier,'SVM')
     end
 elseif strcmp(classifier,'LDA')
     X = reshape(X,[ttrial*N,p]);
-    [predictions_hard, predictions_soft] = invertEncodeModel(model,repmat(eye(ttrial),N,1),X);
+    [predictions_hard, predictions_soft] = LDApredict(model,repmat(eye(ttrial),N,1),X);
 end
 
 %and compute accuracy metrics using hard classification output:
