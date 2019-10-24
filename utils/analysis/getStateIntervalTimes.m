@@ -1,4 +1,4 @@
-function intervals = getStateIntervalTimes (Gamma,T,options,threshold,threshold_Gamma)
+function intervals = getStateIntervalTimes (Gamma,T,options,threshold,threshold_Gamma,do_concat)
 % Computes the interval times for the state time courses  
 % 
 % Gamma can be the probabilistic state time courses (time by states),
@@ -17,13 +17,17 @@ function intervals = getStateIntervalTimes (Gamma,T,options,threshold,threshold_
 % Intervals is then a cell (subjects by states), where each element is a
 %   vector of interval times
 %
+% if do_concat is specified, the interval times are concatenated across
+% segments of data, so that interval times is a cell (1 by states)
+% 
 % Diego Vidaurre, OHBA, University of Oxford (2016)
 
 if nargin<3, options = struct(); options.Fs = 1; options.downsample = 1; end
 if ~isfield(options,'Fs'), options.Fs = 1; end
 if ~isfield(options,'downsample'), options.downsample = options.Fs; end
-if nargin<4, threshold = 0; end
-if nargin<5, threshold_Gamma = (2/3); end
+if nargin<4 || isempty(threshold), threshold = 0; end
+if nargin<5 || isempty(threshold_Gamma), threshold_Gamma = (2/3); end
+if nargin<6 || isempty(do_concat), do_concat = true; end
 
 is_vpath = (size(Gamma,2)==1 && all(rem(Gamma,1)==0)); 
 if iscell(T)
@@ -38,11 +42,10 @@ if iscell(T)
         trials2subjects(ii:ii+Ntrials-1) = i;
         ii = ii + Ntrials;
     end
-    T = int64(cell2mat(T));
+    T = cell2mat(T);
 else 
     Nsubj = length(T);
     trials2subjects = 1:Nsubj;
-    T = int64(T);
 end
 N = length(T);
 
@@ -78,16 +81,30 @@ else
     Gamma = Gamma > threshold_Gamma;
 end
 
-intervals = cell(Nsubj,K);
-for j = 1:N
-    t0 = sum(T(1:j-1));
-    ind = (1:T(j)) + t0;
-    if length(ind)==1, continue; end
-    jj = trials2subjects(j);
-    for k=1:K
-        t = find(Gamma(ind,k)==1,1);
-        if isempty(t), continue; end
-        intervals{jj,k} = [intervals{jj,k} aux_k(Gamma(ind(t:end),k),threshold)];
+if ~do_concat
+    intervals = cell(Nsubj,K);
+    for j = 1:N
+        t0 = sum(T(1:j-1));
+        ind = (1:T(j)) + t0;
+        if length(ind)==1, continue; end
+        jj = trials2subjects(j);
+        for k=1:K
+            t = find(Gamma(ind,k)==1,1);
+            if isempty(t), continue; end
+            intervals{jj,k} = [intervals{jj,k} aux_k(Gamma(ind(t:end),k),threshold)];
+        end
+    end
+else
+    intervals = cell(1,K);
+    for j = 1:N
+        t0 = sum(T(1:j-1));
+        ind = (1:T(j)) + t0;
+        if length(ind)==1, continue; end
+        for k=1:K
+            t = find(Gamma(ind,k)==1,1);
+            if isempty(t), continue; end
+            intervals{k} = [intervals{k} aux_k(Gamma(ind(t:end),k),threshold)];
+        end
     end
 end
 

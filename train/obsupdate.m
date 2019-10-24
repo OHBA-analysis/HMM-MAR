@@ -26,7 +26,7 @@ obs_it = 1;
 Gammasum = sum(Gamma);
 if nargin<7, Tfactor = 1; end
 
-if ~strcmp(hmm.train.covtype,'logistic') & ~strcmp(hmm.train.covtype,'poisson')
+if ~isfield(hmm.train,'distribution') || strcmp(hmm.train.distribution,'Gaussian')
     while mean_change>obs_tol && obs_it<=obs_maxit
 
         last_state = hmm.state;
@@ -57,9 +57,7 @@ if ~strcmp(hmm.train.covtype,'logistic') & ~strcmp(hmm.train.covtype,'poisson')
         end
         mean_change = mean_changew;
     end
-elseif strcmp(hmm.train.covtype,'logistic')
-    % note that logistic models are slower to converge, so more iterations
-    % may need to be allowed here
+elseif strcmp(hmm.train.distribution,'logistic')
     obs_maxit = 1;
     if isfield(hmm,'psi')
         hmm=rmfield(hmm,'psi');
@@ -80,20 +78,16 @@ elseif strcmp(hmm.train.covtype,'logistic')
             hmm = logisticMergeHMM(hmm_temp,hmm,iY);
         end
         %%% termination conditions
-        
         mean_changew = 0;
         for k=1:K
             mean_changew = mean_changew + ...
                 sum(sum(abs(last_state(k).W.Mu_W - hmm.state(k).W.Mu_W))) / numel(hmm.state(k).W.Mu_W) / K;
         end
         mean_change = mean_changew;
-        fprintf(['\nUpdating coefficients, iteration ',int2str(obs_it),', mean change ',num2str(mean_change)]);
         
-        fehist(obs_it,:) = (evalfreeenergylogistic(T,Gamma,[],hmm,residuals,XX));
-        fprintf(['\nObservation params updated, free energy: ',num2str(sum(fehist(obs_it,:)))]);
         obs_it = obs_it + 1;
     end
-elseif strcmp(hmm.train.covtype,'poisson')
+elseif strcmp(hmm.train.distribution,'poisson')
     hmm = updateW(hmm,Gamma,residuals,XX,XXGXX,Tfactor);
 end
 end

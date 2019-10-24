@@ -1,7 +1,7 @@
 function [pvals,pvalsFWE,pvalmat] = permtestmass_NPC(Yin,Xin,Nperm,Perms,conf,...
     groupingYin,groupingXin,verbose)
 % 
-% It tests each replication (column) of Xin vs each variable (column) of Yin, 
+% It tests each replication (column) of Yin vs each variable (column) of Xin, 
 % combining the tests across replications such that we have an aggregated  
 % final p-value as well as specific p-value for each column of Yin.
 %

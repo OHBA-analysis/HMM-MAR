@@ -26,10 +26,7 @@ if iscell(T)
     if size(T,1)==1, T = T'; end
     for i = 1:length(T)
         if size(T{i},1)==1, T{i} = T{i}'; end
-        T{i} = int64(T{i});
     end
-else
-    T = int64(T);
 end
 N = length(T);
 
@@ -147,13 +144,6 @@ if stochastic_learn
     else
         options.As = [];
     end
-    % get global eigendecomposition
-    if options.firsteigv
-       [options.eigvec,options.eigval] = globaleig(data,T,...
-                options.embeddedlags,options.standardise,...
-                options.onpower,options.detrend,...
-                options.filter,options.downsample,options.Fs); 
-    end
     if isfield(options,'A') && ~isempty(options.A)
         options.ndim = size(options.A,2);
     elseif isfield(options,'As') && ~isempty(options.As)
@@ -209,9 +199,9 @@ if stochastic_learn
 else
     
     % Standardise data and control for ackward trials
-    if options.standardise
-        data = standardisedata(data,T,options.standardise); 
-    end
+    valid_dims = computeValidDimensions(data,options.S);
+    data = standardisedata(data,T,options.standardise,valid_dims); 
+    
     % Filtering
     if ~isempty(options.filter)
        data = filterdata(data,T,options.Fs,options.filter);
@@ -220,6 +210,8 @@ else
     if options.detrend
        data = detrenddata(data,T); 
     end
+
+    
     % Leakage correction
     if options.leakagecorr ~= 0 
         data = leakcorr(data,T,options.leakagecorr);
@@ -274,18 +266,6 @@ else
     % Downsampling
     if options.downsample > 0 
        [data,T] = downsampledata(data,T,options.downsample,options.Fs); 
-    end
-    % get global eigendecomposition
-    if options.firsteigv
-        if isstruct(data)
-            data.X = bsxfun(@minus,data.X,mean(data.X));
-            options.gram = data.X' * data.X;
-        else
-            data = bsxfun(@minus,data,mean(data));
-            options.gram = X' * X;
-        end
-        [options.eigvec,options.eigval] = svd(options.gram);
-        options.eigval = diag(options.eigval);
     end
     if options.pcamar > 0 && ~isfield(options,'B')
         % PCA on the predictors of the MAR regression, per lag: X_t = \sum_i X_t-i * B_i * W_i + e
@@ -351,7 +331,7 @@ else
         hmm_wr.train = options;
         hmm_wr = hmmhsinit(hmm_wr,GammaInit,T);
         [hmm_wr,residuals_wr] = obsinit(data,T,hmm_wr,GammaInit);
-        if strcmp(options.covtype,'logistic');
+        if isfield(options,'distribution') && strcmp(options.distribution,'logistic')
             residuals_wr = getresidualslogistic(data.X,T,options.logisticYdim); 
         end
         if ~isfield(options,'Gamma'); hmm_wr.Gamma = GammaInit;end
@@ -369,7 +349,7 @@ else
         hmm_wr.Dir2d_alpha = Dir2d_alpha; hmm_wr.Dir_alpha = Dir_alpha; hmm_wr.P = P; hmm_wr.Pi = Pi; 
         if exist('Omega_prior','var'), hmm_wr.prior.Omega = Omega_prior; end
         % get residuals
-        if ~strcmp(options.covtype,'logistic')
+        if ~isfield(options,'distribution') || ~strcmp(options.distribution,'logistic')
             residuals_wr = getresiduals(data.X,T,hmm_wr.train.Sind,hmm_wr.train.maxorder,hmm_wr.train.order,...
                 hmm_wr.train.orderoffset,hmm_wr.train.timelag,hmm_wr.train.exptimelag,hmm_wr.train.zeromean);
         else

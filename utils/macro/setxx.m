@@ -37,14 +37,14 @@ if ~exist('XX','var') || (size(XX,1)==0)
     end
 end
 if exist('Gamma','var') && ~isempty(Gamma)
-     if ~strcmp(hmm.train.covtype,'logistic') || ~isfield(hmm.state,'W') %do not proceed below if W not initialised yet
+     if ~isfield(hmm.train,'distribution') || ~strcmp(hmm.train.distribution,'logistic') || ~isfield(hmm.state,'W') %do not proceed below if W not initialised yet
         for k=1:K
             XXGXX{k} = (XX' .* repmat(Gamma(:,k)',size(XX,2),1)) * XX;
         end
      else
          n = size(XX,2)-hmm.train.logisticYdim;
          hmm = updatePsi(hmm,Gamma,XX(:,1:n),residuals);
-         lambdafunc = @(psi_t) ((2*psi_t).^-1).*(logsig(psi_t)-0.5);
+         lambdafunc = @(psi_t) ((2*psi_t).^-1).*(log_sigmoid(psi_t)-0.5);
          for k=1:K
              for iY=1:hmm.train.logisticYdim
                  

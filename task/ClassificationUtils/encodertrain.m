@@ -1,4 +1,4 @@
-function [tuda,Gamma,GammaInit,vpath,stats] = tudatrain_withnullpoints(X_orig,Y_orig,T_orig,X_null,Y_null,T_null,options)
+function [tuda,Gamma,GammaInit,vpath,stats] = encodertrain(X,Y,T,options)
 % Performs the Temporal Unconstrained Decoding Approach (TUDA), 
 % an alternative approach for decoding where we dispense with the assumption 
 % that the same decoding is active at the same time point at all trials. 
@@ -28,23 +28,19 @@ function [tuda,Gamma,GammaInit,vpath,stats] = tudatrain_withnullpoints(X_orig,Y_
 %   - R2_stddec: (training) explained variance of the standard 
 %               (temporally constrained) decoding approach (time by q by K) 
 %
-% Author: Diego Vidaurre, OHBA, University of Oxford (2017)
+% Author: Cam Higgins, OHBA, University of Oxford (2017)
 
 stats = struct();
-
-X=[X_orig;X_null];
-Y=[Y_orig;Y_null];
-T=[T_orig,T_null];
-n_orig = sum(T_orig);
 N = length(T); 
+
 % Check options and put data in the right format
-[X,Y,T,options,stats.R2_pca,features] = preproc4hmm(X,Y,T,options); 
+[X,~,T,options,stats.R2_pca,features] = preproc4hmm(X,Y,T,options); 
 parallel_trials = options.parallel_trials; 
 options = rmfield(options,'parallel_trials');
 if isfield(options,'add_noise'), options = rmfield(options,'add_noise'); end
+if ~isfield(options,'useUnsupervisedGamma');options.useUnsupervisedGamma=false;end
 p = size(X,2); q = size(Y,2);
-
-
+ 
 % init HMM, only if trials are temporally related
 if parallel_trials && ~isfield(options,'Gamma')
     GammaInit = cluster_decoding(X,Y,T,options.K,'regression');
@@ -66,57 +62,52 @@ if isfield(options,'cyc') && options.cyc == 0
    stats.R2_stddec = R2_standard_dec(X,Y,T);
    return
 end
-options_run1=options;
-for fullcyc=1:2
-    % Put X and Y together
-    Ttmp = T;
-    T = T + 1;
-    Z = zeros(sum(T),q+p,'single');
-    for n=1:N
-        t1 = (1:T(n)) + sum(T(1:n-1));
-        t2 = (1:Ttmp(n)) + sum(Ttmp(1:n-1));
-        Z(t1(1:end-1),1:p) = X(t2,:);
-        Z(t1(2:end),(p+1):end) = Y(t2,:);
-    end 
 
-    % Run TUDA inference
-    options_run1.S = -ones(p+q);
-    options_run1.S(1:p,p+1:end) = 1;
-    % 1. Estimate Obs Model parameters given Gamma:
+% Put X and Y together
+Ttmp = T;
+T = T + 1;
+Z = zeros(sum(T),q+p,'single');
+for n=1:N
+    t1 = (1:T(n)) + sum(T(1:n-1));
+    t2 = (1:Ttmp(n)) + sum(Ttmp(1:n-1));
+    Z(t1(2:end),1:p) = X(t2,:);
+    Z(t1(1:end-1),(p+1):end) = Y(t2,:);
+end 
+
+% Run TUDA inference
+options.S = -ones(p+q);
+options.S(p+1:end,1:p) = 1;
+% 1. Estimate Obs Model parameters given Gamma, unless told not to:
+options_run1=rmfield(options,'useUnsupervisedGamma');
+if isfield(options,'updateObs') 
     options_run1.updateObs=1;
-    options_run1.updateGamma=0;
-    options.dropstates=0;
-    [tuda,Gamma,~,vpath] = hmmmar(Z,T,options_run1);
+end 
+options_run1.updateGamma=0;
 
-
-    %remove null data for hidden state inference:
-    Z=Z(1:sum(T_orig+1),:);
-    options.Gamma = Gamma(1:sum(T_orig),:);
-    T=(T_orig+1);
-
-    % 2. Update state time courses only, leaving fixed obs model params:
-    options.updateObs = 0; % 
-    options.S = -ones(p+q);
-    options.S(1:p,p+1:end) = 1;
-    options.updateGamma = 1;
-    options.dropstates=0;
-    options.hmm = rmfield(tuda,{'psi','Gamma'}); 
-    options.cyc=1;
+[tuda,Gamma,~,vpath] = hmmmar(Z,T,options_run1);
+if ~options.useUnsupervisedGamma
+% 2. Update state time courses only, leaving fixed obs model params:
+    options.updateObs = 1; % 
+    if ~isfield(options,'updateGamma')
+        options.updateGamma = 1;
+    end
+    %options.Gamma = Gamma;
+    options.hmm = tuda; 
+    if ~isfield(options,'cyc')
+        options.cyc=50;
+    end
     [tuda,Gamma,~,~,~,~, stats.fe] = hmmmar(Z,T,options); 
-    tuda.features = features;
-
-    T=[T_orig,T_null];
-    %Gamma=[Gamma
-    options_run1.Gamma=[Gamma;GammaInit(1:n_orig,:)];
 end
+tuda.features = features;
+
 % Explained variance per state, square error &
 % Square error for the standard time point by time point regression
-% if parallel_trials
-% %     [stats.R2_states,stats.R2] = tuda_R2(X,Y,T-1,tuda,Gamma);
-% %     stats.R2_stddec = R2_standard_dec(X,Y,T-1);
-% else
-%     stats.R2_states = []; stats.R2 = []; stats.R2_stddec = [];
-% end
+if parallel_trials
+    [stats.R2_states,stats.R2] = tuda_R2(X,Y,T-1,tuda,Gamma);
+    stats.R2_stddec = R2_standard_dec(X,Y,T-1);
+else
+    stats.R2_states = []; stats.R2 = []; stats.R2_stddec = [];
+end
 
 end
 

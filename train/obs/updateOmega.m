@@ -8,6 +8,7 @@ if nargin<9, Tfactor = 1; end
 Tres = sum(T) - length(T)*hmm.train.maxorder;
 if isfield(hmm.train,'B'), Q = size(hmm.train.B,2);
 else Q = ndim; end
+lowrank = hmm.train.lowrank;
 
 if strcmp(hmm.train.covtype,'uniquediag') && hmm.train.uniqueAR 
     % all are AR and there's a single covariance matrix
@@ -166,17 +167,47 @@ else % state dependent
                     end
                 end
             end
-            if hmm.train.firsteigv
-                [V,D] = svd(Tfactor * e);
-                hmm.state(k).Omega.Gam_rate = sum(diag(D)) * (V(:,1) * V(:,1)') + hmm.state(k).prior.Omega.Gam_rate;
+            
+            if lowrank > 0
+                [V,D] = svd(e);
+                factor = (sum(diag(D)) / sum(diag(D(1:lowrank,1:lowrank))));
+                D = D * factor;
+                D(lowrank+1:end,lowrank+1:end) = 0;
+                hmm.state(k).Omega.Gam_rate = hmm.state(k).prior.Omega.Gam_rate(regressed,regressed) + ...
+                    Tfactor * V * D * V';
+                hmm.state(k).Omega.Gam_irate(regressed,regressed) = inv(hmm.state(k).Omega.Gam_rate(regressed,regressed));
             else
                 hmm.state(k).Omega.Gam_rate(regressed,regressed) = hmm.state(k).prior.Omega.Gam_rate(regressed,regressed) + ...
                     Tfactor * (e + swx2(regressed,regressed));
+                hmm.state(k).Omega.Gam_irate(regressed,regressed) = inv(hmm.state(k).Omega.Gam_rate(regressed,regressed));
             end
-            hmm.state(k).Omega.Gam_rate(regressed,regressed) = (hmm.state(k).Omega.Gam_rate(regressed,regressed) + ...
-                hmm.state(k).Omega.Gam_rate(regressed,regressed)') / 2;
-            hmm.state(k).Omega.Gam_irate(regressed,regressed) = inv(hmm.state(k).Omega.Gam_rate(regressed,regressed));
             hmm.state(k).Omega.Gam_shape = hmm.state(k).prior.Omega.Gam_shape + Tfactor * Gammasum(k);
+            
+            if train.FC > 0
+                if train.FC==1
+                    C = hmm.state(k).Omega.Gam_rate(regressed,regressed) / hmm.state(k).Omega.Gam_shape; 
+                    C = hmm.train.A' * corrcov(hmm.train.A * C * hmm.train.A',1) * hmm.train.A;
+                else % ==2 
+                    C = corrcov(hmm.state(k).Omega.Gam_rate(regressed,regressed) / hmm.state(k).Omega.Gam_shape, 1);
+                end
+                if lowrank > 0
+                    [V,D] = svd(C);
+                    svd_factor = sum(diag(D)) / sum(diag(D(1:lowrank,1:lowrank)));
+                    D(1:lowrank,1:lowrank) = diag(1 ./ diag(D(1:lowrank,1:lowrank))); % pseudoinverse
+                    iC = V(:,1:lowrank) * D(1:lowrank,1:lowrank) * V(:,1:lowrank)';
+                else
+                    iC = inv(C);
+                end
+                hmm.state(k).Omega.Gam_rate(regressed,regressed) = C * hmm.state(k).Omega.Gam_shape;
+                hmm.state(k).Omega.Gam_irate(regressed,regressed) = iC / hmm.state(k).Omega.Gam_shape;
+            end
+                       
+            % ensuring symmetry
+            hmm.state(k).Omega.Gam_rate(regressed,regressed) = (hmm.state(k).Omega.Gam_rate(regressed,regressed) + ...
+                hmm.state(k).Omega.Gam_rate(regressed,regressed)') / 2; 
+            hmm.state(k).Omega.Gam_irate(regressed,regressed) = (hmm.state(k).Omega.Gam_irate(regressed,regressed) + ...
+                hmm.state(k).Omega.Gam_irate(regressed,regressed)') / 2;  
+            
         end
     end
     

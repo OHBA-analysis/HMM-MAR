@@ -39,7 +39,7 @@ for k=1:K
             hmm.state(k).alpha.Gam_shape = hmm.state(k).alpha.Gam_shape + 0.5 * sum(indr);
         end
         
-    elseif strcmp(train.covtype,'logistic')
+    elseif isfield(train,'distribution') && strcmp(train.distribution,'logistic')
         for i=1:train.logisticYdim %note dimension iterated over outside this code
             D=ndim-orders;
             if isfield(hmm.state(k).alpha,'Gam_rate')

@@ -25,7 +25,7 @@ for k = 1:K
     setstateoptions;
     if isempty(orders) && train.zeromean, continue; end
     if strcmp(train.covtype,'diag') || strcmp(train.covtype,'full'), omega = hmm.state(k).Omega;
-    elseif ~strcmp(train.covtype,'logistic') & ~strcmp(train.covtype,'poisson'), omega = hmm.Omega;
+    elseif ~isfield(train,'distribution') || strcmp(train.distribution,'Gaussian'), omega = hmm.Omega;
     end
     
     if reweight
@@ -117,7 +117,7 @@ for k = 1:K
         end
         XW(:,:,k) = XX * hmm.state(k).W.Mu_W;
         
-    elseif strcmp(train.covtype,'logistic');
+    elseif isfield(train,'distribution') && strcmp(train.distribution,'logistic')
         
         % Set Y and X: 
         Xdim = size(XX,2)-hmm.train.logisticYdim;
@@ -138,7 +138,7 @@ for k = 1:K
         W_sig0 = diag(hmm.state(k).alpha.Gam_shape ./ hmm.state(k).alpha.Gam_rate(1:Xdim));
         
         % implement update equations for logistic regression:
-        lambdafunc = @(psi_t) ((2*psi_t).^-1).*(logsig(psi_t)-0.5);
+        lambdafunc = @(psi_t) ((2*psi_t).^-1).*(log_sigmoid(psi_t)-0.5);
         
         %select functioning channels:
         for n=1:ndim

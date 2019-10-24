@@ -27,11 +27,13 @@ end
 if ~isfield(options,'Fs'), options.Fs = 1; end
 if ~isfield(options,'onpower'), options.onpower = 0; end
 if ~isfield(options,'leida'), options.leida = 0; end
-if ~isfield(options,'embeddedlags'), options.embeddedlags = 0; end
+if ~isfield(options,'embeddedlags') || isempty(options.embeddedlags) 
+    options.embeddedlags = 0; 
+end
 if ~isfield(options,'pca'), options.pca = 0; end
 if ~isfield(options,'pca_spatial'), options.pca_spatial = 0; end
 if ~isfield(options,'rank'), options.rank = 0; end
-if ~isfield(options,'firsteigv'), options.firsteigv = 0; end
+if ~isfield(options,'lowrank'), options.lowrank = 0; end
 if ~isfield(options,'varimax'), options.varimax = 0; end
 if ~isfield(options,'FC'), options.FC = 0; end
 if ~isfield(options,'maxFOth'), options.maxFOth = Inf; end
@@ -46,10 +48,7 @@ if ~isfield(options,'standardise'), options.standardise = 1; end
 if ~isfield(options,'standardise_pc') 
     options.standardise_pc = length(options.embeddedlags)>1; 
 end
-if ~isfield(options,'logisticYdim'),options.logisticYdim=0;end
-if ~isfield(options,'timedependent'),options.timedependent=0;end
-if ~isfield(options,'balancedata'),options.balancedata=1;end
-if ~isfield(options,'grouphierarchy'),options.grouphierarchy=0;end
+
 if length(options.embeddedlags)>1 && isfield(options,'covtype') && ...
         ~strcmpi(options.covtype,'full')
     options.covtype = 'full';
@@ -60,6 +59,11 @@ if options.FC && ~strcmpi(options.covtype,'full')
 end
 % display options
 if ~isfield(options,'plotAverageGamma'), options.plotAverageGamma = 0; end
+
+% classic HMM or mixture?
+if ~isfield(options,'id_mixture'), options.id_mixture = 0; end
+% clustering of time series? 
+if ~isfield(options,'cluster'), options.cluster = 0; end
 
 % stochastic options
 if stochastic_learning
@@ -150,6 +154,7 @@ if ~isfield(options,'tuda'), options.tuda = 0; end
 if options.tudamonitoring && stochastic_learning
    error('Stochastic learning is not currently compatible with TUDA monitoring options') 
 end
+if ~isfield(options,'distribution'),options.distribution='Gaussian';end
 
 % Trans prob mat related options
 if ~isfield(options,'grouping') || isempty(options.grouping)  
@@ -327,9 +332,9 @@ if options.maxorder+1 >= min(T)
    error('There is at least one trial that is too short for the specified order') 
 end
 if options.K~=size(data.C,2), error('Matrix data.C should have K columns'); end
-if options.K>1 && options.updateGamma == 0 && isempty(options.Gamma)
-    warning('Gamma is unspecified, so updateGamma was set to 1');  options.updateGamma = 1; 
-end
+% if options.K>1 && options.updateGamma == 0 && isempty(options.Gamma)
+%     warning('Gamma is unspecified, so updateGamma was set to 1');  options.updateGamma = 1; 
+% end
 if options.updateGamma == 1 && options.K == 1
     %warning('Since K is one, updateGamma was set to 0');  
     options.updateGamma = 0; options.updateP = 0; 
@@ -418,6 +423,7 @@ if ~isfield(options,'zeromean')
     else, options.zeromean = 0; % i.e. when Gaussian or LEiDA
     end
 end
+if ~isfield(options,'priorcov_rate'), options.priorcov_rate = []; end
 if ~isfield(options,'timelag'), options.timelag = 1; end
 if ~isfield(options,'exptimelag'), options.exptimelag = 1; end
 if ~isfield(options,'orderoffset'), options.orderoffset = 0; end
@@ -492,19 +498,19 @@ else
 end
 if ~options.zeromean, options.Sind = [true(1,ndim); options.Sind]; end
 
-if ~strcmp(options.covtype,'full') && options.firsteigv
-    error('firsteigv can only be used for covtype=full')
+if ~strcmp(options.covtype,'full') && options.lowrank > 0 
+    error('lowrank can only be used for covtype=full')
 end
-if options.zeromean==0 && options.firsteigv
-    error('firsteigv can only be used for zeromean=1')
+if options.zeromean==0 && options.lowrank > 0 
+    error('lowrank can only be used for zeromean=1')
 end
-if options.order > 1 && options.firsteigv
-    error('firsteigv can only be used for order=0')
+if options.order > 1 && options.lowrank > 0 
+    error('lowrank can only be used for order=0')
 end
-if options.pca>0 && options.firsteigv
-    error('firsteigv and pca are not compatible')
+if options.pca>0 && options.lowrank > 0 
+    error('lowrank and pca are not compatible')
 end
-if options.pcamar>0 && options.pcapred>0
+if options.pcamar > 0 && options.pcapred > 0
     error('Options pcamar and pcapred are not compatible')
 end
 if ~isfield(options,'orders') || ~isfield(options,'maxorder')

@@ -1,5 +1,5 @@
-function [Y_pred, loglikelihoodX] = invertEncodeModel(model,Gamma,X)
-% For an inferred encoding model and state timecourses, computes the
+function [Y_pred, loglikelihoodX] = LDApredict(model,Gamma,X)
+% For an inferred LDA model and state timecourses, computes the
 % likelihood manifold in X space and computes the likelihood function for
 % each class of labels.
 [T2,K]=size(Gamma);

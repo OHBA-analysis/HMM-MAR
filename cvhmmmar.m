@@ -1,4 +1,4 @@
-function [mcv,cv] = cvhmmmar(data,T,options)
+function [mcv,cv,rmcv_rand,rcv_rand,rmcv_train,rcv_train] = cvhmmmar(data,T,options)
 %
 % Obtains the cross-validated sum of prediction quadratic errors.
 %
@@ -6,11 +6,18 @@ function [mcv,cv] = cvhmmmar(data,T,options)
 % data          observations, either a struct with X (time series) and C (classes, optional)
 %                             or just a matrix containing the time series
 % T             length of series
-% options       structure with the training options - see documentation
+% options       structure with the training options - see documentation.
+%               Must contain a field cvfolds, with the number of CV folds,
+%               or with a CV folds structure as returned by cvpartition
 %
 % OUTPUT
 % mcv      the averaged cross-validated likelihood and/or fractional mean squared error
 % cv       the averaged cross-validated likelihood and/or fractional mean squared error per fold
+% rmcv_rand     the ratio of mcv for the found solution by the mcv for a random solution
+% rcv_rand     the ratio of mcv for the found solution by the mcv for a random solution
+% mtr       the average training likelihood and/or fractional mean squared error
+% rmcv_train     the ratio of mcv for the found solution by the mcv for a random solution
+% rcv_train     the ratio of mcv for the found solution by the mcv for a random solution
 %
 % Author: Diego Vidaurre, OHBA, University of Oxford
 
@@ -18,16 +25,16 @@ if iscell(T)
     if size(T,1)==1, T = T'; end
     for i = 1:length(T)
         if size(T{i},1)==1, T{i} = T{i}'; end
-        T{i} = int64(T{i});
     end
-else
-    T = int64(T);
 end
 N = length(T);
 
 if isstruct(data) && isfield(data,'C')
     error('C cannot be specified within data here')
 end
+
+get_ratio_rand = nargout > 2; 
+get_ratio_train = nargout > 4; 
 
 % is this going to be using the stochastic learning scheme? 
 stochastic_learn = isfield(options,'BIGNbatch') && (options.BIGNbatch < N && options.BIGNbatch > 0);
@@ -57,16 +64,19 @@ options.dropstates = 0;
 options.updateGamma = options.K>1;
 options.updateP = options.updateGamma;
 
-mcv = 0; 
 if length(options.cvfolds)==1
-    options.cvfolds = crossvalind('Kfold', length(T), options.cvfolds);
+    %options.cvfolds = crossvalind('Kfold', length(T), options.cvfolds);
+    options.cvfolds = cvpartition(length(T),'KFold',options.cvfolds);
 end
-nfolds = max(options.cvfolds);
-[orders,order] = formorders(options.order,options.orderoffset,options.timelag,options.exptimelag);
+nfolds = options.cvfolds.NumTestSets;
+orders = formorders(options.order,options.orderoffset,options.timelag,options.exptimelag);
 Sind = formindexes(orders,options.S);
 if ~options.zeromean, Sind = [true(1,size(Sind,2)); Sind]; end
 maxorder = options.maxorder;
 cv = zeros(nfolds,1);
+rcv_rand = zeros(nfolds,1);
+rcv_train = zeros(nfolds,1);
+mcv = 0; rmcv_rand = 0; rmcv_train = 0;
 
 %%% Preprocessing
 % Standardise data and control for ackward trials
@@ -112,16 +122,8 @@ if length(options.pca) > 1 || (options.pca > 0 && options.pca ~= 1)
         data.X = bsxfun(@minus,data.X,mean(data.X));
         data.X = data.X * options.A;
     else
-        [options.A,data.X] = highdim_pca(data.X,T,options.pca,0,0,0,options.varimax);
-        options.pca = size(options.A,2);
+        options.A = highdim_pca(data.X,T,options.pca,0,0,0,options.varimax);
     end
-    % Standardise principal components and control for ackward trials
-    data = standardisedata(data,T,options.standardise_pc);
-    options.ndim = size(options.A,2);
-    options.S = ones(options.ndim);
-    options.Sind = formindexes(options.orders,options.S);
-    if ~options.zeromean, options.Sind = [true(1,size(options.Sind,2)); options.Sind]; end
-    options.pca = 0;
 else
     options.ndim = size(data.X,2);
 end
@@ -136,19 +138,6 @@ end
 if options.downsample > 0
     [data,T] = downsampledata(data,T,options.downsample,options.Fs);
     options.downsample = 0;
-end
-% get global eigendecomposition
-if options.firsteigv
-    if isstruct(data)
-        data.X = bsxfun(@minus,data.X,mean(data.X));
-        options.gram = data.X' * data.X;
-    else
-        data = bsxfun(@minus,data,mean(data));
-        options.gram = X' * X;
-    end
-    [options.eigvec,options.eigval] = svd(options.gram);
-    options.eigval = diag(options.eigval);
-    options.firsteigv = 0;
 end
 if options.pcamar > 0 && ~isfield(options,'B')
     % PCA on the predictors of the MAR regression, per lag: X_t = \sum_i X_t-i * B_i * W_i + e
@@ -168,12 +157,12 @@ for fold = 1:nfolds
     indtr = []; Ttr = [];
     indte = []; Tte = []; 
     test = [];
+    cvtest = options.cvfolds.test(fold);
     % build fold
     for i = 1:length(T)
         t0 = sum(T(1:(i-1)))+1; t1 = sum(T(1:i)); 
-        s0 = sum(T(1:(i-1)))-order*(i-1)+1; s1 = sum(T(1:i))-order*i;
         Ti = t1-t0+1;
-        if options.cvfolds(i)==fold % in testing
+        if cvtest(i) % in testing
             indte = [indte (t0:t1)];
             Tte = [Tte Ti];
             test = [test; ones(Ti,1)];
@@ -184,11 +173,27 @@ for fold = 1:nfolds
     end
     datatr.X = data.X(indtr,:); 
     datate.X = data.X(indte,:); 
-    datatr.C = data.C(indtr,:); 
-    datate.C = data.C(indte,:);     
+    %datatr.C = data.C(indtr,:); 
+    %datate.C = data.C(indte,:);     
         
-    Fe = Inf;
-      
+    Fe = Inf;  
+    
+    if get_ratio_rand
+        options_r = options;
+        options_r.cyc = 1;
+        options_r.inittype = 'random';
+        options_r.updateGamma = 0;
+        if isfield(options_r,'orders')
+            options_r = rmfield(options_r,'orders');
+        end
+        if isfield(options_r,'maxorder')
+            options_r = rmfield(options_r,'maxorder');
+        end
+        hmmtr_r = hmmmar (datatr,Ttr,options_r);
+        [~,~,~,LL_r] = hsinference(datate,Tte,hmmtr_r); % LL is the sum of the loglikelihoods 
+        LL_r = sum(LL_r) / size(datate.X,1); % get average 
+    end
+        
     for it = 1:options.cvrep
         
         if options.verbose, fprintf('CV fold %d, repetition %d \n',fold,it); end
@@ -202,18 +207,30 @@ for fold = 1:nfolds
         [hmmtr,~,~,~,~,~,fe] = hmmmar (datatr,Ttr,options); fe = fe(end);
         hmmtr.train.Sind = Sind;
         hmmtr.train.maxorder = maxorder;
-               
-        % test
+              
         if fe < Fe
+            % test
             Fe = fe;
-            [~,~,~,LL] = hsinference(datate,Tte,hmmtr);
-            cv(fold) = sum(LL);
+            [~,~,~,LL] = hsinference(datate,Tte,hmmtr); % LL is the sum of the loglikelihoods 
+            cv(fold) = sum(LL) / size(datate.X,1); % get average
+            if get_ratio_rand
+                rcv_rand(fold) = cv(fold) - LL_r; % log(test / random) 
+            end
+            % train
+            if get_ratio_train
+                [~,~,~,LL] = hsinference(datatr,Ttr,hmmtr);
+                LL = sum(LL) / size(datatr.X,1); % get average
+                rcv_train(fold) = LL - cv(fold); % log(train / test)
+            end
         end
         
     end
-    
-    mcv = mcv + cv(fold);
-    
+
 end
+
+mcv = mean(cv); % mean average LL
+rmcv_rand = mean(rcv_rand); % mean ratio
+rmcv_train = mean(rcv_train); % mean ratio
+
 
 end

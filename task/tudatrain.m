@@ -101,38 +101,49 @@ end
 options.S = -ones(p+q);
 options.S(1:p,p+1:end) = 1;
 
-% 1. Estimate Obs Model parameters given Gamma, unless told not to:
-options_run1=options;
-if isfield(options,'updateObs') 
-    options_run1.updateObs=1
-end 
-options_run1.updateGamma=0;
-
-[tuda,Gamma,~,vpath] = hmmmar(Z,T,options_run1);
-
-% 2. Update state time courses only, leaving fixed obs model params:
-if ~isfield(options,'updateGamma')
+% 0. In case parallel_trials is false and no Gamma was provided
+if isempty(GammaInit) && ~parallel_trials
+    options.updateObs = 1;
     options.updateGamma = 1;
+    options.updateP = 1;
+    options.plotAverageGamma = plotAverageGamma;
+    [tuda,Gamma,~,vpath] = hmmmar(Z,T,options);
+else
+    
+    % 1. With the restriction that, for each time point,
+    %   all trials have the same state (i.e. no between-trial variability),
+    %   we estimate a first approximation of the decoding models
+    options.updateObs = 1;
+    options.updateGamma = 0;
+    options.updateP = 0;
+    tuda = hmmmar(Z,T,options);
+    % 2. Estimate state time courses and transition probability matrix
+    options.updateObs = 0;
+    options.updateGamma = 1;
+    options.updateP = 1;
+    options.plotAverageGamma = plotAverageGamma;
+    options = rmfield(options,'Gamma');
+    options.hmm = tuda;
+    [~,Gamma,~,vpath] = hmmmar(Z,T,options);
+    options.plotAverageGamma = 0;
+    % 3. Final update of state distributions, leaving fixed the state time courses
+    options.updateObs = 1;
+    options.updateGamma = 0;
+    options.updateP = 0;
+    options.Gamma = Gamma;
+    options = rmfield(options,'hmm');
+    options.tuda = 1;
+    % tudamonitoring = options.tudamonitoring;
+    % if isfield(options,'behaviour')
+    %     behaviour = options.behaviour;
+    % else
+    %     behaviour = [];
+    % end
+    options.tudamonitoring = 0;
+    options.behaviour = [];
+    options.verbose = 0;
+    [tuda,~,~,~,~,~, stats.fe] = hmmmar(Z,T,options);
 end
-options.updateObs = 1; % 
-%options.Gamma = Gamma;
-options.hmm = tuda; 
-if ~isfield(options,'cyc')
-    options.cyc=2;
-end
-tudamonitoring = options.tudamonitoring;
-if isfield(options,'behaviour')
-    behaviour = options.behaviour;
-else 
-    behaviour = [];
-end
-verbose = options.verbose;
-options.tudamonitoring = 0;
-options.behaviour = [];
-options.verbose = 0;
-warning off
-[tuda,Gamma,~,~,~,~, stats.fe] = hmmmar(Z,T,options); 
-warning on
 
 
 tuda.features = features;

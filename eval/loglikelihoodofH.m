@@ -30,7 +30,7 @@ for iY=1:dimY
     vp = Y(:,iY)~=0;
     n=dimX+iY;
     % calculation broken down into component parts for ease of reference:
-    comp1 = log (logsig(hmm.psi(vp,iY)));
+    comp1 = log (log_sigmoid(hmm.psi(vp,iY)));
 
     comp2 = zeros(sum(vp),1);
     for i=1:length(hmm.state)
@@ -38,7 +38,7 @@ for iY=1:dimY
     end
     comp2 = (Y(vp,iY).*comp2 - hmm.psi(vp,iY))/2;
 
-    lambdafunc = @(xi_in) ((2*xi_in).^-1).*(logsig(xi_in)-0.5);
+    lambdafunc = @(xi_in) ((2*xi_in).^-1).*(log_sigmoid(xi_in)-0.5);
     comp3 = -(hmm.psi(vp,iY).^2);
     for i=1:length(hmm.state)
         comp3 = comp3 + sum((repmat(hmm.Gamma(vp,i),1,dimX) .* X(vp,:)) * outerWprod(hmm,i,iY,dimX) .* X(vp,:),2);

@@ -11,22 +11,25 @@ end
 
 Gammasum = sum(Gamma);
 if isfield(hmm.train,'B'), Q = size(hmm.train.B,2);
-else, Q = ndim; end
+else, Q = sum(any(hmm.train.S==1)); end
 
-threshold = max(4*length(orders)*Q+5,1);
-threshold = min(threshold,size(Gamma,1)/(4*size(Gamma,2)));
+threshold = max(4*length(orders)*Q+5,10);
 
 actstates = ones(1,K); % length = to the last no. of states (=the original K if dropstates==0)
 for k=1:K
     if Gammasum(:,k) <= threshold
         if ~hmm.train.dropstates && hmm.train.active(k)==1
-            fprintf('State %d has been switched off with %f points\n',k,Gammasum(k))
+            if hmm.train.verbose
+                fprintf('State %d has been switched off with %f points\n',k,Gammasum(k))
+            end
             hmm.train.active(k) = 0;
         end
         actstates(k) = 0;
     else
         if ~hmm.train.dropstates && hmm.train.active(k)==0
-            fprintf('State %d has been switched on with %f points\n',k,Gammasum(k))
+            if hmm.train.verbose
+                fprintf('State %d has been switched on with %f points\n',k,Gammasum(k))
+            end
             hmm.train.active(k) = 1;
         end
     end
@@ -38,7 +41,7 @@ end
 %     Q = 1;
 % end
 Q = 1; 
-if hmm.train.dropstates==1
+if hmm.train.dropstates == 1
     is_active = logical(actstates);
     Gamma = Gamma(:,is_active);
     Gamma = bsxfun(@rdivide,Gamma,sum(Gamma,2));
@@ -68,7 +71,9 @@ if hmm.train.dropstates==1
     if all(hmm.train.Pistructure==0)
        error('All states with Pistructure = true have been kicked out')
     end
-    Xi = Xi(:,is_active,is_active);
+    if ~isempty(Xi)
+        Xi = Xi(:,is_active,is_active);
+    end
     hmm.train.active = ones(1,sum(is_active));
     % Renormalize 
     for i = 1:Q

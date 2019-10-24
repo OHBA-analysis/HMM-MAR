@@ -1,13 +1,13 @@
-function [tuda,Gamma,results] = tudatrain_givenGamma(X,Y,T,Gamma,options,X_test,Y_test,T_test,Gamma_test)
-% Performs the Temporal Unconstrained Decoding Approach (TUDA), 
+function [tuda,Gamma,GammaInit,vpath,stats] = tucatrain(X,Y,T,options)
+% Performs the Temporal Unconstrained Classification Approach (TUDA), 
 % an alternative approach for decoding where we dispense with the assumption 
-% that the same decoding is active at the same time point at all trials. In
-% this case however, the state timecourse must be specified in
-% options.Gamma and will not be updated.
+% that the same decoding is active at the same time point at all trials. 
 % 
 % INPUT
-% X: Brain data, (time by regions)
-% Y: Stimulus, (time by q); q is no. of stimulus features
+% X: Brain data, (time by regions) or (time by trials by regions)
+% Y: Stimulus, (time by q); q is no. of stimulus features OR
+%              (no.trials by q), meaning that each trial has a single
+%              stimulus value
 % T: Length of series
 % options: structure with the training options - see documentation in 
 %                       https://github.com/OHBA-analysis/HMM-MAR/wiki
@@ -30,39 +30,54 @@ function [tuda,Gamma,results] = tudatrain_givenGamma(X,Y,T,Gamma,options,X_test,
 %   - R2_stddec: (training) explained variance of the standard 
 %               (temporally constrained) decoding approach (time by q by K) 
 %
-% Author: Diego Vidaurre, OHBA, University of Oxford (2017)
+% Author: Cam Higgins, OHBA, University of Oxford (2017)
 
 stats = struct();
 N = length(T); 
 
+if ~isfield(options,'classifier')
+    options.classifier='logistic'; %set as default
+end
+classifier=options.classifier;
+
+
 % Check options and put data in the right format
-[X,Y,T,options,stats.R2_pca,features] = preproc4hmm(X,Y,T,options); 
+[X,Y,T,options,stats.R2_pca,npca,features] = preproc4hmm(X,Y,T,options); 
 parallel_trials = options.parallel_trials; 
 options = rmfield(options,'parallel_trials');
 if isfield(options,'add_noise'), options = rmfield(options,'add_noise'); end
 p = size(X,2); q = size(Y,2);
  
-% init HMM, only if trials are temporally related
-% if parallel_trials && ~isfield(options,'Gamma')
-%     GammaInit = cluster_decoding(X,Y,T,options.K,'regression');
-%     options.Gamma = permute(repmat(GammaInit,[1 1 N]),[1 3 2]);
-%     options.Gamma = reshape(options.Gamma,[length(T)*size(GammaInit,1) options.K]);
-% elseif ~parallel_trials
-%     GammaInit = [];
-% else 
-%     GammaInit = options.Gamma;
-% end
-options.Gamma=Gamma;
+% init HMM, only if trials are temporally related:
+if options.sequential
+    GammaInit = zeros(T(1),options.K);
+    incs=ceil(options.K*(1:T(1))./T(1));
+    GammaInit(sub2ind(size(GammaInit), 1:T(1), incs)) = 1;
+    options.Gamma = permute(repmat(GammaInit,[1 1 N]),[1 3 2]);
+    options.Gamma = reshape(options.Gamma,[length(T)*size(GammaInit,1) options.K]);
+elseif parallel_trials && ~isfield(options,'Gamma')
+    GammaInit = cluster_decoding(X,Y,T,options.K,'regression','',...
+        options.Pstructure,options.Pistructure);
+    options.Gamma = permute(repmat(GammaInit,[1 1 N]),[1 3 2]);
+    options.Gamma = reshape(options.Gamma,[length(T)*size(GammaInit,1) options.K]);
+elseif ~parallel_trials
+    GammaInit = [];
+else 
+    GammaInit = options.Gamma;
+end
+options=rmfield(options,'sequential');
+
 % if cyc==0 there is just init and no HMM training 
-% if isfield(options,'cyc') && options.cyc == 0 
-%    if ~parallel_trials
-%       error('Nothing to do, specify options.cyc > 0') 
-%    end
-%    tuda = []; vpath = [];  
-%    Gamma = options.Gamma;
-%    stats.R2_stddec = R2_standard_dec(X,Y,T);
-%    return
-% end
+if isfield(options,'cyc') && options.cyc == 0 
+   if ~parallel_trials
+      error('Nothing to do, specify options.cyc > 0') 
+   end
+   tuda = []; vpath = [];  
+   Gamma = options.Gamma;
+   stats.R2_stddec = R2_standard_dec(X,Y,T);
+   return
+end
+
 
 % Put X and Y together
 Ttmp = T;
@@ -71,134 +86,91 @@ Z = zeros(sum(T),q+p,'single');
 for n=1:N
     t1 = (1:T(n)) + sum(T(1:n-1));
     t2 = (1:Ttmp(n)) + sum(Ttmp(1:n-1));
-    Z(t1(1:end-1),1:p) = X(t2,:);
-    Z(t1(2:end),(p+1):end) = Y(t2,:);
+    if strcmp(classifier,'logistic')
+        Z(t1(1:end-1),1:p) = X(t2,:);
+        Z(t1(2:end),(p+1):end) = Y(t2,:);
+    elseif strcmp(classifier,'LDA')
+        Z(t1(2:end),1:p) = X(t2,:);
+        Z(t1(1:end-1),(p+1):end) = Y(t2,:);
+    end
 end 
 
 % Run TUDA inference
 options.S = -ones(p+q);
-options.S(1:p,p+1:end) = 1;
+if strcmp(classifier,'logistic')
+    options.S(1:p,p+1:end) = 1;
+elseif strcmp(classifier,'LDA')
+    options.S(p+1:end,1:p) = 1;
+end
+
+%switch off parallel as not implemented:
+options.useParallel=0;
+options.decodeGamma=0;
+
 % 1. Estimate Obs Model parameters given Gamma, unless told not to:
 options_run1=options;
-options_run1.updateObs=1;
+if isfield(options,'updateObs') 
+    options_run1.updateObs=1
+end 
 options_run1.updateGamma=0;
+options_run1.decodeGamma=0;
 
 [tuda,Gamma,~,vpath] = hmmmar(Z,T,options_run1);
+options = rmfield(options,'Gamma');
 
 % 2. Update state time courses only, leaving fixed obs model params:
-% options.updateObs = 1; % 
-% options.updateGamma = 1;
-% %options.Gamma = Gamma;
-% options.hmm = tuda; 
-% options.cyc=2;
-% [tuda,Gamma,~,~,~,~, stats.fe] = hmmmar(Z,T,options); 
+if ~isfield(options,'updateGamma')
+    options.updateGamma = 1;
+end
+options.updateObs = 1; % 
+%options.Gamma = Gamma;
+options.hmm = tuda; 
+if ~isfield(options,'cyc')
+    options.cyc=4;
+end
+tudamonitoring = options.tudamonitoring;
+if isfield(options,'behaviour')
+    behaviour = options.behaviour;
+else 
+    behaviour = [];
+end
+options.tudamonitoring = 0;
+options.behaviour = [];
+options.verbose = 1;
+warning off
+[tuda,Gamma,~,~,~,~, stats.fe] = hmmmar(Z,T,options); 
+warning on
+
 tuda.features = features;
+options.tudamonitoring = tudamonitoring;
+options.behaviour = behaviour;
+%options.verbose = verbose;
 
-if nargin>5
-    %run inference on specified test set:
-%     %extract beta paramters
-%     xdim=size(X,2);ydim = size(Y,2); K=size(Gamma,2);n_test=length(T_test);
-%     for k=1:K
-%         betas(:,:,k) = tuda.state(k).W.Mu_W(1:xdim,(xdim+1):(xdim+ydim));
-%     end
-%     results.betas=betas;
-%     for t=1:size(Y_test,1)
-%         gamma_t = reshape(repelem(Gamma_test(t,:),xdim,ydim),[xdim,ydim,K]);
-%         betas_t = sum(betas.*gamma_t,3);
-%         Y_pred(t,:) = X_test(t,:)*betas_t;
-%     end
-%     results.Y_pred=Y_pred;
-%     residuals = Y_test-Y_pred;
-%     res_reshape = reshape(residuals,T_test(1),n_test,ydim);
-%     varY = squeeze(var(reshape(Y_test,T_test(1),n_test,ydim),[],2));
-%     results.var_explained = varY-squeeze(mean(res_reshape.^2,2));
-    [stats.R2_states,stats.R2] = tuda_R2(X_test,Y_test,T_test,tuda,Gamma_test);
-    stats.R2_stddec = R2_standard_dec(X_test,Y_test,T_test);
-    results.var_explained = stats.R2;
-    results.var_state = stats.R2_states;
-    results.var_stddec = stats.R2_stddec;
-end
-
-% Explained variance per state, square error &
-% Square error for the standard time point by time point regression
-% if parallel_trials
-%     [stats.R2_states,stats.R2] = tuda_R2(X_test,Y_test,T_test,tuda,Gamma_test);
-%     stats.R2_stddec = R2_standard_dec(X,Y,T-1);
-% else
-%     stats.R2_states = []; stats.R2 = []; stats.R2_stddec = [];
-% end
+tuda.train.pca = npca;
 
 end
 
-
-function [R2_states,R2_tuda] = tuda_R2(X,Y,T,tuda,Gamma)
-% training explained variance per time point per each state, for TUDA.
-% R2_states is per state, R2_tuda is for the entire model 
-N = length(T); ttrial = sum(T)/N; p = size(X,2);
-K = length(tuda.state); q = size(Y,2);
-R2_states = zeros(ttrial,q,K);
-R2_tuda = zeros(ttrial,q);
-mY = repmat(mean(Y),size(Y,1),1);
-mY = reshape(mY,[ttrial N q]);
-Y = reshape(Y,[ttrial N q]);
-e0 = permute(sum((mY - Y).^2,2),[1 3 2]);
-mat1 = ones(ttrial,q);
-mGamma = meanGamma(Gamma,T);
-for k = 1:K
-    Yhat = X * tuda.state(k).W.Mu_W(1:p,p+1:end);
-    Yhat = reshape(Yhat,[ttrial N q]);
-    e = permute(sum((Yhat - Y).^2,2),[1 3 2]);
-    R2_states(:,:,k) = mat1 - e ./ e0 ;
-    R2_tuda = R2_tuda + R2_states(:,:,k) .* repmat(mGamma(:,k),1,q); 
-end
-end
-
-
-function R2 = R2_standard_dec(X,Y,T)
-% squared error for time point by time point decoding (time by q)
-N = length(T); ttrial = sum(T)/N; p = size(X,2); q = size(Y,2);
-if p < N
-    X = reshape(X,[ttrial N p]);
-    Y = reshape(Y,[ttrial N q]);
-    sqerr = zeros(ttrial,q);
-    sqerr0 = zeros(ttrial,q);
-    
-    for t = 1:ttrial
-        Xt = permute(X(t,:,:),[2 3 1]);
-        Yt = permute(Y(t,:,:),[2 3 1]);
-        beta = (Xt' * Xt) \ (Xt' * Yt);
-        Yhat = Xt * beta; 
-%         sqerr(t) = sum(sum( (Yhat - Yt).^2 ));
-%         sqerr0(t) = sum(sum( (Yt).^2 ));
-         sqerr(t,:) = (sum( (Yhat - Yt).^2 ));
-         sqerr0(t,:) = (sum( (Yt).^2 ));
-
-    end
-    R2 = 1 - sqerr ./ sqerr0;
-else %implies prioblem is unconstrained, so perfect solution found
-    R2=NaN;
-end
-
-end
-
-
-function Gamma = cluster_decoding(X,Y,T,K,cluster_method,cluster_measure)
+function Gamma = cluster_decoding(X,Y,T,K,cluster_method,...
+    cluster_measure,Pstructure,Pistructure)
 % clustering of the time-point-by-time-point regressions, which is
 % temporally constrained unlike TUDA
 % INPUT
 % X,Y,T are as usual
 % K is the number of states 
-% cluster_method is 'regression', 'kmeans' or 'hierarchical'
+% cluster_method is 'regression', 'kmeans', or 'hierarchical' 
 % cluster_measure is 'error', 'response' or 'beta' 
+% Pstructure and Pistructure are constraints in the transitions 
+%   if these are specified, cluster_method will be set to 'greedy'
 % OUTPUT
 % Gamma: (trial time by K), containing the cluster assignments 
 
 if nargin<5, cluster_method = 'regression'; end
-if nargin>5 && strcmp(cluster_method,'regression')
+if nargin>5 && ~isempty(cluster_measure) && strcmp(cluster_method,'regression')
    warning('cluster_measure is not used when cluster_method is regression') 
 end
 if nargin<6, cluster_measure = 'error'; end
-%if nargin<7, cluster_distance = 'euclidean'; end
+if nargin<7, Pstructure = true(K,1); end
+if nargin<8, Pistructure = true(K); end
 if ~strcmp(cluster_measure,'beta') && strcmp(cluster_method,'kmeans')
     error('If kmeans is used, cluster_measure must be beta')
 end
@@ -206,14 +178,18 @@ N = length(T); p = size(X,2); q = size(Y,2); ttrial = T(1);
 X = reshape(X,[ttrial N p]);
 Y = reshape(Y,[ttrial N q]);
 if strcmp(cluster_method,'regression')
-    init_regr = 'hierarchical';
     max_cyc = 100;
-    if strcmp(init_regr,'random')
-        assig = randi(K,ttrial,1);
-    else
-        Gamma = cluster_decoding(reshape(X,[ttrial*N p]),reshape(Y,[ttrial*N q]),...
-            T,K,'hierarchical','error');
-        assig = zeros(N,1);
+    % start with no constraints
+    Gamma = cluster_decoding(reshape(X,[ttrial*N p]),reshape(Y,[ttrial*N q]),...
+        T,K,'hierarchical','error');
+    assig = zeros(ttrial,1);
+    for t=1:ttrial, assig(t) = find(Gamma(t,:)==1); end
+    j1 = assig(1);
+    if ~Pistructure(j1) % is it consistent with constraint?
+        j = find(Pistructure,1); 
+        Gamma_j = Gamma(:,j);
+        Gamma(:,j) = Gamma(:,j1);
+        Gamma(:,j1) = Gamma_j;
         for t=1:ttrial, assig(t) = find(Gamma(t,:)==1); end
     end
     assig_pr = assig;
@@ -234,12 +210,19 @@ if strcmp(cluster_method,'regression')
            e = reshape(e,[ttrial N]); 
            err(:,k) = sqrt(sum(e,2));
         end
-        for t=1:ttrial
+        err(1,~Pistructure) = Inf; 
+        [~,assig(1)] = min(err(1,:));
+        for t = 2:ttrial
+           err(t,~Pstructure(assig(t-1),:)) = Inf;
            [~,assig(t)] = min(err(t,:)); 
         end
         % terminate? 
         if all(assig_pr==assig), break; end
         assig_pr = assig;
+    end
+    for t = 1:ttrial
+        Gamma(t,:) = 0;
+        Gamma(t,assig(t)) = 1;
     end
 else
     beta = zeros(p,q,ttrial);
