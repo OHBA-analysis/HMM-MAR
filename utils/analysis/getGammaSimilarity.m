@@ -4,7 +4,7 @@ function [S,assig, gamma1] = getGammaSimilarity (gamma1, gamma2)
 % number of time points. 
 % If gamma2 is a cell, then it aggregates the similarity measures across
 % elements of gamma2 
-% S: similarity, measured as the sum of overlapping probabilities under the
+% S: similarity, measured as the sum of joint probabilities under the
 %       optimal state alignment
 % assig: optimal state aligmnent (uses munkres' algorithm)
 % gamma1: the first set of state time courses reordered to match gamma2
@@ -19,8 +19,7 @@ end
 
 gamma1_0 = gamma1; 
 
-Mmax = 0; 
-M = zeros(K,K); % minus similarities
+M = zeros(K,K); % cost
 
 for j = 1:N
     
@@ -39,18 +38,16 @@ for j = 1:N
         end
     end
     
-    Mmax = Mmax + size(g,1); 
     for k1 = 1:K
         for k2 = 1:K
-            %M(k1,k2) = sum(gamma1(:,k1) .* g(:,k2));
-            M(k1,k2) = sum(min(gamma1(:,k1), g(:,k2)));
+            M(k1,k2) = M(k1,k2) + (T - sum(min(gamma1(:,k1), g(:,k2)))) / T / N;
         end
     end
     
 end
 
-[assig,cost] = munkres(Mmax - M);
-S = (Mmax - cost) / T;
+[assig,cost] = munkres(M);
+S = K - cost;
 
 if nargout > 2
     gamma1(:,assig) = gamma1;

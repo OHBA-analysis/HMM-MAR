@@ -87,39 +87,38 @@ for k = 1:K
    
     if k == 1 && strcmp(train.covtype,'uniquediag')
         ldetWishB=0;
-        PsiWish_alphasum=0;
+        PsiWish_alphasum = 0;
         for n = 1:ndim
             if ~regressed(n), continue; end
-            ldetWishB=ldetWishB+0.5*log(hmm.Omega.Gam_rate(n));
-            PsiWish_alphasum=PsiWish_alphasum+0.5*psi(hmm.Omega.Gam_shape);
+            ldetWishB = ldetWishB+0.5*log(hmm.Omega.Gam_rate(n));
+            PsiWish_alphasum = PsiWish_alphasum+0.5*psi(hmm.Omega.Gam_shape);
         end
         C = hmm.Omega.Gam_shape ./ hmm.Omega.Gam_rate;
     elseif k == 1 && strcmp(train.covtype,'uniquefull')
-        ldetWishB=0.5*logdet(hmm.Omega.Gam_rate(regressed,regressed));
-        PsiWish_alphasum=0;
+        ldetWishB = 0.5*logdet(hmm.Omega.Gam_rate(regressed,regressed));
+        PsiWish_alphasum = 0;
         for n = 1:sum(regressed)
-            PsiWish_alphasum=PsiWish_alphasum+psi(hmm.Omega.Gam_shape/2+0.5-n/2);
+            PsiWish_alphasum = PsiWish_alphasum+psi(hmm.Omega.Gam_shape/2+0.5-n/2);
         end
         PsiWish_alphasum=PsiWish_alphasum*0.5;
         C = hmm.Omega.Gam_shape * hmm.Omega.Gam_irate;
     elseif strcmp(train.covtype,'diag')
         ldetWishB=0;
-        PsiWish_alphasum=0;
+        PsiWish_alphasum = 0;
         for n=1:ndim
             if ~regressed(n), continue; end
-            ldetWishB=ldetWishB+0.5*log(hmm.state(k).Omega.Gam_rate(n));
-            PsiWish_alphasum=PsiWish_alphasum+0.5*psi(hmm.state(k).Omega.Gam_shape);
+            ldetWishB = ldetWishB+0.5*log(hmm.state(k).Omega.Gam_rate(n));
+            PsiWish_alphasum = PsiWish_alphasum+0.5*psi(hmm.state(k).Omega.Gam_shape);
         end
         C = hmm.state(k).Omega.Gam_shape ./ hmm.state(k).Omega.Gam_rate;
     elseif strcmp(train.covtype,'full')
-        ldetWishB=0.5*logdet(hmm.state(k).Omega.Gam_rate(regressed,regressed));
-        PsiWish_alphasum=0;
+        ldetWishB = 0.5*logdet(hmm.state(k).Omega.Gam_rate(regressed,regressed));
+        PsiWish_alphasum = 0;
         for n = 1:sum(regressed)
-            PsiWish_alphasum=PsiWish_alphasum+0.5*psi(hmm.state(k).Omega.Gam_shape/2+0.5-n/2);
+            PsiWish_alphasum = PsiWish_alphasum+0.5*psi(hmm.state(k).Omega.Gam_shape/2+0.5-n/2);
         end
         C = hmm.state(k).Omega.Gam_shape * hmm.state(k).Omega.Gam_irate;
     end
-    
     if ~isfield(train,'distribution') || ~strcmp(train.distribution,'logistic')
         hmm.cache.ldetWishB{k} = ldetWishB;
         hmm.cache.PsiWish_alphasum{k} = PsiWish_alphasum;
@@ -128,26 +127,25 @@ for k = 1:K
     end
 end
 
-
 if hmm.train.useParallel==1 && N>1
     
     % to duplicate this code is really ugly but there doesn't seem to be
     % any other way - more Matlab's fault than mine
-    parfor in = 1:N
+    parfor j = 1:N
         xit = [];
         Bt = [];  
-        t0 = sum(T(1:in-1)); s0 = t0 - order*(in-1);
+        t0 = sum(T(1:j-1)); s0 = t0 - order*(j-1);
         if order>0
-            R = [zeros(order,size(residuals,2));  residuals(s0+1:s0+T(in)-order,:)];
+            R = [zeros(order,size(residuals,2));  residuals(s0+1:s0+T(j)-order,:)];
             if isfield(data,'C')
-                C = [zeros(order,K); data.C(s0+1:s0+T(in)-order,:)];
+                C = [zeros(order,K); data.C(s0+1:s0+T(j)-order,:)];
             else
                 C = NaN(size(R,1),K);
             end
         else
-            R = residuals(s0+1:s0+T(in)-order,:);
+            R = residuals(s0+1:s0+T(j)-order,:);
             if isfield(data,'C')
-                C = data.C(s0+1:s0+T(in)-order,:);
+                C = data.C(s0+1:s0+T(j)-order,:);
             else
                 C = NaN(size(R,1),K);
             end
@@ -155,16 +153,16 @@ if hmm.train.useParallel==1 && N>1
         % we jump over the fixed parts of the chain
         t = order+1;
         xi = []; gamma = []; gammasum = zeros(1,K); ll = 0;
-        while t<=T(in)
-            if isnan(C(t,1)), no_c = find(~isnan(C(t:T(in),1)));
-            else no_c = find(isnan(C(t:T(in),1)));
+        while t <= T(j)
+            if isnan(C(t,1)), no_c = find(~isnan(C(t:T(j),1)));
+            else no_c = find(isnan(C(t:T(j),1)));
             end
             if t>order+1
-                if isempty(no_c), slicer = (t-1):T(in); %slice = (t-order-1):T(in);
+                if isempty(no_c), slicer = (t-1):T(j); %slice = (t-order-1):T(in);
                 else slicer = (t-1):(no_c(1)+t-2); %slice = (t-order-1):(no_c(1)+t-2);
                 end
             else
-                if isempty(no_c), slicer = t:T(in); %slice = (t-order):T(in);
+                if isempty(no_c), slicer = t:T(j); %slice = (t-order):T(in);
                 else slicer = t:(no_c(1)+t-2); %slice = (t-order):(no_c(1)+t-2);
                 end
             end
@@ -194,34 +192,34 @@ if hmm.train.useParallel==1 && N>1
             if n_argout>=4 
                 ll = ll + sum(log(sum(Bt(order+1:end,:) .* gammat, 2))); 
             end
-            if n_argout>=5, B{in} = [B{in}; Bt(order+1:end,:) ]; end
+            if n_argout>=5, B{j} = [B{j}; Bt(order+1:end,:) ]; end
             if isempty(no_c), break;
             else, t = no_c(1)+t-1;
             end
         end
-        Gamma{in} = gamma;
-        Gammasum(in,:) = gammasum;
-        if n_argout>=4, LL(in) = ll; end
+        Gamma{j} = gamma;
+        Gammasum(j,:) = gammasum;
+        if n_argout>=4, LL(j) = ll; end
         %Xi=cat(1,Xi,reshape(xi,T(in)-order-1,K,K));
-        if ~mixture_model, Xi{in} = reshape(xi,T(in)-order-1,K,K); end
+        if ~mixture_model, Xi{j} = reshape(xi,T(j)-order-1,K,K); end
     end
     
 else
     
-    for in = 1:N % this is exactly the same than the code above but changing parfor by for
+    for j = 1:N % this is exactly the same than the code above but changing parfor by for
         Bt = [];  
-        t0 = sum(T(1:in-1)); s0 = t0 - order*(in-1);
+        t0 = sum(T(1:j-1)); s0 = t0 - order*(j-1);
         if order>0
-            R = [zeros(order,size(residuals,2)); residuals(s0+1:s0+T(in)-order,:)];
+            R = [zeros(order,size(residuals,2)); residuals(s0+1:s0+T(j)-order,:)];
             if isfield(data,'C')
-                C = [zeros(order,K); data.C(s0+1:s0+T(in)-order,:)];
+                C = [zeros(order,K); data.C(s0+1:s0+T(j)-order,:)];
             else
                 C = NaN(size(R,1),K);
             end
         else
-            R = residuals(s0+1:s0+T(in)-order,:);
+            R = residuals(s0+1:s0+T(j)-order,:);
             if isfield(data,'C')
-                C = data.C(s0+1:s0+T(in)-order,:);
+                C = data.C(s0+1:s0+T(j)-order,:);
             else
                 C = NaN(size(R,1),K);
             end
@@ -229,16 +227,16 @@ else
         % we jump over the fixed parts of the chain
         t = order+1;
         xi = []; gamma = []; gammasum = zeros(1,K); ll = 0;
-        while t <= T(in)
-            if isnan(C(t,1)), no_c = find(~isnan(C(t:T(in),1)));
-            else no_c = find(isnan(C(t:T(in),1)));
+        while t <= T(j)
+            if isnan(C(t,1)), no_c = find(~isnan(C(t:T(j),1)));
+            else no_c = find(isnan(C(t:T(j),1)));
             end
             if t > order+1
-                if isempty(no_c), slicer = (t-1):T(in); %slice = (t-order-1):T(in);
+                if isempty(no_c), slicer = (t-1):T(j); %slice = (t-order-1):T(in);
                 else slicer = (t-1):(no_c(1)+t-2); %slice = (t-order-1):(no_c(1)+t-2);
                 end
             else
-                if isempty(no_c), slicer = t:T(in); %slice = (t-order):T(in);
+                if isempty(no_c), slicer = t:T(j); %slice = (t-order):T(in);
                 else slicer = t:(no_c(1)+t-2); %slice = (t-order):(no_c(1)+t-2);
                 end
             end
@@ -271,16 +269,16 @@ else
             if nargout>=4 
                 ll = ll + sum(log(sum(Bt(order+1:end,:) .* gammat, 2)));
             end
-            if nargout>=5, B{in} = [B{in}; Bt(order+1:end,:) ]; end
+            if nargout>=5, B{j} = [B{j}; Bt(order+1:end,:) ]; end
             if isempty(no_c), break;
             else t = no_c(1)+t-1;
             end
         end
-        Gamma{in} = gamma;
-        Gammasum(in,:) = gammasum;
-        if nargout>=4, LL(in) = ll; end
+        Gamma{j} = gamma;
+        Gammasum(j,:) = gammasum;
+        if nargout>=4, LL(j) = ll; end
         %Xi=cat(1,Xi,reshape(xi,T(in)-order-1,K,K));
-        if ~mixture_model, Xi{in} = reshape(xi,T(in)-order-1,K,K); end
+        if ~mixture_model, Xi{j} = reshape(xi,T(j)-order-1,K,K); end
     end
 end
 
@@ -347,6 +345,7 @@ if ~isfield(hmm.train,'id_mixture') && hmm.train.id_mixture
     Gamma = id_Gamma_inference(L,Pi,order);
     return
 end
+
 
 L(L<realmin) = realmin;
 

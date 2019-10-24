@@ -19,7 +19,7 @@ function [C,hmm] = hmmtestretest(data,T,options)
 %
 % OUTPUT
 % C      (subjects by runs by runs) matrix of state time courses
-%           agreements, for each subject, and for each pair of runs
+%           "agreements", for each subject, and for each pair of runs
 % hmm    (K by 1) cell of hmm structures
 %
 % Author: Diego Vidaurre, OHBA, University of Oxford (2019)
@@ -161,14 +161,14 @@ for irun = 2:nrep
 end
 
 % compute final statistic
-C = rand(N,nrep,nrep);
+C = zeros(N,nrep,nrep);
 for j = 1:N 
    ind = (1:T(j)) + sum(T(1:j-1));
    C(j,:,:) = eye(nrep);
    for irun = 1:nrep-1
        for irun_2 = irun+1:nrep
            for k = 1:K
-               C(j,irun,irun_2) = C(j,irun,irun_2) + sum(Gamma{irun}(ind,k).*Gamma{irun_2}(ind,k)) / T(j);
+               C(j,irun,irun_2) = C(j,irun,irun_2) +  sum(min(Gamma{irun}(ind,k), Gamma{irun_2}(ind,k)))  / T(j);
            end
            C(j,irun_2,irun) = C(j,irun,irun_2);
        end
