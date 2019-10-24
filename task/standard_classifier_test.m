@@ -117,7 +117,7 @@ if strcmp(classifier,'logistic')
     end
     Y_pred = reshape(Y_pred,[ttrial*N,q,L]);
     for iL=1:L
-            predictions_soft(:,:,iL)=logsig(Y_pred(:,:,iL));
+            predictions_soft(:,:,iL)=log_sigmoid(Y_pred(:,:,iL));
             predictions_hard(:,:,iL)=hardmax(Y_pred(:,:,iL));
     end
     if options.generalisationplot    
@@ -155,7 +155,7 @@ elseif strcmp(classifier,'SVM')
     end
 elseif strcmp(classifier,'LDA')
     X = reshape(X,[ttrial*N,p]);
-    [predictions_hard, predictions_soft] = LDApredict(model,repmat(eye(ttrial),N,1),X);
+    [predictions_hard, predictions_soft] = LDAPredict(model,repmat(eye(ttrial),N,1),X);
 end
 
 %and compute accuracy metrics using hard classification output:

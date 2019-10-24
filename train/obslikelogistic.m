@@ -89,9 +89,9 @@ for iY =validdimensions
 %     end
     
     %first component constant over different states k:
-    logsigpsi=log(logsig(psi));
+    logsigpsi=log(log_sigmoid(psi));
     % implement update equations for logistic regression:
-    lambdafunc = @(psi_t) ((2*psi_t).^-1).*(logsig(psi_t)-0.5);
+    lambdafunc = @(psi_t) ((2*psi_t).^-1).*(log_sigmoid(psi_t)-0.5);
     lambdasig = lambdafunc(psi); 
 
     for k=1:K

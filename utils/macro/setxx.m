@@ -44,7 +44,7 @@ if exist('Gamma','var') && ~isempty(Gamma)
      else
          n = size(XX,2)-hmm.train.logisticYdim;
          hmm = updatePsi(hmm,Gamma,XX(:,1:n),residuals);
-         lambdafunc = @(psi_t) ((2*psi_t).^-1).*(logsig(psi_t)-0.5);
+         lambdafunc = @(psi_t) ((2*psi_t).^-1).*(log_sigmoid(psi_t)-0.5);
          for k=1:K
              for iY=1:hmm.train.logisticYdim
                  
