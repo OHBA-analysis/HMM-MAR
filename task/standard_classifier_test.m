@@ -117,7 +117,7 @@ if strcmp(classifier,'logistic')
     end
     Y_pred = reshape(Y_pred,[ttrial*N,q,L]);
     for iL=1:L
-            predictions_soft(:,:,iL)=logsig(Y_pred(:,:,iL));
+            predictions_soft(:,:,iL)=log_sigmoid(Y_pred(:,:,iL));
             predictions_hard(:,:,iL)=hardmax(Y_pred(:,:,iL));
     end
     if options.generalisationplot    

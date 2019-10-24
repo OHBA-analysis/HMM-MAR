@@ -17,9 +17,9 @@ end
 inds=sub2ind([K,K],a,b);
 inds2=sub2ind([K,K],b,a);
 output_scores = zeros(T,nTr,K,K);
-output_scores(:,:,inds) = logsig(preds_N);
-output_scores(:,:,inds2) = logsig(-preds_N);
-%output_scores = logsig(output_scores);
+output_scores(:,:,inds) = log_sigmoid(preds_N);
+output_scores(:,:,inds2) = log_sigmoid(-preds_N);
+%output_scores = log_sigmoid(output_scores);
 output_scores(:,:,find(eye(K))) = 1;
 
 classLikelihood = squeeze(prod(output_scores,4));
@@ -30,7 +30,7 @@ preds_K = classLikelihood ./ repmat(sum(classLikelihood,3),1,1,K);
 %         
 %         
 %         output_scores = output_scores - output_scores';
-%         output_scores = logsig(output_scores);
+%         output_scores = log_sigmoid(output_scores);
 %         preds_K(t,iTr
 %     end
 % end
