@@ -61,7 +61,7 @@ end
 % S = hmm.train.S==1; 
 % regressed = sum(S,1)>0;
 %ltpi = sum(regressed)/2 * log(2*pi);
-L = zeros(T,K);  
+
 
 %separate X and Y:
 Xdim = size(XX,2)-hmm.train.logisticYdim;
@@ -78,7 +78,9 @@ Sind = hmm.train.S==1;
 
 %for Y with >2 dimensions, change here!!!
 %n=Xdim+hmm.train.logisticYdim;
-for iY = 1:Ydim
+validdimensions = find(~any(Y==0));
+L = zeros(T,K,Ydim);  
+for iY =validdimensions
     n=Xdim+iY;
     % determine psi:
     for k=1:K

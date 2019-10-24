@@ -24,8 +24,8 @@ for in=1:N
 end
 
 % correct to be on +1,-1 range if not already:
-if any(residuals==0)
-    ME=MException('getresidualslogistic:Ybad','Y in wrong format; should be plus/minus one, not zero');
+if any(~(residuals(:)==1 | residuals(:)==-1 | residuals(:)==0))
+    ME=MException('getresidualslogistic:Ybad','Y in wrong format; should be plus/minus one, or zero for multinomial options');
     throw(ME);
 end
 
