@@ -128,7 +128,7 @@ for k = 1:K
         W_sig0 = diag(hmm.state(k).alpha.Gam_shape ./ hmm.state(k).alpha.Gam_rate(1:Xdim));
         
         % implement update equations for logistic regression:
-        lambdafunc = @(psi_t) ((2*psi_t).^-1).*(log_sigmoid(psi_t)-0.5);
+        lambdafunc = @(psi_t) ((2*psi_t).^-1).*(logsig(psi_t)-0.5);
         
         %select functioning channels:
         for n=1:ndim

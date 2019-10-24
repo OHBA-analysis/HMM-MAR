@@ -218,7 +218,7 @@ for icv = 1:NCV
 end
 if strcmp(options.distribution,'logistic')
     if length(unique(responses))==2 % denotes binary logistic regression
-        Ypred = log_sigmoid(Ypred);
+        Ypred = logsig(Ypred);
     else %multivariate logistic regression
         Ypred = multinomLogRegPred(Ypred);
     end
