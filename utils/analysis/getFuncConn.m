@@ -22,14 +22,6 @@ else
     ndim = length(hmm.state(k).Omega.Gam_rate);
     covmat = hmm.state(k).Omega.Gam_rate / (hmm.state(k).Omega.Gam_shape-ndim-1);
 end
-try
-    corrmat = corrcov(covmat);
-catch
-    corrmat = [];
-    warning(['The covariance matrix of this state is not well-defined, ' ...
-        'so the correlation matrix was not computed (second output argument is empty).' ... 
-        'Most probably, the inference did not assign enough time points to this state.'])
-end
 
 if isfield(hmm.train,'embeddedlags') && length(hmm.train.embeddedlags) > 1 && verbose
     disp(['Because you are using options.embedded lags, the resulting matrices will ' ...
@@ -38,10 +30,8 @@ end
 
 if isfield(hmm.train,'A')
     A = hmm.train.A;
-    if ~isempty(corrmat)
-        corrmat = A * corrmat * A';
-    end
     covmat = A * covmat * A';
 end
+corrmat = corrcov(covmat,0);
 
 end
