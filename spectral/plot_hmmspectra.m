@@ -23,8 +23,6 @@ end
 K = length(spectra.state);
 d = size(spectra.state(1).psd,2);
 
-if d>10, warning('This is probably too many channels'); end
-
 col = zeros(K,3);
 if nargin < 5 || isempty(colmap)
     cm = colormap;
@@ -48,14 +46,18 @@ if nargin < 6  || isempty(channels)
     channels = 1:d;
 end
 
+if length(channels)>10, warning('This is probably too many channels'); end
+
+
 ci_color = [0.8 0.8 0.8]; % some grey.
 
 for i = channels
     for j = channels % one panel per source-target ch combination
         
-        subplot(length(channels),length(channels),(i-1)*length(channels) + j)
+        ii = find(i==channels); jj = find(j==channels);
+        subplot(length(channels),length(channels),(ii-1)*length(channels) + jj)
         
-        if i == j   % on diagonal, show PSDs
+        if ii == jj   % on diagonal, show PSDs
             
             try
                 if err
@@ -131,9 +133,9 @@ for i = channels
         
         %if i == 1 && j == 1, ylabel('Power'); end
         
-        if i == 1, title(['Parcel ' num2str(j)],'FontSize',10); end
-        if i == length(channels), xlabel('Frequency (Hz)'); end
-        if j == 1, ylabel(['Parcel ' num2str(i)],'FontSize',10,'FontWeight','bold'); end
+        if ii == 1, title(['Channel ' num2str(j)],'FontSize',10); end
+        if ii == length(channels), xlabel('Frequency (Hz)'); end
+        if jj == 1, ylabel(['Channel ' num2str(i)],'FontSize',10,'FontWeight','bold'); end
     end
     
 end
