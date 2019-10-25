@@ -88,6 +88,11 @@ else
         error('model.classifier can only take values "logistic", "SVM" or "LDA"');
     end
 end
+if strcmp(classifier,'logistic')
+    Q_star = size(model.betas,3); %check if multinomial regression
+else
+    Q_star=q;
+end
 if ~isfield(options,'generalisationplot'),options.generalisationplot=false;end
 if isfield(model,'lambda')
     L=length(model.lambda);
@@ -102,29 +107,49 @@ halfbin = floor(binsize/2);
 
 if strcmp(classifier,'logistic')
     Y(Y==-1)=0;
-    Y_pred = zeros(ttrial,N,q,L);
-    Y_pred_genplot=zeros(ttrial,ttrial,N,q,L);
+    Y_pred = zeros(ttrial,N,Q_star,L);
+    Y_pred_genplot=zeros(ttrial,ttrial,N,Q_star,L);
     for iLambda=1:L
         for t=1:ttrial
             Y_pred(t,:,:,iLambda)=squeeze(X(t,:,:))*squeeze(model.betas(t,:,:,iLambda)) + repmat(model.intercepts(t,:,iLambda),N,1);
             if options.generalisationplot
                 for t2=1:ttrial
                     Y_pred_genplot(t,t2,:,:,iLambda)= ...
-                        squeeze(X(t2,:,:))*squeeze(model.betas(t,:,:,iLambda)) + repmat(model.intercepts(t,:,iLambda),nTr,1);
+                        squeeze(X(t2,:,:))*squeeze(model.betas(t,:,:,iLambda)) + repmat(model.intercepts(t,:,iLambda),N,1);
                 end
             end
         end
     end
-    Y_pred = reshape(Y_pred,[ttrial*N,q,L]);
+    
     for iL=1:L
+        if Q_star~=q
+            pred_temp=multinomLogRegPred(Y_pred(:,:,:,iL));
+            predictions_soft(:,:,iL)=reshape(pred_temp,[ttrial*N,q]);
+            predictions_hard(:,:,iL)=hardmax(predictions_soft(:,:,iL));
+        else
+            Y_pred = reshape(Y_pred,[ttrial*N,q,L]);
             predictions_soft(:,:,iL)=log_sigmoid(Y_pred(:,:,iL));
             predictions_hard(:,:,iL)=hardmax(Y_pred(:,:,iL));
+        end
     end
     if options.generalisationplot    
-        Y_pred_genplot = reshape(Y_pred_genplot,[ttrial, ttrial*N,q,L]);
-        for iL=1:iL;for t=1:ttrial
-                Y_pred_genplot(t,:,:,iL) = hardmax(squeeze(Y_pred_genplot(t,:,:,iL)));
+        if Q_star==q
+            Y_pred_genplot = reshape(Y_pred_genplot,[ttrial, ttrial*N,Q_star,L]);
+            for iL=1:iL
+                for t=1:ttrial
+                    Y_pred_genplot(t,:,:,iL) = hardmax(squeeze(Y_pred_genplot(t,:,:,iL)));
+                end
             end
+        else %multinomial:
+            Y_pred_genplot_q = zeros([ttrial, ttrial,N,q,L]);
+            for iL=1:iL;
+                for t=1:ttrial
+                    pred_temp = multinomLogRegPred(squeeze(Y_pred_genplot(t,:,:,:,iL)));
+                    pred_temp = reshape(pred_temp,[ttrial*N,q]);
+                    Y_pred_genplot_q(t,:,:,:,iL) = reshape(hardmax(pred_temp),[ttrial,N,q]);
+                end
+            end
+            Y_pred_genplot=Y_pred_genplot_q;
         end
     end
 elseif strcmp(classifier,'SVM')
@@ -164,6 +189,13 @@ predictions_hard=logical(predictions_hard);
 true_preds = all(~xor(predictions_hard,Y),2);
 acc=mean(true_preds);
 acc_t = mean(reshape(true_preds,[ttrial,N]),2);
+if options.generalisationplot
+    Y_true_genplot = repmat(permute(Ycopy,[4,1,2,3]),[ttrial,1,1,1]);
+    accplot = all(logical(Y_true_genplot) & logical(Y_pred_genplot),4);
+    genplot = squeeze(mean(accplot,3));
+else
+    genplot=[];
+end
 end
 
 function preds_hard = hardmax(Y_pred)

@@ -109,7 +109,9 @@ halfbin = floor(binsize/2);
 %reshape to 3d vectors:
 if strcmp(classifier,'logistic')
     % alternative: model = synchronousLogReg(X,Y,T,options)
-    Y(Y==-1)=0;
+    if length(unique(Ystar))<=2
+        Y(Y==-1)=0;
+    end
     for t=1:ttrial
         if options.verbose
             if strcmp(regtype,'L1')
@@ -124,12 +126,19 @@ if strcmp(classifier,'logistic')
             betas=zeros(p,Q_star);
             intercepts=zeros(1,Q_star);
             for c=1:q
+                if length(unique(Ystar))>2
+                    vp=Y(t,:,c)~=0;
+                    Ysample = Y(t,vp,c)'==1;
+                else
+                    vp=true(1,N);
+                    Ysample = Y(t,vp,c)';
+                end
                 if strcmp(regtype,'L1')
-                    [betas(:,c),fitInfo]=lassoglm(squeeze(X(t,:,:)),Y(t,:,c)', ...
+                    [betas(:,c),fitInfo]=lassoglm(squeeze(X(t,vp,:)),Ysample, ...
                         'binomial','Alpha', 1, 'Lambda', lambda(ilambda),'Standardize', false);
                     intercepts(c) = fitInfo.Intercept;
                 elseif strcmp(regtype,'L2')
-                     [betas(:,c),fitInfo]=lassoglm(squeeze(X(t,:,:)),Y(t,:,c)', ...
+                     [betas(:,c),fitInfo]=lassoglm(squeeze(X(t,vp,:)),Ysample, ...
                             'binomial','Alpha', 0.00001, 'Lambda', lambda(ilambda),'Standardize', false);
                     intercepts(c) = fitInfo.Intercept;
                 end

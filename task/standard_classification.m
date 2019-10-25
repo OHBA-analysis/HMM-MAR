@@ -148,11 +148,18 @@ for icv = 1:NCV
     Xtest = reshape(X(:,c.test{icv},:),[ttrial*Nte p]);
     Ytest = reshape(Ycopy(:,c.test{icv},:),[ttrial*Nte q]);
     Ttest = T(c.test{icv});
-    cv_acc(:,icv) = standard_classifier_test(model,Xtest,Ytest,Ttest,options);
+    [cv_acc(:,icv),~,~,genplot{icv}] = standard_classifier_test(model,Xtest,Ytest,Ttest,options);
     
     fprintf(['CV iteration: ' num2str(icv),' of ',int2str(NCV),'\n']); 
     
 end
 acc=mean(cv_acc(:));
 cv_acc=mean(cv_acc,2);
+end
+
+function Y_out = multinomToBinary(Y_in)
+    Y_out=zeros(length(Y_in),length(unique(Y_in)));
+    for i=1:length(Y_in)
+        Y_out(i,Y_in(i))=1;
+    end
 end
