@@ -168,6 +168,8 @@ else % state dependent
                 end
             end
             
+            hmm.state(k).Omega.Gam_shape = hmm.state(k).prior.Omega.Gam_shape + Tfactor * Gammasum(k);
+            
             if lowrank > 0
                 [V,D] = svd(e);
                 factor = (sum(diag(D)) / sum(diag(D(1:lowrank,1:lowrank))));
@@ -181,27 +183,15 @@ else % state dependent
                     Tfactor * (e + swx2(regressed,regressed));
                 hmm.state(k).Omega.Gam_irate(regressed,regressed) = inv(hmm.state(k).Omega.Gam_rate(regressed,regressed));
             end
-            hmm.state(k).Omega.Gam_shape = hmm.state(k).prior.Omega.Gam_shape + Tfactor * Gammasum(k);
             
-            if train.FC > 0
-                if train.FC==1
-                    C = hmm.state(k).Omega.Gam_rate(regressed,regressed) / hmm.state(k).Omega.Gam_shape; 
-                    C = hmm.train.A' * corrcov(hmm.train.A * C * hmm.train.A',1) * hmm.train.A;
-                else % ==2 
-                    C = corrcov(hmm.state(k).Omega.Gam_rate(regressed,regressed) / hmm.state(k).Omega.Gam_shape, 1);
-                end
-                if lowrank > 0
-                    [V,D] = svd(C);
-                    svd_factor = sum(diag(D)) / sum(diag(D(1:lowrank,1:lowrank)));
-                    D(1:lowrank,1:lowrank) = diag(1 ./ diag(D(1:lowrank,1:lowrank))); % pseudoinverse
-                    iC = V(:,1:lowrank) * D(1:lowrank,1:lowrank) * V(:,1:lowrank)';
-                else
-                    iC = inv(C);
-                end
+            if train.FC
+                C = hmm.state(k).Omega.Gam_rate(regressed,regressed) / hmm.state(k).Omega.Gam_shape;
+                C = hmm.train.A' * corrcov(hmm.train.A * C * hmm.train.A',1) * hmm.train.A;
+                iC = hmm.train.A' * ( (corrcov(hmm.train.A * C * hmm.train.A',1)+1e-2*eye(size(hmm.train.A,1))) \ hmm.train.A);
                 hmm.state(k).Omega.Gam_rate(regressed,regressed) = C * hmm.state(k).Omega.Gam_shape;
                 hmm.state(k).Omega.Gam_irate(regressed,regressed) = iC / hmm.state(k).Omega.Gam_shape;
             end
-                       
+            
             % ensuring symmetry
             hmm.state(k).Omega.Gam_rate(regressed,regressed) = (hmm.state(k).Omega.Gam_rate(regressed,regressed) + ...
                 hmm.state(k).Omega.Gam_rate(regressed,regressed)') / 2; 

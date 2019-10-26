@@ -56,6 +56,10 @@ end
 if options.FC && ~strcmpi(options.covtype,'full')
    error('If options.FC, then options.covtype must be ''full''') 
 end
+if options.FC && options.lowrank 
+    error('FC and lowrank are not compatible')
+end
+     
 % display options
 if ~isfield(options,'plotAverageGamma'), options.plotAverageGamma = 0; end
 
