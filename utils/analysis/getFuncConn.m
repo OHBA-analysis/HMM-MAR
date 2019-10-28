@@ -1,5 +1,5 @@
-function [covmat,corrmat] = getFuncConn(hmm,k,verbose)
-% Get the covariance and correlation matrices for state k, 
+function [covmat,corrmat,icovmat] = getFuncConn(hmm,k,verbose)
+% Get the covariance, correlation and precision matrices for state k, 
 %   from the estimated model hmm
 % If order==0 (Gaussian distribution), these purely represents functional
 %   connectivity
@@ -18,9 +18,11 @@ end
 is_diagonal = size(hmm.state(k).Omega.Gam_rate,1) == 1;
 if is_diagonal
     covmat = diag( hmm.state(k).Omega.Gam_rate / (hmm.state(k).Omega.Gam_shape-1) );
+    icovmat = diag( hmm.state(k).Omega.Gam_irate * (hmm.state(k).Omega.Gam_shape-1) );
 else
     ndim = length(hmm.state(k).Omega.Gam_rate);
     covmat = hmm.state(k).Omega.Gam_rate / (hmm.state(k).Omega.Gam_shape-ndim-1);
+    icovmat = hmm.state(k).Omega.Gam_irate * (hmm.state(k).Omega.Gam_shape-ndim-1);
 end
 
 if isfield(hmm.train,'embeddedlags') && length(hmm.train.embeddedlags) > 1 && verbose
@@ -31,6 +33,7 @@ end
 if isfield(hmm.train,'A')
     A = hmm.train.A;
     covmat = A * covmat * A';
+    icovmat = A * icovmat * A';
 end
 corrmat = corrcov(covmat,0);
 
