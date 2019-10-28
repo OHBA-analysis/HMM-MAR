@@ -127,13 +127,6 @@ if length(options.pca) > 1 || (options.pca > 0 && options.pca ~= 1)
 else
     options.ndim = size(data.X,2);
 end
-% Rank reduction
-if options.rank > 0
-    [options.A,data.X] = highdim_pca(data.X,T,options.rank,0,0,0);
-    data.X =  data.X * options.A';
-    data.X =  data.X + 1e-2 * randn(size(data.X)); % add some noise to avoid ill-conditioning
-    options.rank = 0;
-end
 % Downsampling
 if options.downsample > 0
     [data,T] = downsampledata(data,T,options.downsample,options.Fs);

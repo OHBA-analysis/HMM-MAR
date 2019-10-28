@@ -32,7 +32,6 @@ if ~isfield(options,'embeddedlags') || isempty(options.embeddedlags)
 end
 if ~isfield(options,'pca'), options.pca = 0; end
 if ~isfield(options,'pca_spatial'), options.pca_spatial = 0; end
-if ~isfield(options,'rank'), options.rank = 0; end
 if ~isfield(options,'lowrank'), options.lowrank = 0; end
 if ~isfield(options,'varimax'), options.varimax = 0; end
 if ~isfield(options,'FC'), options.FC = 0; end
@@ -248,9 +247,6 @@ if options.leida
    if length(options.embeddedlags) > 1
        error('Option leida and embeddedlags are not compatible')
    end
-end
-if ~(length(options.pca)==1 && options.pca == 0) && options.rank > 0
-   error('Options pca and rank are not compatible') 
 end
 
 if iscell(data)
