@@ -169,15 +169,23 @@ for k = 1:K
              psiupdate = sum(((X .* repmat(Gamma(:,k),1,size(X,2))) * WWupdate).*X , 2);
              hmm.psi = sqrt(hmm.psi.^2+psiupdate);
         end
-    elseif strcmp(train.covtype,'poisson')
+    elseif strcmp(train.distribution,'poisson')
         % unsupervised Poisson model:
-        a0=1;b0=1; %prior terms
+        a0=hmm.state(k).prior.alpha.Gam_shape;
+        b0=hmm.state(k).prior.alpha.Gam_rate; %prior terms
         X=residuals;
         hmm.state(k).W.W_shape = a0 + sum(X .* repmat(Gamma(:,k),1,size(X,2)));
         hmm.state(k).W.W_rate = b0 + sum(Gamma(:,k));
-        
         hmm.state(k).W.W_mean = hmm.state(k).W.W_shape./hmm.state(k).W.W_rate;
-        
+    elseif strcmp(train.distribution,'binomial')
+        % unsupervised Binomial model:
+        a0=hmm.state(k).prior.alpha.a;
+        b0=hmm.state(k).prior.alpha.b; %prior terms
+        X=logical(residuals);
+        GamTemp = repmat(Gamma(:,k),1,size(X,2));
+        hmm.state(k).W.a = a0 + sum(GamTemp.*X);
+        hmm.state(k).W.b = b0 + sum(GamTemp.*(~X));
+        hmm.state(k).W.W_mean = hmm.state(k).W.a ./ (hmm.state(k).W.a+hmm.state(k).W.b);
     else % full or unique full - this only works if all(S(:)==1); any(S(:)~=1) is just not yet implemented 
         if pcapred
             mlW = (( XXGXX{k} \ XX') .* repmat(Gamma(:,k)',(~train.zeromean)+M,1) * residuals)';

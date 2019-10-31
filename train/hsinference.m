@@ -335,9 +335,11 @@ P = hmm.P; Pi = hmm.Pi;
 try
     if ~isfield(hmm.train,'distribution') || strcmp(hmm.train.distribution,'Gaussian')
         L = obslike([],hmm,residuals,XX,hmm.cache);
-    elseif strcmp(hmm.train.covtype,'poisson')
+    elseif strcmp(hmm.train.distribution ,'binomial')
+        L = obslikebinomial(residuals,hmm);
+    elseif strcmp(hmm.train.distribution ,'poisson')
         L = obslikepoisson(residuals,hmm);
-    elseif strcmp(hmm.train.covtype,'logistic')
+    elseif strcmp(hmm.train.distribution ,'logistic')
         L = obslikelogistic([],hmm,residuals,XX,slicepoints);
     end
 catch

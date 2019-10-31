@@ -154,7 +154,13 @@ if ~isfield(options,'tuda'), options.tuda = 0; end
 if options.tudamonitoring && stochastic_learning
    error('Stochastic learning is not currently compatible with TUDA monitoring options') 
 end
-if ~isfield(options,'distribution'),options.distribution='Gaussian';end
+if ~isfield(options,'distribution'),options.distribution='Gaussian';
+elseif ~strcmp(options.distribution,'Gaussian')
+    options.covtype=''; %to avoid later errors
+    if ~strcmp(options.distribution,{'logistic','poisson','binomial'})
+        error('options.distribution takes only values Gaussian, logistic, poisson or binomial');
+    end
+end
 
 % Trans prob mat related options
 if ~isfield(options,'grouping') || isempty(options.grouping)  

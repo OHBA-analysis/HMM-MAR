@@ -200,7 +200,9 @@ else
     
     % Standardise data and control for ackward trials
     valid_dims = computeValidDimensions(data,options.S);
+    if ~isfield(options,'distribution') || any(strcmp(options.distribution,{'Gaussian','logistic'}))
     data = standardisedata(data,T,options.standardise,valid_dims); 
+    end
     
     % Filtering
     if ~isempty(options.filter)

@@ -47,52 +47,57 @@ for k = 1:hmm.K
         defstateprior(k)=struct('sigma',[],'alpha',[],'Omega',[],'Mean',[]);
     elseif (strcmp(train.covtype,'uniquediag') || strcmp(train.covtype,'uniquefull')) && pcapred
         defstateprior(k)=struct('beta',[],'Mean',[]);
-    elseif isfield(train,'distribution') && strcmp(train.distribution,'logistic')
-        defstateprior(k)=struct('sigma',[],'alpha',[]);
+    elseif isfield(train,'distribution') && any(strcmp(train.distribution,{'logistic','poisson','binomial'}))
+        defstateprior(k)=struct('alpha',[]);
     else
         defstateprior(k)=struct('sigma',[],'alpha',[],'Mean',[]);
     end
     
-    if pcapred
-        defstateprior(k).beta = struct('Gam_shape',[],'Gam_rate',[]);
-        defstateprior(k).beta.Gam_shape = 0.1*ones(M,ndim); %+ 0.05*eye(ndim);
-        defstateprior(k).beta.Gam_rate = 0.1*ones(M,ndim);%  + 0.05*eye(ndim);
-    else
-        if ~train.uniqueAR && isempty(train.prior)
-            defstateprior(k).sigma = struct('Gam_shape',[],'Gam_rate',[]);
-            defstateprior(k).sigma.Gam_shape = 0.1*ones(Q,ndim); %+ 0.05*eye(ndim);
-            defstateprior(k).sigma.Gam_rate = 0.1*ones(Q,ndim);%  + 0.05*eye(ndim);
+    if ~isfield(train,'distribution') || strcmp(train.distribution,'Gaussian')
+        if pcapred 
+            defstateprior(k).beta = struct('Gam_shape',[],'Gam_rate',[]);
+            defstateprior(k).beta.Gam_shape = 0.1*ones(M,ndim); %+ 0.05*eye(ndim);
+            defstateprior(k).beta.Gam_rate = 0.1*ones(M,ndim);%  + 0.05*eye(ndim);
+        else
+            if ~train.uniqueAR && isempty(train.prior) && [~isfield(train,'distribution') || strcmp(train.distribution,'Gaussian')]
+                defstateprior(k).sigma = struct('Gam_shape',[],'Gam_rate',[]);
+                defstateprior(k).sigma.Gam_shape = 0.1*ones(Q,ndim); %+ 0.05*eye(ndim);
+                defstateprior(k).sigma.Gam_rate = 0.1*ones(Q,ndim);%  + 0.05*eye(ndim);
+            end
+            if ~isempty(orders) && isempty(train.prior)
+                defstateprior(k).alpha = struct('Gam_shape',[],'Gam_rate',[]);
+                defstateprior(k).alpha.Gam_shape = 0.1;
+                defstateprior(k).alpha.Gam_rate = 0.1*ones(1,length(orders));
+            end
+            
         end
-        if ~isempty(orders) && isempty(train.prior)
-            defstateprior(k).alpha = struct('Gam_shape',[],'Gam_rate',[]);
-            defstateprior(k).alpha.Gam_shape = 0.1;
-            defstateprior(k).alpha.Gam_rate = 0.1*ones(1,length(orders));
+        if ~train.zeromean
+            defstateprior(k).Mean = struct('Mu',[],'iS',[]);
+            defstateprior(k).Mean.Mu = zeros(ndim,1);
+            defstateprior(k).Mean.S = rangresiduals2';
+            defstateprior(k).Mean.iS = 1./rangresiduals2';
         end
-        if  isfield(train,'distribution') && strcmp(train.distribution,'logistic') && isempty(train.prior)
-            defstateprior(k).alpha = struct('Gam_shape',[],'Gam_rate',[]);
-            defstateprior(k).alpha.Gam_shape = 0.1;
-            defstateprior(k).alpha.Gam_rate = 0.1;
+        if isempty(hmm.train.priorcov_rate) 
+            priorcov_rate = rangeerror(X,T,residuals,orders,hmm.train);
+        else
+            priorcov_rate = hmm.train.priorcov_rate * ones(1,ndim);
         end
+        if strcmp(train.covtype,'full')
+            defstateprior(k).Omega.Gam_rate = diag(priorcov_rate);
+            defstateprior(k).Omega.Gam_shape = ndim+0.1-1;
+        elseif strcmp(train.covtype,'diag')
+            defstateprior(k).Omega.Gam_rate = 0.5 * priorcov_rate;
+            defstateprior(k).Omega.Gam_shape = 0.5 * (ndim+0.1-1);
+        end
+    elseif  isfield(train,'distribution') && any(strcmp(train.distribution,{'logistic','poisson'})) && isempty(train.prior)
+        defstateprior(k).alpha = struct('Gam_shape',[],'Gam_rate',[]);
+        defstateprior(k).alpha.Gam_shape = 0.1;
+        defstateprior(k).alpha.Gam_rate = 0.1;
+    elseif isfield(train,'distribution') && strcmp(train.distribution,'binomial') && isempty(train.prior)
+        defstateprior(k).alpha = struct('a',[],'b',[]);
+        defstateprior(k).alpha.a = 0.1;
+        defstateprior(k).alpha.b = 0.1;
     end
-    if ~train.zeromean
-        defstateprior(k).Mean = struct('Mu',[],'iS',[]);
-        defstateprior(k).Mean.Mu = zeros(ndim,1);
-        defstateprior(k).Mean.S = rangresiduals2';
-        defstateprior(k).Mean.iS = 1./rangresiduals2';
-    end
-    if isempty(hmm.train.priorcov_rate) 
-        priorcov_rate = rangeerror(X,T,residuals,orders,hmm.train);
-    else
-        priorcov_rate = hmm.train.priorcov_rate * ones(1,ndim);
-    end
-    if strcmp(train.covtype,'full')
-        defstateprior(k).Omega.Gam_rate = diag(priorcov_rate);
-        defstateprior(k).Omega.Gam_shape = ndim+0.1-1;
-    elseif strcmp(train.covtype,'diag')
-        defstateprior(k).Omega.Gam_rate = 0.5 * priorcov_rate;
-        defstateprior(k).Omega.Gam_shape = 0.5 * (ndim+0.1-1);
-    end
-    
 end
 
 if strcmp(hmm.train.covtype,'uniquefull')
@@ -148,8 +153,7 @@ for k = 1:K
     else npred = Q*length(orders);
     end
     hmm.state(k).W = struct('Mu_W',[],'S_W',[]);
-    if order>0 || ~train.zeromean || [isfield(train,'distribution') && strcmp(train.distribution,'logistic')] ...
-            || [isfield(train,'distribution') && strcmp(train.distribution,'poisson')]
+    if order>0 || ~train.zeromean || [isfield(train,'distribution') && any(strcmp(train.distribution,{'logistic','poisson','binomial'}))]
         if train.uniqueAR || ndim==1 % it is assumed that order>0 and cov matrix is diagonal
             XY = zeros(npred+(~train.zeromean),1);
             XGX = zeros(npred+(~train.zeromean));
@@ -179,7 +183,7 @@ for k = 1:K
                 hmm.state(k).W.Mu_W(Sind(:,n),n) = (( permute(hmm.state(k).W.S_W(n,Sind(:,n),Sind(:,n)),[2 3 1])...
                     * XX(:,Sind(:,n))') .* repmat(Gamma(:,k)',sum(Sind(:,n)),1)) * residuals(:,n);
             end
-        elseif strcmp(train.covtype,'poisson')    
+        elseif isfield(train,'distribution') && any(strcmp(train.distribution,{'poisson','binomial'}))    
             hmm = updateW(hmm,Gamma,residuals);
         else
             gram = kron(XXGXX{k},eye(ndim));

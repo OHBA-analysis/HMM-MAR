@@ -88,12 +88,16 @@ for cycle = 1:hmm.train.cyc
         end
         
         %%%% Free energy computation
-        if isfield(hmm.train,'distribution') && strcmp(hmm.train.distribution,'logistic')
+        if ~isfield(hmm.train,'distribution') || strcmp(hmm.train.distribution,'Gaussian')
+            fehist(end+1) = sum(evalfreeenergy(data.X,T,Gamma,Xi,hmm,residuals,XX));
+        elseif strcmp(hmm.train.distribution,'binomial')
+            fehist(end+1) = sum(evalfreeenergybinomial(T,Gamma,Xi,hmm,residuals,XX));
+        elseif strcmp(hmm.train.distribution,'logistic')
             fehist(end+1) = sum(evalfreeenergylogistic(T,Gamma,Xi,hmm,residuals,XX));
-        elseif strcmp(hmm.train.covtype,'poisson')
+        elseif strcmp(hmm.train.distribution,'poisson')
             fehist(end+1) = sum(evalfreeenergypoisson(T,Gamma,Xi,hmm,residuals,XX));
         else
-            fehist(end+1) = sum(evalfreeenergy(data.X,T,Gamma,Xi,hmm,residuals,XX));
+            
         end
         strwin = ''; if hmm.train.meancycstop>1, strwin = 'windowed'; end
         if cycle>(hmm.train.meancycstop+1) 

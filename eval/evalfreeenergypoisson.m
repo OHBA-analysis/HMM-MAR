@@ -75,8 +75,8 @@ if todo(5)==1
         hs=hmm.state(k);
         pr=hmm.state(k).prior;
         for xd=1:Xdim
-            W_KL = W_KL + sum(gamma_kl(hs.W.W_shape(xd),1, ...
-                hs.W.W_rate(1),1));
+            W_KL = W_KL + sum(gamma_kl(hs.W.W_shape(xd),pr.alpha.Gam_shape, ...
+                hs.W.W_rate(1),pr.alpha.Gam_rate));
         end
     end
     KLdiv = KLdiv + W_KL;      
