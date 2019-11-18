@@ -1,4 +1,4 @@
-function hmm = versCompatibilityFix(hmm)
+function hmm = versCompatibilityFix(hmm,options)
 
 if ~isfield(hmm.train,'orders')
     hmm.train.orders = formorders(hmm.train.order,hmm.train.orderoffset,...
@@ -60,5 +60,13 @@ end
 if ~isfield(hmm.train,'updateP')
     hmm.train.updateP = 1;
 end
-
+if nargin>1 && strcmp(options.regularisation,'Sparse')
+    % ie Sparse model initialised without sparsity applied
+    if ~isfield(hmm.state(1),'P')
+        activedims = sum(any(options.hmm.train.S==1,2));
+        for k=1:options.K
+            hmm.state(k).P = ones(activedims,1);
+        end
+    end
+end
 end

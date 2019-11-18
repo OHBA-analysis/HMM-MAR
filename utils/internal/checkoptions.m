@@ -45,6 +45,7 @@ if ~isfield(options,'detrend'), options.detrend = 0; end
 if ~isfield(options,'downsample'), options.downsample = 0; end
 if ~isfield(options,'leakagecorr'), options.leakagecorr = 0; end
 if ~isfield(options,'standardise'), options.standardise = 1; end
+if ~isfield(options,'regularisation'), options.regularisation = 'ARD'; end
 if ~isfield(options,'standardise_pc') 
     options.standardise_pc = length(options.embeddedlags)>1; 
 end

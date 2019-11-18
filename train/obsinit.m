@@ -183,6 +183,9 @@ for k = 1:K
                 hmm.state(k).W.Mu_W(Sind(:,n),n) = (( permute(hmm.state(k).W.S_W(n,Sind(:,n),Sind(:,n)),[2 3 1])...
                     * XX(:,Sind(:,n))') .* repmat(Gamma(:,k)',sum(Sind(:,n)),1)) * residuals(:,n);
             end
+            if isfield(train,'regularisation') && strcmp(train.regularisation,'Sparse')
+                hmm.state(k).P=ones(ndim_n,1);
+            end
         elseif isfield(train,'distribution') && any(strcmp(train.distribution,{'poisson','binomial'}))    
             hmm = updateW(hmm,Gamma,residuals);
         else

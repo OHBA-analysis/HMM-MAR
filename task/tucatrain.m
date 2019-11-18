@@ -112,6 +112,9 @@ options_run1=options;
 if isfield(options,'updateObs') 
     options_run1.updateObs=1
 end 
+if isfield(options,'regularisation') && strcmp(options.regularisation,'Sparse') || strcmp(options.regularisation,'Ridge')
+    options_run1.regularisation='ARD'; %initialise using ARD rather than sparse
+end
 options_run1.updateGamma=0;
 options_run1.decodeGamma=0;
 
@@ -122,23 +125,25 @@ options = rmfield(options,'Gamma');
 if ~isfield(options,'updateGamma')
     options.updateGamma = 1;
 end
-options.updateObs = 1; % 
-%options.Gamma = Gamma;
-options.hmm = tuda; 
-if ~isfield(options,'cyc')
-    options.cyc=4;
-end
-tudamonitoring = options.tudamonitoring;
-if isfield(options,'behaviour')
-    behaviour = options.behaviour;
-else 
-    behaviour = [];
-end
-options.tudamonitoring = 0;
-options.behaviour = [];
-options.verbose = 1;
-warning off
-[tuda,Gamma,~,~,~,~, stats.fe] = hmmmar(Z,T,options); 
+if options.updateGamma
+    options.updateObs = 1; % 
+    %options.Gamma = Gamma;
+    options.hmm = tuda; 
+    if ~isfield(options,'cyc')
+        options.cyc=4;
+    end
+    tudamonitoring = options.tudamonitoring;
+    if isfield(options,'behaviour')
+        behaviour = options.behaviour;
+    else 
+        behaviour = [];
+    end
+    options.tudamonitoring = 0;
+    options.behaviour = [];
+    options.verbose = 1;
+    warning off
+    [tuda,Gamma,~,~,~,~, stats.fe] = hmmmar(Z,T,options); 
+
 warning on
 
 tuda.features = features;
@@ -147,7 +152,7 @@ options.behaviour = behaviour;
 %options.verbose = verbose;
 
 tuda.train.pca = npca;
-
+end
 end
 
 function Gamma = cluster_decoding(X,Y,T,K,cluster_method,...

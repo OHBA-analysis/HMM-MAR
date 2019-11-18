@@ -10,26 +10,37 @@ if length(unique(Y(:)))<3
 else 
     binomial=false;
 end
+if isfield(hmm,'psi')
+    hmm=rmfield(hmm,'psi');
+end
 for iY=1:hmm.train.logisticYdim
-    WW=cell(K,1);
-    sum1=zeros(T,ndim);
-    for i=1:K
-        WW{i}=hmm.state(i).W.Mu_W(1:ndim,ndim+iY)*hmm.state(i).W.Mu_W(1:ndim,ndim+iY)' + ...
-                    squeeze(hmm.state(i).W.S_W(ndim+iY,1:ndim,1:ndim));
-        if binomial            
-            sum1=sum1 + (repmat(Gamma(:,i),1,ndim).*X)*WW{i};
-            vp=1:T;
-        else
-            vp= Y(:,iY)~=0;
-            sum1(vp,:)=sum1(vp,:) + (repmat(Gamma(vp,i),1,ndim).*X(vp,:))*WW{i};
+    
+        WW=cell(K,1);
+        sum1=zeros(T,ndim);
+        for i=1:K
+            if ~strcmp(hmm.train.regularisation,'Sparse')
+                WW{i}=hmm.state(i).W.Mu_W(1:ndim,ndim+iY)*hmm.state(i).W.Mu_W(1:ndim,ndim+iY)' + ...
+                        squeeze(hmm.state(i).W.S_W(ndim+iY,1:ndim,1:ndim));
+            else
+                PP = hmm.state(i).P*hmm.state(i).P' -diag(hmm.state(i).P.^2) + diag(hmm.state(i).P);
+                WW{i}=[hmm.state(i).W.Mu_W(1:ndim,ndim+iY)*hmm.state(i).W.Mu_W(1:ndim,ndim+iY)' + ...
+                        squeeze(hmm.state(i).W.S_W(ndim+iY,1:ndim,1:ndim))] .*PP;
+            end
+            if binomial            
+                sum1=sum1 + (repmat(Gamma(:,i),1,ndim).*X)*WW{i};
+                vp=1:T;
+            else
+                vp= Y(:,iY)~=0;
+                sum1(vp,:)=sum1(vp,:) + (repmat(Gamma(vp,i),1,ndim).*X(vp,:))*WW{i};
+            end
+        end     
+        hmm.psi(1:T,iY) = sqrt(sum(sum1 .*X,2));
+
+        if ~binomial
+            hmm.psi(~vp,iY)=NaN;  % these points are invalid; put as NaN's to avoid error propogation 
         end
-    end     
-    hmm.psi(1:T,iY) = sqrt(sum(sum1 .*X,2));
     
-    if ~binomial
-        hmm.psi(~vp,iY)=NaN;  % these points are invalid; put as NaN's to avoid error propogation 
-    end
-    
+        
     %older, slower loop code:
 %     for i=1:K
 %         WW{i}=hmm.state(i).W.Mu_W(1:ndim,ndim+iY)*hmm.state(i).W.Mu_W(1:ndim,ndim+iY)' + ...

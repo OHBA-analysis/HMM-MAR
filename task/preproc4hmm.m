@@ -77,6 +77,9 @@ if isfield(options,'classifier')
             end
         end
         options.logisticYdim=size(Y,2);
+        if ~isfield(options,'regularisation')
+            options.regularisation='ARD';
+        end
         if ~isfield(options,'balancedata')
             options.balancedata=0;
         else

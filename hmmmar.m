@@ -338,7 +338,7 @@ else
         end
         if ~isfield(options,'Gamma'); hmm_wr.Gamma = GammaInit;end
     else % using a warm restart from a previous run
-        hmm_wr = versCompatibilityFix(options.hmm);
+        hmm_wr = versCompatibilityFix(options.hmm,options);
         options = rmfield(options,'hmm');
         train = hmm_wr.train; 
         hmm_wr.train = options;

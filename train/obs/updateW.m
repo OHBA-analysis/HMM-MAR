@@ -134,8 +134,18 @@ for k = 1:K
             Gammaweighted=Gamma(vp,k);
         end
         % initialise priors - with ARD:
-        W_mu0 = zeros(Xdim,1);
-        W_sig0 = diag(hmm.state(k).alpha.Gam_shape ./ hmm.state(k).alpha.Gam_rate(1:Xdim));
+        if strcmp(hmm.train.regularisation,'ARD')
+            W_mu0 = zeros(Xdim,1);
+            W_sig0 = diag(hmm.state(k).alpha.Gam_shape ./ hmm.state(k).alpha.Gam_rate(1:Xdim));
+        elseif strcmp(hmm.train.regularisation,'Ridge')
+            W_mu0 = zeros(Xdim,1);
+            W_sig0 = 0.01*eye(Xdim);
+        elseif strcmp(hmm.train.regularisation,'Sparse')
+            %error('Sparse regularisation not yet implemented');
+            %hmm = updateP(hmm);
+            hmm.state(k).P=ones(Xdim,1); %temp just for debugging
+            W_sig0 = 0.01*eye(Xdim);%diag(hmm.state(k).alpha.Gam_shape ./ hmm.state(k).alpha.Gam_rate(1:Xdim));
+        end
         
         % implement update equations for logistic regression:
         lambdafunc = @(psi_t) ((2*psi_t).^-1).*(log_sigmoid(psi_t)-0.5);
@@ -157,17 +167,47 @@ for k = 1:K
 %             for t=1:T
 %                 W_sigsum{k}(t,:,:)=2*lambdafunc(hmm.psi(t))*Gamma(t,k)*X(t,:)'*X(t,:);
 %             end
-            W_sigsum = (XX(vp,1:ndim_n)' .* repmat(2*lambdafunc(hmm.psi(vp))'.*Gammaweighted',ndim_n,1))* XX(vp,1:ndim_n);
-            %update parameter entries:
-            hmm.state(k).W.S_W(n,S(:,n),S(:,n)) = inv(squeeze(W_sigsum)+inv(W_sig0));
-            hmm.state(k).W.Mu_W(S(:,n),n) = squeeze(hmm.state(k).W.S_W(n,S(:,n),S(:,n))) * 0.5 * X(vp,:)' * (Y(vp).*Gammaweighted) ... %sum(W_musum{k},1)') ...
-                +(W_sig0\W_mu0);
             
-            % Also increment optimal tuning parameters psi:
-             WWupdate = hmm.state(k).W.Mu_W(Sind(:,n),n)*hmm.state(k).W.Mu_W(Sind(:,n),n)' + ...
-                              squeeze(hmm.state(k).W.S_W(n,S(:,n),S(:,n))) - WW{k};
-             psiupdate = sum(((X .* repmat(Gamma(:,k),1,size(X,2))) * WWupdate).*X , 2);
-             hmm.psi = sqrt(hmm.psi.^2+psiupdate);
+            if ~strcmp(hmm.train.regularisation,'Sparse')
+                W_sigsum = (XX(vp,1:ndim_n)' .* repmat(2*lambdafunc(hmm.psi(vp))'.*Gammaweighted',ndim_n,1))* XX(vp,1:ndim_n);
+                %update parameter entries:
+                hmm.state(k).W.S_W(n,S(:,n),S(:,n)) = inv(squeeze(W_sigsum)+inv(W_sig0));
+                hmm.state(k).W.Mu_W(S(:,n),n) = squeeze(hmm.state(k).W.S_W(n,S(:,n),S(:,n))) * 0.5 * X(vp,:)' * (Y(vp).*Gammaweighted) ... %sum(W_musum{k},1)') ...
+                    ;%+(W_sig0\W_mu0); %eliminate for now any non-zero mean priors - this term is just a computationally expensive way to add zero
+
+                % Also increment optimal tuning parameters psi:
+                 WWupdate = hmm.state(k).W.Mu_W(Sind(:,n),n)*hmm.state(k).W.Mu_W(Sind(:,n),n)' + ...
+                                  squeeze(hmm.state(k).W.S_W(n,S(:,n),S(:,n))) - WW{k};
+                 psiupdate = sum(((X(vp,:) .* repmat(Gamma(vp,k),1,size(X,2))) * WWupdate).*X(vp,:) , 2);
+                 hmm.psi(vp) = sqrt(hmm.psi(vp).^2+psiupdate);
+            else
+                % iterate through dimensions randomly:
+                inds = [1:Xdim];%randperm(Xdim);
+                
+                W_sig = diag(diag(squeeze(hmm.state(k).W.S_W(n,1:ndim_n,1:ndim_n))));
+                hmm.state(k).W.S_W(n,1:ndim_n,1:ndim_n)=W_sig; %ensure diagonal only
+                W_mu = hmm.state(k).W.Mu_W(:,n);
+                
+                for i_x=inds
+                    LF = lambdafunc(hmm.psi(vp));
+                    W_sigsum = sum(2*XX(vp,1:ndim_n).^2.*repmat(LF.*Gammaweighted,1,ndim_n));
+                    hmm.state(k).W.S_W(n,i_x,i_x) = inv(W_sigsum(i_x) + inv(W_sig0(i_x,i_x)));
+                    x_crosstalk = setdiff([1:Xdim],i_x);
+                    mu_exp = hmm.state(k).W.Mu_W(x_crosstalk,n).*hmm.state(k).P(x_crosstalk);
+                    crosstalkterms = X(vp,x_crosstalk)*mu_exp;
+                    hmm.state(k).W.Mu_W(i_x,n) = hmm.state(k).W.S_W(n,i_x,i_x) * (0.5 * X(vp,i_x)' * (Y(vp).*Gammaweighted) ...
+                        - sum(LF.* X(vp,i_x).*crosstalkterms));
+                    
+                    % update psi tuning parameters:
+%                     W_sq_update = hmm.state(k).P(i_x) *(hmm.state(k).W.Mu_W(i_x,n).^2 + hmm.state(k).W.S_W(n,i_x,i_x)) - ...
+%                         hmm.state(k).P(i_x)*(W_mu(i_x).^2 + W_sig(i_x,i_x));
+%                     W_update = hmm.state(k).P(i_x)*hmm.state(k).W.Mu_W(i_x,n) - hmm.state(k).P(i_x)*W_mu(i_x);
+%                     psiupdate = (X(vp,i_x).^2 .* Gamma(vp,k) * W_sq_update) + ...
+%                         X(vp,i_x).^2 .* Gamma(vp,k) .* W_update .*crosstalkterms; 
+%                     hmm.psi(vp) = sqrt(hmm.psi(vp).^2+psiupdate);
+                    hmm = updatePsi(hmm,Gamma,X,Y);
+                end
+            end
         end
     elseif strcmp(train.distribution,'poisson')
         % unsupervised Poisson model:

@@ -57,8 +57,16 @@ if ~isfield(hmm.train,'distribution') || strcmp(hmm.train.distribution,'Gaussian
         end
         mean_change = mean_changew;
     end
-elseif strcmp(hmm.train.distribution,'logistic')
-    obs_maxit = 1;
+else
+    if strcmp(hmm.train.distribution,'logistic')
+        if strcmp(hmm.train.regularisation,'Sparse')
+            obs_maxit = 5;
+        else
+            obs_maxit = 3;
+        end
+    else
+        obs_maxit=1;
+    end
     if isfield(hmm,'psi')
         hmm=rmfield(hmm,'psi');
     end
@@ -66,6 +74,7 @@ elseif strcmp(hmm.train.distribution,'logistic')
         
         last_state = hmm.state;
         hmm_orig=hmm;
+        
         for iY = 1:hmm.train.logisticYdim
             hmm_marginalised = logisticMarginaliseHMM(hmm,iY);
             xdim=hmm_marginalised.train.ndim-1;
