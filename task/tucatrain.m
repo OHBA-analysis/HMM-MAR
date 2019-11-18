@@ -119,34 +119,35 @@ options_run1.decodeGamma=0;
 options = rmfield(options,'Gamma');
 
 % 2. Update state time courses only, leaving fixed obs model params:
-if ~isfield(options,'updateGamma')
+if isfield(options,'updateGamma') && options.updateGamma
     options.updateGamma = 1;
-end
-options.updateObs = 1; % 
-%options.Gamma = Gamma;
-options.hmm = tuda; 
-if ~isfield(options,'cyc')
-    options.cyc=4;
-end
-tudamonitoring = options.tudamonitoring;
-if isfield(options,'behaviour')
-    behaviour = options.behaviour;
-else 
-    behaviour = [];
-end
-options.tudamonitoring = 0;
-options.behaviour = [];
-options.verbose = 1;
-warning off
-[tuda,Gamma,~,~,~,~, stats.fe] = hmmmar(Z,T,options); 
-warning on
 
-tuda.features = features;
-options.tudamonitoring = tudamonitoring;
-options.behaviour = behaviour;
-%options.verbose = verbose;
+    options.updateObs = 1; % 
+    %options.Gamma = Gamma;
+    options.hmm = tuda; 
+    if ~isfield(options,'cyc')
+        options.cyc=4;
+    end
+    tudamonitoring = options.tudamonitoring;
+    if isfield(options,'behaviour')
+        behaviour = options.behaviour;
+    else 
+        behaviour = [];
+    end
+    options.tudamonitoring = 0;
+    options.behaviour = [];
+    options.verbose = 1;
+    warning off
+    [tuda,Gamma,~,~,~,~, stats.fe] = hmmmar(Z,T,options); 
+    warning on
 
-tuda.train.pca = npca;
+    tuda.features = features;
+    options.tudamonitoring = tudamonitoring;
+    options.behaviour = behaviour;
+    %options.verbose = verbose;
+
+    tuda.train.pca = npca;
+end
 
 end
 

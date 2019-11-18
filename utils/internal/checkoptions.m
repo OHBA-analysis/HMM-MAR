@@ -319,9 +319,9 @@ if stochastic_learning
 end
 
 % Further checks
-if options.maxorder+1 >= min(T)
-   error('There is at least one trial that is too short for the specified order') 
-end
+%if options.maxorder+1 >= min(T)
+%   error('There is at least one trial that is too short for the specified order') 
+%end
 if options.K~=size(data.C,2), error('Matrix data.C should have K columns'); end
 % if options.K>1 && options.updateGamma == 0 && isempty(options.Gamma)
 %     warning('Gamma is unspecified, so updateGamma was set to 1');  options.updateGamma = 1; 

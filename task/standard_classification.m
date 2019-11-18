@@ -1,4 +1,4 @@
-function [cv_acc,acc,genplot] = standard_classification(X,Y,T,options,binsize)
+function [cv_acc,acc,meanGenPlot] = standard_classification(X,Y,T,options,binsize)
 % Determine the cross validated accuracy of a classification type on brain
 % data X with mutually exclusive classes Y
 %
@@ -155,6 +155,15 @@ for icv = 1:NCV
 end
 acc=mean(cv_acc(:));
 cv_acc=mean(cv_acc,2);
+if isfield(options,'generalisationplot') && options.generalisationplot
+    meanGenPlot=[];
+    for icv=1:NCV
+        meanGenPlot = cat(3,meanGenPlot,genplot{icv});
+    end
+    meanGenPlot = squeeze(mean(meanGenPlot,3));
+else
+    meanGenPlot=[];
+end
 end
 
 function Y_out = multinomToBinary(Y_in)
