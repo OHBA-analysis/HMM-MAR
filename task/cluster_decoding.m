@@ -1,4 +1,4 @@
-function Gamma = cluster_decoding(X,Y,T,K,classification,cluster_method,...
+function Gamma = cluster_decoding(X,Y,T,K,cluster_method,...
     cluster_measure,Pstructure,Pistructure,GammaInit,repetitions,nwin)
 % clustering of the time-point-by-time-point regressions, which is
 % temporally constrained unlike TUDA
@@ -203,10 +203,9 @@ elseif strcmp(cluster_method,'sequential')
         end
     end
     assig = assig_best;
-%     
-% else % 'fixedsequential'
-%     
-    
+else % 'fixedsequential'
+    assig = ceil(K*(1:ttrial)./ttrial);
+
 end
 
 Gamma = zeros(ttrial, K);

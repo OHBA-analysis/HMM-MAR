@@ -158,7 +158,7 @@ for icv = 1:NCV
     Xtrain = reshape(X(:,c.training{icv},:),[Ntr*ttrial p] ) ;
     Ytrain = reshape(Y(:,c.training{icv},:),[Ntr*ttrial q] ) ;
     Ttr = T(c.training{icv});
-    [tuda,Gammatrain] = call_tudatrain(Xtrain,Ytrain,Ttr,options,classification);
+    [tuda,Gammatrain] = call_tudatrain(Xtrain,Ytrain,Ttr,options);
     Betas(:,:,:,icv) = tudabeta(tuda);
     switch CVmethod
         case 1 % training average
@@ -235,11 +235,11 @@ end
 end
 
 
-function [tuda,Gamma] = call_tudatrain(X,Y,T,options,classification)
+function [tuda,Gamma] = call_tudatrain(X,Y,T,options)
 
 N = length(T); q = size(Y,2); p = size(X,2);
 
-GammaInit = cluster_decoding(X,Y,T,options.K,classification,'regression','',...
+GammaInit = cluster_decoding(X,Y,T,options.K,'regression','',...
     options.Pstructure,options.Pistructure);
 options.Gamma = permute(repmat(GammaInit,[1 1 N]),[1 3 2]);
 options.Gamma = reshape(options.Gamma,[length(T)*size(GammaInit,1) options.K]);

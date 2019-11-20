@@ -16,7 +16,7 @@ if (size(Y,1) ~= sum(T)) && (size(Y,1) ~= length(T))
     error('Dimension of Y not correct');
 end
 q = size(Y,2);
-
+  
 if isfield(options,'downsample') && options.downsample
    error('Downsampling is not currently an option') 
 end
@@ -29,8 +29,6 @@ if ~isfield(options,'Nfeatures'), Nfeatures = p;
 else, Nfeatures = options.Nfeatures; end
 if ~isfield(options,'standardise'), standardise = 0;
 else, standardise = options.standardise; end
-if ~isfield(options,'demeanstim'), demeanstim = 1;
-else, demeanstim = options.demeanstim; end
 if ~isfield(options,'onpower'), onpower = 0;
 else, onpower = options.onpower; end
 if ~isfield(options,'embeddedlags'), embeddedlags = 0;
@@ -56,8 +54,8 @@ end
 if isfield(options,'classifier')
     if strcmp(options.classifier,'logistic')
         %set default options for logistic regression classification:
-        options.distribution='logistic';
-        demeanstim=false;
+        options.distribution = 'logistic';
+        demeanstim = false;
         %determine if multinomial or binomial:
         vals = unique(Y(:));
         if length(vals)==2
@@ -124,12 +122,18 @@ if isfield(options,'classifier')
         options.Pistructure = zeros(1,options.K);
         options.Pistructure(1)=1;
     end
+    add_noise = 0;
     options = rmfield(options,'classifier');
 else
     options.distribution='Gaussian'; %default for all non-classification models
+    if length(unique(Y(:))) < max_num_classes % still classification
+        demeanstim = false;
+    else, demeanstim = true; end
+    if ~isfield(options,'add_noise'), add_noise = 1;
+    else, add_noise = options.add_noise;
+    end
 end
 if ~isfield(options,'logisticYdim'), options.logisticYdim=0;end
-if ~isfield(options,'add_noise'), add_noise = 1;else add_noise = options.add_noise; end
 
 
 % Options relative to constraints in the trans prob mat
@@ -222,9 +226,6 @@ end
 if demeanstim
     % Demean stimulus
     Y = bsxfun(@minus,Y,mean(Y));
-    if add_noise % this avoids numerical problems 
-       Y = Y + 1e-4 * randn(size(Y)); 
-    end
 end
 % Add noise, to avoid numerical problems 
 if add_noise > 0

@@ -39,17 +39,16 @@ function [tuda,Gamma,GammaInit,vpath,stats] = tudatrain(X,Y,T,options)
 %   - R2_stddec: (training) explained variance of the standard 
 %               (temporally constrained) decoding approach (time by q by K) 
 %
-% Author: Diego Vidaurre, OHBA, University of Oxford (2017)
+% Author: Diego Vidaurre, OHBA, University of Oxford  
+% Author: Cam Higgins, OHBA, University of Oxford  
 
 stats = struct();
 N = length(T); 
-max_num_classes = 5;
 
-classification = length(unique(Y(:))) < max_num_classes;
-if classification
-    % no demeaning by default if this is a classification problem
-    if ~isfield(options,'demeanstim'), options.demeanstim = 0; end
+if ~isfield(options,'classifier')
+    options.classifier = 'regression'; %set as default
 end
+classifier = options.classifier;
 
 % Check options and put data in the right format
 options_original = options; 
@@ -64,16 +63,22 @@ p = size(X,2); q = size(Y,2);
 % init HMM, only if trials are temporally related
 if ~isfield(options,'Gamma')
     if parallel_trials
-        GammaInit = cluster_decoding(X,Y,T,options.K,classification,'regression','',...
-            options.Pstructure,options.Pistructure);
+        if options.sequential
+            GammaInit = cluster_decoding(X,Y,T,options.K,'fixedsequential','',...
+                options.Pstructure,options.Pistructure);
+        else
+            GammaInit = cluster_decoding(X,Y,T,options.K,'regression','',...
+                options.Pstructure,options.Pistructure);
+        end
         options.Gamma = permute(repmat(GammaInit,[1 1 N]),[1 3 2]);
         options.Gamma = reshape(options.Gamma,[length(T)*size(GammaInit,1) options.K]);
     else
         GammaInit = [];
     end
 else
-    GammaInit = options.Gamma; 
+    GammaInit = options.Gamma;
 end
+options = rmfield(options,'sequential');
 
 % if cyc==0 there is just init and no HMM training 
 if isfield(options,'cyc') && options.cyc == 0 
@@ -93,13 +98,22 @@ Z = zeros(sum(T),q+p,'single');
 for j = 1:N
     t1 = (1:T(j)) + sum(T(1:j-1));
     t2 = (1:Ttmp(j)) + sum(Ttmp(1:j-1));
-    Z(t1(1:end-1),1:p) = X(t2,:);
-    Z(t1(2:end),(p+1):end) = Y(t2,:);
+    if strcmp(classifier,'LDA')
+        Z(t1(2:end),1:p) = X(t2,:);
+        Z(t1(1:end-1),(p+1):end) = Y(t2,:);
+    else
+        Z(t1(1:end-1),1:p) = X(t2,:);
+        Z(t1(2:end),(p+1):end) = Y(t2,:);        
+    end
 end 
 
 % Run TUDA inference
 options.S = -ones(p+q);
 options.S(1:p,p+1:end) = 1;
+
+%switch off parallel as not implemented:
+options.useParallel = 0;
+options.decodeGamma = 0;
 
 % 0. In case parallel_trials is false and no Gamma was provided
 if isempty(GammaInit) && ~parallel_trials
