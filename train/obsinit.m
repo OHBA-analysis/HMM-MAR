@@ -112,7 +112,7 @@ if strcmp(hmm.train.covtype,'uniquefull')
     hmm.prior.Omega.Gam_rate = diag(priorcov_rate);
 elseif strcmp(hmm.train.covtype,'uniquediag') || do_HMM_pca
     hmm.prior.Omega.Gam_shape = 0.5 * (ndim+0.1-1);
-    hmm.prior.Omega.Gam_rate = 0.5 * median(priorcov_rate);
+    hmm.prior.Omega.Gam_rate = 0.5 * priorcov_rate; %median(priorcov_rate);
 end
 
 % assigning default priors for observation models

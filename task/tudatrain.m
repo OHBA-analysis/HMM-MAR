@@ -1,6 +1,8 @@
 function [tuda,Gamma,GammaInit,vpath,stats] = tudatrain(X,Y,T,options)
 % Performs the Temporal Unconstrained Decoding Approach (TUDA), 
-% an alternative approach for decoding where we dispense with the assumption 
+% or Temporal Unconstrained Classification Approach (TUCA) if the stimulus
+% is discrete. For the latter, options.classifier must be specified.
+% This is an alternative approach for decoding where we dispense with the assumption 
 % that the same decoding is active at the same time point at all trials. 
 % 
 % INPUT
@@ -45,18 +47,15 @@ function [tuda,Gamma,GammaInit,vpath,stats] = tudatrain(X,Y,T,options)
 stats = struct();
 N = length(T); 
 
-if ~isfield(options,'classifier')
-    options.classifier = 'regression'; %set as default
-end
-classifier = options.classifier;
-
 % Check options and put data in the right format
 options_original = options; 
-[X,Y,T,options,A,stats.R2_pca,npca,features] = preproc4hmm(X,Y,T,options); 
+[X,Y,T,options,A,stats.R2_pca,npca,features] = preproc4hmm(X,Y,T,options);
+classifier = options.classifier;
 parallel_trials = options.parallel_trials; 
 plotAverageGamma = options.plotAverageGamma;
 options.plotAverageGamma = 0; 
 options = rmfield(options,'parallel_trials');
+options = rmfield(options,'classifier');
 if isfield(options,'add_noise'), options = rmfield(options,'add_noise'); end
 p = size(X,2); q = size(Y,2);
  
@@ -111,8 +110,12 @@ end
 options.S = -ones(p+q);
 options.S(1:p,p+1:end) = 1;
 
-%switch off parallel as not implemented:
-options.useParallel = 0;
+%switch off parallel as not implemented for some models
+if strcmp(classifier,'logistic') || strcmp(classifier,'LDA') || ...
+        strcmp(classifier,'SVM') || strcmp(classifier,'KNN') || ...
+        strcmp(classifier,'decisiontree')
+    options.useParallel = 0;
+end
 options.decodeGamma = 0;
 
 % 0. In case parallel_trials is false and no Gamma was provided
@@ -122,8 +125,8 @@ if isempty(GammaInit) && ~parallel_trials
     options.updateP = 1;
     options.plotAverageGamma = plotAverageGamma;
     [tuda,Gamma,~,vpath] = hmmmar(Z,T,options);
-else
     
+else
     % 1. With the restriction that, for each time point,
     %   all trials have the same state (i.e. no between-trial variability),
     %   we estimate a first approximation of the decoding models

@@ -25,6 +25,8 @@ if isfield(options,'filter') && ~isempty(options.filter) && ~isfield(options,'Fs
 end
 
 % options relative to the regression setting
+if ~isfield(options,'classifier'), options.classifier = '';
+else, classifier = options.classifier; end
 if ~isfield(options,'Nfeatures'), Nfeatures = p;
 else, Nfeatures = options.Nfeatures; end
 if ~isfield(options,'standardise'), standardise = 0;
@@ -51,90 +53,116 @@ if isfield(options,'downsample') && options.downsample~=0
 end
 
 %options relative to classification models:
-if isfield(options,'classifier')
+if ~isempty(options.classifier)
     if strcmp(options.classifier,'logistic')
         %set default options for logistic regression classification:
         options.distribution = 'logistic';
         demeanstim = false;
         %determine if multinomial or binomial:
         vals = unique(Y(:));
-        if length(vals)==2
+        if length(vals) == 2
             if all(vals == [0;1])
                 Y=2*(Y)-1;
             elseif ~all(vals == [-1;1])
                 ME = MException(preproc4hmm:wrongYformat,'Error: format of Y incorrect for classification tasks');
                 throw ME;
             end
-        elseif length(vals)>2 && size(Y,2)==1
+        elseif length(vals) > 2 && size(Y,2) == 1
             % Y entered as categorical format
             fprintf(['\nFitting multinomial logistic classifier with classes ',int2str(vals'), '\n']);
             Y=convertToMultinomial(Y);
-        elseif length(vals)==3
+        elseif length(vals) == 3
             if ~all(vals == [-1;0;1])
                 throw exception;
             end
         end
         options.logisticYdim=size(Y,2);
         if ~isfield(options,'balancedata')
-            options.balancedata=0;
+            options.balancedata = 0;
         else
-            options.balancedata=options.balancedata;
+            options.balancedata = options.balancedata;
         end
-        if ~isfield(options,'intercept'),options.intercept=0;end
+        if ~isfield(options,'intercept'), options.intercept = 0; end
         if options.intercept
            X = [X,ones(size(X,1),1)];
         end
-        options=rmfield(options,'intercept');
+        options = rmfield(options,'intercept');
         if ~isfield(options,'sequential')
-            options.sequential=true;
+            options.sequential = true;
         end
-        options.add_noise=0;
+        options.add_noise = 0;
    elseif strcmp(options.classifier,'LDA')
        % set default options for LDA model:
-       options.distribution='Gaussian';
-       demeanstim=false;
-        if ~isfield(options,'intercept'),options.intercept=1;end
+       options.distribution = 'Gaussian';
+       demeanstim = false;
+        if ~isfield(options,'intercept'), options.intercept = 1; end
         if options.intercept
             if size(Y,2)==1
-                Y=[ones(size(Y,1),1),Y==1,Y~=1];
+                Y = [ones(size(Y,1),1),Y==1,Y~=1];
             else
-                Y=[ones(size(Y,1),1),Y];
+                Y = [ones(size(Y,1),1),Y];
             end
             q = size(Y,2);
         end
         if ~isfield(options,'covtype')
-            options.covtype = 'uniquediag';
+            options.covtype = 'uniquediag'; % actual LDA; full for QDA
         end
         options=rmfield(options,'intercept');
         if ~isfield(options,'sequential')
-            options.sequential=true;
+            options.sequential = true;
         end
-        options.add_noise=0;
+        options.add_noise = 0;
     elseif strcmp(options.classifier,'SVM') || strcmp(options.classifier,'KNN') ||...
             strcmp(options.classifier,'decisiontree')
-        options.add_noise=0;
-        demeanstim=false;
-        options.sequential=false;
-    end
-    % general classification options:
-    if options.sequential
-        options.Pstructure = eye(options.K) + diag(ones(1,options.K-1),1);
-        options.Pistructure = zeros(1,options.K);
-        options.Pistructure(1)=1;
-    end
-    add_noise = 0;
-    options = rmfield(options,'classifier');
-else
-    options.distribution='Gaussian'; %default for all non-classification models
-    if length(unique(Y(:))) < max_num_classes % still classification
+        options.add_noise = 0;
         demeanstim = false;
-    else, demeanstim = true; end
-    if ~isfield(options,'add_noise'), add_noise = 1;
+        options.sequential = false;
+        add_noise = 0;
+    elseif strcmp(options.classifier,'regression')
+        options.distribution = 'Gaussian';
+        demeanstim = false;
+        %determine if multinomial or binomial:
+        vals = unique(Y(:));
+        if length(vals) == 2 && size(Y,2) == 1
+            if all(vals == [0;1])
+                Y=2*(Y)-1;
+            elseif ~all(vals == [-1;1])
+                ME = MException(preproc4hmm:wrongYformat,'Error: format of Y incorrect for classification tasks');
+                throw ME;
+            end
+        elseif length(vals) > 2 && size(Y,2) == 1
+            Ytmp = Y; 
+            Y = zeros(size(Y,1),length(vals));
+            for jj = 1:length(vals), Y(Ytmp==vals(jj),jj) = 1; end
+        elseif size(Y,2) > 1
+            if ~all(vals == [0;1])
+                ME = MException(preproc4hmm:wrongYformat,'Error: format of Y incorrect for classification tasks');
+                throw ME;
+            end
+        end      
+        add_noise = 1;
+        if ~isfield(options,'sequential')
+            options.sequential = true;
+        end
+    end
+    
+else % Standard regression problem 
+    
+    options.distribution = 'Gaussian'; %default for all non-classification models
+    demeanstim = true; 
+    if ~isfield(options,'add_noise'), add_noise = 0;
     else, add_noise = options.add_noise;
     end
+    
 end
-if ~isfield(options,'logisticYdim'), options.logisticYdim=0;end
 
+if ~isfield(options,'logisticYdim'), options.logisticYdim = 0; end
+
+if options.sequential
+    options.Pstructure = eye(options.K) + diag(ones(1,options.K-1),1);
+    options.Pistructure = zeros(1,options.K);
+    options.Pistructure(1) = 1;
+end
 
 % Options relative to constraints in the trans prob mat
 if ~isfield(options,'K'), error('K was not specified'); end
