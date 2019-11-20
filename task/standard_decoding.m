@@ -148,8 +148,9 @@ cv_acc = NaN(ttrial,1);
 for t = halfbin+1 : ttrial-halfbin
     Yt = reshape(Y(t,:,:),N,q);
     Ypredt = reshape(Ypred(t,:,:),N,q);
-    Ycopyt = reshape(Ycopy(t,:,:),N,q);
+    
     if classification
+        Ycopyt = reshape(Ycopy(t,:,:),N,q);
         Ypredt_star = continuous_prediction_2class(Ycopyt,Ypredt);
         if q == 1
             cv_acc(t) = mean(abs(Ycopyt - Ypredt_star) < 1e-4);
@@ -206,8 +207,8 @@ for t = halfbin+1 : ttrial-halfbin
     Yt = reshape(Y(t,:,:),N,q);
     Ypred(t,:,:) = reshape(Xt * beta_t,N,q);
     Ypredt = permute(Ypred(t,:,:),[2 3 1]);
-    Ycopyt = reshape(Ycopy(t,:,:),N,q);
     if classification
+        Ycopyt = reshape(Ycopy(t,:,:),N,q);
         Ypredt_star = continuous_prediction_2class(Ycopyt,Ypredt);
         if q == 1
             acc(t) = mean(abs(Ycopyt - Ypredt_star) < 1e-4);

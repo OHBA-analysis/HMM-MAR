@@ -81,7 +81,9 @@ if nargin<5, binsize = 1; end
 
 if isfield(options,'classifier')
     classifier = options.classifier; options = rmfield(options,'classifier');
-    if ~(strcmp(classifier,'logistic') || strcmp(classifier,'SVM') || strcmp(classifier,'LDA'));
+    if ~(strcmp(classifier,'logistic') || strcmp(classifier,'SVM') ||...
+            strcmp(classifier,'LDA') || strcmp(classifier,'KNN') || ...
+            strcmp(classifier,'decisiontree'))
         error('options.classifier can only take values "logistic", "SVM" or "LDA"');
     end
 else, classifier = 'logistic'; 
@@ -175,6 +177,15 @@ elseif strcmp(classifier,'LDA')
     model.Gamma = model.Gamma(1:ttrial,:);
     model=rmfield(model,{'train','prior','Dir_alpha','Dir2d_alpha','P','Pi','features','K'});
     model.classifier='LDA';
+elseif strcmp(classifier,'KNN')
+    model.X_train = X;
+    model.Y_train = Y;
+elseif strcmp(classifier,'decisiontree')
+    for t=1:ttrial
+        Y_temp=zeros(N,1);
+        for n=1:N;Y_temp(n) = find(squeeze(Y(t,n,:)));end
+        model.decisiontree{t} = fitctree(squeeze(X(t,:,:)),Y_temp);
+    end
 end
 
 

@@ -84,7 +84,9 @@ if ~isfield(model,'classifier')
     error('Model inputted does not conform to requirements; it should be trained using the function standard_classifier_train.m');
 else
     classifier = model.classifier; 
-    if ~(strcmp(classifier,'logistic') || strcmp(classifier,'SVM') || strcmp(classifier,'LDA'));
+    if ~(strcmp(classifier,'logistic') || strcmp(classifier,'SVM') ||...
+            strcmp(classifier,'LDA') || strcmp(classifier,'KNN') || ...
+            strcmp(classifier,'decisiontree'));
         error('model.classifier can only take values "logistic", "SVM" or "LDA"');
     end
 end
@@ -153,17 +155,19 @@ if strcmp(classifier,'logistic')
         end
     end
 elseif strcmp(classifier,'SVM')
-    % note this uses distance from hyperplane as soft score to allow
-    % multiclass categorisation
+     % note this uses distance from hyperplane as soft score to allow
+     % multiclass categorisation
      Y_pred = zeros(ttrial,N,q);
      Y_pred_genplot=zeros(ttrial,ttrial,N,q);
      for t=1:ttrial
         for iStim=1:q
-            [~,sc] = predict(model.SVM{t,iStim},squeeze(X(t,:,:)));
-            Y_pred(t,:,iStim)=sc(:,2);
+            %[~,sc] = predict(model.SVM{t,iStim},squeeze(X(t,:,:)));
+            [~,sc] = model.SVM{t,iStim}.predict(squeeze(X(t,:,:)));
+            Y_pred(t,:,iStim)=sc(:,1);
             if options.generalisationplot  
                 for t2=1:ttrial
-                    [~,sc] = predict(model.SVM{t,iStim},squeeze(X(t2,:,:)));
+                    %[~,sc] = predict(model.SVM{t,iStim},squeeze(X(t2,:,:)));
+                    [~,sc] = model.SVM{t,iStim}.predict(squeeze(X(t2,:,:)));
                     Y_pred_genplot(t,t2,:,iStim)= sc(:,2);
                 end
             end
@@ -181,6 +185,43 @@ elseif strcmp(classifier,'SVM')
 elseif strcmp(classifier,'LDA')
     X = reshape(X,[ttrial*N,p]);
     [predictions_hard, predictions_soft] = LDApredict(model,repmat(eye(ttrial),N,1),X);
+elseif strcmp(classifier,'KNN')
+    if ~isfield(model,'K');model.K=1;end
+    predictions_hard = zeros(ttrial,N,q);
+    for t=1:ttrial
+        candidates = squeeze(model.X_train(t,:,:));
+        D=dist(squeeze(X(t,:,:)),candidates');
+        for n=1:N
+            [dists,inds]=sort(D(n,:));
+            if options.K==1
+                M=model.Y_train(t,inds(1:options.K),:);
+                ind_winner = find(squeeze(M));
+                predictions_hard(t,n,ind_winner) = 1;
+            else
+                Y_pred=squeeze(model.Y_train(t,inds(1:options.K),:));
+                M = sum(Y_pred,1);
+                [M,inds2] = sort(M,'descend');
+                if M(1)>M(2)
+                    predictions_hard(t,n,inds2(1)) = 1;
+                else %tie break - just take closest point
+                    ind_winner = find(squeeze(model.Y_train(t,inds(1),:)));
+                    predictions_hard(t,n,inds(1)) = 1;
+                end
+            end
+        end
+    end
+    predictions_hard = reshape(predictions_hard,[ttrial*N,q]);
+    predictions_soft = predictions_hard;
+elseif strcmp(classifier,'decisiontree');
+    predictions_hard = zeros(ttrial,N,q);
+    for t=1:ttrial
+        temp = model.decisiontree{t}.predict(squeeze(X(t,:,:)));
+        for n=1:N
+            predictions_hard(t,n,temp(n))=1;
+        end
+    end
+    predictions_hard = reshape(predictions_hard,[ttrial*N,q]);
+    predictions_soft = predictions_hard;
 end
 
 %and compute accuracy metrics using hard classification output:
@@ -191,7 +232,8 @@ acc=mean(true_preds);
 acc_t = mean(reshape(true_preds,[ttrial,N]),2);
 if options.generalisationplot
     Y_true_genplot = repmat(permute(Ycopy,[4,1,2,3]),[ttrial,1,1,1]);
-    accplot = all(logical(Y_true_genplot) & logical(Y_pred_genplot),4);
+    Y_pred_genplot = reshape(Y_pred_genplot,[ttrial, ttrial,N,q]);
+    accplot = sum(logical(Y_true_genplot) & logical(Y_pred_genplot),4);
     genplot = squeeze(mean(accplot,3));
 else
     genplot=[];
@@ -200,6 +242,9 @@ end
 
 function preds_hard = hardmax(Y_pred)
 % assuming multiple binomial only; Y_pred of dimension [NT x q]
+if ndims(Y_pred)>2
+    error('Wrong dimensions entered for computing predictions');
+end
 [~,a] = max(Y_pred,[],2);
 preds_hard = zeros(size(Y_pred));
 for i=1:length(preds_hard)

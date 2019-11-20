@@ -60,7 +60,7 @@ A = permute(A,[3,1,2]);
 %% Compute Diagnostic Stats and modal decomposition
 
 % Variance explained
-r2 = 1 - ( sumsqr(resids) / sumsqr(data) );
+r2 = 1 - ( sumsquare(resids) / sumsquare(data) );
 r2 = r2*100;
 
 % Create companion form
@@ -149,3 +149,7 @@ if to_plot == true
     text( .9*xl(2), .9*yl(2), sprintf(string,max(abs(evals)),r2) );
     
 end
+
+function s = sumsquare(a)
+
+s = sum(sum(a.*a));
