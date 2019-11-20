@@ -16,8 +16,13 @@ function [hmm, residuals, W0] = obsinit (data,T,hmm,Gamma)
 % Author: Diego Vidaurre, OHBA, University of Oxford
 
 if nargin<4, Gamma = []; end
-[residuals,W0] =  getresiduals(data.X,T,hmm.train.Sind,hmm.train.maxorder,hmm.train.order,...
-    hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag,hmm.train.zeromean);
+do_HMM_pca = (hmm.train.lowrank > 0);
+if ~do_HMM_pca
+    [residuals,W0] =  getresiduals(data.X,T,hmm.train.Sind,hmm.train.maxorder,hmm.train.order,...
+        hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag,hmm.train.zeromean);
+else 
+    residuals = []; W0 = [];
+end
 hmm = initpriors(data.X,T,hmm,residuals);
 hmm = initpost(data.X,T,hmm,residuals,Gamma);
 
@@ -34,6 +39,7 @@ else Q = ndim;
 end
 pcapred = hmm.train.pcapred>0;
 if pcapred, M = hmm.train.pcapred; end
+p = hmm.train.lowrank; do_HMM_pca = (p > 0);
 
 for k = 1:hmm.K
 
@@ -43,7 +49,9 @@ for k = 1:hmm.K
 
     if (strcmp(train.covtype,'diag') || strcmp(train.covtype,'full')) && pcapred
         defstateprior(k)=struct('beta',[],'Omega',[],'Mean',[]);
-    elseif (strcmp(train.covtype,'diag') || strcmp(train.covtype,'full')) && ~pcapred
+    elseif strcmp(train.covtype,'diag') && do_HMM_pca
+        defstateprior(k)=struct('beta',[],'Omega',[]);
+    elseif (strcmp(train.covtype,'diag') || strcmp(train.covtype,'full')) 
         defstateprior(k)=struct('sigma',[],'alpha',[],'Omega',[],'Mean',[]);
     elseif (strcmp(train.covtype,'uniquediag') || strcmp(train.covtype,'uniquefull')) && pcapred
         defstateprior(k)=struct('beta',[],'Mean',[]);
@@ -53,10 +61,14 @@ for k = 1:hmm.K
         defstateprior(k)=struct('sigma',[],'alpha',[],'Mean',[]);
     end
     
-    if pcapred
+    if do_HMM_pca
+        %defstateprior(k).beta = struct('Gam_shape',[],'Gam_rate',[]);
+        %defstateprior(k).beta.Gam_shape = 0.1; %+ 0.05*eye(ndim);
+        %defstateprior(k).beta.Gam_rate = 0.1 * ones(ndim,p);%  + 0.05*eye(ndim);
+    elseif pcapred
         defstateprior(k).beta = struct('Gam_shape',[],'Gam_rate',[]);
-        defstateprior(k).beta.Gam_shape = 0.1*ones(M,ndim); %+ 0.05*eye(ndim);
-        defstateprior(k).beta.Gam_rate = 0.1*ones(M,ndim);%  + 0.05*eye(ndim);
+        defstateprior(k).beta.Gam_shape = 0.1; %+ 0.05*eye(ndim);
+        defstateprior(k).beta.Gam_rate = 0.1 * ones(M,ndim);%  + 0.05*eye(ndim);
     else
         if ~train.uniqueAR && isempty(train.prior)
             defstateprior(k).sigma = struct('Gam_shape',[],'Gam_rate',[]);
@@ -98,9 +110,9 @@ end
 if strcmp(hmm.train.covtype,'uniquefull')
     hmm.prior.Omega.Gam_shape = ndim+0.1-1;
     hmm.prior.Omega.Gam_rate = diag(priorcov_rate);
-elseif strcmp(hmm.train.covtype,'uniquediag')
+elseif strcmp(hmm.train.covtype,'uniquediag') || do_HMM_pca
     hmm.prior.Omega.Gam_shape = 0.5 * (ndim+0.1-1);
-    hmm.prior.Omega.Gam_rate = 0.5 * priorcov_rate;
+    hmm.prior.Omega.Gam_rate = 0.5 * median(priorcov_rate);
 end
 
 % assigning default priors for observation models
@@ -136,6 +148,7 @@ hmm.train.active = ones(1,K);
 if isfield(hmm.train,'B'), B = hmm.train.B; Q = size(B,2);
 else Q = ndim; end
 pcapred = hmm.train.pcapred>0;
+p = hmm.train.lowrank; do_HMM_pca = (p > 0);
 
 % initial random values for the states - multinomial
 Gammasum = sum(Gamma);
@@ -148,11 +161,13 @@ for k = 1:K
     else npred = Q*length(orders);
     end
     hmm.state(k).W = struct('Mu_W',[],'S_W',[]);
-    if order>0 || ~train.zeromean || [isfield(train,'distribution') && strcmp(train.distribution,'logistic')]
+  
+    if do_HMM_pca || order>0 || ~train.zeromean || ...
+            (isfield(train,'distribution') && strcmp(train.distribution,'logistic'))
         if train.uniqueAR || ndim==1 % it is assumed that order>0 and cov matrix is diagonal
             XY = zeros(npred+(~train.zeromean),1);
             XGX = zeros(npred+(~train.zeromean));
-            for n=1:ndim
+            for n = 1:ndim
                 ind = n:ndim:size(XX,2);
                 XGX = XGX + XXGXX{k}(ind,ind);
                 XY = XY + (XX(:,ind)' .* repmat(Gamma(:,k)',length(ind),1)) * residuals(:,n);
@@ -166,7 +181,17 @@ for k = 1:K
                 hmm.state(k).W.Mu_W = hmm.state(k).W.S_W * XY; % order by 1
             end
             
-        elseif strcmp(train.covtype,'uniquediag') || strcmp(train.covtype,'diag') || [isfield(train,'distribution') && strcmp(train.distribution,'logistic')]
+        elseif do_HMM_pca
+            [hmm.state(k).W.Mu_W,Xpca] = pca(XX,'NumComponents',p,'Weights',Gamma(:,k),'Centered',false);
+            hmm.state(k).W.iS_W = zeros(ndim,p,p);
+            hmm.state(k).W.S_W = zeros(ndim,p,p);      
+            for n = 1:ndim
+                hmm.state(k).W.iS_W(n,:,:) = (Xpca' .* repmat(Gamma(:,k)',p,1)) * Xpca + 0.01*eye(p);
+                hmm.state(k).W.S_W(n,:,:) =  diag(1 ./ diag(permute(hmm.state(k).W.iS_W(n,:,:),[2 3 1])));
+            end
+            
+        elseif strcmp(train.covtype,'uniquediag') || strcmp(train.covtype,'diag') || ...
+                (isfield(train,'distribution') && strcmp(train.distribution,'logistic'))
             hmm.state(k).W.Mu_W = zeros((~train.zeromean)+npred,ndim);
             hmm.state(k).W.iS_W = zeros(ndim,(~train.zeromean)+npred,(~train.zeromean)+npred);
             hmm.state(k).W.S_W = zeros(ndim,(~train.zeromean)+npred,(~train.zeromean)+npred);
@@ -190,7 +215,7 @@ end
 % Omega
 if strcmp(hmm.train.covtype,'uniquediag') && hmm.train.uniqueAR
     hmm.Omega.Gam_rate = hmm.prior.Omega.Gam_rate;
-    for k=1:K
+    for k = 1:K
         XW = zeros(size(XX,1),ndim);
         for n=1:ndim
             ind = n:ndim:size(XX,2);
@@ -202,11 +227,21 @@ if strcmp(hmm.train.covtype,'uniquediag') && hmm.train.uniqueAR
     end
     hmm.Omega.Gam_shape = hmm.prior.Omega.Gam_shape + Tres / 2;
     
+elseif do_HMM_pca
+    hmm.Omega.Gam_rate = 0.001;
+    hmm.Omega.Gam_shape = 0.001;
+    for k = 1:K
+        W = hmm.state(k).W.Mu_W;
+        e = sum(repmat(Gamma(:,k),1,ndim) .* (XX - XX * W * W').^2,2);
+        hmm.Omega.Gam_rate = hmm.Omega.Gam_rate + 0.5 * sum(e);
+        hmm.Omega.Gam_shape = hmm.Omega.Gam_shape + 0.5 * Gammasum(k) * ndim;
+    end
+    
 elseif strcmp(hmm.train.covtype,'uniquediag')
     hmm.Omega.Gam_shape = hmm.prior.Omega.Gam_shape + Tres / 2;
     hmm.Omega.Gam_rate = zeros(1,ndim);
     hmm.Omega.Gam_rate(regressed) = hmm.prior.Omega.Gam_rate(regressed);
-    for k=1:hmm.K
+    for k = 1:hmm.K
         if ~isempty(hmm.state(k).W.Mu_W(:,regressed))
             e = residuals(:,regressed) - XX * hmm.state(k).W.Mu_W(:,regressed);
         else
@@ -220,7 +255,7 @@ elseif strcmp(hmm.train.covtype,'uniquefull')
     hmm.Omega.Gam_shape = hmm.prior.Omega.Gam_shape + Tres;
     hmm.Omega.Gam_rate = zeros(ndim,ndim); hmm.Omega.Gam_irate = zeros(ndim,ndim);
     hmm.Omega.Gam_rate(regressed,regressed) = hmm.prior.Omega.Gam_rate(regressed,regressed);
-    for k=1:hmm.K
+    for k = 1:hmm.K
         if ~isempty(hmm.state(k).W.Mu_W(:,regressed))
             e = residuals(:,regressed) - XX * hmm.state(k).W.Mu_W(:,regressed);
         else
@@ -244,7 +279,7 @@ elseif ~isfield(hmm.train,'distribution') || ~strcmp(hmm.train.distribution,'log
             hmm.state(k).Omega.Gam_rate = hmm.state(k).prior.Omega.Gam_rate + ...
                 0.5* sum( repmat(Gamma(:,k),1,ndim) .* e );
             hmm.state(k).Omega.Gam_shape = hmm.state(k).prior.Omega.Gam_shape + Gammasum(k) / 2;
-            
+
         elseif strcmp(train.covtype,'diag')
             if ~isempty(hmm.state(k).W.Mu_W)
                 e = (residuals(:,regressed) - XX * hmm.state(k).W.Mu_W(:,regressed)).^2;
@@ -275,8 +310,8 @@ elseif ~isfield(hmm.train,'distribution') || ~strcmp(hmm.train.distribution,'log
 end
 
 %%% Priors
-if ~pcapred
-    for k=1:K
+if ~pcapred && ~do_HMM_pca
+    for k = 1:K
         if hmm.train.order>0 && isempty(hmm.train.prior)
             hmm.state(k).alpha.Gam_shape = hmm.state(k).prior.alpha.Gam_shape;
             hmm.state(k).alpha.Gam_rate = hmm.state(k).prior.alpha.Gam_rate;
@@ -288,12 +323,12 @@ if ~pcapred
     hmm = updateAlpha(hmm);
     if isfield(train,'distribution') && strcmp(train.distribution,'logistic')
         if train.logisticYdim>1
-            for k=1:train.K
+            for k = 1:train.K
                 hmm.state(k).alpha.Gam_rate = repmat(hmm.state(k).alpha.Gam_rate(1:ndim_n,end),1,train.logisticYdim);
             end
         end
     end
-else
+elseif pcapred
     hmm = updateBeta(hmm);
 end
 

@@ -46,6 +46,7 @@ if nargin<6 || isempty(preproc), preproc = 1; end
 % end
 
 stochastic_learn = isfield(hmm.train,'BIGNbatch') && hmm.train.BIGNbatch < length(T);
+p = hmm.train.lowrank; do_HMM_pca = (p > 0);
 
 if xor(iscell(data),iscell(T)), error('data and T must be cells, either both or none of them.'); end
 if stochastic_learn
@@ -158,7 +159,7 @@ Xi = [];
 
 K = length(hmm.state);
 
-if isempty(residuals)
+if isempty(residuals) && ~do_HMM_pca
     if ~isfield(hmm.train,'Sind')
         orders = formorders(hmm.train.order,hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag);
         hmm.train.Sind = formindexes(orders,hmm.train.S);
@@ -205,7 +206,11 @@ if hmm.train.useParallel==1 && N>1
         else t0 = sum(T(1:n-1)); s0 = t0 - order*(n-1);
         end
         
-        B = obslike(data(t0+1:t0+T(n),:),hmm,residuals(s0+1:s0+T(n)-order,:));
+        if do_HMM_pca
+            B = obslike(data(t0+1:t0+T(n),:),hmm,[]);
+        else
+            B = obslike(data(t0+1:t0+T(n),:),hmm,residuals(s0+1:s0+T(n)-order,:));
+        end
         B(B<realmin) = realmin;
         
         % Scaling for delta
@@ -301,7 +306,11 @@ else
         else t0 = sum(T(1:n-1)); s0 = t0 - order*(n-1);
         end
         
-        B = obslike(data(t0+1:t0+T(n),:),hmm,residuals(s0+1:s0+T(n)-order,:));
+        if do_HMM_pca
+            B = obslike(data(t0+1:t0+T(n),:),hmm,[]);
+        else
+            B = obslike(data(t0+1:t0+T(n),:),hmm,residuals(s0+1:s0+T(n)-order,:));
+        end
         B(B<realmin) = realmin;
         
         scale=zeros(T(n),1);

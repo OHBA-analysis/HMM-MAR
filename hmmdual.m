@@ -34,6 +34,7 @@ if iscell(T)
 end
 checkdatacell;
 N = length(T);
+p = hmm.train.lowrank; do_HMM_pca = (p > 0);
 
 train = hmm.train;
 checkdatacell;
@@ -93,7 +94,7 @@ if train.downsample > 0
     [data,T] = downsampledata(data,T,train.downsample,train.Fs);
 end
 
-if isempty(residuals)
+if isempty(residuals) && ~do_HMM_pca
     if ~isfield(hmm.train,'Sind')
         orders = formorders(hmm.train.order,hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag);
         hmm.train.Sind = formindexes(orders,hmm.train.S);

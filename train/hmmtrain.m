@@ -121,7 +121,6 @@ for cycle = 1:hmm.train.cyc
     % Observation model
     if hmm.train.updateObs
         hmm = obsupdate(T,Gamma,hmm,residuals,XX,XXGXX);
-        
     end
     
     % Transition matrices and initial state
@@ -185,6 +184,11 @@ for cycle = 1:hmm.train.cyc
 %     end
     
 end
+
+%p = hmm.train.lowrank; do_HMM_pca = (p > 0);
+%if do_HMM_pca
+%    hmm = hmmrotatepca(hmm,Gamma,XXGXX);
+%end
 
 for k = 1:K
     if isfield(hmm.state(k),'cache')

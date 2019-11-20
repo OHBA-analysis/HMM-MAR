@@ -76,7 +76,6 @@ maxorder = options.maxorder;
 cv = zeros(nfolds,1);
 rcv_rand = zeros(nfolds,1);
 rcv_train = zeros(nfolds,1);
-mcv = 0; rmcv_rand = 0; rmcv_train = 0;
 
 %%% Preprocessing
 % Standardise data and control for ackward trials

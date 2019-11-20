@@ -55,6 +55,7 @@ if MLestimation && isfield(options,'zeromean') && options.zeromean == 0
    warning('The use of zeromean=0 is unrecommended here - better restart and set options.zeromean=1') 
    pause(2)
 end
+if ~isfield(options,'lowrank'), options.lowrank = 0; end
 
 % Adjust options of the hmm
 if MLestimation
@@ -77,6 +78,7 @@ if MLestimation
     hmm.train.orderoffset = 0;
     hmm.train.timelag = 1; 
     hmm.train.exptimelag = 0; 
+    hmm.train.lowrank = 0; 
     if isfield(options,'zeromean') 
         hmm.train.zeromean = options.zeromean; 
     else

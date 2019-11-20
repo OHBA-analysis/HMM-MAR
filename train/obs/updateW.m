@@ -7,11 +7,12 @@ else
     XW = [];
 end
 if nargin<6, Tfactor = 1; end
-reweight = 0; % compensate for classes that have fewer instances?  % compensate for classes that have fewer instances?  % compensate for classes that have fewer instances?  % compensate for classes that have fewer instances?  % compensate for classes that have fewer instances?  
+reweight = 0; % compensate for classes that have fewer instances?  
 if isfield(hmm.train,'B'), Q = size(hmm.train.B,2);
 else Q = ndim; end
 pcapred = hmm.train.pcapred>0;
 if pcapred, M = hmm.train.pcapred; end
+p = hmm.train.lowrank; do_HMM_pca = (p > 0);
 
 if reweight % assumes there are two classes, encoded by -1 and 1   
     count = zeros(2,1); 
@@ -23,7 +24,7 @@ for k = 1:K
     
     if ~hmm.train.active(k), continue; end
     setstateoptions;
-    if isempty(orders) && train.zeromean, continue; end
+    if isempty(orders) && train.zeromean && ~do_HMM_pca, continue; end
     if strcmp(train.covtype,'diag') || strcmp(train.covtype,'full'), omega = hmm.state(k).Omega;
     elseif ~isfield(train,'distribution') || ~strcmp(train.distribution,'logistic'), omega = hmm.Omega;
     end
@@ -38,7 +39,7 @@ for k = 1:K
     end
   
     if train.uniqueAR || ndim==1 % it is assumed that order>0 and cov matrix is diagonal
-        if hmm.train.pcapred>0, npred = hmm.train.pcapred;
+        if hmm.train.pcapred > 0, npred = hmm.train.pcapred;
         else npred = length(orders);
         end
         XY = zeros(npred+(~train.zeromean),1);
@@ -74,6 +75,36 @@ for k = 1:K
             XW(:,n,k) = XX(:,ind) * hmm.state(k).W.Mu_W;
         end
         
+     elseif do_HMM_pca
+     
+        % unlike Bishop's mixture of PCA, we don't have a mean vector per state here 
+        %SW = sum(permute(hmm.state(k).W.S_W,[2 3 1]),3); 
+        %v = omega.Gam_rate / omega.Gam_shape;
+        %iv = omega.Gam_shape / omega.Gam_rate;
+        %Xmu = (hmm.state(k).W.Mu_W' * hmm.state(k).W.Mu_W + SW + v*eye(p)) \ hmm.state(k).W.Mu_W' * XX'; 
+        %Xmu = Xmu';
+        %for n = 1:ndim
+        %    regterm = diag(hmm.state(k).beta.Gam_shape ./ hmm.state(k).beta.Gam_rate(n,:)); % p x p
+        %    iS = regterm + Tfactor * iv * (Xmu' .* repmat(Gamma(:,k)',p,1)) * Xmu; 
+        %    iS = (iS + iS') / 2; % ensuring symmetry
+        %    S = inv(iS);
+        %    hmm.state(k).W.iS_W(n,:,:) = iS;
+        %    hmm.state(k).W.S_W(n,:,:) = S;
+        %    hmm.state(k).W.Mu_W(n,:) = ((( S * Tfactor * iv * Xmu') .* repmat(Gamma(:,k)',p,1)) * XX(:,n));
+        %end
+        
+        % unlike Bishop's mixture of PCA, we don't have a mean vector per state here
+        v = omega.Gam_rate / omega.Gam_shape;
+        W = hmm.state(k).W.Mu_W;
+        SW = XXGXX{k} * W / sum(Gamma(:,k));
+        M = W'*W+v*eye(p);
+        iS_W = v*eye(p)+M\W'*SW; S_W = inv(iS_W);
+        hmm.state(k).W.Mu_W = SW/(iS_W);
+        for n = 1:ndim
+            hmm.state(k).W.iS_W(n,:,:) = iS_W;
+            hmm.state(k).W.S_W(n,:,:) = S_W;
+        end
+
     elseif strcmp(train.covtype,'diag') || strcmp(train.covtype,'uniquediag')
         for n = 1:ndim
             ndim_n = sum(S(:,n)>0);
@@ -82,7 +113,7 @@ for k = 1:K
             if ~train.zeromean, regterm = hmm.state(k).prior.Mean.iS(n); end
             if ~isempty(orders)
                 if pcapred
-                    regterm = [regterm; hmm.state(k).beta.Gam_shape(:,n) ./ hmm.state(k).beta.Gam_rate(:,n)];
+                    regterm = [regterm; hmm.state(k).beta.Gam_shape ./ hmm.state(k).beta.Gam_rate(:,n)];
                 else
                     alphaterm = repmat( (hmm.state(k).alpha.Gam_shape ./  hmm.state(k).alpha.Gam_rate), ndim_n, 1);
                     if ndim>1
@@ -97,8 +128,8 @@ for k = 1:K
             regterm = diag(regterm);
             hmm.state(k).W.iS_W(n,Sind(:,n),Sind(:,n)) = ...
                 regterm + Tfactor * (omega.Gam_shape / omega.Gam_rate(n)) * XXGXX{k}(Sind(:,n),Sind(:,n));
-            hmm.state(k).W.iS_W(n,Sind(:,n),Sind(:,n)) = (squeeze(hmm.state(k).W.iS_W(n,Sind(:,n),Sind(:,n))) + ...
-                squeeze(hmm.state(k).W.iS_W(n,Sind(:,n),Sind(:,n)))' ) / 2;
+            hmm.state(k).W.iS_W(n,Sind(:,n),Sind(:,n)) = (permute(hmm.state(k).W.iS_W(n,Sind(:,n),Sind(:,n)),[2 3 1]) + ...
+                permute(hmm.state(k).W.iS_W(n,Sind(:,n),Sind(:,n)),[2 3 1])' ) / 2; % ensuring symmetry
             hmm.state(k).W.S_W(n,Sind(:,n),Sind(:,n)) = ...
                 inv(permute(hmm.state(k).W.iS_W(n,Sind(:,n),Sind(:,n)),[2 3 1]));
             hmm.state(k).W.Mu_W(Sind(:,n),n) = (( permute(hmm.state(k).W.S_W(n,Sind(:,n),Sind(:,n)),[2 3 1]) * ...
@@ -111,10 +142,9 @@ for k = 1:K
         
         % Set Y and X: 
         Xdim = size(XX,2)-hmm.train.logisticYdim;
-        X=XX(:,1:Xdim);
-        Y=residuals;
+        X = XX(:,1:Xdim);
+        Y = residuals;
         vp = Y~=0; % for multinomial logistic regression, only include valid points
-        T=size(X,1);
         if hmm.train.balancedata
             w=(1/(hmm.train.origlogisticYdim))*sum(Gamma(:,k))./(sum([Y==1] .* Gamma(:,k)));%(1+hmm.train.origlogisticYdim));
             w_star=((hmm.train.origlogisticYdim-1)/hmm.train.origlogisticYdim)*sum(Gamma(:,k))./(sum([Y==-1] .* Gamma(:,k)));
@@ -131,7 +161,7 @@ for k = 1:K
         lambdafunc = @(psi_t) ((2*psi_t).^-1).*(log_sigmoid(psi_t)-0.5);
         
         %select functioning channels:
-        for n=1:ndim
+        for n = 1:ndim
             ndim_n = sum(S(:,n));
             if ndim_n==0, continue; end
             WW=cell(K,1);

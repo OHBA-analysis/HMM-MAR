@@ -19,10 +19,14 @@ Q = 1;
 defhmmprior=struct('Dir2d_alpha',[],'Dir_alpha',[]);
 defhmmprior.Dir_alpha = hmm.train.PriorWeightingPi * ones(1,hmm.K);
 defhmmprior.Dir_alpha(~hmm.train.Pistructure) = 0;
-defhmmprior.Dir2d_alpha = ones(hmm.K);
-defhmmprior.Dir2d_alpha(eye(hmm.K)==1) = hmm.train.DirichletDiag;
-defhmmprior.Dir2d_alpha(~hmm.train.Pstructure) = 0;
-defhmmprior.Dir2d_alpha = hmm.train.PriorWeightingP .* defhmmprior.Dir2d_alpha;
+if hmm.train.cluster
+    defhmmprior.Dir2d_alpha = eye(hmm.K);
+else
+    defhmmprior.Dir2d_alpha = ones(hmm.K);
+    defhmmprior.Dir2d_alpha(eye(hmm.K)==1) = hmm.train.DirichletDiag;
+    defhmmprior.Dir2d_alpha(~hmm.train.Pstructure) = 0;
+    defhmmprior.Dir2d_alpha = hmm.train.PriorWeightingP .* defhmmprior.Dir2d_alpha;
+end
 % assigning default priors for hidden states
 if ~isfield(hmm,'prior')
     hmm.prior = defhmmprior;
@@ -45,7 +49,6 @@ else
     if Q==1
         hmm.Dir_alpha = zeros(1,hmm.K);
         hmm.Dir_alpha(kk) = hmm.train.PriorWeightingPi;
-        hmm.Dir_alpha(kk) = hmm.Dir_alpha(kk);
         hmm.Pi = zeros(1,hmm.K);
         hmm.Pi(kk) = ones(1,sum(kk)) / sum(kk);
     else
@@ -55,15 +58,20 @@ else
         hmm.Pi(kk,:) = ones(sum(kk),Q) / sum(kk);
     end
     % State transitions
-    hmm.Dir2d_alpha = zeros(hmm.K,hmm.K,Q);
-    hmm.P = zeros(hmm.K,hmm.K,Q);
-    for i = 1:Q
-        for k = 1:hmm.K
-            kk = hmm.train.Pstructure(k,:);
-            hmm.Dir2d_alpha(k,kk,i) = 1;
-            hmm.Dir2d_alpha(k,k,i) = hmm.train.DirichletDiag;
-            hmm.Dir2d_alpha(k,kk,i) = hmm.train.PriorWeightingP .* hmm.Dir2d_alpha(k,kk,i);
-            hmm.P(k,kk,i) = hmm.Dir2d_alpha(k,kk,i) ./ sum(hmm.Dir2d_alpha(k,kk,i));
+    if hmm.train.cluster
+        hmm.Dir2d_alpha = eye(hmm.K);
+        hmm.P = eye(hmm.K);
+    else
+        hmm.Dir2d_alpha = zeros(hmm.K,hmm.K,Q);
+        hmm.P = zeros(hmm.K,hmm.K,Q);
+        for i = 1:Q
+            for k = 1:hmm.K
+                kk = hmm.train.Pstructure(k,:);
+                hmm.Dir2d_alpha(k,kk,i) = 1;
+                hmm.Dir2d_alpha(k,k,i) = hmm.train.DirichletDiag;
+                hmm.Dir2d_alpha(k,kk,i) = hmm.train.PriorWeightingP .* hmm.Dir2d_alpha(k,kk,i);
+                hmm.P(k,kk,i) = hmm.Dir2d_alpha(k,kk,i) ./ sum(hmm.Dir2d_alpha(k,kk,i));
+            end
         end
     end
 end

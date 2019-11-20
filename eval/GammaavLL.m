@@ -10,6 +10,7 @@ Q = 1;
 N = length(T);
 order = (sum(T) - size(Gamma,1))/N;
 avLL = 0; K = size(Gamma,2);
+do_clustering = isfield(hmm.train,'cluster') && hmm.train.cluster;    
 
 % avLL initial state % DEPRECATED
 % if Q>1
@@ -29,7 +30,7 @@ avLL = 0; K = size(Gamma,2);
 %     end
 % end
 
-if ~isempty(Xi) % a proper HMM
+if ~isempty(Xi) && ~do_clustering % a proper HMM
     
     jj = zeros(N,1); % reference to first time point of the segments
     for in = 1:N

@@ -21,6 +21,7 @@ function [Gamma,Gammasum,Xi,LL,B] = hsinference(data,T,hmm,residuals,options,XX)
 
 N = length(T);
 K = length(hmm.state);
+p = hmm.train.lowrank; do_HMM_pca = (p > 0);
 
 mixture_model = isfield(hmm.train,'id_mixture') && hmm.train.id_mixture;
 
@@ -40,7 +41,7 @@ if ~isstruct(data)
     data.C = NaN(size(data.X,1)-order*length(T),K);
 end
 
-if nargin<4 || isempty(residuals)
+if ~do_HMM_pca && (nargin<4 || isempty(residuals))
     ndim = size(data.X,2);
     if ~isfield(hmm.train,'Sind')
         orders = formorders(hmm.train.order,hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag);
@@ -49,6 +50,10 @@ if nargin<4 || isempty(residuals)
     if ~hmm.train.zeromean, hmm.train.Sind = [true(1,ndim); hmm.train.Sind]; end
     residuals =  getresiduals(data.X,T,hmm.train.Sind,hmm.train.maxorder,hmm.train.order,...
         hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag,hmm.train.zeromean);
+elseif do_HMM_pca
+    ndim = size(data.X,2);
+else
+    ndim = size(residuals,2);
 end
 
 if ~isfield(hmm,'P')
@@ -70,8 +75,6 @@ end
 B = cell(N,1);
 
 n_argout = nargout;
-
-ndim = size(residuals,2);
 S = hmm.train.S==1;
 regressed = sum(S,1)>0;
 
@@ -85,8 +88,8 @@ for k = 1:K
     hmm.cache.Sind{k} = Sind;
     hmm.cache.S{k} = S;
    
-    if k == 1 && strcmp(train.covtype,'uniquediag')
-        ldetWishB=0;
+    if k == 1 && strcmp(train.covtype,'uniquediag') && ~do_HMM_pca
+        ldetWishB = 0;
         PsiWish_alphasum = 0;
         for n = 1:ndim
             if ~regressed(n), continue; end
@@ -105,7 +108,7 @@ for k = 1:K
     elseif strcmp(train.covtype,'diag')
         ldetWishB=0;
         PsiWish_alphasum = 0;
-        for n=1:ndim
+        for n = 1:ndim
             if ~regressed(n), continue; end
             ldetWishB = ldetWishB+0.5*log(hmm.state(k).Omega.Gam_rate(n));
             PsiWish_alphasum = PsiWish_alphasum+0.5*psi(hmm.state(k).Omega.Gam_shape);
@@ -119,11 +122,10 @@ for k = 1:K
         end
         C = hmm.state(k).Omega.Gam_shape * hmm.state(k).Omega.Gam_irate;
     end
-    if ~isfield(train,'distribution') || ~strcmp(train.distribution,'logistic')
+    if  ~do_HMM_pca && (~isfield(train,'distribution') || ~strcmp(train.distribution,'logistic'))
         hmm.cache.ldetWishB{k} = ldetWishB;
         hmm.cache.PsiWish_alphasum{k} = PsiWish_alphasum;
         hmm.cache.C{k} = C;
-        hmm.cache.do_normwishtrace(k) = ~isempty(hmm.state(k).W.Mu_W);
     end
 end
 
@@ -133,7 +135,7 @@ if hmm.train.useParallel==1 && N>1
     % any other way - more Matlab's fault than mine
     parfor j = 1:N
         xit = [];
-        Bt = [];  
+        Bt = [];
         t0 = sum(T(1:j-1)); s0 = t0 - order*(j-1);
         if order>0
             R = [zeros(order,size(residuals,2));  residuals(s0+1:s0+T(j)-order,:)];
@@ -143,9 +145,13 @@ if hmm.train.useParallel==1 && N>1
                 C = NaN(size(R,1),K);
             end
         else
-            R = residuals(s0+1:s0+T(j)-order,:);
+            if do_HMM_pca
+                R = XX(s0+1:s0+T(j),:);
+            else
+                R = residuals(s0+1:s0+T(j),:);
+            end
             if isfield(data,'C')
-                C = data.C(s0+1:s0+T(j)-order,:);
+                C = data.C(s0+1:s0+T(j),:);
             else
                 C = NaN(size(R,1),K);
             end
@@ -217,9 +223,13 @@ else
                 C = NaN(size(R,1),K);
             end
         else
-            R = residuals(s0+1:s0+T(j)-order,:);
+            if do_HMM_pca
+                R = XX(s0+1:s0+T(j),:);
+            else
+                R = residuals(s0+1:s0+T(j),:);
+            end
             if isfield(data,'C')
-                C = data.C(s0+1:s0+T(j)-order,:);
+                C = data.C(s0+1:s0+T(j),:);
             else
                 C = NaN(size(R,1),K);
             end
@@ -318,6 +328,7 @@ if isfield(hmm.train,'distribution') && strcmp(hmm.train.distribution,'logistic'
 else order = hmm.train.maxorder; end
 T = size(residuals,1) + order;
 Xi = [];
+p = hmm.train.lowrank; do_HMM_pca = (p > 0);
 
 if nargin<5
     slicepoints=[];

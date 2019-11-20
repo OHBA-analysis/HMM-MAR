@@ -84,6 +84,7 @@ else % data can be a cell or a matrix
     checkdatacell;
 end
 [options,data] = checkoptions(options,data,T,0);
+do_HMM_pca = (options.lowrank > 0);
 
 ver = version('-release');
 oldMatlab = ~isempty(strfind(ver,'2010')) || ~isempty(strfind(ver,'2010')) ...
@@ -209,7 +210,6 @@ else
     if options.detrend
        data = detrenddata(data,T); 
     end
-
     % Leakage correction
     if options.leakagecorr ~= 0 
         data = leakcorr(data,T,options.leakagecorr);
@@ -344,6 +344,8 @@ else
         if ~isfield(options,'distribution') || ~strcmp(options.distribution,'logistic')
             residuals_wr = getresiduals(data.X,T,hmm_wr.train.Sind,hmm_wr.train.maxorder,hmm_wr.train.order,...
                 hmm_wr.train.orderoffset,hmm_wr.train.timelag,hmm_wr.train.exptimelag,hmm_wr.train.zeromean);
+        elseif do_HMM_pca
+            residuals_wr = [];
         else
             residuals_wr = getresidualslogistic(data.X,T,options.logisticYdim); 
         end

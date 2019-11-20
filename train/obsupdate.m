@@ -14,13 +14,14 @@ function hmm = obsupdate (T,Gamma,hmm,residuals,XX,XXGXX,Tfactor)
 %
 % Author: Diego Vidaurre, OHBA, University of Oxford
 
-K=hmm.K;
+K = hmm.K;
 
 obs_tol = 0.00005;
 obs_maxit = 1; %20;
 mean_change = Inf;
 obs_it = 1;
 %fehist=0;
+p = hmm.train.lowrank; do_HMM_pca = (p > 0);
 
 % Some stuff that will be later used
 Gammasum = sum(Gamma);
@@ -33,15 +34,18 @@ if ~isfield(hmm.train,'distribution') || ~strcmp(hmm.train.distribution,'logisti
 
         %%% W
         [hmm,XW] = updateW(hmm,Gamma,residuals,XX,XXGXX,Tfactor);
-
+        %XW = zeros(sum(T),size(hmm.state(1).W.Mu_W,1),K);
+        %for k = 1:K, XW(:,:,k) = XX * hmm.state(k).W.Mu_W * hmm.state(k).W.Mu_W'; end
+        
         %%% Omega
         hmm = updateOmega(hmm,Gamma,Gammasum,residuals,T,XX,XXGXX,XW,Tfactor);
+        %disp(num2str(hmm.Omega.Gam_rate / hmm.Omega.Gam_shape))
 
         %%% autoregression coefficient priors
-        if isfield(hmm.train,'V') && ~isempty(hmm.train.V)
-            %%% beta - one per autoregression coefficient
+        if (isfield(hmm.train,'V') && ~isempty(hmm.train.V))
+            %%% beta - one per regression coefficient
             hmm = updateBeta(hmm);
-        else
+        elseif ~do_HMM_pca
             %%% sigma - channel x channel coefficients
             hmm = updateSigma(hmm);    
             %%% alpha - one per order
@@ -60,15 +64,15 @@ if ~isfield(hmm.train,'distribution') || ~strcmp(hmm.train.distribution,'logisti
 else
     obs_maxit = 1;
     if isfield(hmm,'psi')
-        hmm=rmfield(hmm,'psi');
+        hmm = rmfield(hmm,'psi');
     end
-    while mean_change>obs_tol && obs_it<=obs_maxit,
+    while mean_change>obs_tol && obs_it<=obs_maxit
         
         last_state = hmm.state;
-        hmm_orig=hmm;
+        hmm_orig = hmm;
         for iY = 1:hmm.train.logisticYdim
             hmm_marginalised = logisticMarginaliseHMM(hmm,iY);
-            xdim=hmm_marginalised.train.ndim-1;
+            xdim = hmm_marginalised.train.ndim-1;
             %%% W
             [hmm_temp,~] = updateW(hmm_marginalised,Gamma,residuals(:,iY),XX(:,[1:xdim,xdim+iY]),XXGXX);
         

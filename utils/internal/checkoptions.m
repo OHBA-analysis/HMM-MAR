@@ -399,6 +399,8 @@ if length(options.embeddedlags)==1 && options.pca_spatial>0
 end
 if ~isfield(options,'covtype') && options.leida 
     options.covtype = 'uniquediag'; 
+elseif ~isfield(options,'covtype') && options.lowrank>0
+    options.covtype = 'uniquediag'; 
 elseif ~isfield(options,'covtype') && (ndim==1 || (isfield(options,'S') && ~isempty(options.S) && ~all(options.S==1)))
     options.covtype = 'diag'; 
 elseif ~isfield(options,'covtype') && ndim>1, options.covtype = 'full'; 
@@ -478,7 +480,7 @@ if options.uniqueAR && ~options.zeromean
     error('When unique==1, modelling the mean is not yet supported')
 end
 if (strcmp(options.covtype,'uniquediag') || strcmp(options.covtype,'uniquefull')) && ...
-        options.order == 0 && options.zeromean == 1
+        options.order == 0 && options.zeromean == 1 && options.lowrank == 0
    error('Unique covariance matrix, order=0 and no mean modelling: there is nothing left to drive the states..') 
 end
 
@@ -489,11 +491,11 @@ else
 end
 if ~options.zeromean, options.Sind = [true(1,ndim); options.Sind]; end
 
-if ~strcmp(options.covtype,'full') && options.lowrank > 0 
-    error('lowrank can only be used for covtype=full')
+if ~strcmp(options.covtype,'uniquediag') && options.lowrank > 0 
+    error('lowrank can only be used for covtype=uniquediag')
 end
 if options.zeromean==0 && options.lowrank > 0 
-    error('lowrank can only be used for zeromean=1')
+    error('Currently, lowrank can only be used for zeromean=1')
 end
 if options.order > 1 && options.lowrank > 0 
     error('lowrank can only be used for order=0')

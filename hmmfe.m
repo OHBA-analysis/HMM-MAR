@@ -17,6 +17,7 @@ function fe = hmmfe(data,T,hmm,Gamma,Xi,preproc,grouping)
 % to fix potential compatibility issues with previous versions
 hmm = versCompatibilityFix(hmm); 
 mixture_model = isfield(hmm.train,'id_mixture') && hmm.train.id_mixture;
+p = hmm.train.lowrank; do_HMM_pca = (p > 0);
 
 if nargin<4, Gamma = []; end 
 if nargin<5, Xi = []; end 
@@ -100,7 +101,7 @@ if preproc && ~stochastic_learn
 end
 
 % get residuals
-if ~stochastic_learn
+if ~stochastic_learn && ~do_HMM_pca
     if isfield(hmm.state(1),'W')
         ndim = size(hmm.state(1).W.Mu_W,2);
     else

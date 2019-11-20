@@ -23,13 +23,18 @@ function [FrEn,avLL] = evalfreeenergy(X,T,Gamma,Xi,hmm,residuals,XX,todo)
 if nargin<8, todo = ones(1,5); end
 
 mixture_model = isfield(hmm.train,'id_mixture') && hmm.train.id_mixture;
+p = hmm.train.lowrank; do_HMM_pca = (p > 0);
 
 K = length(hmm.state);
 if (nargin<7 || isempty(XX)) && todo(2)==1
     setxx; % build XX and get orders
 end
 if isfield(hmm.state(1),'W')
-    ndim = size(hmm.state(1).W.Mu_W,2);
+    if do_HMM_pca
+        ndim = size(hmm.state(1).W.Mu_W,1);
+    else
+        ndim = size(hmm.state(1).W.Mu_W,2);
+    end
 else
     ndim = size(hmm.state(1).Omega.Gam_rate,2);
 end
@@ -43,7 +48,7 @@ S = hmm.train.S==1;
 regressed = sum(S,1)>0;
 ltpi = sum(regressed)/2 * log(2*pi);
 
-if (nargin<6 || isempty(residuals)) && todo(2)==1
+if ~do_HMM_pca && (nargin<6 || isempty(residuals)) && todo(2)==1
     if ~isfield(hmm.train,'Sind')
         orders = formorders(hmm.train.order,hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag);
         hmm.train.Sind = formindexes(orders,hmm.train.S); 
@@ -74,7 +79,12 @@ end
 % state KL
 KLdiv = [];
 if todo(5)==1
-    if strcmp(hmm.train.covtype,'uniquediag')
+    
+    if do_HMM_pca
+        OmegaKL = gamma_kl(hmm.Omega.Gam_shape,hmm.prior.Omega.Gam_shape, ...
+                hmm.Omega.Gam_rate,hmm.prior.Omega.Gam_rate);
+        KLdiv = [KLdiv OmegaKL];
+    elseif strcmp(hmm.train.covtype,'uniquediag') 
         OmegaKL = 0;
         for n = 1:ndim
             if ~regressed(n), continue; end
@@ -88,11 +98,13 @@ if todo(5)==1
             hmm.Omega.Gam_shape,hmm.prior.Omega.Gam_shape);
         KLdiv = [KLdiv OmegaKL];
     end
+    
     for k = 1:K
-        hs=hmm.state(k);
-        pr=hmm.state(k).prior;
+        hs = hmm.state(k);
+        pr = hmm.state(k).prior;
         setstateoptions;
         WKL = 0;
+        
         if ~isempty(hs.W.Mu_W)
             if train.uniqueAR || ndim==1
                 if ~isempty(train.prior)
@@ -122,8 +134,16 @@ if todo(5)==1
                     WKL = gauss_kl(hs.W.Mu_W, prior_mu, permute(hs.W.S_W,[2 3 1]), prior_var);
                 end
                 
+            elseif do_HMM_pca
+                %for n = 1:p
+                %    prior_prec = hs.beta.Gam_shape ./ hs.beta.Gam_rate(:,n);
+                %    prior_var = diag(1 ./ prior_prec);
+                %    WKL = WKL + gauss_kl(hs.W.Mu_W(:,n),zeros(ndim,1), ...
+                %        diag(hs.W.S_W(:,n,n)), prior_var);
+                %end
+                    
             elseif strcmp(train.covtype,'diag') || strcmp(train.covtype,'uniquediag')
-                for n=1:ndim
+                for n = 1:ndim
                     if ~regressed(n), continue; end
                     prior_prec = [];
                     if train.zeromean==0
@@ -131,7 +151,7 @@ if todo(5)==1
                     end
                     if ~isempty(orders)
                         if pcapred
-                            prior_prec = [prior_prec; (hs.beta.Gam_shape(:,n) ./ hs.beta.Gam_rate(:,n))];  
+                            prior_prec = [prior_prec; (hs.beta.Gam_shape ./ hs.beta.Gam_rate(:,n))];  
                         else
                             ndim_n = sum(S(:,n));
                             alphamat = repmat( (hs.alpha.Gam_shape ./  hs.alpha.Gam_rate), ndim_n, 1);
@@ -143,6 +163,7 @@ if todo(5)==1
                     WKL = WKL + gauss_kl(hs.W.Mu_W(Sind(:,n),n),zeros(sum(Sind(:,n)),1), ...
                         permute(hs.W.S_W(n,Sind(:,n),Sind(:,n)),[2 3 1]), prior_var);
                 end
+                
             else % full or uniquefull
                 prior_prec = [];
                 if train.zeromean==0
@@ -171,7 +192,7 @@ if todo(5)==1
         switch train.covtype
             case 'diag'
                 OmegaKL = 0;
-                for n=1:ndim
+                for n = 1:ndim
                     if ~regressed(n), continue; end
                     OmegaKL = OmegaKL + gamma_kl(hs.Omega.Gam_shape,hs.prior.Omega.Gam_shape, ...
                         hs.Omega.Gam_rate(n),hs.prior.Omega.Gam_rate(n));
@@ -187,16 +208,27 @@ if todo(5)==1
                 end
         end
         
+        KLdiv = [KLdiv OmegaKL WKL]; 
+        
+        %if do_HMM_pca
+        %    betaKL = 0;
+        %      for n1 = 1:ndim
+        %          for n2 = 1:p
+        %              betaKL = betaKL + gamma_kl(hs.beta.Gam_shape,pr.beta.Gam_shape, ...
+        %                  hs.beta.Gam_rate(n1,n2),pr.beta.Gam_rate(n1,n2));
+        %          end
+        %      end
+        %    KLdiv = [KLdiv betaKL];            
         if pcapred
             betaKL = 0; 
-            for n1=1:M
-                for n2=1:ndim
+            for n1 = 1:M
+                for n2 = 1:ndim
                     betaKL = betaKL + gamma_kl(hs.beta.Gam_shape(n1,n2),pr.beta.Gam_shape(n1,n2), ...
                         hs.beta.Gam_rate(n1,n2),pr.beta.Gam_rate(n1,n2));
                 end
             end
-            KLdiv = [KLdiv OmegaKL betaKL WKL];
-        else
+            KLdiv = [KLdiv betaKL];
+        elseif ~do_HMM_pca
             sigmaKL = 0;
             if isempty(train.prior) && ~isempty(orders) && ~train.uniqueAR && ndim>1
                 for n1=1:Q
@@ -214,7 +246,8 @@ if todo(5)==1
                         hs.alpha.Gam_rate(i),pr.alpha.Gam_rate(i));
                 end
             end
-            KLdiv = [KLdiv OmegaKL sigmaKL alphaKL WKL];
+            KLdiv = [KLdiv sigmaKL alphaKL];
+            
         end
     end
 end
@@ -222,14 +255,19 @@ end
 % data log likelihood
 avLL = []; savLL = [];
 if todo(2)==1
+    
     avLL = zeros(Tres,1);
-    if strcmp(hmm.train.covtype,'uniquediag')
+    if do_HMM_pca
+        ldetWishB = 0.5*log(hmm.Omega.Gam_rate);
+        PsiWish_alphasum = 0.5*psi(hmm.Omega.Gam_shape); 
+        avLL = avLL + (-ltpi-ldetWishB+PsiWish_alphasum);
+    elseif strcmp(hmm.train.covtype,'uniquediag')
         ldetWishB = 0;
         PsiWish_alphasum = 0;
         for n = 1:ndim
             if ~regressed(n), continue; end
-            ldetWishB=ldetWishB+0.5*log(hmm.Omega.Gam_rate(n));
-            PsiWish_alphasum=PsiWish_alphasum+0.5*psi(hmm.Omega.Gam_shape);
+            ldetWishB = ldetWishB+0.5*log(hmm.Omega.Gam_rate(n));
+            PsiWish_alphasum = PsiWish_alphasum+0.5*psi(hmm.Omega.Gam_shape);
         end
         C = hmm.Omega.Gam_shape ./ hmm.Omega.Gam_rate;
         avLL = avLL + (-ltpi-ldetWishB+PsiWish_alphasum);
@@ -242,19 +280,22 @@ if todo(2)==1
         C = hmm.Omega.Gam_shape * hmm.Omega.Gam_irate;
         avLL = avLL + (-ltpi-ldetWishB+PsiWish_alphasum+0.5*sum(regressed)*log(2));
     end
+    
     for k = 1:K
         hs = hmm.state(k);
         setstateoptions;
+        
         if strcmp(train.covtype,'diag')
             ldetWishB = 0;
-            PsiWish_alphasum=0;
-            for n=1:ndim
+            PsiWish_alphasum = 0;
+            for n = 1:ndim
                 if ~regressed(n), continue; end
                 ldetWishB=ldetWishB+0.5*log(hs.Omega.Gam_rate(n));
                 PsiWish_alphasum=PsiWish_alphasum+0.5*psi(hs.Omega.Gam_shape);
             end
             C = hs.Omega.Gam_shape ./ hs.Omega.Gam_rate;
             avLL = avLL + Gamma(:,k) * (-ltpi-ldetWishB+PsiWish_alphasum);
+            
         elseif strcmp(train.covtype,'full')
             ldetWishB=0.5*logdet(hs.Omega.Gam_rate(regressed,regressed));
             PsiWish_alphasum=0;
@@ -264,43 +305,64 @@ if todo(2)==1
             C = hs.Omega.Gam_shape * hs.Omega.Gam_irate;
             avLL = avLL + Gamma(:,k) * (-ltpi-ldetWishB+PsiWish_alphasum+0.5*sum(regressed)*log(2));
         end
-        meand = zeros(size(XX,1),sum(regressed)); % mean distance
-        if train.uniqueAR
-            for n=1:ndim
-                ind = n:ndim:size(XX,2);
-                meand(:,n) = XX(:,ind) * hs.W.Mu_W;
-            end
-        elseif ~isempty(hs.W.Mu_W)
-            meand = XX * hs.W.Mu_W(:,regressed);
-        end
-        d = residuals(:,regressed) - meand;
-        if strcmp(train.covtype,'diag') || strcmp(train.covtype,'uniquediag')
-            Cd =  repmat(C(regressed)',1,Tres) .* d';
+        
+        if do_HMM_pca
+            %SW = eye(ndim) * trace(permute(hmm.state(k).W.S_W(1,:,:),[2 3 1]));
+            C = (hmm.Omega.Gam_rate ./ hmm.Omega.Gam_shape) * eye(ndim) + ...
+                hmm.state(k).W.Mu_W * hmm.state(k).W.Mu_W';
+            iC = inv(C);
+            dist = - 0.5 * sum(XX * iC .* XX,2);
+            
         else
-            Cd = C(regressed,regressed) * d';
+            meand = zeros(size(XX,1),sum(regressed)); % mean distance
+            if train.uniqueAR
+                for n=1:ndim
+                    ind = n:ndim:size(XX,2);
+                    meand(:,n) = XX(:,ind) * hs.W.Mu_W;
+                end
+            elseif ~isempty(hs.W.Mu_W(:))
+                meand = XX * hs.W.Mu_W(:,regressed);
+            end
+            d = residuals(:,regressed) - meand;
+            if strcmp(train.covtype,'diag') || strcmp(train.covtype,'uniquediag')
+                Cd =  repmat(C(regressed)',1,Tres) .* d';
+            else
+                Cd = C(regressed,regressed) * d';
+            end
+            dist = zeros(Tres,1);
+            for n = 1:sum(regressed)
+                dist = dist - 0.5 * (d(:,n).*Cd(n,:)');
+            end
         end
-        dist=zeros(Tres,1);
-        for n=1:sum(regressed)
-            dist=dist-0.5*d(:,n).*Cd(n,:)';
-        end
-        NormWishtrace=zeros(Tres,1); % covariance of the distance
+        
+        NormWishtrace = zeros(Tres,1); % covariance of the distance
         if ~isempty(hs.W.Mu_W)
             switch train.covtype
                 case {'diag','uniquediag'}
-                    for n=1:ndim
-                        if ~regressed(n), continue; end
-                        if train.uniqueAR
-                            ind = n:ndim:size(XX,2);
-                            NormWishtrace = NormWishtrace + 0.5 * C(n) * ...
-                                sum( (XX(:,ind) * hs.W.S_W) .* XX(:,ind), 2);
-                        elseif ndim==1
-                            NormWishtrace = NormWishtrace + 0.5 * C(n) * ...
-                                sum( (XX(:,Sind(:,n)) * hs.W.S_W) ...
-                                .* XX(:,Sind(:,n)), 2);
-                        else
-                            NormWishtrace = NormWishtrace + 0.5 * C(n) * ...
-                                sum( (XX(:,Sind(:,n)) * permute(hs.W.S_W(n,Sind(:,n),Sind(:,n)),[2 3 1])) ...
-                                .* XX(:,Sind(:,n)), 2);
+                    if do_HMM_pca
+                        %SW = eye(ndim) * trace(permute(hs.W.S_W(1,:,:),[2 3 1]));
+                        %C = (hs.Omega.Gam_rate ./ hs.Omega.Gam_shape) * eye(ndim) + SW;
+                        %iC = inv(C);
+                        %for t = 1:T
+                        %    NormWishtrace(t) = 0.5 * trace(iC * (XX(t,:)' * XX(t,:)) );
+                        %end
+                    else
+                        for n = 1:ndim
+                            if ~regressed(n), continue; end
+                            if train.uniqueAR
+                                ind = n:ndim:size(XX,2);
+                                NormWishtrace = NormWishtrace + 0.5 * C(n) * ...
+                                    sum( (XX(:,ind) * hs.W.S_W) .* XX(:,ind), 2);
+                            elseif ndim==1
+                                NormWishtrace = NormWishtrace + 0.5 * C(n) * ...
+                                    sum( (XX(:,Sind(:,n)) * hs.W.S_W) ...
+                                    .* XX(:,Sind(:,n)), 2);
+                            else
+                                NormWishtrace = NormWishtrace + 0.5 * C(n) * ...
+                                    sum( (XX(:,Sind(:,n)) * ...
+                                    permute(hs.W.S_W(n,Sind(:,n),Sind(:,n)),[2 3 1])) ...
+                                    .* XX(:,Sind(:,n)), 2);
+                            end
                         end
                     end
                     

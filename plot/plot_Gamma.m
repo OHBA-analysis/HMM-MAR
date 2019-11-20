@@ -1,9 +1,9 @@
 function ord = plot_Gamma (Gamma,T,take_mean,order_trials,behaviour,cm)
 
-if nargin < 3, take_mean = false; end 
-if nargin < 4, order_trials = false; end 
-if nargin < 5, behaviour = []; end 
-if nargin < 6, cm = colormap; end 
+if nargin < 3, take_mean = false; end % just show average? 
+if nargin < 4, order_trials = false; end % order the trials?
+if nargin < 5, behaviour = []; end % behaviour with respect to which order the trials 
+if nargin < 6, cm = colormap; end % colormap
 
 N = length(T); K = size(Gamma,2); 
 d = (sum(T) - size(Gamma,1)) / N;
@@ -24,6 +24,8 @@ else
     keep = true(N,1);
     if ~isempty(behaviour)
         keep = ~isnan(behaviour); % which trials the subject pressed the button?
+        if length(order_trials) > 1
+            ord = order_trials;
         if order_trials
             [~,ord] = sort(behaviour(keep),'ascend'); % order by behaviour
         else

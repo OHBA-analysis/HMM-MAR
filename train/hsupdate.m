@@ -22,8 +22,9 @@ function hmm = hsupdate(Xi,Gamma,T,hmm)
 Q = 1; 
 N = length(T); K = hmm.K;
 [~,order] = formorders(hmm.train.order,hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag);
+do_clustering = isfield(hmm.train,'cluster') && hmm.train.cluster;
 
-if isempty(Xi) % non-exact estimation
+if isempty(Xi) && ~do_clustering % non-exact estimation
     Xi = zeros(hmm.K);
     for n = 1:N
         t = (1:T(n)-order) + sum(T(1:n-1)) - order*(n-1);
@@ -52,17 +53,22 @@ if length(size(Xi))==3, Xi = permute(sum(Xi),[2 3 1]); end
 %     hmm.P = zeros(K,K);
 % end
 
-hmm.Dir2d_alpha = Xi + hmm.prior.Dir2d_alpha;
-hmm.P = zeros(K,K);
-for i = 1:Q
-    for j = 1:K
-        PsiSum = psi(sum(hmm.Dir2d_alpha(j,:,i)));
-        for k=1:K
-            if ~hmm.train.Pstructure(j,k), continue; end
-            hmm.P(j,k,i) = exp(psi(hmm.Dir2d_alpha(j,k,i))-PsiSum);
+if ~do_clustering
+    hmm.Dir2d_alpha = Xi + hmm.prior.Dir2d_alpha;
+    hmm.P = zeros(K,K);
+    for i = 1:Q
+        for j = 1:K
+            PsiSum = psi(sum(hmm.Dir2d_alpha(j,:,i)));
+            for k=1:K
+                if ~hmm.train.Pstructure(j,k), continue; end
+                hmm.P(j,k,i) = exp(psi(hmm.Dir2d_alpha(j,k,i))-PsiSum);
+            end
+            hmm.P(j,:,i) = hmm.P(j,:,i) ./ sum(hmm.P(j,:,i));
         end
-        hmm.P(j,:,i) = hmm.P(j,:,i) ./ sum(hmm.P(j,:,i));
     end
+else
+    hmm.Dir2d_alpha = eye(K);
+    hmm.P = eye(K);
 end
 
 % initial state
