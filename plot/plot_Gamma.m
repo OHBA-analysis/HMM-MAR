@@ -22,23 +22,19 @@ else
     colors = cm(round(linspace(1,64,K)),:);
     
     keep = true(N,1);
-    if ~isempty(behaviour)
+    % Set the ordering
+    ord = 1:N;
+    if length(order_trials) > 1
+        ord = order_trials;
+    elseif order_trials && ~isempty(behaviour)
         keep = ~isnan(behaviour); % which trials the subject pressed the button?
-        if length(order_trials) > 1
-            ord = order_trials;
-        if order_trials
-            [~,ord] = sort(behaviour(keep),'ascend'); % order by behaviour
-        else
-            ord = 1:sum(keep);
-        end
+        [~,ord] = sort(behaviour(keep),'ascend'); % order by behaviour
     elseif order_trials
-            A = pca(reshape(permute(reshape(Gamma,[T(1) N K]),[2 1 3]),[N T(1)*K])',...
-                'NumComponents',1);
-            [~,ord] = sort(A); 
-    else
-        ord = 1:N;
+        A = pca(reshape(permute(reshape(Gamma,[T(1) N K]),[2 1 3]),[N T(1)*K])',...
+            'NumComponents',1);
+        [~,ord] = sort(A);
     end
-    
+        
     GammaCol = zeros(size(Gamma,1),3);
     for k = 1:K
         these = sum(repmat(Gamma(:,k),1,K-1) > Gamma(:,setdiff(1:K,k)),2) == K-1;

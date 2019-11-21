@@ -90,7 +90,7 @@ if ~isempty(options.classifier)
         if ~isfield(options,'sequential')
             options.sequential = true;
         end
-        options.add_noise = 0;
+        add_noise = 0;
    elseif strcmp(options.classifier,'LDA')
        % set default options for LDA model:
        options.distribution = 'Gaussian';
