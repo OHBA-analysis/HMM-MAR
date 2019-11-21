@@ -170,7 +170,7 @@ for rep = 1:options.BIGinitrep
         end
         % update sufficient statistics
         tacc = 0; 
-        for i=1:length(subset)
+        for i = 1:length(subset)
             subj = subset(i);
             Tsubj = ceil(downs_ratio*(T{subj}-tp_less)); 
             t = tacc + (1 : (sum(Tsubj)-length(Tsubj)*hmm_i.train.maxorder));

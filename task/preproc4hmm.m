@@ -25,8 +25,8 @@ if isfield(options,'filter') && ~isempty(options.filter) && ~isfield(options,'Fs
 end
 
 % options relative to the regression setting
-if ~isfield(options,'classifier'), options.classifier = '';
-else, classifier = options.classifier; end
+if ~isfield(options,'classifier'), options.classifier = ''; end 
+% if empty, it is meant to be used with a continuous response
 if ~isfield(options,'Nfeatures'), Nfeatures = p;
 else, Nfeatures = options.Nfeatures; end
 if ~isfield(options,'standardise'), standardise = 0;
@@ -60,20 +60,19 @@ if ~isempty(options.classifier)
         demeanstim = false;
         %determine if multinomial or binomial:
         vals = unique(Y(:));
-        if length(vals) == 2
-            if all(vals == [0;1])
-                Y=2*(Y)-1;
-            elseif ~all(vals == [-1;1])
-                ME = MException(preproc4hmm:wrongYformat,'Error: format of Y incorrect for classification tasks');
-                throw ME;
+        if length(vals) == 2 && q == 1
+            if all((vals == 0) | (vals == 1))
+                Y = 2*(Y)-1;
+            elseif any((vals ~= -1) & (vals ~= 1))  
+                error('Format of Y incorrect for classification tasks');
             end
-        elseif length(vals) > 2 && size(Y,2) == 1
+        elseif length(vals) > 2 && q == 1
             % Y entered as categorical format
             fprintf(['\nFitting multinomial logistic classifier with classes ',int2str(vals'), '\n']);
-            Y=convertToMultinomial(Y);
+            Y = convertToMultinomial(Y);
         elseif length(vals) == 3
-            if ~all(vals == [-1;0;1])
-                throw exception;
+            if any((vals ~= -1) & (vals ~= 1) & (vals ~= 0))  
+                error('Format of Y incorrect for classification tasks');
             end
         end
         options.logisticYdim=size(Y,2);
@@ -123,21 +122,19 @@ if ~isempty(options.classifier)
         demeanstim = false;
         %determine if multinomial or binomial:
         vals = unique(Y(:));
-        if length(vals) == 2 && size(Y,2) == 1
-            if all(vals == [0;1])
-                Y=2*(Y)-1;
-            elseif ~all(vals == [-1;1])
-                ME = MException(preproc4hmm:wrongYformat,'Error: format of Y incorrect for classification tasks');
-                throw ME;
+        if length(vals) == 2 && q == 1
+            if all((vals == 0) | (vals == 1))
+                Y = 2*(Y)-1;
+            elseif any((vals ~= -1) & (vals ~= 1)) 
+                error('Format of Y incorrect for classification tasks');
             end
-        elseif length(vals) > 2 && size(Y,2) == 1
+        elseif length(vals) > 2 && q == 1
             Ytmp = Y; 
             Y = zeros(size(Y,1),length(vals));
             for jj = 1:length(vals), Y(Ytmp==vals(jj),jj) = 1; end
-        elseif size(Y,2) > 1
-            if ~all(vals == [0;1])
-                ME = MException(preproc4hmm:wrongYformat,'Error: format of Y incorrect for classification tasks');
-                throw ME;
+        elseif q > 1
+            if any((vals ~= 0) & (vals ~= 1)) 
+                error('Format of Y incorrect for classification tasks');
             end
         end      
         add_noise = 1;
@@ -186,11 +183,11 @@ end
 
 % options relative to the HMM
 if ~isfield(options,'distribution'),options.distribution='Gaussian';end
-if options.logisticYdim>0; 
+if options.logisticYdim>0
     options.distribution = 'logistic';
 end
 if strcmp(options.distribution,'logistic')
-    options.covtype='';
+    options.covtype = '';
 end
 if ~isfield(options,'covtype') && strcmp(options.distribution,'Gaussian')
     options.covtype = 'uniquediag'; 
@@ -232,12 +229,12 @@ emforw = max(max(embeddedlags),0);
 emback = max(-min(embeddedlags),0);
 
 if size(Y,1) == N % one value for the entire trial
+    %Y = reshape(repmat(reshape(Y,[1 N q]),[ttrial 1 1]),[N*ttrial q]);
     Ytmp = Y;
     Y = zeros(sum(T),q);
     for n = 1:N
         Y(sum(T(1:n-1)) + (1:T(n)),:) = repmat(Ytmp(n,:),T(n),1);
     end; clear Ytmp
-    %Y = Y + 1e-6 * repmat(std(Y),size(Y,1),1) .* randn(size(Y)) ;
 end
 
 if q == 1 && length(unique(Y))==2
