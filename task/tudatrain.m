@@ -51,6 +51,7 @@ N = length(T);
 options_original = options; 
 [X,Y,T,options,A,stats.R2_pca,npca,features] = preproc4hmm(X,Y,T,options);
 classifier = options.classifier;
+sequential = options.sequential;
 parallel_trials = options.parallel_trials; 
 plotAverageGamma = options.plotAverageGamma;
 options.plotAverageGamma = 0; 
@@ -62,7 +63,7 @@ p = size(X,2); q = size(Y,2);
 % init HMM, only if trials are temporally related
 if ~isfield(options,'Gamma')
     if parallel_trials
-        if options.sequential
+        if sequential
             GammaInit = cluster_decoding(X,Y,T,options.K,'fixedsequential','',...
                 options.Pstructure,options.Pistructure);
         else
@@ -170,6 +171,8 @@ if isfield(options_original,'onpower'), tuda.train.onpower = options_original.on
 if isfield(options_original,'detrend'), tuda.train.detrend = options_original.detrend; end 
 if isfield(options_original,'filter'), tuda.train.filter = options_original.filter; end 
 if isfield(options_original,'downsample'), tuda.train.downsample = options_original.downsample; end 
+tuda.train.classifier = classifier;  
+tuda.train.sequential = sequential;
 
 % Explained variance per state, square error &
 % Square error for the standard time point by time point regression

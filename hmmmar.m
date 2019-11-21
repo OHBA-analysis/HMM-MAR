@@ -326,7 +326,6 @@ else
         if isfield(options,'distribution') && strcmp(options.distribution,'logistic')
             residuals_wr = getresidualslogistic(data.X,T,options.logisticYdim); 
         end
-        if ~isfield(options,'Gamma'); hmm_wr.Gamma = GammaInit;end
     else % using a warm restart from a previous run
         hmm_wr = versCompatibilityFix(options.hmm);
         options = rmfield(options,'hmm');
