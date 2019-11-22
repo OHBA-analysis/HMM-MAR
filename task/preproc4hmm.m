@@ -111,6 +111,7 @@ if ~isempty(options.classifier)
             options.sequential = true;
         end
         options.add_noise = 0;
+        add_noise = 0;
     elseif strcmp(options.classifier,'SVM') || strcmp(options.classifier,'KNN') ||...
             strcmp(options.classifier,'decisiontree')
         options.add_noise = 0;
