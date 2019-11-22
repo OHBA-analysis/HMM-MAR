@@ -1,5 +1,9 @@
 function [X,Y,T,options,A,R2_pca,pca_opt,features] = preproc4hmm(X,Y,T,options)
 % Prepare data to run TUDA
+% 1. check parameters, including the type of classifier (regression is default)
+% 2. Format X and Y accordingly to the classifier
+% 3. Sets up state to be sequential , if asked
+% 4. Preprocesses the data, including embedding
 
 if length(size(X))==3 % 1st dim, time; 2nd dim, trials; 3rd dim, channels
     X = reshape(X,[size(X,1)*size(X,2), size(X,3)]);
@@ -156,6 +160,7 @@ end
 
 if ~isfield(options,'logisticYdim'), options.logisticYdim = 0; end
 
+% Set up states to be a a sequence
 if options.sequential
     options.Pstructure = eye(options.K) + diag(ones(1,options.K-1),1);
     options.Pistructure = zeros(1,options.K);

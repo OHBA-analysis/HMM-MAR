@@ -15,7 +15,7 @@ function Gamma = cluster_decoding(X,Y,T,K,cluster_method,...
 % OUTPUT
 % Gamma: (trial time by K), containing the cluster assignments
 
-if nargin<6, cluster_method = 'regression'; end
+if nargin<5, cluster_method = 'regression'; end
 if nargin>6 && ~isempty(cluster_measure) && strcmp(cluster_method,'regression')
     warning('cluster_measure is not used when cluster_method is regression')
 end
