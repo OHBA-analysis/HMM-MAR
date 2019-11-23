@@ -114,10 +114,9 @@ if ~isempty(options.classifier)
         add_noise = 0;
     elseif strcmp(options.classifier,'SVM') || strcmp(options.classifier,'KNN') ||...
             strcmp(options.classifier,'decisiontree')
-        options.add_noise = 0;
+        add_noise = 0;
         demeanstim = false;
         options.sequential = false;
-        add_noise = 0;
     elseif strcmp(options.classifier,'regression')
         options.distribution = 'Gaussian';
         demeanstim = false;
@@ -151,12 +150,12 @@ else % Standard regression problem
     if ~isfield(options,'add_noise'), add_noise = 0;
     else, add_noise = options.add_noise;
     end
-    
+    options=rmfield(options,'classifier');
 end
 
 if ~isfield(options,'logisticYdim'), options.logisticYdim = 0; end
 
-if options.sequential
+if isfield(options,'sequential') && options.sequential
     options.Pstructure = eye(options.K) + diag(ones(1,options.K-1),1);
     options.Pistructure = zeros(1,options.K);
     options.Pistructure(1) = 1;
