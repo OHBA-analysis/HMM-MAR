@@ -70,33 +70,34 @@ else
     if isfield(hmm,'psi')
         hmm=rmfield(hmm,'psi');
     end
-    while mean_change>obs_tol && obs_it<=obs_maxit,
-        
-        last_state = hmm.state;
-        hmm_orig=hmm;
-        
-        for iY = 1:hmm.train.logisticYdim
-            hmm_marginalised = logisticMarginaliseHMM(hmm,iY);
-            xdim=hmm_marginalised.train.ndim-1;
-            %%% W
-            [hmm_temp,~] = updateW(hmm_marginalised,Gamma,residuals(:,iY),XX(:,[1:xdim,xdim+iY]),XXGXX);
-        
-            %%% and hyperparameters alpha
-            hmm_temp = updateAlpha(hmm_temp);
-            
-            hmm = logisticMergeHMM(hmm_temp,hmm,iY);
+    if strcmp(hmm.train.distribution,'logistic')
+        while mean_change>obs_tol && obs_it<=obs_maxit,
+
+            last_state = hmm.state;
+            hmm_orig=hmm;
+
+            for iY = 1:hmm.train.logisticYdim
+                hmm_marginalised = logisticMarginaliseHMM(hmm,iY);
+                xdim=hmm_marginalised.train.ndim-1;
+                %%% W
+                [hmm_temp,~] = updateW(hmm_marginalised,Gamma,residuals(:,iY),XX(:,[1:xdim,xdim+iY]),XXGXX);
+
+                %%% and hyperparameters alpha
+                hmm_temp = updateAlpha(hmm_temp);
+
+                hmm = logisticMergeHMM(hmm_temp,hmm,iY);
+            end
+            %%% termination conditions
+            mean_changew = 0;
+            for k=1:K
+                mean_changew = mean_changew + ...
+                    sum(sum(abs(last_state(k).W.Mu_W - hmm.state(k).W.Mu_W))) / numel(hmm.state(k).W.Mu_W) / K;
+            end
+            mean_change = mean_changew;
+
+            obs_it = obs_it + 1;
         end
-        %%% termination conditions
-        mean_changew = 0;
-        for k=1:K
-            mean_changew = mean_changew + ...
-                sum(sum(abs(last_state(k).W.Mu_W - hmm.state(k).W.Mu_W))) / numel(hmm.state(k).W.Mu_W) / K;
-        end
-        mean_change = mean_changew;
-        
-        obs_it = obs_it + 1;
+    elseif strcmp(hmm.train.distribution,'poisson')
+        hmm = updateW(hmm,Gamma,residuals,XX,XXGXX,Tfactor);
     end
-elseif strcmp(hmm.train.distribution,'poisson')
-    hmm = updateW(hmm,Gamma,residuals,XX,XXGXX,Tfactor);
-end
 end

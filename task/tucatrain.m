@@ -49,7 +49,7 @@ if isfield(options,'add_noise'), options = rmfield(options,'add_noise'); end
 p = size(X,2); q = size(Y,2);
  
 % init HMM, only if trials are temporally related:
-if options.sequential
+if options.sequential && ~isfield(options,'Gamma')
     GammaInit = zeros(T(1),options.K);
     incs=ceil(options.K*(1:T(1))./T(1));
     GammaInit(sub2ind(size(GammaInit), 1:T(1), incs)) = 1;
@@ -60,8 +60,6 @@ elseif parallel_trials && ~isfield(options,'Gamma')
         options.Pstructure,options.Pistructure);
     options.Gamma = permute(repmat(GammaInit,[1 1 N]),[1 3 2]);
     options.Gamma = reshape(options.Gamma,[length(T)*size(GammaInit,1) options.K]);
-elseif ~parallel_trials
-    GammaInit = [];
 else 
     GammaInit = options.Gamma;
 end
@@ -112,7 +110,7 @@ options_run1=options;
 if isfield(options,'updateObs') 
     options_run1.updateObs=1
 end 
-if isfield(options,'regularisation') && strcmp(options.regularisation,'Sparse') || strcmp(options.regularisation,'Ridge')
+if isfield(options,'regularisation') && (strcmp(options.regularisation,'Sparse') || strcmp(options.regularisation,'Ridge'))
     options_run1.regularisation='ARD'; %initialise using ARD rather than sparse
 end
 options_run1.updateGamma=0;

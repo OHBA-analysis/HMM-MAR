@@ -26,15 +26,8 @@ end
 for st=1:hmm_out.train.K
     %recall that for logistic setups, alpha has dimension Xdim x logisticYdim
     hmm_out.state(st).alpha.Gam_rate(1:Xdim,iY) = hmm_marg.state(st).alpha.Gam_rate;
-    hmm_out.state(st).sigma.Gam_shape(1:Xdim,Xdim+iY) = hmm_marg.state(st).sigma.Gam_shape(1:Xdim,Xdim+1);
-    hmm_out.state(st).sigma.Gam_rate(1:Xdim,Xdim+iY) = hmm_marg.state(st).sigma.Gam_rate(1:Xdim,Xdim+1);
 end
 
-%update prior over sigma
-for st=1:hmm_out.train.K
-    hmm_out.state(st).prior.sigma.Gam_shape(1:Xdim,Xdim+iY) = hmm_marg.state(st).prior.sigma.Gam_shape(1:Xdim,Xdim+1);
-    hmm_out.state(st).prior.sigma.Gam_rate(1:Xdim,Xdim+iY) = hmm_marg.state(st).prior.sigma.Gam_rate(1:Xdim,Xdim+1);
-end
 
 %update psi:
 hmm_out.psi(:,iY) = hmm_marg.psi;

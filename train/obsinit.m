@@ -293,8 +293,10 @@ if ~pcapred
             hmm.state(k).alpha.Gam_rate = hmm.state(k).prior.alpha.Gam_rate;
         end
     end
-    %%% sigma - channel x channel coefficients
-    hmm = updateSigma(hmm);
+    if ~isfield(hmm.train,'distribution') || strcmp(hmm.train.distribution,'Gaussian')
+        %%% sigma - channel x channel coefficients
+        hmm = updateSigma(hmm);
+    end
     %%% alpha - one per order
     hmm = updateAlpha(hmm);
     if isfield(train,'distribution') && strcmp(train.distribution,'logistic')

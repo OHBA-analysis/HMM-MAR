@@ -83,9 +83,6 @@ for k = 1:K
             if ~isempty(orders)
                 if pcapred
                     regterm = [regterm; hmm.state(k).beta.Gam_shape(:,n) ./ hmm.state(k).beta.Gam_rate(:,n)];
-                elseif train.grouphierarchy
-                    % implement prior:
-                    regterm = hmm.state(k).W.prior.iSigma(Sind(:,n),Sind(:,n),n);
                 else
                     alphaterm = repmat( (hmm.state(k).alpha.Gam_shape ./  hmm.state(k).alpha.Gam_rate), ndim_n, 1);
                     if ndim>1
@@ -97,23 +94,17 @@ for k = 1:K
                 end
             end
             if isempty(regterm), regterm = 0; end
-            if ~train.grouphierarchy;regterm = diag(regterm);end
+            regterm = diag(regterm);
             hmm.state(k).W.iS_W(n,Sind(:,n),Sind(:,n)) = ...
                 regterm + Tfactor * (omega.Gam_shape / omega.Gam_rate(n)) * XXGXX{k}(Sind(:,n),Sind(:,n));
             hmm.state(k).W.iS_W(n,Sind(:,n),Sind(:,n)) = (squeeze(hmm.state(k).W.iS_W(n,Sind(:,n),Sind(:,n))) + ...
                 squeeze(hmm.state(k).W.iS_W(n,Sind(:,n),Sind(:,n)))' ) / 2;
             hmm.state(k).W.S_W(n,Sind(:,n),Sind(:,n)) = ...
                 inv(permute(hmm.state(k).W.iS_W(n,Sind(:,n),Sind(:,n)),[2 3 1]));
-            if ~train.grouphierarchy
-                hmm.state(k).W.Mu_W(Sind(:,n),n) = (( permute(hmm.state(k).W.S_W(n,Sind(:,n),Sind(:,n)),[2 3 1]) * ...
+            hmm.state(k).W.Mu_W(Sind(:,n),n) = (( permute(hmm.state(k).W.S_W(n,Sind(:,n),Sind(:,n)),[2 3 1]) * ...
                     Tfactor * (omega.Gam_shape / omega.Gam_rate(n)) * XX(:,Sind(:,n))') .* ...
                     repmat(Gamma(:,k)',sum(Sind(:,n)),1)) * residuals(:,n);
-            else
-                hmm.state(k).W.Mu_W(Sind(:,n),n) = (( permute(hmm.state(k).W.S_W(n,Sind(:,n),Sind(:,n)),[2 3 1]) * ...
-                    Tfactor * (omega.Gam_shape / omega.Gam_rate(n)) * XX(:,Sind(:,n))') .* ...
-                    repmat(Gamma(:,k)',sum(Sind(:,n)),1)) * residuals(:,n) + ...
-                    ( permute(hmm.state(k).W.S_W(n,Sind(:,n),Sind(:,n)),[2 3 1]) * hmm.state(k).W.prior.mu(:,n));
-            end
+            
         end
         XW(:,:,k) = XX * hmm.state(k).W.Mu_W;
         
