@@ -154,7 +154,6 @@ else % Standard regression problem
     if ~isfield(options,'add_noise'), add_noise = 0;
     else, add_noise = options.add_noise;
     end
-    options=rmfield(options,'classifier');
 end
 
 if ~isfield(options,'logisticYdim'), options.logisticYdim = 0; end

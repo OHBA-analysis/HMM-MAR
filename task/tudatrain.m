@@ -108,12 +108,14 @@ end
 
 % Run TUDA inference
 options.S = -ones(p+q);
-options.S(1:p,p+1:end) = 1;
+if strcmp(classifier,'LDA')
+    options.S(p+1:end,1:p) = 1;
+else
+    options.S(1:p,p+1:end) = 1;
+end
 
 %switch off parallel as not implemented for some models
-if strcmp(classifier,'logistic') || strcmp(classifier,'LDA') || ...
-        strcmp(classifier,'SVM') || strcmp(classifier,'KNN') || ...
-        strcmp(classifier,'decisiontree')
+if strcmp(classifier,'logistic') || strcmp(classifier,'LDA')
     options.useParallel = 0;
 end
 options.decodeGamma = 0;

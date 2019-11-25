@@ -61,7 +61,7 @@ end
 options.Nfeatures = 0;
 [X,Y,T,options] = preproc4hmm(X,Y,T,options); % this demeans Y if necessary
 ttrial = T(1); p = size(X,2); q_star = size(Y,2);
-Ycopy = Y;
+Ycopy = Y; if q_star>q;Ycopy=Y(:,2:end);end %remove intercept term
 classifier = options.classifier;
 classification = ~isempty(classifier);
 if classification, Ycopy = round(Ycopy); end
@@ -81,8 +81,8 @@ else
 end
 class_totals = (sum(Ycopy==1)./ttrial);
 if q_star == (q+1)
-    class_totals = class_totals(2:end);
-end %remove intercept term
+    class_totals = class_totals(2:end); %remove intercept term
+end 
 if size(unique(class_totals))>1
     warning(['Note that Y is not balanced; ' ...
         'cross validation folds will not be balanced and predictions will be biased'])
@@ -94,7 +94,7 @@ elseif isfield(options,'NCV')
     NCV = options.NCV; 
     options = rmfield(options,'NCV');
 else
-    %default to hold one-out CV unless NCV>20:
+    %default to hold one-out CV unless NCV>10:
     NCV = max(class_totals);
     if NCV > 10, NCV = 10; end
 end

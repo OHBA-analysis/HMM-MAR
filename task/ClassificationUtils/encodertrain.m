@@ -37,6 +37,7 @@ N = length(T);
 [X,~,T,options,stats.R2_pca,features] = preproc4hmm(X,Y,T,options); 
 parallel_trials = options.parallel_trials; 
 options = rmfield(options,'parallel_trials');
+options = rmfield(options,'classifier');
 if isfield(options,'add_noise'), options = rmfield(options,'add_noise'); end
 if ~isfield(options,'useUnsupervisedGamma');options.useUnsupervisedGamma=false;end
 p = size(X,2); q = size(Y,2);

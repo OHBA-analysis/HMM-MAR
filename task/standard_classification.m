@@ -11,7 +11,7 @@ function [cv_acc,acc,meanGenPlot] = standard_classification(X,Y,T,options,binsiz
 %       class is active.
 % T: Length of series
 %       options             structure with the following subfields:
-%           classifier      String indicating calssifer type;
+%           classifier      String indicating classifier type;
 %                   logistic    Logistic Regression classifier (default)
 %                   SVM         Linear support vector machine classifier
 %                   LDA         Linear Discriminant Analysis classifier
@@ -21,7 +21,7 @@ function [cv_acc,acc,meanGenPlot] = standard_classification(X,Y,T,options,binsiz
 %                   ARD         Automatic relevance determination
 %           lambda          Vector of regularisation penalty values to be
 %                           tested
-% binsize: NOT YET IMPLMENTED 
+% binsize: NOT YET IMPLEMENTED 
 %           how many consecutive time points will be used for each estiamtion. 
 %           By default, this is 1, such that one decoding model
 %               is estimated using 1 time point
@@ -64,7 +64,7 @@ if ~isfield(options,'verbose'),options.verbose=0;end
 if do_preproc
     if isfield(options,'embeddedlags'), el = options.embeddedlags;else;el=0;end
     options.K=0;
-    [X,Y,T,options] = preproc4hmm(X,Y,T,options); options.classifier=classifier;
+    [X,Y,T,options] = preproc4hmm(X,Y,T,options); 
     p = size(X,2);Q_star=size(Y,2);
     if Q_star~=q && strcmp(options.distribution,'logistic')
         Ycopy = multinomToBinary(Ycopy);
