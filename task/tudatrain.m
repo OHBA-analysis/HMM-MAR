@@ -64,8 +64,7 @@ p = size(X,2); q = size(Y,2);
 if ~isfield(options,'Gamma')
     if parallel_trials
         if sequential
-            GammaInit = cluster_decoding(X,Y,T,options.K,'fixedsequential','',...
-                options.Pstructure,options.Pistructure);
+            GammaInit = cluster_decoding(X,Y,T,options.K,'fixedsequential');
         else
             GammaInit = cluster_decoding(X,Y,T,options.K,'regression','',...
                 options.Pstructure,options.Pistructure);
