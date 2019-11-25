@@ -125,12 +125,7 @@ for cycle = 1:hmm.train.cyc
     
     % Transition matrices and initial state
     if hmm.train.updateP
-        if hmm.train.updateGamma  
-            hmm = hsupdate(Xi,Gamma,T,hmm);
-        else
-            [Gamma_0,~,Xi_0] = hsinference(data,T,hmm,residuals,[],XX);
-            hmm = hsupdate(Xi_0,Gamma_0,T,hmm);
-        end
+        hmm = hsupdate(Xi,Gamma,T,hmm);
     end
     
     if ~hmm.train.updateGamma    
@@ -256,3 +251,4 @@ if do_clustering
 end
 
 end
+

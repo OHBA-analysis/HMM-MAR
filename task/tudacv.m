@@ -109,13 +109,16 @@ end
 options.verbose = 0; 
 
 if ~isfield(options,'c')
-    if classification
+    % this system is thought for cases where a trial can have more than 
+    % 1 category, and potentially each column can have more than 2 values,
+    % but there are not too many categories
+    if classification 
         tmp = zeros(N,1);
         for j = 1:q
             rj = responses(:,j);
             uj = unique(rj);
             for jj = 1:length(uj)
-                tmp(rj == uj(jj)) = tmp(rj == uj(jj)) + 100^(j-1) * jj;
+                tmp(rj == uj(jj)) = tmp(rj == uj(jj)) + (q+1)^(j-1) * jj;
             end
         end
         uy = unique(tmp);

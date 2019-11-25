@@ -1,6 +1,6 @@
-function ord = plot_Gamma (Gamma,T,take_mean,order_trials,behaviour,cm)
+function ord = plot_Gamma (Gamma,T,continuous,order_trials,behaviour,cm)
 
-if nargin < 3, take_mean = false; end % just show average? 
+if nargin < 3, continuous = false; end % show it as continuoys data? 
 if nargin < 4, order_trials = false; end % order the trials?
 if nargin < 5, behaviour = []; end % behaviour with respect to which order the trials 
 if nargin < 6, cm = colormap; end % colormap
@@ -9,7 +9,7 @@ N = length(T); K = size(Gamma,2);
 d = (sum(T) - size(Gamma,1)) / N;
 T = T - d; 
 
-if take_mean
+if continuous
     
     area(Gamma); ylim([0 1]); xlim([0 size(Gamma,1)])
     
