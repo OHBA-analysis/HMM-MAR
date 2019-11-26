@@ -151,17 +151,18 @@ if strcmp(classifier,'logistic')
         model.lambda=lambda;    
     end
 elseif strcmp(classifier,'SVM')
+    model.SVM=cell(ttrial,Q_star);
     for t=1:ttrial
         if options.verbose;
             fprintf(['Inferring SVM classifiers for t = ',int2str(t),'th sample\n']);
         end
         for iStim=1:Q_star
-            model.SVM{t,iStim} = fitcsvm(squeeze(X(t,:,:)),squeeze(Y(t,:,iStim)));%,ones(sum(tselect(:,t))));
+            model.SVM{t,iStim} = fitclinear(squeeze(X(t,:,:)),squeeze(Y(t,:,iStim)));%,ones(sum(tselect(:,t))));
         end
     end
 elseif strcmp(classifier,'LDA')
     options_LDA=struct;
-    options_LDA.useUnsupervisedGamma=1; %this ensures gamma is not inferred
+    options_LDA.useUnsupervisedGamma=1; %this ensures gamma is fixed for standard decoding
     options_LDA.covtype = 'diag';
     options_LDA.verbose = 1;
     options_LDA.useParallel = 0;
@@ -173,8 +174,8 @@ elseif strcmp(classifier,'LDA')
     if options.verbose
         fprintf(['Inferring LDA classifiers for all timepoints \n']);
     end
-    model = encodertrain(X_LDA,Y_LDA,T,options_LDA);
-    model.Gamma = model.Gamma(1:ttrial,:);
+    [model,Gamma] = encodertrain(X_LDA,Y_LDA,T,options_LDA);
+    model.Gamma = Gamma(1:ttrial,:);
     model=rmfield(model,{'train','prior','Dir_alpha','Dir2d_alpha','P','Pi','features','K'});
     model.classifier='LDA';
 elseif strcmp(classifier,'KNN')

@@ -163,7 +163,7 @@ elseif strcmp(classifier,'SVM')
         for iStim=1:q
             %[~,sc] = predict(model.SVM{t,iStim},squeeze(X(t,:,:)));
             [~,sc] = model.SVM{t,iStim}.predict(squeeze(X(t,:,:)));
-            Y_pred(t,:,iStim)=sc(:,1);
+            Y_pred(t,:,iStim)=sc(:,2);
             if options.generalisationplot  
                 for t2=1:ttrial
                     %[~,sc] = predict(model.SVM{t,iStim},squeeze(X(t2,:,:)));
