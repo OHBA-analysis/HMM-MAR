@@ -76,13 +76,15 @@ function [Gamma,fehist] = run_initialization(data,T,options,Sind,init_k)
 
 % Need to adjust the worker dirichletdiags if testing smaller K values
 if init_k < options.K
-    p = options.DirichletDiag/(options.DirichletDiag + options.K - 1); % Probability of remaining in same state
-    f_prob = dirichletdiags.mean_lifetime(); % Function that returns the lifetime in steps given the probability
-    expected_lifetime =  f_prob(p)/options.Fs; % Expected number of steps given the probability
-    options.K = init_k;
-    adjusted_DirichletDiag = dirichletdiags.get(expected_lifetime,options.Fs,options.K);
-    if isfinite(adjusted_DirichletDiag) % It is NaN if there was a numerical issue 
-        options.DirichletDiag = adjusted_DirichletDiag;
+    for jj = 1:length(options.DirichletDiag)
+        p = options.DirichletDiag(j)/(options.DirichletDiag(j) + options.K - 1); % Probability of remaining in same state
+        f_prob = dirichletdiags.mean_lifetime(); % Function that returns the lifetime in steps given the probability
+        expected_lifetime =  f_prob(p)/options.Fs; % Expected number of steps given the probability
+        options.K = init_k;
+        adjusted_DirichletDiag = dirichletdiags.get(expected_lifetime,options.Fs,options.K);
+        if isfinite(adjusted_DirichletDiag) % It is NaN if there was a numerical issue
+            options.DirichletDiag(j) = adjusted_DirichletDiag;
+        end
     end
 end
 

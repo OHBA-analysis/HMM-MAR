@@ -1,6 +1,6 @@
 function [hmm,Gamma,vpath] = hmmdual(data,T,hmm,Gamma,Xi,residuals)
 %
-% Dual estimation of the HMM
+% Dual estimation of the HMM, first Gamma and then the HMM structure
 %
 % INPUTS:
 %
@@ -103,8 +103,10 @@ if isempty(residuals) && ~do_HMM_pca
         hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag,hmm.train.zeromean);
 end
 
-if isempty(Gamma) || isempty(Xi)  
+if isempty(Gamma)   
     [Gamma,~,Xi] = hsinference(data,T,hmm,residuals); 
+elseif isempty(Xi) 
+    Xi = approximateXi(Gamma,T,hmm);
 end
 setxx;
 

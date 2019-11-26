@@ -68,7 +68,11 @@ else
             for k = 1:hmm.K
                 kk = hmm.train.Pstructure(k,:);
                 hmm.Dir2d_alpha(k,kk,i) = 1;
-                hmm.Dir2d_alpha(k,k,i) = hmm.train.DirichletDiag;
+                if length(hmm.train.DirichletDiag) == 1
+                    hmm.Dir2d_alpha(k,k,i) = hmm.train.DirichletDiag;
+                else
+                    hmm.Dir2d_alpha(k,k,i) = hmm.train.DirichletDiag(k);
+                end
                 hmm.Dir2d_alpha(k,kk,i) = hmm.train.PriorWeightingP .* hmm.Dir2d_alpha(k,kk,i);
                 hmm.P(k,kk,i) = hmm.Dir2d_alpha(k,kk,i) ./ sum(hmm.Dir2d_alpha(k,kk,i));
             end

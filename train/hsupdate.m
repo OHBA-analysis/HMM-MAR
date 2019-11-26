@@ -25,7 +25,7 @@ N = length(T); K = hmm.K;
 do_clustering = isfield(hmm.train,'cluster') && hmm.train.cluster;
 
 if isempty(Xi) && ~do_clustering % non-exact estimation
-    Xi = createdummyXi(Gamma,T,hmm);
+    Xi = approximateXi(Gamma,T,hmm);
 end
 if length(size(Xi))==3, Xi = permute(sum(Xi),[2 3 1]); end
 

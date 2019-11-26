@@ -323,15 +323,17 @@ end
 function [Gamma,Xi,L] = nodecluster(XX,K,hmm,residuals,slicepoints)
 % inference using normal foward backward propagation
 
-
-if isfield(hmm.train,'distribution') && strcmp(hmm.train.distribution,'logistic'); order=0;
-else order = hmm.train.maxorder; end
+if isfield(hmm.train,'distribution') && strcmp(hmm.train.distribution,'logistic')
+    order = 0;
+else
+    order = hmm.train.maxorder;
+end
 T = size(residuals,1) + order;
 Xi = [];
 p = hmm.train.lowrank; do_HMM_pca = (p > 0);
 
 if nargin<5
-    slicepoints=[];
+    slicepoints = [];
 end
 
 % if isfield(hmm.train,'grouping') && length(unique(hmm.train.grouping))>1
@@ -356,7 +358,6 @@ if ~isfield(hmm.train,'id_mixture') && hmm.train.id_mixture
     Gamma = id_Gamma_inference(L,Pi,order);
     return
 end
-
 
 L(L<realmin) = realmin;
 

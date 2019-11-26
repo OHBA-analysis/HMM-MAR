@@ -43,6 +43,7 @@ if ~isfield(options,'filter'), options.filter = []; end
 if ~isfield(options,'detrend'), options.detrend = 0; end
 if ~isfield(options,'downsample'), options.downsample = 0; end
 if ~isfield(options,'leakagecorr'), options.leakagecorr = 0; end
+if ~isfield(options,'sequential'), options.sequential = 0; end
 if ~isfield(options,'standardise'), options.standardise = 1; end
 if ~isfield(options,'standardise_pc') 
     options.standardise_pc = length(options.embeddedlags)>1; 
@@ -169,7 +170,16 @@ elseif ~all(options.grouping==1)
     options.grouping = ones(length(T),1);
 end  
 if size(options.grouping,1)==1,  options.grouping = options.grouping'; end
-if ~isfield(options,'Pstructure')
+
+if options.sequential
+    if isfield(options,'Pstructure') || isfield(options,'Pistructure')
+       warning('Pstructure and Pistructure will be ignored') 
+    end
+    options.Pstructure = logical(eye(options.K) + diag(ones(1,options.K-1),1));
+    options.Pistructure = zeros(1,options.K);
+    options.Pistructure(1) = 1;
+    options.Pistructure = logical(options.Pistructure);
+elseif ~isfield(options,'Pstructure')
     options.Pstructure = true(options.K);
 else
     if any(size(options.Pstructure)~=options.K)
