@@ -3,5 +3,5 @@ function [tuda,Gamma,GammaInit,vpath,stats] = tucatrain(X,Y,T,options)
 % Analysis (TUCA). This function is now merely a wrapper function with core
 % functionality maintained in tudatrain.
 
-[tuda,Gamma,GammaInit,vpath,stats] = tudatrain(X,Y,T,options)
+[tuda,Gamma,GammaInit,vpath,stats] = tudatrain(X,Y,T,options);
 end
