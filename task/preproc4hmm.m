@@ -160,9 +160,10 @@ if ~isfield(options,'logisticYdim'), options.logisticYdim = 0; end
 
 % Set up states to be a a sequence
 if isfield(options,'sequential') && options.sequential
-    options.Pstructure = eye(options.K) + diag(ones(1,options.K-1),1);
+    options.Pstructure = logical(eye(options.K) + diag(ones(1,options.K-1),1));
     options.Pistructure = zeros(1,options.K);
     options.Pistructure(1) = 1;
+    options.Pistructure = logical(options.Pistructure);
 end
 
 % Options relative to constraints in the trans prob mat

@@ -203,6 +203,7 @@ elseif strcmp(cluster_method,'sequential')
         end
     end
     assig = assig_best;
+    
 else % 'fixedsequential'
     assig = ceil(K*(1:ttrial)./ttrial);
 

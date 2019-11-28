@@ -279,6 +279,8 @@ else
             if options.initrep>0 && options.initcyc>0 && ...
                     (strcmpi(options.inittype,'HMM-MAR') || strcmpi(options.inittype,'HMMMAR'))
                 [GammaInit,fehistInit] = hmmmar_init(data,T,options,Sind);
+            elseif strcmpi(options.inittype,'sequential')
+                GammaInit = initGamma_seq(T-options.maxorder,options.K);
             elseif options.initrep>0 &&  strcmpi(options.inittype,'EM')
                 error('EM init is deprecated; use HMM-MAR initialisation instead')
                 %options.nu = sum(T)/200;
