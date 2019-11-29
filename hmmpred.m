@@ -1,7 +1,9 @@
-function [responseY,responseR,Gamma] = hmmpred(X,T,hmm,Gamma,residuals,actstates,grouping)
+function [responseY,responseR,Gamma,explained_var] = ...
+    hmmpred(X,T,hmm,Gamma,residuals,actstates,grouping)
 %
 % Predictive distribution of the response and error on potentially unseen data
-% useful for cross-validation routines
+% useful for cross-validation routines; that is, this function returns the
+% mean predicted signal according to the HMM observation parameters
 %
 % X         observations
 % T         Number of time points for each time series
@@ -17,7 +19,9 @@ function [responseY,responseR,Gamma] = hmmpred(X,T,hmm,Gamma,residuals,actstates
 %               The default is ones(K,1)
 %
 % responseY mean of the predictive response 
-% responseR mean of the predictive response for the residuals
+% responseR mean of the predictive response for the residuals. This is
+%           equal to responseY unless a global (state-independent) model is 
+%           specified (which is not a default option). 
 % Gamma     estimated probability of current state cond. on data
 %
 % Author: Diego Vidaurre, OHBA, University of Oxford
@@ -40,6 +44,7 @@ train = hmm.train;
 [orders,order] = formorders(train.order,train.orderoffset,train.timelag,train.exptimelag);
 
 if nargin<5 || isempty(residuals)
+    train.Sind = formindexes(orders,train.S);
     [residuals,Wgl] = getresiduals(X,T,train.Sind,train.maxorder,train.order,...
         train.orderoffset,train.timelag,train.exptimelag,train.zeromean);
 else
@@ -92,7 +97,7 @@ setxx; % build XX
 
 responseR = zeros(size(XX,1), ndim);
 responseY = zeros(size(XX,1), ndim);
-for k=1:K
+for k = 1:K
     W = hmm.state(k).W.Mu_W;
     if actstates(k)
         responseR = responseR + repmat(Gamma(:,acstates1==k),1,ndim) .*  (XX * W);
@@ -103,5 +108,7 @@ for k=1:K
         responseY = responseR + XX * Wgl;
     end
 end
+
+explained_var = 1 - sum((responseY - residuals).^2) ./ sum((residuals - mean(residuals)).^2);
 
 end
