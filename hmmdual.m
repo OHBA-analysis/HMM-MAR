@@ -35,12 +35,16 @@ end
 checkdatacell;
 N = length(T);
 p = hmm.train.lowrank; do_HMM_pca = (p > 0);
-
+    
 train = hmm.train;
 checkdatacell;
 data = data2struct(data,T,train);
+if train.standardise
+    disp('Option standardise should be zero in hmmdual.')
+    disp('Standardization should be done separately and using the entire data set.')
+end
 % Standardise data and control for ackward trials
-data = standardisedata(data,T,train.standardise);
+%data = standardisedata(data,T,train.standardise);
 % Filtering
 if ~isempty(train.filter)
     data = filterdata(data,T,train.Fs,train.filter);
@@ -80,7 +84,8 @@ if length(train.pca) > 1 || train.pca > 0
         data.X = bsxfun(@minus,data.X,mean(data.X));
         data.X = data.X * train.A;
     else
-        [train.A,data.X] = highdim_pca(data.X,T,train.pca,0,0,0,train.varimax);
+        error('PCA cannot be recomputed within hmmdual, use parameter A instead')
+        %[train.A,data.X] = highdim_pca(data.X,T,train.pca,0,0,0,train.varimax);
     end
     % Standardise principal components and control for ackward trials
     data = standardisedata(data,T,train.standardise_pc);

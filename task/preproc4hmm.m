@@ -93,6 +93,9 @@ if ~isempty(options.classifier)
         if ~isfield(options,'sequential')
             options.sequential = true;
         end
+        if ~isfield(options,'inittype')
+            options.inittype = 'sequential';
+        end
         add_noise = 0;
    elseif strcmp(options.classifier,'LDA')
        % set default options for LDA model:
@@ -113,6 +116,9 @@ if ~isempty(options.classifier)
         options=rmfield(options,'intercept');
         if ~isfield(options,'sequential')
             options.sequential = true;
+        end
+        if ~isfield(options,'inittype')
+            options.inittype = 'sequential';
         end
         options.add_noise = 0;
         add_noise = 0;
@@ -144,6 +150,9 @@ if ~isempty(options.classifier)
         add_noise = 1;
         if ~isfield(options,'sequential')
             options.sequential = true;
+        end
+        if ~isfield(options,'inittype')
+            options.inittype = 'sequential';
         end
     end
     

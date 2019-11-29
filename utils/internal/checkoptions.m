@@ -172,13 +172,22 @@ end
 if size(options.grouping,1)==1,  options.grouping = options.grouping'; end
 
 if options.sequential
-    if isfield(options,'Pstructure') || isfield(options,'Pistructure')
-       warning('Pstructure and Pistructure will be ignored') 
+    if isfield(options,'Pstructure'), Pstructure = options.Pstructure;
+    else, Pstructure = [];
+    end
+    if isfield(options,'Pistructure'), Pistructure = options.Pistructure;
+    else, Pistructure = [];
     end
     options.Pstructure = logical(eye(options.K) + diag(ones(1,options.K-1),1));
     options.Pistructure = zeros(1,options.K);
     options.Pistructure(1) = 1;
     options.Pistructure = logical(options.Pistructure);
+    if ~isempty(Pstructure) && any(Pstructure(:)~=options.Pstructure(:))
+        warning('Pstructure will be ignored because sequential was specified')
+    end
+    if ~isempty(Pistructure) && any(Pistructure(:)~=options.Pistructure(:))
+        warning('Pistructure will be ignored because sequential was specified')
+    end    
 elseif ~isfield(options,'Pstructure')
     options.Pstructure = true(options.K);
 else
