@@ -206,6 +206,7 @@ end
 if ~isfield(options,'covtype') && strcmp(options.distribution,'Gaussian')
     options.covtype = 'uniquediag'; 
 end
+if ~isfield(options,'inittype'), options.inittype = 'HMM-MAR'; end
 
 options.order = 1;
 options.zeromean = 1;
@@ -218,7 +219,6 @@ options.filter = []; % it is done here
 options.downsample = 0; % it is done here 
 options.dropstates = 0;
 
-options.inittype = 'HMM-MAR';
 if isfield(options,'econ_embed'), options = rmfield(options,'econ_embed'); end
 if isfield(options,'Nfeatures'), options = rmfield(options,'Nfeatures'); end
 if isfield(options,'demeanstim'), options = rmfield(options,'demeanstim'); end
