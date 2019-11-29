@@ -18,10 +18,16 @@ end
 is_diagonal = size(hmm.state(k).Omega.Gam_rate,1) == 1;
 if is_diagonal
     covmat = diag( hmm.state(k).Omega.Gam_rate / (hmm.state(k).Omega.Gam_shape-1) );
+    if ~isfield(hmm.state(k).Omega,'Gam_irate')
+        hmm.state(k).Omega.Gam_irate = 1 ./ hmm.state(k).Omega.Gam_irate;
+    end
     icovmat = diag( hmm.state(k).Omega.Gam_irate * (hmm.state(k).Omega.Gam_shape-1) );
 else
     ndim = length(hmm.state(k).Omega.Gam_rate);
     covmat = hmm.state(k).Omega.Gam_rate / (hmm.state(k).Omega.Gam_shape-ndim-1);
+    if ~isfield(hmm.state(k).Omega,'Gam_irate')
+        hmm.state(k).Omega.Gam_irate = inv(hmm.state(k).Omega.Gam_rate);
+    end
     icovmat = hmm.state(k).Omega.Gam_irate * (hmm.state(k).Omega.Gam_shape-ndim-1);
 end
 
