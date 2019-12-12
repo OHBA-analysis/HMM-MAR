@@ -190,14 +190,14 @@ else % state dependent
                 Tfactor * (e + swx2(regressed,regressed));
             hmm.state(k).Omega.Gam_irate(regressed,regressed) = inv(hmm.state(k).Omega.Gam_rate(regressed,regressed));
             
-            if train.FC
-                C0 = hmm.state(k).Omega.Gam_rate(regressed,regressed) / hmm.state(k).Omega.Gam_shape;
-                C = hmm.train.A' * corrcov(hmm.train.A * C0 * hmm.train.A',1) * hmm.train.A;
-                %iC = hmm.train.A' * pinv(corrcov(hmm.train.A * C0 * hmm.train.A'),1e-10) * hmm.train.A;
-                iC = hmm.train.A' * ( (corrcov(hmm.train.A * C0 * hmm.train.A',1)+1e-4*eye(size(hmm.train.A,1))) \ hmm.train.A);
-                hmm.state(k).Omega.Gam_rate(regressed,regressed) = C * hmm.state(k).Omega.Gam_shape;
-                hmm.state(k).Omega.Gam_irate(regressed,regressed) = iC / hmm.state(k).Omega.Gam_shape;
-            end
+            %if train.FC
+            %    C0 = hmm.state(k).Omega.Gam_rate(regressed,regressed) / hmm.state(k).Omega.Gam_shape;
+            %    C = hmm.train.A' * corrcov(hmm.train.A * C0 * hmm.train.A',1) * hmm.train.A;
+            %    %iC = hmm.train.A' * pinv(corrcov(hmm.train.A * C0 * hmm.train.A'),1e-10) * hmm.train.A;
+            %    iC = hmm.train.A' * ( (corrcov(hmm.train.A * C0 * hmm.train.A',1)+1e-4*eye(size(hmm.train.A,1))) \ hmm.train.A);
+            %    hmm.state(k).Omega.Gam_rate(regressed,regressed) = C * hmm.state(k).Omega.Gam_shape;
+            %    hmm.state(k).Omega.Gam_irate(regressed,regressed) = iC / hmm.state(k).Omega.Gam_shape;
+            %end
             
             % ensuring symmetry
             hmm.state(k).Omega.Gam_rate(regressed,regressed) = (hmm.state(k).Omega.Gam_rate(regressed,regressed) + ...

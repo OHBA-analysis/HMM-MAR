@@ -34,7 +34,6 @@ if ~isfield(options,'pca'), options.pca = 0; end
 if ~isfield(options,'pca_spatial'), options.pca_spatial = 0; end
 if ~isfield(options,'lowrank'), options.lowrank = 0; end
 if ~isfield(options,'varimax'), options.varimax = 0; end
-if ~isfield(options,'FC'), options.FC = 0; end
 if ~isfield(options,'maxFOth'), options.maxFOth = Inf; end
 if ~isfield(options,'pcamar'), options.pcamar = 0; end
 if ~isfield(options,'pcapred'), options.pcapred = 0; end
@@ -52,12 +51,6 @@ if length(options.embeddedlags)>1 && isfield(options,'covtype') && ...
         ~strcmpi(options.covtype,'full')
     options.covtype = 'full';
     warning('options.covtype will be set to ''full'' because embeddedlags is used')
-end
-if options.FC && ~strcmpi(options.covtype,'full')
-   error('If options.FC, then options.covtype must be ''full''') 
-end
-if options.FC && options.lowrank 
-    error('FC and lowrank are not compatible')
 end
      
 % display options

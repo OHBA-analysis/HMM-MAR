@@ -90,6 +90,7 @@ for k = 1:K
                 hmm.state(k).W.Mu_W * hmm.state(k).W.Mu_W';
             ldetWishB = 0.5*logdet(C);
             PsiWish_alphasum = 0;
+            C = inv(C);
         elseif strcmpi(hmm.train.covtype,'diag')
             ldetWishB = 0;
             PsiWish_alphasum = 0;
@@ -110,8 +111,7 @@ for k = 1:K
     end
     
     if do_HMM_pca
-        iC = inv(C);
-        dist = - 0.5 * sum(XX * iC .* XX,2);
+        dist = - 0.5 * sum(XX * C .* XX,2);
                 
     else
         meand = zeros(size(XX,1),sum(regressed));

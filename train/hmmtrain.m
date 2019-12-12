@@ -169,14 +169,35 @@ for cycle = 1:hmm.train.cyc
         end
     end
     
-%     if 1
-%         figure(500)
-%         %area(Gamma(1:sum(T(1:5)),:)); ylim([0 1])
-%         area(Gamma); ylim([0 1])
-%         title([num2str(cycle) ' ' num2str(hmm.P(1,2))])
-%         drawnow
-%         pause(0.1)
-%     end
+    if 0
+        figure(500);clf(500)
+        subplot(211)
+        area(Gamma(1:sum(T(1:5)),:)); ylim([0 1]); xlim([1 sum(T(1:5))])
+        hold on; for jjj = 1:4, plot([sum(T(1:jjj)) sum(T(1:jjj))],[0 1],'k','LineWidth',3); end
+        %area(Gamma); ylim([0 1])
+        title([num2str(cycle) ' ' num2str(hmm.P(1,2))])
+        subplot(212)
+        plot(getFractionalOccupancy(Gamma,T,hmm.train,1),'LineWidth',3); ylim([0 1])
+        
+        drawnow
+        pause(0.1)
+        
+        CC = zeros(hmm.train.K);
+        for k1 = 1:hmm.train.K
+            for k2 = 1:hmm.train.K
+                if k1==k2, continue; end
+                CC(k1,k2) = wishart_kl(hmm.state(k1).Omega.Gam_rate,...
+                    hmm.state(k2).Omega.Gam_rate, ...
+                    hmm.state(k1).Omega.Gam_shape,hmm.state(k2).Omega.Gam_shape);
+            end
+        end
+        m = getFractionalOccupancy(Gamma,T,hmm.train,2);
+        m =(max(m,[],2));
+        sum(CC(:)) 
+        [median(m) mean(m)]
+        1;
+       
+    end
     
 end
 

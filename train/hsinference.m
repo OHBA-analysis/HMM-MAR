@@ -175,7 +175,7 @@ if hmm.train.useParallel==1 && N>1
             slicepoints=slicer + s0 - order;
             XXt = XX(slicepoints,:); 
             if isnan(C(t,1))
-                [gammat,xit,Bt] = nodecluster(XXt,K,hmm,R(slicer,:),slicepoints);
+                [gammat,xit,Bt] = fb_Gamma_inference(XXt,K,hmm,R(slicer,:),slicepoints);
             else
                 gammat = zeros(length(slicer),K);
                 if t==order+1, gammat(1,:) = C(slicer(1),:); end
@@ -253,9 +253,10 @@ else
             slicepoints=slicer + s0 - order;
             XXt = XX(slicepoints,:);
             if isnan(C(t,1))
-                [gammat,xit,Bt] = nodecluster(XXt,K,hmm,R(slicer,:),slicepoints);
-                if any(isnan(gammat(:)))
-                    error('State time course inference returned NaN - Out of precision?')
+                [gammat,xit,Bt] = fb_Gamma_inference(XXt,K,hmm,R(slicer,:),slicepoints);
+                if any(isnan(gammat(:))) % this will never come up - we treat it within fb_Gamma_inference
+                    error(['State time course inference returned NaN (out of precision). ' ...
+                        'There are probably extreme events in the data'])
                 end
             else
                 gammat = zeros(length(slicer),K);
@@ -316,101 +317,6 @@ if n_argout>=5, B  = cell2mat(B); end
 %     Gamma = Gamma - min(Gamma(:));
 %     Gamma = rdiv(Gamma,sum(Gamma,2));
 % end
-
-end
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [Gamma,Xi,L] = nodecluster(XX,K,hmm,residuals,slicepoints)
-% inference using normal foward backward propagation
-
-if isfield(hmm.train,'distribution') && strcmp(hmm.train.distribution,'logistic')
-    order = 0;
-else
-    order = hmm.train.maxorder;
-end
-T = size(residuals,1) + order;
-Xi = [];
-p = hmm.train.lowrank; do_HMM_pca = (p > 0);
-
-if nargin<5
-    slicepoints = [];
-end
-
-% if isfield(hmm.train,'grouping') && length(unique(hmm.train.grouping))>1
-%     i = hmm.train.grouping(n); 
-%     P = hmm.P(:,:,i); Pi = hmm.Pi(:,i)'; 
-% else 
-%     P = hmm.P; Pi = hmm.Pi;
-% end
-P = hmm.P; Pi = hmm.Pi;
-
-try
-    if ~isfield(hmm.train,'distribution') || ~strcmp(hmm.train.distribution,'logistic')
-        L = obslike([],hmm,residuals,XX,hmm.cache);
-    else
-        L = obslikelogistic([],hmm,residuals,XX,slicepoints);
-    end
-catch
-    error('obslike function is giving trouble - Out of precision?')
-end
-
-if ~isfield(hmm.train,'id_mixture') && hmm.train.id_mixture
-    Gamma = id_Gamma_inference(L,Pi,order);
-    return
-end
-
-L(L<realmin) = realmin;
-
-if hmm.train.useMEX 
-    [Gamma, Xi, scale] = hidden_state_inference_mx(L, Pi, P, order);
-    if any(isnan(Gamma(:))) || any(isnan(Xi(:)))
-        clear Gamma Xi scale
-        warning('hidden_state_inference_mx file produce NaNs - will use Matlab''s code')
-    else
-        return
-    end
-end
-
-scale = zeros(T,1);
-alpha = zeros(T,K);
-beta = zeros(T,K);
-
-alpha(1+order,:) = Pi.*L(1+order,:);
-scale(1+order) = sum(alpha(1+order,:));
-alpha(1+order,:) = alpha(1+order,:)/scale(1+order);
-for i = 2+order:T
-    alpha(i,:) = (alpha(i-1,:)*P).*L(i,:);
-    scale(i) = sum(alpha(i,:));		% P(X_i | X_1 ... X_{i-1})
-    alpha(i,:) = alpha(i,:)/scale(i);
-end
-
-scale(scale<realmin) = realmin;
-
-beta(T,:) = ones(1,K)/scale(T);
-for i = T-1:-1:1+order
-    beta(i,:) = (beta(i+1,:).*L(i+1,:))*(P')/scale(i);
-    beta(i,beta(i,:)>realmax) = realmax;
-end
-Gamma = (alpha.*beta);
-Gamma = Gamma(1+order:T,:);
-Gamma = rdiv(Gamma,sum(Gamma,2));
-
-Xi = zeros(T-1-order,K*K);
-for i = 1+order:T-1
-    t = P.*( alpha(i,:)' * (beta(i+1,:).*L(i+1,:)));
-    Xi(i-order,:) = t(:)'/sum(t(:));
-end
-
-end
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function Gamma = id_Gamma_inference(L,Pi,order)
-% inference for independent samples (ignoring time structure)
-
-Gamma = zeros(T,K);
-Gamma(1+order,:) = repmat(Pi,size(L,1),1) .* L(1+order,:);
-Gamma = rdiv(Gamma,sum(Gamma,2));
 
 end
 

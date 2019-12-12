@@ -60,5 +60,12 @@ end
 if ~isfield(hmm.train,'updateP')
     hmm.train.updateP = 1;
 end
+if ~isfield(hmm.train,'id_mixture')
+    hmm.train.id_mixture = 0;
+end
+if ~isfield(hmm.train,'id_mixture')
+    hmm.train.id_mixture = 0;
+end
+
 
 end
