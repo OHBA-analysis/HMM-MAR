@@ -23,6 +23,14 @@ function pvalues = hmmtest_epoched(Gamma,T,Y,Nperm)
 lambda = 1e-5;  
 if nargin < 4, Nperm = 10000; end
 
+if iscell(T)
+    if size(T,1) == 1, T = T'; end
+    for i = 1:length(T)
+        if size(T{i},1)==1, T{i} = T{i}'; end
+    end
+    T = cell2mat(T);
+end
+
 if length(size(Gamma)) == 2
     N = length(T); ttrial = T(1); K = size(Gamma,2);
     if (sum(T) ~= size(Gamma,1))
@@ -45,8 +53,13 @@ if q > 1
 end
 
 if length(Y) ~= N % one value for the entire trial
+    for j = 1:N
+       if ~all( Y(1,j) == Y(:,j))
+           error('Y must have the same value for the entire trial')
+       end
+    end
     Y = reshape(Y,[ttrial N]);
-    Y = Y(:,1);
+    Y = Y(1,:);
 end
 if size(Y,1) < size(Y,2); Y = Y'; end
 Y = zscore(Y);
@@ -55,7 +68,6 @@ vY = sum(Y.^2);
 C = zeros(K,N,ttrial);
 for t = 1:ttrial 
    g = permute(Gamma(t,:,:),[2 3 1]);
-   Gamma(t,:,:) = g;
    C(:,:,t) = (g' * g + lambda*eye(K)) \ g' ;
 end
     
