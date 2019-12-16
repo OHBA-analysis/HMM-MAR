@@ -35,14 +35,13 @@ K=size(B_p,1);
 
 try
     Lq = -logdet(B_q,'chol');
+    Lp = -logdet(B_p,'chol');  
 catch 
     disp('Probably, part of your time series has no information and can be removed.')
     disp('For example, check if there are segments such that data(during_segment,:) == 0')
     disp('It could also be that your have your own logdet function, that is not Matlab''s own - remove')
     error('Error computing the inverse of the covariance matrix.')
 end
-
-Lp = -logdet(B_p,'chol');  
 
 lZq = log(2) * (alpha_q*K/2)  - Lq * (-alpha_q/2) + K*(K-1)/4 * log(pi); 
 lZp = log(2) * (alpha_p*K/2)  - Lp * (-alpha_p/2) + K*(K-1)/4 * log(pi); 
