@@ -44,6 +44,10 @@ ndim = size(covmats_unflipped,1);
 score = -Inf;
 scorepath = cell(options.noruns,1);
 
+if isinf(options.maxcyc) && (options.nbatch > 0)
+    error('If maxcyc is Inf, options.nbatch must be 0')
+end
+
 % repetitions of the search
 for r = 1:options.noruns
     
@@ -82,7 +86,7 @@ for r = 1:options.noruns
         elseif options.nbatch == 0
             break
         else
-            fprintf('Run %d, Cycle %d, score +0 \n',r,cyc,score_r,j,d)
+            fprintf('Run %d, Cycle %d, score +0 \n',r,cyc)
         end
         
     end
