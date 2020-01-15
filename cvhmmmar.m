@@ -30,7 +30,7 @@ end
 N = length(T);
 
 if isstruct(data) && isfield(data,'C')
-    error('C cannot be specified within data here')
+    warning('C will not be used here')
 end
 
 get_ratio_rand = nargout > 2; 
@@ -64,7 +64,7 @@ options.dropstates = 0;
 options.updateGamma = options.K>1;
 options.updateP = options.updateGamma;
 
-if length(options.cvfolds)==1
+if ~isobject(options.cvfolds)
     %options.cvfolds = crossvalind('Kfold', length(T), options.cvfolds);
     options.cvfolds = cvpartition(length(T),'KFold',options.cvfolds);
 end

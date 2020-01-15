@@ -24,10 +24,10 @@ for k = 1:tuda.K
 end
 %beta = squeeze(beta); 
 
-if nargin>1;
-    [T,K]=size(Gamma_mean);
-    beta_t=zeros(p,q,T);
-    for t=1:T
+if nargin > 1
+    T = size(Gamma_mean,1);
+    beta_t = zeros(p,q,T);
+    for t = 1:T
         beta_t(:,:,t) = sum(beta.*repmat(permute(Gamma_mean(t,:),[3,1,2]),p,q,1),3);
     end
 end

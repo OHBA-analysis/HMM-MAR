@@ -63,8 +63,8 @@ if ~isfield(options,'demeanstim'), options.demeanstim = 0; end
 
 options.Nfeatures = 0; 
 options.K = 1; 
-[X,Y,T] = preproc4hmm(X,Y,T,options); % this demeans Y
-Q_star=size(Y,2); % for multinomial and LDA (mean inserted) models
+[X,Y,T] = preproc4hmm(X,Y,T,options); 
+Q_star = size(Y,2); % for multinomial and LDA (mean inserted) models
 
 p = size(X,2);
 
@@ -88,7 +88,7 @@ if isfield(options,'classifier')
     end
 else, classifier = 'logistic'; 
 end
-model=struct();
+model = struct();
 model.classifier = classifier;
 if isfield(options,'lambda') 
     lambda = options.lambda; options = rmfield(options,'lambda');
@@ -112,9 +112,9 @@ halfbin = floor(binsize/2);
 if strcmp(classifier,'logistic')
     % alternative: model = synchronousLogReg(X,Y,T,options)
     if length(unique(Ystar))<=2
-        Y(Y==-1)=0;
+        Y(Y==-1) = 0;
     end
-    for t=1:ttrial
+    for t  = 1:ttrial
         if options.verbose
             if strcmp(regtype,'L1')
                 fprintf(['\nRunning LASSO Regression analysis on data for t=',int2str(t),'th sample']);
@@ -124,31 +124,31 @@ if strcmp(classifier,'logistic')
                 error('ARD regularisation not implemented yet for logistic regression');
             end
         end
-        for ilambda=1:length(lambda)
-            betas=zeros(p,Q_star);
-            intercepts=zeros(1,Q_star);
-            for c=1:q
+        for ilambda = 1:length(lambda)
+            betas = zeros(p,Q_star);
+            intercepts = zeros(1,Q_star);
+            for c = 1:q
                 if length(unique(Ystar))>2
-                    vp=Y(t,:,c)~=0;
+                    vp = Y(t,:,c)~=0;
                     Ysample = Y(t,vp,c)'==1;
                 else
-                    vp=true(1,N);
+                    vp = true(1,N);
                     Ysample = Y(t,vp,c)';
                 end
                 if strcmp(regtype,'L1')
-                    [betas(:,c),fitInfo]=lassoglm(squeeze(X(t,vp,:)),Ysample, ...
+                    [betas(:,c),fitInfo] = lassoglm(squeeze(X(t,vp,:)),Ysample, ...
                         'binomial','Alpha', 1, 'Lambda', lambda(ilambda),'Standardize', false);
                     intercepts(c) = fitInfo.Intercept;
                 elseif strcmp(regtype,'L2')
-                     [betas(:,c),fitInfo]=lassoglm(squeeze(X(t,vp,:)),Ysample, ...
+                     [betas(:,c),fitInfo] = lassoglm(squeeze(X(t,vp,:)),Ysample, ...
                             'binomial','Alpha', 0.00001, 'Lambda', lambda(ilambda),'Standardize', false);
                     intercepts(c) = fitInfo.Intercept;
                 end
             end
-            model.betas(t,:,:,ilambda)=betas;
-            model.intercepts(t,:,ilambda)=intercepts;
+            model.betas(t,:,:,ilambda) = betas;
+            model.intercepts(t,:,ilambda) = intercepts;
         end
-        model.lambda=lambda;    
+        model.lambda = lambda;    
     end
 elseif strcmp(classifier,'SVM')
     model.SVM=cell(ttrial,Q_star);
@@ -162,13 +162,13 @@ elseif strcmp(classifier,'SVM')
     end
 elseif strcmp(classifier,'LDA')
     options_LDA=struct;
-    options_LDA.useUnsupervisedGamma=1; %this ensures gamma is fixed for standard decoding
+    options_LDA.useUnsupervisedGamma = 1; %this ensures gamma is fixed for standard decoding
     options_LDA.covtype = 'diag';
     options_LDA.verbose = 1;
     options_LDA.useParallel = 0;
     options_LDA.standardise = 0;
-    options_LDA.K=ttrial;
-    options_LDA.Gamma=repmat(eye(ttrial),length(T),1);
+    options_LDA.K = ttrial;
+    options_LDA.Gamma = repmat(eye(ttrial),length(T),1);
     X_LDA = reshape(X,[ttrial*N p]);
     Y_LDA = reshape(Y,[ttrial*N Q_star]);
     if options.verbose

@@ -37,6 +37,7 @@ function fit = hmmspectramt(data,T,Gamma,options)
 % Author: Diego Vidaurre, OHBA, University of Oxford (2014)
 %  the code uses some parts from Chronux
 
+if nargin<4, options = struct(); end
 if ~isfield(options,'order') && ~isfield(options,'embeddedlags')
     warning(['If you ran the HMM with options.order>0 or options.embeddedlags, ' ... 
         'these need to be specified too here'])

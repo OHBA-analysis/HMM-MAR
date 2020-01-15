@@ -98,7 +98,7 @@ if ~isfield(options,'c')
             rj = responses(:,j);
             uj = unique(rj);
             for jj = 1:length(uj)
-                tmp(rj == uj(jj)) = tmp(rj == uj(jj)) + 100^(j-1) * jj;
+                tmp(rj == uj(jj)) = tmp(rj == uj(jj)) + (q+1)^(j-1) * jj; tmp(rj == uj(jj)) + 100^(j-1) * jj;
             end
         end
         uy = unique(tmp);
@@ -129,7 +129,7 @@ RidgePen = lambda * eye(p);
 
 % Perform the prediction 
 Ypred = NaN(size(Y));
-beta=cell(length(halfbin+1 : ttrial-halfbin),NCV);
+beta = cell(length(halfbin+1 : ttrial-halfbin),NCV);
 for icv = 1:NCV
     Ntr = sum(c.training{icv}); Nte = sum(c.test{icv});
     for t = halfbin+1 : ttrial-halfbin

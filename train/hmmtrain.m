@@ -30,7 +30,7 @@ do_clustering = isfield(hmm.train,'cluster') && hmm.train.cluster;
 if do_clustering
     root_P = 0.75;
     hmm.P = root_P * ones(hmm.K);
-    hmm.P(eye(hmm.K)==1) = 1; 
+    hmm.P(eye(hmm.K)==1) = 1;
 end
 
 for cycle = 1:hmm.train.cyc
@@ -73,15 +73,19 @@ for cycle = 1:hmm.train.cyc
             setxx;
             
             if hmm.train.plotAverageGamma
-                if hmm.train.order > 0, dg = hmm.train.order; end
-                if length(hmm.train.embeddedlags) > 1
-                    dg = -hmm.train.embeddedlags(1) + hmm.train.embeddedlags(end);
+                figure(100);clf(100);
+                if isfield(hmm.train,'tuda') && hmm.train.tuda
+                    plot_Gamma(Gamma,T);
+                else
+                    if hmm.train.order > 0, dg = hmm.train.order; end
+                    if length(hmm.train.embeddedlags) > 1
+                        dg = -hmm.train.embeddedlags(1) + hmm.train.embeddedlags(end);
+                    end
+                    plot(double((1:(T(1)-dg)))/hmm.train.Fs,...
+                        squeeze(mean(reshape(Gamma,[(T(1)-dg) length(T) size(Gamma,2)]),2)),...
+                        'LineWidth',3)
+                    ylim([0 1]); xlim(double([1 (T(1)-dg)])/hmm.train.Fs)
                 end
-                plot(double((1:(T(1)-dg)))/hmm.train.Fs,...
-                    squeeze(mean(reshape(Gamma,[(T(1)-dg) length(T) size(Gamma,2)]),2)),...
-                    'LineWidth',3)
-                ylim([0 1]); xlim(double([1 (T(1)-dg)])/hmm.train.Fs)
-                title(sprintf('iteration #%i',cycle));
                 drawnow
             end
             
@@ -94,16 +98,16 @@ for cycle = 1:hmm.train.cyc
             fehist(end+1) = sum(evalfreeenergy(data.X,T,Gamma,Xi,hmm,residuals,XX));
         end
         strwin = ''; if hmm.train.meancycstop>1, strwin = 'windowed'; end
-        if cycle>(hmm.train.meancycstop+1) 
+        if cycle>(hmm.train.meancycstop+1)
             chgFrEn = mean( fehist(end:-1:(end-hmm.train.meancycstop+1)) - ...
                 fehist(end-1:-1:(end-hmm.train.meancycstop)) )  ...
                 / (fehist(1) - fehist(end));
             if hmm.train.verbose
                 fprintf('cycle %i free energy = %g, %s relative change = %g \n',...
-                    cycle,fehist(end),strwin,chgFrEn); 
+                    cycle,fehist(end),strwin,chgFrEn);
             end
             if (abs(chgFrEn) < hmm.train.tol) && cyc_to_go==0
-                break; 
+                break;
             end
         elseif hmm.train.verbose
             fprintf('cycle %i free energy = %g \n',cycle,fehist(end)); %&& cycle>1
@@ -117,7 +121,7 @@ for cycle = 1:hmm.train.cyc
     %disp(['mean MaxFO = ' num2str(mean(getMaxFractionalOccupancy(Gamma,T,hmm.train)))])
     
     %%%% M STEP
-       
+    
     % Observation model
     if hmm.train.updateObs
         hmm = obsupdate(T,Gamma,hmm,residuals,XX,XXGXX);
@@ -128,7 +132,7 @@ for cycle = 1:hmm.train.cyc
         hmm = hsupdate(Xi,Gamma,T,hmm);
     end
     
-    if ~hmm.train.updateGamma    
+    if ~hmm.train.updateGamma
         break % one iteration is enough
     end
     
@@ -193,10 +197,9 @@ for cycle = 1:hmm.train.cyc
         end
         m = getFractionalOccupancy(Gamma,T,hmm.train,2);
         m =(max(m,[],2));
-        sum(CC(:)) 
+        sum(CC(:))
         [median(m) mean(m)]
-        1;
-       
+        
     end
     
 end
@@ -214,7 +217,7 @@ end
 
 if hmm.train.tudamonitoring
     if (abs(chgFrEn) < hmm.train.tol) && cyc_to_go==0
-        cycle = cycle - 1; 
+        cycle = cycle - 1;
     end
     hmm.tudamonitor.synch = hmm.tudamonitor.synch(1:cycle+1,:);
     hmm.tudamonitor.accuracy = hmm.tudamonitor.accuracy(1:cycle+1,:);
@@ -260,15 +263,15 @@ if do_clustering
             break;
         end
         kk = [kk m];
-        Gamma0(:,m) = 0; 
+        Gamma0(:,m) = 0;
     end
-    if length(kk) < hmm.K 
+    if length(kk) < hmm.K
         kk = [kk setdiff((1:hmm.K), kk)];
     end
     Gamma = Gamma(:,kk);
     hmm.state = hmm.state(kk);
     hmm.Pi = hmm.Pi(kk);
-    hmm.Dir_alpha = hmm.Dir_alpha(kk);      
+    hmm.Dir_alpha = hmm.Dir_alpha(kk);
 end
 
 end

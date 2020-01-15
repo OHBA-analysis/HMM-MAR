@@ -32,9 +32,9 @@ function [cv_acc,acc,meanGenPlot] = standard_classification(X,Y,T,options,binsiz
 % Author: Cam Higgins, OHBA, University of Oxford (2019)
 
 if ~isfield(options,'classifier')
-    options.classifier='logistic'; %set default
+    options.classifier = 'logistic'; %set default
 end
-classifier=options.classifier;
+classifier = options.classifier;
 do_preproc = 1; 
 
 N = length(T); q = size(Y,2); ttrial = T(1); p = size(X,2); 
@@ -68,7 +68,7 @@ if do_preproc
     p = size(X,2);Q_star=size(Y,2);
     if Q_star~=q && strcmp(options.distribution,'logistic')
         Ycopy = multinomToBinary(Ycopy);
-        q=size(Ycopy,2);
+        q = size(Ycopy,2);
     end
     if length(el) > 1
         Ycopy = reshape(Ycopy,[ttrial N q]);
@@ -81,12 +81,7 @@ if do_preproc
     end
 end
 
-if isfield(options,'CVmethod') 
-    CVmethod = options.CVmethod; options = rmfield(options,'CVmethod');
-else
-    CVmethod = 1;
-end
-class_totals=(sum(Y==1)./ttrial);
+class_totals = (sum(Y==1)./ttrial);
 if size(unique(class_totals))>1
     warning('Note that Y is not balanced; cross validation folds will not be balanced and predictions will be biased')
 end
@@ -103,13 +98,15 @@ else
 end
 
 if ~isfield(options,'c')
-    %disp('Response is treated as categorical')
+    % this system is thought for cases where a trial can have more than
+    % 1 category, and potentially each column can have more than 2 values,
+    % but there are not too many categories
     tmp = zeros(N,1);
-    for j = 1:size(responses,2)
+    for j = 1:q
         rj = responses(:,j);
         uj = unique(rj);
         for jj = 1:length(uj)
-            tmp(rj == uj(jj)) = tmp(rj == uj(jj)) + 100^(j-1) * jj;
+            tmp(rj == uj(jj)) = tmp(rj == uj(jj)) + (q+1)^(j-1) * jj;
         end
     end
     uy = unique(tmp);
@@ -121,6 +118,7 @@ if ~isfield(options,'c')
 else
    c2 = options.c; options = rmfield(options,'c');
 end
+
 c = struct();
 c.test = cell(NCV,1);
 c.training = cell(NCV,1);
@@ -134,10 +132,10 @@ Y = reshape(Y,[ttrial N Q_star]);
 Ycopy = reshape(Ycopy,[ttrial N q]);
 
 % Fit classifier to each fold:
-acc=zeros(NCV);cv_acc=zeros(ttrial,NCV);
+cv_acc = zeros(ttrial,NCV);
 for icv = 1:NCV
     % train classifier on training set:
-    Ntr = length(c.training{icv}); Nte = length(c.test{icv});
+    Ntr = length(c.training{icv}); 
     Xtrain = reshape(X(:,c.training{icv},:),[Ntr*ttrial p] ) ;
     Ytrain = reshape(Y(:,c.training{icv},:),[Ntr*ttrial Q_star] ) ;
     Ttr = T(c.training{icv});
@@ -153,16 +151,15 @@ for icv = 1:NCV
     fprintf(['CV iteration: ' num2str(icv),' of ',int2str(NCV),'\n']); 
     
 end
-acc=mean(cv_acc(:));
-cv_acc=mean(cv_acc,2);
+acc = mean(cv_acc(:));
+cv_acc = mean(cv_acc,2);
+meanGenPlot = [];
 if isfield(options,'generalisationplot') && options.generalisationplot
-    meanGenPlot=[];
-    for icv=1:NCV
+    for icv = 1:NCV
         meanGenPlot = cat(3,meanGenPlot,genplot{icv});
     end
     meanGenPlot = squeeze(mean(meanGenPlot,3));
 else
-    meanGenPlot=[];
 end
 end
 

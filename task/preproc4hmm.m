@@ -163,7 +163,16 @@ else % Standard regression problem
     if ~isfield(options,'add_noise'), add_noise = 0;
     else, add_noise = options.add_noise;
     end
+    if ~isfield(options,'sequential')
+        options.sequential = true;
+    end
+    if ~isfield(options,'inittype')
+        options.inittype = 'sequential';
+    end
+    
 end
+
+if ~isfield(options,'cyc'), options.cyc = 25; end
 
 if ~isfield(options,'logisticYdim'), options.logisticYdim = 0; end
 
