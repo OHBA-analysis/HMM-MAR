@@ -165,26 +165,49 @@ if todo(5)==1
                 end
                 
             else % full or uniquefull
-                prior_prec = [];
-                if train.zeromean==0
-                    prior_prec = hs.prior.Mean.iS;
-                end
-                if ~isempty(orders)
-                    if pcapred
-                        betaterm = (hs.beta.Gam_shape ./ hs.beta.Gam_rate)';
-                        prior_prec = [prior_prec; betaterm(:)];
-                    else
-                        sigmaterm = (hs.sigma.Gam_shape ./ hs.sigma.Gam_rate)';
-                        sigmaterm = repmat(sigmaterm(:), length(orders), 1);
-                        alphaterm = repmat( (hs.alpha.Gam_shape ./  hs.alpha.Gam_rate), ndim*Q, 1);
-                        alphaterm = alphaterm(:);
-                        prior_prec = [prior_prec; alphaterm .* sigmaterm];
+                if all(S(:)==1)
+                    prior_prec = [];
+                    if train.zeromean==0
+                        prior_prec = hs.prior.Mean.iS;
                     end
+                    if ~isempty(orders)
+                        if pcapred
+                            betaterm = (hs.beta.Gam_shape ./ hs.beta.Gam_rate)';
+                            prior_prec = [prior_prec; betaterm(:)];
+                        else
+                            sigmaterm = (hs.sigma.Gam_shape ./ hs.sigma.Gam_rate)';
+                            sigmaterm = repmat(sigmaterm(:), length(orders), 1);
+                            alphaterm = repmat( (hs.alpha.Gam_shape ./  hs.alpha.Gam_rate), ndim*Q, 1);
+                            alphaterm = alphaterm(:);
+                            prior_prec = [prior_prec; alphaterm .* sigmaterm];
+                        end
+                    end
+                    prior_var = diag(1 ./ prior_prec);
+                    mu_w = hs.W.Mu_W';
+                    mu_w = mu_w(:);
+                    WKL = gauss_kl(mu_w,zeros(length(mu_w),1), hs.W.S_W, prior_var);
+                else % only computed over selected terms
+                    regressed = sum(S,1)>0; % dependent variables, Y
+                    index_iv = sum(S,2)>0; % independent variables, X
+                    prior_prec = [];
+                    if train.zeromean==0
+                        prior_prec = hs.prior.Mean.iS;
+                    end
+                    sigmaterm = (hs.sigma.Gam_shape(regressed,regressed) ./ hs.sigma.Gam_rate(regressed,regressed))';
+                    sigmaterm = repmat(sigmaterm(:), length(orders), 1);
+                    alphaterm = repmat( (hs.alpha.Gam_shape ./  hs.alpha.Gam_rate), length(sigmaterm), 1);
+                    alphaterm = alphaterm(:);
+                    prior_prec = [prior_prec; alphaterm .* sigmaterm];
+                    prior_var = diag(1 ./ prior_prec);
+                    % instead, using ridge regression:
+                    prior_var = 0.1 * eye(sum(regressed)*sum(index_iv));
+                    mu_w = hs.W.Mu_W(index_iv,regressed);
+                    mu_w = mu_w(:);
+                    valid_dims = S(:)==1;
+                    WKL = gauss_kl(mu_w,zeros(length(mu_w),1), hs.W.S_W(valid_dims,valid_dims), prior_var);
+                
+                      
                 end
-                prior_var = diag(1 ./ prior_prec);
-                mu_w = hs.W.Mu_W';
-                mu_w = mu_w(:);
-                WKL = gauss_kl(mu_w,zeros(length(mu_w),1), hs.W.S_W, prior_var);
             end
         end
         
