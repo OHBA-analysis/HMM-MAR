@@ -460,6 +460,9 @@ if options.uniqueAR==1 && any(options.S(:)~=1)
     warning('S has no effect if uniqueAR=1')
 end
 if (strcmp(options.covtype,'full') || strcmp(options.covtype,'uniquefull')) && any(options.S(:)~=1)
+    if any(options.S(:)==0)
+        error('Global modelling of MAR coefficients not supported with full or uniquefull covariance matrix');
+    end
     S = options.S==1;
     regressed = sum(S,2)>1;
     regressors = sum(S,1)>1;
