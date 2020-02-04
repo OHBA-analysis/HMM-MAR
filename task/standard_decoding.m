@@ -68,7 +68,7 @@ p = size(X,2);
 X = reshape(X,[ttrial N p]);
 Y = reshape(Y,[ttrial N q]);
 
-if (binsize/2)==0
+if mod(binsize/2,2)==0
     warning(['binsize must be an odd number, setting to ' num2str(binsize+1)])
     binsize = binsize + 1; 
 end

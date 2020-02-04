@@ -464,8 +464,8 @@ if (strcmp(options.covtype,'full') || strcmp(options.covtype,'uniquefull')) && a
         error('Global modelling of MAR coefficients not supported with full or uniquefull covariance matrix');
     end
     S = options.S==1;
-    regressed = sum(S,2)>1;
-    regressors = sum(S,1)>1;
+    regressed = sum(S,2)>=1;
+    regressors = sum(S,1)>=1;
     if any(squash(regressed*regressors ~= S))
     	error('Decoding with full or uniquefull covariance matrix requires S to be in block design: current design not supported');
     end

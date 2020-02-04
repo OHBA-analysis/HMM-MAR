@@ -96,7 +96,8 @@ elseif isfield(options,'NCV')
 else
     %default to hold one-out CV unless NCV>10:
     NCV = max(class_totals);
-    if NCV > 10, NCV = 10; end
+    if NCV > 10 || NCV < 1, NCV = 10; end
+    
 end
 if isfield(options,'lambda') 
     lambda = options.lambda; options = rmfield(options,'lambda');
@@ -169,6 +170,9 @@ for icv = 1:NCV
         case 2 % regression
             Xtest = permute(X(:,c.test{icv},:),[2 3 1]);
             Xtrain = permute(X(:,c.training{icv},:),[2 3 1]);
+            Xtest = cat(2,Xtest,ones(Ntr,1,ttrial)); %include intercept term
+            Xtrain = cat(2,Xtrain,ones(Ntr,1,ttrial));
+            RidgePen = lambda * eye(p+1);
             Gammatrain = permute(reshape(Gammatrain,[ttrial Ntr K]),[2 3 1]);
             for t = 1:ttrial
                 B = (Xtrain(:,:,t)' * Xtrain(:,:,t) + RidgePen) \ ...
@@ -178,6 +182,11 @@ for icv = 1:NCV
                 pred = pred ./ repmat(sum(pred,2),1,K);
                 Gammapred(t,c.test{icv},:) = pred;
             end
+        case 3 % distributional model
+            Xtrain = reshape(X(:,c.training{icv},:),[ttrial*length(c.training{icv}),p]);
+            Xtest = reshape(X(:,c.test{icv},:),[ttrial*length(c.test{icv}),p]);
+            GammaTemp = fitEquivUnsupervisedModel(Xtrain,Gammatrain,Xtest,T(c.training{icv}),T(c.test{icv}));
+            Gammapred(:,c.test{icv},:) = reshape(GammaTemp,[ttrial,length(c.test{icv}),K]);
     end      
     if verbose
         fprintf(['\nCV iteration: ' num2str(icv),' of ',int2str(NCV),'\n'])
