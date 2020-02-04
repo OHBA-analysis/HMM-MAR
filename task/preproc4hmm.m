@@ -111,7 +111,7 @@ if ~isempty(options.classifier)
             q = size(Y,2);
         end
         if ~isfield(options,'covtype')
-            options.covtype = 'uniquediag'; % actual LDA; full for QDA
+            options.covtype = 'uniquefull'; 
         end
         options=rmfield(options,'intercept');
         if ~isfield(options,'sequential')

@@ -204,10 +204,25 @@ for k = 1:K
                     * XX(:,Sind(:,n))') .* repmat(Gamma(:,k)',sum(Sind(:,n)),1)) * residuals(:,n);
             end
         else
-            gram = kron(XXGXX{k},eye(ndim));
-            hmm.state(k).W.iS_W = gram + 0.01*eye(size(gram,1));
-            hmm.state(k).W.S_W = inv( hmm.state(k).W.iS_W );
-            hmm.state(k).W.Mu_W = (( XXGXX{k} \ XX' ) .* repmat(Gamma(:,k)',(~train.zeromean)+npred,1)) * residuals;
+            if all(S(:))==1
+                gram = kron(XXGXX{k},eye(ndim));
+                hmm.state(k).W.iS_W = gram + 0.01*eye(size(gram,1));
+                hmm.state(k).W.S_W = inv( hmm.state(k).W.iS_W );
+                hmm.state(k).W.Mu_W = (( XXGXX{k} \ XX' ) .* repmat(Gamma(:,k)',(~train.zeromean)+npred,1)) * residuals;
+            else
+                regressed = sum(S,1)>0; % dependent variables, Y
+                index_iv = sum(S,2)>0; % independent variables, X
+                % note that XXGXX is invalid if any S==0:
+                hmm.state(k).W.iS_W = zeros(length(S(:)));
+                hmm.state(k).W.S_W = zeros(length(S(:)));
+                temp1 = bsxfun(@times,XX(:,index_iv),Gamma(:,k));
+                gram = kron(eye(sum(regressed)),temp1'*XX(:,index_iv));
+                hmm.state(k).W.iS_W(S(:),S(:)) = gram + 0.01*eye(size(gram,1));
+                hmm.state(k).W.S_W(S(:),S(:)) = inv( hmm.state(k).W.iS_W(S(:),S(:)) );
+                hmm.state(k).W.Mu_W = zeros(size(S));
+                % intialise to OLS estimate:
+                hmm.state(k).W.Mu_W(S) = pinv(residuals(Gamma(:,k)>0.5,index_iv))*residuals(Gamma(:,k)>0.5,regressed);
+            end
         end
     end
 end

@@ -231,7 +231,7 @@ if p < N
     end
     R2 = 1 - sqerr ./ sqerr0;
 else %implies prioblem is unconstrained, so perfect solution found
-    R2=NaN;
+    R2 = NaN;
 end
 
 end
