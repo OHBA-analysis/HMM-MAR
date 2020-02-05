@@ -22,6 +22,8 @@ function hmm = hsupdate(Xi,Gamma,T,hmm)
 Q = 1; 
 N = length(T); K = hmm.K;
 [~,order] = formorders(hmm.train.order,hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag);
+embeddedlags = abs(hmm.train.embeddedlags); 
+L = order + embeddedlags(1) + embeddedlags(end);
 do_clustering = isfield(hmm.train,'cluster') && hmm.train.cluster;
 
 if isempty(Xi) && ~do_clustering % non-exact estimation
@@ -73,7 +75,12 @@ end
 i = 1; 
 for n = 1:N
     if Q > 1, i = hmm.train.grouping(n); end
-    t = sum(T(1:n-1)) - order*(n-1) + 1;
+    %t = sum(T(1:n-1)) - order*(n-1) + 1;
+    if order > 0
+        t = sum(T(1:n-1)) - order*(n-1) + 1;
+    elseif length(embeddedlags) > 1
+        t = sum(T(1:n-1)) - L*(n-1) + 1;
+    end
     if Q==1 
         hmm.Dir_alpha = hmm.Dir_alpha + Gamma(t,:);
     else

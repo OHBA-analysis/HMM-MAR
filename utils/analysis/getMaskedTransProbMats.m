@@ -65,6 +65,7 @@ for im = 1:np
     for n = 1:N
         t0 = sum(T(1:n-1)); t1 = sum(T(1:n));
         ind_ix = mask(mask>=t0+1 & mask<=t1); % the ones belonging to this trial
+        if ~isempty(ind_ix) && ind_ix(end)<t1, t1=ind_ix(end); end % control for masks cutting off trials
         if length(ind_ix)<=L, continue; end
         T0 = [T0; length(ind_ix)];
         if order > 0
