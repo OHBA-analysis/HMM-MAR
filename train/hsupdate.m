@@ -80,6 +80,8 @@ for n = 1:N
         t = sum(T(1:n-1)) - order*(n-1) + 1;
     elseif length(embeddedlags) > 1
         t = sum(T(1:n-1)) - L*(n-1) + 1;
+    else
+        t = sum(T(1:n-1)) + 1;
     end
     if Q==1 
         hmm.Dir_alpha = hmm.Dir_alpha + Gamma(t,:);
