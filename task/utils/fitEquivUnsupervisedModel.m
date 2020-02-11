@@ -17,6 +17,9 @@ function [newstatetimecourse,stats] = fitEquivUnsupervisedModel(X_train,Gamma,X_
 % Author: Cam Higgins, OHBA, University of Oxford (2018)
 smoothoutput = true;
 
+interceptchannels = find(std(X_train)==0);
+X_train(:,interceptchannels) = [];
+X_test(:,interceptchannels) = [];
 
 options=struct();
 %options.Fs=100;

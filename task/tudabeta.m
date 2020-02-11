@@ -18,9 +18,18 @@ function [beta,beta_t] = tudabeta(tuda,Gamma_mean)
 
 q = size(tuda.train.S,1) - find(tuda.train.S(1,:)>0,1) + 1;
 p = find(tuda.train.S(1,:)>0,1) - 1; 
-beta = zeros(p,q,tuda.K);
-for k = 1:tuda.K
-    beta(:,:,k) = tuda.state(k).W.Mu_W(1:p,p+1:end);
+if ~(isempty(p) && isempty(q)) %standard tuda setup
+    beta = zeros(p,q,tuda.K);
+    for k = 1:tuda.K
+        beta(:,:,k) = tuda.state(k).W.Mu_W(1:p,p+1:end);
+    end
+else % LDA or LGS setup
+    p = size(tuda.train.S',1) - find(tuda.train.S(:,1)>0,1) + 1;
+    q = find(tuda.train.S(:,1)>0,1) - 1; 
+    beta = zeros(p,q,tuda.K);
+    for k = 1:tuda.K
+        beta(:,:,k) = tuda.state(k).W.Mu_W(q+1:end,1:q);
+    end
 end
 %beta = squeeze(beta); 
 

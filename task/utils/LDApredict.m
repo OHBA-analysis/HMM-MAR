@@ -1,7 +1,13 @@
-function [Y_pred, loglikelihoodX] = LDApredict(model,Gamma,X)
+function [Y_pred, loglikelihoodX] = LDApredict(model,Gamma,X,classification,intercept)
 % For an inferred LDA model and state timecourses, computes the
 % likelihood manifold in X space and computes the likelihood function for
 % each class of labels.
+if nargin<4
+    classification=true;
+end
+if nargin<5
+    intercept=true;
+end
 [T2,K] = size(Gamma);
 [T,nDimX] = size(X);
 nDimY = size(model.state(1).W.Mu_W,2)-nDimX;
@@ -19,14 +25,24 @@ end
 
 % Iterate through labels, noting that the distribution in x space can be
 % computed as a sum for each condition:
-numconds = size(betas_mu{1},1)-1;
+if intercept
+    numconds = size(betas_mu{1},1)-1;
+else
+    numconds = size(betas_mu{1},1);
+end
 betamu_givenY = zeros(numconds,K,nDimX);
 betasig_givenY = zeros(numconds,K,nDimX,nDimX);
 for testcond = 1:numconds
     % compute each state's distribution in x space - assuming intercept has
     % been used
     for k=1:K
-        betamu_givenY(testcond,k,:) = betas_mu{k}(1,:) + betas_mu{k}(1 + testcond,:);
+        if classification && intercept %include mean in generative model:
+            betamu_givenY(testcond,k,:) = betas_mu{k}(1,:) + betas_mu{k}(1 + testcond,:);
+        elseif intercept
+            betamu_givenY(testcond,k,:) = betas_mu{k}(1 + testcond,:);
+        else
+            betamu_givenY(testcond,k,:) = betas_mu{k}(testcond,:);
+        end
         if strcmp(model.train.covtype,'full') || strcmp(model.train.covtype,'uniquefull')
             betasig_givenY(testcond,k,:,:) = betas_sigma{k}([1:nDimY:nDimY*nDimX],[1:nDimY:nDimY*nDimX])+...
                 betas_sigma{k}([testcond:nDimY:nDimY*nDimX],[testcond:nDimY:nDimY*nDimX]);
@@ -61,22 +77,48 @@ else
         end
     end
 end
+
+% remove intercept from data if necessary:
+if intercept
+    for k=1:K
+        X = X - Gamma(:,k) * betas_mu{k}(1,:);
+    end
+    Y_pred = zeros(T,nDimY-1);
+else
+    Y_pred = zeros(T,nDimY);
+end
+
 if T==T2
     for t=1:T
         CovMat_t = sum(CovMat .* repmat(permute(Gamma(t,:),[3,1,2]),nDimX,nDimX,1),3);
-        for testcond = 1:numconds
-            mu = sum(squeeze(betamu_givenY(testcond,:,:)) .*repmat(Gamma(t,:)',1,nDimX));
-            mu_rec(testcond,t,:) = mu;
-            S = CovMat_t + squeeze(sum(squeeze(betasig_givenY(testcond,:,:,:)).*repmat(Gamma(t,:)',1,nDimX,nDimX),1));
-            loglikelihoodX(t,testcond) = -0.5*log(det(S)) -0.5 * (X(t,:) - mu) * inv(S) * (X(t,:) - mu)';
-        end
-        m = max(loglikelihoodX(t,:),[],2);
-        Y_pred(t,:) = loglikelihoodX(t,:)==m;
-        if sum(Y_pred(t,:))>1
-            warning(['Equal scores achieved for multiple classes, t=',int2str(t),'\n\n']);
-            a = find(Y_pred(t,:));
-            Y_pred(t,a) = 0;
-            Y_pred(t,a(randi(length(a)))) = 1; %randomly silence all but one of these entries 
+        if classification
+            for testcond = 1:numconds
+                mu = sum(squeeze(betamu_givenY(testcond,:,:)) .*repmat(Gamma(t,:)',1,nDimX));
+                mu_rec(testcond,t,:) = mu;
+                S = CovMat_t + squeeze(sum(squeeze(betasig_givenY(testcond,:,:,:)).*repmat(Gamma(t,:)',1,nDimX,nDimX),1));
+                loglikelihoodX(t,testcond) = -0.5*log(det(S)) -0.5 * (X(t,:) - mu) * inv(S) * (X(t,:) - mu)';
+            end
+            m = max(loglikelihoodX(t,:),[],2);
+            Y_pred(t,:) = loglikelihoodX(t,:)==m;
+            if sum(Y_pred(t,:))>1
+                warning(['Equal scores achieved for multiple classes, t=',int2str(t),'\n\n']);
+                a = find(Y_pred(t,:));
+                Y_pred(t,a) = 0;
+                Y_pred(t,a(randi(length(a)))) = 1; %randomly silence all but one of these entries 
+            end
+        else
+            betas_t = permute(sum(repmat(Gamma(t,:),[numconds,1,nDimX]).* betamu_givenY,2),[1,3,2]);
+%             Y_pred(t,:) = (betas_t * inv(CovMat_t) * X(t,:)') ...
+%                *inv(betas_t * inv(CovMat_t) * betas_t');
+            
+            %alternative implementation:
+            if ~intercept
+                sigma_Y = inv(inv(eye(nDimY)) + betas_t * inv(CovMat_t) * betas_t');
+            else
+                sigma_Y = inv(inv(eye(nDimY-1)) + betas_t * inv(CovMat_t) * betas_t');
+            end
+            betas_backwardmodel = inv(CovMat_t) * betas_t' * sigma_Y;
+            Y_pred(t,:) = X(t,:)*betas_backwardmodel;
         end
     end
 else

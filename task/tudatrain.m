@@ -57,6 +57,7 @@ plotAverageGamma = options.plotAverageGamma;
 options.plotAverageGamma = 0; 
 options = rmfield(options,'parallel_trials');
 options = rmfield(options,'classifier');
+if ~options.encodemodel,options=rmfield(options,'encodemodel');end
 if isfield(options,'add_noise'), options = rmfield(options,'add_noise'); end
 p = size(X,2); q = size(Y,2);
  
@@ -97,7 +98,7 @@ Z = zeros(sum(T),q+p,'single');
 for j = 1:N
     t1 = (1:T(j)) + sum(T(1:j-1));
     t2 = (1:Ttmp(j)) + sum(Ttmp(1:j-1));
-    if strcmp(classifier,'LDA')
+    if strcmp(classifier,'LDA') || (isfield(options,'encodemodel') && options.encodemodel)
         Z(t1(2:end),1:p) = X(t2,:);
         Z(t1(1:end-1),(p+1):end) = Y(t2,:);
     else
@@ -108,7 +109,7 @@ end
 
 % Run TUDA inference
 options.S = -ones(p+q);
-if strcmp(classifier,'LDA')
+if strcmp(classifier,'LDA') || (isfield(options,'encodemodel') && options.encodemodel)
     options.S(p+1:end,1:p) = 1;
 else
     options.S(1:p,p+1:end) = 1;

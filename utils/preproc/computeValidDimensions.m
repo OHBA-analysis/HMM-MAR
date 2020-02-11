@@ -4,7 +4,7 @@ function valid_dims = computeValidDimensions(data,options)
 S=options.S;
 if strcmp(options.distribution,'Gaussian')
     if all(S(:)==1)
-        valid_dims=[1:length(S)];
+        valid_dims=[1:length(S)]; % note this omits first dimension to allow TUDA style use of intercepts
     else
         %implies a TUDA/TUCA style setup:
         lastdatadim = find(diff(any(S==1)),1);

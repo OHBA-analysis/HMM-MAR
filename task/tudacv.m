@@ -60,7 +60,7 @@ end
 
 options.Nfeatures = 0;
 [X,Y,T,options] = preproc4hmm(X,Y,T,options); % this demeans Y if necessary
-ttrial = T(1); p = size(X,2); q_star = size(Y,2);
+ttrial = T(1); p = size(X,2); q_star = size(Y,2);pstar = size(X,2);
 Ycopy = Y; if q_star>q;Ycopy=Y(:,2:end);end %remove intercept term
 classifier = options.classifier;
 classification = ~isempty(classifier);
@@ -70,7 +70,7 @@ if q_star~=q && strcmp(options.distribution,'logistic')
     Ycopy = multinomToBinary(Ycopy);
     q = size(Ycopy,2);
 end
-if strcmp(classifier,'LDA')
+if strcmp(classifier,'LDA') || options.encodemodel
     options.intercept = false; %this necessary to avoid double addition of intercept terms
 end
 
@@ -95,7 +95,7 @@ elseif isfield(options,'NCV')
     options = rmfield(options,'NCV');
 else
     %default to hold one-out CV unless NCV>10:
-    NCV = max(class_totals);
+    NCV = max([0,class_totals]);
     if NCV > 10 || NCV < 1, NCV = 10; end
     
 end
@@ -152,6 +152,11 @@ if strcmp(classifier,'LDA')
     LDAmodel = cell(NCV,1);
 end
 if strcmp(options.classifier,'regression'), options.classifier = ''; end
+if options.encodemodel
+    options.classifier = 'LDA';
+    classifier = 'LDA';
+    options = rmfield(options,'encodemodel');
+end 
 for icv = 1:NCV
     Ntr = length(c.training{icv}); Nte = length(c.test{icv});
     Xtrain = reshape(X(:,c.training{icv},:),[Ntr*ttrial p] ) ;
@@ -170,7 +175,7 @@ for icv = 1:NCV
         case 2 % regression
             Xtest = permute(X(:,c.test{icv},:),[2 3 1]);
             Xtrain = permute(X(:,c.training{icv},:),[2 3 1]);
-            Xtest = cat(2,Xtest,ones(Ntr,1,ttrial)); %include intercept term
+            Xtest = cat(2,Xtest,ones(Nte,1,ttrial)); %include intercept term
             Xtrain = cat(2,Xtrain,ones(Ntr,1,ttrial));
             RidgePen = lambda * eye(p+1);
             Gammatrain = permute(reshape(Gammatrain,[ttrial Ntr K]),[2 3 1]);
@@ -204,7 +209,7 @@ for icv = 1:NCV
     Xtest = reshape(X(:,c.test{icv},:),[ttrial*Nte p]);
     Gammatest = reshape(Gammapred(:,c.test{icv},:),[ttrial*Nte K]);
     if strcmp(classifier,'LDA')
-        predictions = LDApredict(LDAmodel{icv},Gammatest,Xtest);
+        predictions = LDApredict(LDAmodel{icv},Gammatest,Xtest,classification,var(Ytrain(:,1))==0);
         Ypred(:,c.test{icv},:) = reshape(predictions,[ttrial Nte q]);
     else %strcmp(classifier,'logistic')
         for k = 1:K
@@ -246,7 +251,7 @@ if classification
     acc = mean(tmp);
     acc_star = squeeze(mean(reshape(tmp, [ttrial N 1]),2));
 else   
-    Y = reshape(Y,[ttrial*N q]);
+    Y = reshape(Ycopy,[ttrial*N q]);
     Ypred_star =  reshape(Ypred, [ttrial*N q]); 
     Ypred = permute( mean(Ypred,1) ,[2 3 1]);
     % acc is explained variance 
