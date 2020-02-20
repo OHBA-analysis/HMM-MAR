@@ -176,7 +176,7 @@ else % Standard regression problem
     options = rmfield(options,'intercept');
     
 end
-if ~isfield(options,'cyc'), options.cyc = 25; end
+%if ~isfield(options,'cyc'), options.cyc = 25; end
 
 if ~isfield(options,'logisticYdim'), options.logisticYdim = 0; end
 

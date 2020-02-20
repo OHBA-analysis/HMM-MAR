@@ -242,15 +242,25 @@ for k = 1:K
             temp = (bsxfun(@times,X,Gamma(:,k)))' * X;
             gram = kron(prec,temp);
             
-            % L2 regularisation rather than ARD:
-            %sigmaterm = (hmm.state(k).sigma.Gam_shape(~targetdims,targetdims) ./ hmm.state(k).sigma.Gam_rate(~targetdims,targetdims))'; %ARD prior over M values
-            sigmaterm = ones(Ydim,Xdim);
-            sigmaterm = diag(sigmaterm(:));
+            % Regularisation type:
+            if strcmp(hmm.train.regularisation,'ARD')
+                sigmaterm = (hmm.state(k).sigma.Gam_shape(S) ./ hmm.state(k).sigma.Gam_rate(S))'; %ARD prior over M values
+                sigmaterm = sigmaterm(:);
+                alphaterm = repmat( (hmm.state(k).alpha.Gam_shape ./ hmm.state(k).alpha.Gam_rate), ...
+                    length(sigmaterm),1);
+                regterm = diag(alphaterm .* sigmaterm);
+            elseif strcmp(hmm.train.regularisation,'Ridge')
+                sigmaterm = ones(Ydim,Xdim);
+                sigmaterm = diag(sigmaterm(:)); 
+                regterm = sigmaterm;
+            elseif strcmp(hmm.train.regularisation,'Sparse')
+                error('Sparse L1 regularisation not yet implemented');
+            end
             
             hmm.state(k).W.iS_W = zeros(length(S(:)));
             hmm.state(k).W.S_W = zeros(length(S(:)));
             validentries = logical(S(:));
-            hmm.state(k).W.iS_W(validentries,validentries) = sigmaterm + gram;
+            hmm.state(k).W.iS_W(validentries,validentries) = regterm + gram;
             hmm.state(k).W.S_W(validentries,validentries) = inv(hmm.state(k).W.iS_W(validentries,validentries));
             
             % and compute mean:

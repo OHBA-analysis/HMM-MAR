@@ -47,6 +47,7 @@ if ~isfield(options,'standardise'), options.standardise = 1; end
 if ~isfield(options,'standardise_pc') 
     options.standardise_pc = length(options.embeddedlags)>1; 
 end
+if ~isfield(options,'regularisation'), options.regularisation = 'ARD'; end
 if length(options.embeddedlags)>1 && isfield(options,'covtype') && ...
         ~strcmpi(options.covtype,'full')
     options.covtype = 'full';
