@@ -79,13 +79,15 @@ end
 options.S = -ones(p+q);
 options.S(p+1:end,1:p) = 1;
 % 1. Estimate Obs Model parameters given Gamma, unless told not to:
-options_run1=rmfield(options,'useUnsupervisedGamma');
+options_run1 = rmfield(options,'useUnsupervisedGamma');
 if isfield(options,'updateObs') 
     options_run1.updateObs=1;
 end 
 options_run1.updateGamma=0;
+options_run1.updateP = 0;
+options.decodeGamma = 0;
 
-[tuda,Gamma,~,vpath] = hmmmar(Z,T,options_run1);
+[tuda,Gamma] = hmmmar(Z,T,options_run1);
 if ~options.useUnsupervisedGamma
 % 2. Update state time courses only, leaving fixed obs model params:
     options.updateObs = 1; % 

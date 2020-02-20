@@ -161,9 +161,8 @@ elseif strcmp(classifier,'SVM')
         end
     end
 elseif strcmp(classifier,'LDA')
-    options_LDA=struct;
+    options_LDA = rmfield(options,'CVmethod');
     options_LDA.useUnsupervisedGamma = 1; %this ensures gamma is fixed for standard decoding
-    options_LDA.covtype = 'diag';
     options_LDA.verbose = 1;
     options_LDA.useParallel = 0;
     options_LDA.standardise = 0;
@@ -176,7 +175,7 @@ elseif strcmp(classifier,'LDA')
     end
     [model,Gamma] = encodertrain(X_LDA,Y_LDA,T,options_LDA);
     model.Gamma = Gamma(1:ttrial,:);
-    model=rmfield(model,{'train','prior','Dir_alpha','Dir2d_alpha','P','Pi','features','K'});
+    %model=rmfield(model,{'prior','Dir_alpha','Dir2d_alpha','P','Pi','features','K'});
     model.classifier='LDA';
 elseif strcmp(classifier,'KNN')
     model.X_train = X;

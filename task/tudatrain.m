@@ -144,12 +144,20 @@ else
     options.plotAverageGamma = plotAverageGamma;
     options = rmfield(options,'Gamma');
     options.hmm = tuda;
+    options.cyc = 2; 
     [~,Gamma,~,vpath] = hmmmar(Z,T,options);
     options.plotAverageGamma = 0;
     % 3. Final update of state distributions, leaving fixed the state time courses
     options.updateObs = 1;
-    options.updateGamma = 0;
-    options.updateP = 0;
+    if isfield(options_original,'cyc') && options_original.cyc>1
+        % keep iterating until convergence
+        options.cyc = options_original.cyc;
+        options.updateGamma = 1;
+        options.updateP = 1;
+    else
+        options.updateGamma = 0;
+        options.updateP = 0;
+    end
     options.Gamma = Gamma;
     options = rmfield(options,'hmm');
     options.tuda = 1;
@@ -161,7 +169,7 @@ else
     % end
     options.tudamonitoring = 0;
     options.behaviour = [];
-    options.verbose = 0;
+    options.verbose = 1;
     [tuda,~,~,~,~,~, stats.fe] = hmmmar(Z,T,options);
 end
 

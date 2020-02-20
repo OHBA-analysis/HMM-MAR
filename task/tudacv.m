@@ -147,7 +147,7 @@ Y = reshape(Y,[ttrial N q_star]);
 RidgePen = lambda * eye(p);
 
 % Get Gamma and the Betas for each fold
-Gammapred = zeros(ttrial,N,K); Betas = zeros(p,q_star,K,NCV); 
+Gammapred = zeros(ttrial,N,K,3); Betas = zeros(p,q_star,K,NCV); 
 if strcmp(classifier,'LDA')
     LDAmodel = cell(NCV,1);
 end
@@ -167,32 +167,38 @@ for icv = 1:NCV
         LDAmodel{icv} = tuda;
     else
         Betas(:,:,:,icv) = tudabeta(tuda);
-    end    
-    switch CVmethod
-        case 1 % training average
-            mGammatrain = squeeze(mean(reshape(Gammatrain,[ttrial Ntr K]),2)); 
-            for j = 1:Nte, Gammapred(:,c.test{icv}(j),:) = mGammatrain; end
-        case 2 % regression
-            Xtest = permute(X(:,c.test{icv},:),[2 3 1]);
-            Xtrain = permute(X(:,c.training{icv},:),[2 3 1]);
-            Xtest = cat(2,Xtest,ones(Nte,1,ttrial)); %include intercept term
-            Xtrain = cat(2,Xtrain,ones(Ntr,1,ttrial));
-            RidgePen = lambda * eye(p+1);
-            Gammatrain = permute(reshape(Gammatrain,[ttrial Ntr K]),[2 3 1]);
-            for t = 1:ttrial
-                B = (Xtrain(:,:,t)' * Xtrain(:,:,t) + RidgePen) \ ...
-                    Xtrain(:,:,t)' * Gammatrain(:,:,t);
-                pred = Xtest(:,:,t) * B;
-                pred = pred - repmat(min(min(pred,[],2), zeros(Nte,1)),1,K);
-                pred = pred ./ repmat(sum(pred,2),1,K);
-                Gammapred(t,c.test{icv},:) = pred;
-            end
-        case 3 % distributional model
-            Xtrain = reshape(X(:,c.training{icv},:),[ttrial*length(c.training{icv}),p]);
-            Xtest = reshape(X(:,c.test{icv},:),[ttrial*length(c.test{icv}),p]);
-            GammaTemp = fitEquivUnsupervisedModel(Xtrain,Gammatrain,Xtest,T(c.training{icv}),T(c.test{icv}));
-            Gammapred(:,c.test{icv},:) = reshape(GammaTemp,[ttrial,length(c.test{icv}),K]);
-    end      
+    end   
+    for iFitMethod = 1:length(CVmethod)
+        iCVm = CVmethod(iFitMethod);
+        switch iCVm
+            case 1 % training average
+                mGammatrain = squeeze(mean(reshape(Gammatrain,[ttrial Ntr K]),2)); 
+                for j = 1:Nte, Gammapred(:,c.test{icv}(j),:,iFitMethod) = mGammatrain; end
+    
+            case 2
+                % regression
+                Xtest2 = permute(X(:,c.test{icv},:),[2 3 1]);
+                Xtrain2 = permute(X(:,c.training{icv},:),[2 3 1]);
+                Xtest2 = cat(2,Xtest2,ones(Nte,1,ttrial)); %include intercept term
+                Xtrain2 = cat(2,Xtrain2,ones(Ntr,1,ttrial));
+                RidgePen = lambda * eye(p+1);
+                Gammatrain2 = permute(reshape(Gammatrain,[ttrial Ntr K]),[2 3 1]);
+                for t = 1:ttrial
+                    B = (Xtrain2(:,:,t)' * Xtrain2(:,:,t) + RidgePen) \ ...
+                        Xtrain2(:,:,t)' * Gammatrain2(:,:,t);
+                    pred = Xtest2(:,:,t) * B;
+                    pred = pred - repmat(min(min(pred,[],2), zeros(Nte,1)),1,K);
+                    pred = pred ./ repmat(sum(pred,2),1,K);
+                    Gammapred(t,c.test{icv},:,iFitMethod) = pred;
+                end
+            case 3
+                % distributional model
+                Xtrain3 = reshape(X(:,c.training{icv},:),[ttrial*length(c.training{icv}),p]);
+                Xtest3 = reshape(X(:,c.test{icv},:),[ttrial*length(c.test{icv}),p]);
+                GammaTemp = fitEquivUnsupervisedModel(Xtrain3,Gammatrain,Xtest3,T(c.training{icv}),T(c.test{icv}));
+                Gammapred(:,c.test{icv},:,iFitMethod) = reshape(GammaTemp,[ttrial,length(c.test{icv}),K]);
+        end
+    end
     if verbose
         fprintf(['\nCV iteration: ' num2str(icv),' of ',int2str(NCV),'\n'])
     end
@@ -200,22 +206,25 @@ end
 
 % Perform the prediction 
 if strcmp(classifier,'LDA')
-    Ypred = zeros(ttrial,N,q);
+    Ypred = zeros(ttrial,N,q,length(CVmethod));
 else
-    Ypred = zeros(ttrial,N,q_star);
+    Ypred = zeros(ttrial,N,q_star,length(CVmethod));
 end
-for icv = 1:NCV
-    Nte = length(c.test{icv});
-    Xtest = reshape(X(:,c.test{icv},:),[ttrial*Nte p]);
-    Gammatest = reshape(Gammapred(:,c.test{icv},:),[ttrial*Nte K]);
-    if strcmp(classifier,'LDA')
-        predictions = LDApredict(LDAmodel{icv},Gammatest,Xtest,classification,var(Ytrain(:,1))==0);
-        Ypred(:,c.test{icv},:) = reshape(predictions,[ttrial Nte q]);
-    else %strcmp(classifier,'logistic')
-        for k = 1:K
-            sGamma = repmat(Gammatest(:,k),[1 q_star]);
-            Ypred(:,c.test{icv},:) = Ypred(:,c.test{icv},:) + ...
-                reshape( (Xtest * Betas(:,:,k,icv)) .* sGamma , [ttrial Nte q_star]);
+nCVm = length(CVmethod);
+for iFitMethod = 1:nCVm
+    for icv = 1:NCV
+        Nte = length(c.test{icv});
+        Xtest = reshape(X(:,c.test{icv},:),[ttrial*Nte p]);
+        Gammatest = reshape(Gammapred(:,c.test{icv},:,iFitMethod),[ttrial*Nte K]);
+        if strcmp(classifier,'LDA')
+            predictions = LDApredict(LDAmodel{icv},Gammatest,Xtest,classification,var(Ytrain(:,1))==0);
+            Ypred(:,c.test{icv},:,iFitMethod) = reshape(predictions,[ttrial Nte q]);
+        else %strcmp(classifier,'logistic')
+            for k = 1:K
+                sGamma = repmat(Gammatest(:,k),[1 q_star]);
+                Ypred(:,c.test{icv},:,iFitMethod) = Ypred(:,c.test{icv},:,iFitMethod) + ...
+                    reshape( (Xtest * Betas(:,:,k,icv)) .* sGamma , [ttrial Nte q_star]);
+            end
         end
     end
 end
@@ -226,47 +235,53 @@ if strcmp(options.distribution,'logistic')
         Ypred = multinomLogRegPred(Ypred);
     end
 end
-
-if classification
-    Y = reshape(Ycopy,[ttrial*N q]);
-    Y = continuous_prediction_2class(Ycopy,Y); % get rid of noise we might have injected 
-    Ypred = reshape(Ypred,[ttrial*N q]);
-    Ypred_star = reshape(continuous_prediction_2class(Ycopy,Ypred),[ttrial N q]);
-    Ypred = zeros(N,q); 
-    for j = 1:N % getting the most likely class for all time points in trial
-        if q == 1 % binary classification, -1 vs 1
-            Ypred(j) = sign(mean(Ypred_star(:,j,1)));
-        else
-           [~,cl] = max(mean(permute(Ypred_star(:,j,:),[1 3 2])));
-           Ypred(j,cl) = 1; 
+for iFitMethod = 1:nCVm
+    if classification
+        Y = reshape(Ycopy,[ttrial*N q]);
+        Y = continuous_prediction_2class(Ycopy,Y); % get rid of noise we might have injected 
+        Ypred_temp = reshape(Ypred(:,:,:,iFitMethod),[ttrial*N q]);
+        Ypred_star_temp = reshape(continuous_prediction_2class(Ycopy,Ypred_temp),[ttrial N q]);
+        Ypred_temp = zeros(N,q); 
+        for j = 1:N % getting the most likely class for all time points in trial
+            if q == 1 % binary classification, -1 vs 1
+                Ypred_temp(j) = sign(mean(Ypred_star_temp(:,j,1)));
+            else
+               [~,cl] = max(mean(permute(Ypred_star_temp(:,j,:),[1 3 2])));
+               Ypred_temp(j,cl) = 1; 
+            end
         end
+        % acc is cross-validated classification accuracy 
+        Ypred_star_temp = reshape(Ypred_star_temp,[ttrial*N q]);
+        if q == 1
+            tmp = abs(Y - Ypred_star_temp) < 1e-4;
+        else
+            tmp = sum(abs(Y - Ypred_star_temp),2) < 1e-4;
+        end
+        acc_temp = mean(tmp);
+        acc_star_temp = squeeze(mean(reshape(tmp, [ttrial N 1]),2));
+    else   
+        Y = reshape(Ycopy,[ttrial*N q]);
+        Ypred_star_temp =  reshape(Ypred(:,:,:,iFitMethod), [ttrial*N q]); 
+        Ypred_temp = permute( mean(Ypred(:,:,:,iFitMethod),1) ,[2 3 1]);
+        % acc is explained variance 
+        acc_temp = 1 - sum( (Y - Ypred_star_temp).^2 ) ./ sum(Y.^2) ; 
+        acc_star_temp = zeros(ttrial,q); 
+        Y = reshape(Y,[ttrial N q]);
+        Ypred_star_temp = reshape(Ypred_star_temp, [ttrial N q]);
+        for t = 1:ttrial
+            y = permute(Y(t,:,:),[2 3 1]); 
+            acc_star_temp(t,:) = 1 - sum((y - permute(Ypred_star_temp(t,:,:),[2 3 1])).^2) ./ sum(y.^2);
+        end
+        Ypred_star_temp = reshape(Ypred_star_temp, [ttrial*N q]);
     end
-    % acc is cross-validated classification accuracy 
-    Ypred_star = reshape(Ypred_star,[ttrial*N q]);
-    if q == 1
-        tmp = abs(Y - Ypred_star) < 1e-4;
-    else
-        tmp = sum(abs(Y - Ypred_star),2) < 1e-4;
-    end
-    acc = mean(tmp);
-    acc_star = squeeze(mean(reshape(tmp, [ttrial N 1]),2));
-else   
-    Y = reshape(Ycopy,[ttrial*N q]);
-    Ypred_star =  reshape(Ypred, [ttrial*N q]); 
-    Ypred = permute( mean(Ypred,1) ,[2 3 1]);
-    % acc is explained variance 
-    acc = 1 - sum( (Y - Ypred_star).^2 ) ./ sum(Y.^2) ; 
-    acc_star = zeros(ttrial,q); 
-    Y = reshape(Y,[ttrial N q]);
-    Ypred_star = reshape(Ypred_star, [ttrial N q]);
-    for t = 1:ttrial
-        y = permute(Y(t,:,:),[2 3 1]); 
-        acc_star(t,:) = 1 - sum((y - permute(Ypred_star(t,:,:),[2 3 1])).^2) ./ sum(y.^2);
-    end
-    Ypred_star = reshape(Ypred_star, [ttrial*N q]);
+    acc(:,iFitMethod) = acc_temp;
+    acc_star(:,iFitMethod) = acc_star_temp;
+    Ypred_out(:,:,iFitMethod) = Ypred_temp;
+    Ypred_star(:,:,iFitMethod) = Ypred_star_temp;
 end
-    
+Ypred = Ypred_out;
 end
+
 
 
 function Y_out = multinomToBinary(Y_in)
