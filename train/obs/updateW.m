@@ -235,7 +235,7 @@ for k = 1:K
             Ydim = sum(any(S,1));
             Xdim = sum(any(S,2));
             Y = residuals(:,dependentvariables);
-            X = residuals(:,independentvariables);
+            X = XX(:,independentvariables);
             
             prec = omega.Gam_shape * omega.Gam_irate(dependentvariables,dependentvariables);
             % note that XXGXX is invalid if any S==0:
