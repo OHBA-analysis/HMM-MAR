@@ -131,37 +131,57 @@ if isempty(GammaInit) && ~parallel_trials
 else
     % 1. With the restriction that, for each time point,
     %   all trials have the same state (i.e. no between-trial variability),
-    %   we estimate a first approximation of the decoding models
+    %   we estimate a first approximation of the decoding models   
     options.updateObs = 1;
     options.updateGamma = 0;
     options.updateP = 0;
     tuda = hmmmar(Z,T,options);
-    % 2. Estimate state time courses and transition probability matrix
-    options.updateObs = 0;
+    
+    % 2. Run the rest of the inference
+    options.updateObs = 1;
     options.updateGamma = 1;
     options.updateP = 1;
-    options.plotAverageGamma = plotAverageGamma;
-    options = rmfield(options,'Gamma');
     options.hmm = tuda;
-    [~,Gamma,~,vpath] = hmmmar(Z,T,options);
-    options.plotAverageGamma = 0;
-    % 3. Final update of state distributions, leaving fixed the state time courses
-    options.updateObs = 1;
-    options.updateGamma = 0;
-    options.updateP = 0;
-    options.Gamma = Gamma;
-    options = rmfield(options,'hmm');
+    options = rmfield(options,'Gamma');
+    options.plotAverageGamma = plotAverageGamma; %plotAverageGamma;
     options.tuda = 1;
-    % tudamonitoring = options.tudamonitoring;
-    % if isfield(options,'behaviour')
-    %     behaviour = options.behaviour;
-    % else
-    %     behaviour = [];
-    % end
-    options.tudamonitoring = 0;
-    options.behaviour = [];
-    options.verbose = 0;
-    [tuda,~,~,~,~,~, stats.fe] = hmmmar(Z,T,options);
+    [tuda,Gamma,~,vpath,~,~, stats.fe] = hmmmar(Z,T,options);
+    
+%     for cyc = 1:tudacyc
+%     % 2. Estimate state time courses and transition probability matrix
+%     options.updateObs = 0;
+%     options.updateGamma = 1;
+%     options.updateP = 1;
+%     options.plotAverageGamma = plotAverageGamma;
+%     options = rmfield(options,'Gamma');
+%     options.hmm = tuda;
+%     [~,Gamma,~,vpath] = hmmmar(Z,T,options);
+%     options.plotAverageGamma = 0;
+%     % 3. Final update of state distributions, leaving fixed the state time courses
+%     options.updateObs = 1;
+%     options.updateGamma = 0;
+%     options.updateP = 0;
+%     options.Gamma = Gamma;
+%     options = rmfield(options,'hmm');
+%     options.tuda = 1;
+%     % tudamonitoring = options.tudamonitoring;
+%     % if isfield(options,'behaviour')
+%     %     behaviour = options.behaviour;
+%     % else
+%     %     behaviour = [];
+%     % end
+%     options.tudamonitoring = 0;
+%     options.behaviour = [];
+%     options.verbose = 0;
+%     [tuda,~,~,~,~,~, stats.fe] = hmmmar(Z,T,options);
+%     
+%     figure(500);clf(500)
+%     plot_Gamma(Gamma,T);
+%     drawnow
+%     pause(0.25)
+%     disp(num2str(cyc))
+%    
+%    end
 end
 
 tuda.features = features;
