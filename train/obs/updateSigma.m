@@ -48,7 +48,13 @@ for k=1:K
                     if train.symmetricprior && n1>n2
                         continue;
                     end
-                    index = (0:length(orders)-1) * (ndim*Q) + (n1-1) * ndim + n2 + (~train.zeromean)*ndim;
+                    if all(S(:)==1)
+                        index = (0:length(orders)-1) * (ndim*Q) + (n1-1) * ndim + n2 + (~train.zeromean)*ndim;
+                    else
+                        index = false(size(S));
+                        index(n1,n2) = true;
+                        index = index(:);
+                    end
                     hmm.state(k).sigma.Gam_rate(n1,n2) = hmm.state(k).sigma.Gam_rate(n1,n2) + ...
                         0.5 * sum((hmm.state(k).alpha.Gam_shape ./ hmm.state(k).alpha.Gam_rate') .* ...
                         diag(hmm.state(k).W.S_W(index,index) ));

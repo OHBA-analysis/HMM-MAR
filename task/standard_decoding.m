@@ -38,10 +38,10 @@ elseif length(Y(:)) ~= (ttrial*N*q)
     error('Incorrect dimensions in Y')
 else
     responses = reshape(Y,[ttrial N q]);
-    Ystar = reshape(repmat(responses(1,:,:),[ttrial,1,1]),[ttrial*N q]);
+    Ystar = Y; % save for later addition of intercept term
     responses = permute(responses(1,:,:),[2 3 1]); % N x q
     if ~all(Y(:)==Ystar(:))
-        error('For cross-validating, the same stimulus must be presented for the entire trial');
+%        error('For cross-validating, the same stimulus must be presented for the entire trial');
     end
 end
 
@@ -64,11 +64,12 @@ options.Nfeatures = 0;
 options.K = 1; 
 [X,Y,T] = preproc4hmm(X,Y,T,options); % this demeans Y
 p = size(X,2);
+qstar = size(Y,2); % qstar = q if no intercept term; qstar = q+1 if intercept used
 
 X = reshape(X,[ttrial N p]);
-Y = reshape(Y,[ttrial N q]);
+Y = reshape(Y,[ttrial N qstar]);
 
-if (binsize/2)==0
+if mod(binsize/2,2)==0
     warning(['binsize must be an odd number, setting to ' num2str(binsize+1)])
     binsize = binsize + 1; 
 end
@@ -88,7 +89,9 @@ if isfield(options,'lossfunc')
     lossfunc = options.lossfunc; options = rmfield(options,'lossfunc');
 else, lossfunc = 'quadratic'; 
 end
-
+if ~isfield(options,'encodemodel') % option to first fit an encoding model then decode - ie Linear Guassian System approach
+    options.encodemodel = false;
+end
 % Form CV folds; if response are categorical, then it's stratified
 if ~isfield(options,'c')
     if classification
@@ -125,10 +128,19 @@ end
 halfbin = floor(binsize/2); 
 %nwin = round(ttrial / binsize);
 %binsize = floor(ttrial / nwin); 
-RidgePen = lambda * eye(p);
+if options.encodemodel
+    RidgePen = lambda * eye(qstar);
+    Ysig = eye(qstar); % prior over design matrix magnitude - this can also be determined for each cv fold
+else
+    RidgePen = lambda * eye(p);
+end
 
 % Perform the prediction 
-Ypred = NaN(size(Y));
+if ~options.encodemodel
+    Ypred = NaN(ttrial,N,qstar);
+else
+    Ypred = NaN(ttrial,N,q);
+end
 beta = cell(length(halfbin+1 : ttrial-halfbin),NCV);
 for icv = 1:NCV
     Ntr = sum(c.training{icv}); Nte = sum(c.test{icv});
@@ -136,17 +148,33 @@ for icv = 1:NCV
         r = t-halfbin:t+halfbin;
         %r = (1:binsize) + (t-1)*binsize;
         Xtr = reshape(X(r,c.training{icv},:),binsize*Ntr,p);
-        Ytr = reshape(Y(r,c.training{icv},:),binsize*Ntr,q);
+        Ytr = reshape(Y(r,c.training{icv},:),binsize*Ntr,qstar);
         Xte = reshape(X(t,c.test{icv},:),Nte,p);
-        beta{t,icv} = (Xtr' * Xtr + RidgePen) \ (Xtr' * Ytr);
+        if options.encodemodel
+            % fit encoding model, then convert to equivalent decode weights
+            beta_encode = (Ytr' * Ytr + RidgePen) \ (Ytr' * Xtr);
+            noise_X_t = cov(Xtr - Ytr*beta_encode) + 1e-5*eye(p);
+            if qstar>q
+                % regress out the (fixed) intercept value:
+                Xte = Xte - ones(Nte,1) * beta_encode(1,:);
+                sig_Y_t = inv(inv(Ysig(2:end,2:end)) + beta_encode(2:end,:) * inv(noise_X_t) * beta_encode(2:end,:)');
+                beta{t,icv} = inv(noise_X_t) * beta_encode(2:end,:)' * sig_Y_t;
+            else
+                sig_Y_t = inv(inv(Ysig) + beta_encode * inv(noise_X_t) * beta_encode');
+                beta{t,icv} = inv(noise_X_t) * beta_encode' * sig_Y_t;
+            end
+        else
+            beta{t,icv} = (Xtr' * Xtr + RidgePen) \ (Xtr' * Ytr);
+        end
         Ypred(t,c.test{icv},:) = reshape(Xte * beta{t,icv},Nte,q);
     end
 end
 
 % Compute CV accuracy / explained variance
-cv_acc = NaN(ttrial,1);
+cv_acc = NaN(ttrial,q);
+Ystar = reshape(Ystar,[ttrial,N,q]);
 for t = halfbin+1 : ttrial-halfbin
-    Yt = reshape(Y(t,:,:),N,q);
+    Yt = reshape(Ystar(t,:,:),N,q);
     Ypredt = reshape(Ypred(t,:,:),N,q);
     
     if classification
@@ -158,7 +186,11 @@ for t = halfbin+1 : ttrial-halfbin
             cv_acc(t) = mean(sum(abs(Ycopyt - Ypredt_star),2) < 1e-4);
         end        
     else
-        cv_acc(t) = 1 - sum((Yt - Ypredt).^2) ./ sum(Yt.^2);
+        if q == 1
+            cv_acc(t) = 1 - sum((Yt - Ypredt).^2) ./ sum(Yt.^2);
+        else
+            cv_acc(t,:) = 1 - sum((Yt - Ypredt).^2) ./ sum(Yt.^2);
+        end
     end
 end
 % compute temporal generalisation plots
@@ -195,17 +227,38 @@ if options.temporalgeneralisation
 end
 
 % non-cross validated
-acc = NaN(ttrial,1);
-Ypred = zeros(size(Y));
+acc = NaN(ttrial,q);
+Ypred = zeros(size(Ystar));
 
 for t = halfbin+1 : ttrial-halfbin
     r = t-halfbin:t+halfbin;
     Xt = reshape(X(r,:,:),binsize*N,p);
-    Yt = reshape(Y(r,:,:),binsize*N,q);
-    beta_t = (Xt' * Xt + RidgePen) \ (Xt' * Yt);
-    Xt = reshape(X(t,:,:),N,p);
-    Yt = reshape(Y(t,:,:),N,q);
-    Ypred(t,:,:) = reshape(Xt * beta_t,N,q);
+    Yt = reshape(Y(r,:,:),binsize*N,qstar);
+    if options.encodemodel
+        % fit encoding model, then convert to equivalent decode weights
+        beta_enc_t = (Yt' * Yt + RidgePen) \ (Yt' * Xt);
+        noise_X_t = cov(Xt - Yt*beta_enc_t) + 1e-5*eye(p);
+        noise_Y_t = inv(inv(Ysig) + beta_enc_t * inv(noise_X_t) * beta_enc_t');
+        beta_t = inv(noise_X_t) * beta_enc_t' * noise_Y_t;
+        if qstar>q
+            % one of the predicted outputs is given; set prediction by
+            % marginalising this out:
+            mu_full = Xt * beta_enc_t;
+            sigma_full = noise_Y_t;
+            mu_conditional = mu_full(:,2:end) + sigma_full(1,2:end)*inv(sigma_full(2:end,2:end))*(1 - mu_full(:,1));
+            Ypred(t,:,:) = mu_conditional;
+            %Ypred(t,:,:) = reshape(mu_full(:,2:end),Nte,q);
+        else
+            Xt = reshape(X(t,:,:),N,p);
+            Ypred(t,:,:) = reshape(Xt * beta{t,icv},N,q);
+        end
+    else
+        beta_t = (Xt' * Xt + RidgePen) \ (Xt' * Yt);
+        Xt = reshape(X(t,:,:),N,p);
+        Ypred(t,:,:) = reshape(Xt * beta_t,N,q);
+    end
+   
+    Yt = reshape(Ystar(t,:,:),N,q);
     Ypredt = permute(Ypred(t,:,:),[2 3 1]);
     if classification
         Ycopyt = reshape(Ycopy(t,:,:),N,q);
@@ -216,7 +269,12 @@ for t = halfbin+1 : ttrial-halfbin
             acc(t) = mean(sum(abs(Ycopyt - Ypredt_star),2) < 1e-4);
         end
     else
-        acc(t) = 1 - sum((Yt - Ypredt).^2) ./ sum(Yt.^2);
+        if q == 1
+            acc(t) = 1 - sum((Yt - Ypredt).^2) ./ sum(Yt.^2);
+        else
+            acc(t,:) = 1 - sum((Yt - Ypredt).^2) ./ sum(Yt.^2);
+        end
+        
     end
 end
 

@@ -47,6 +47,7 @@ if ~isfield(options,'standardise'), options.standardise = 1; end
 if ~isfield(options,'standardise_pc') 
     options.standardise_pc = length(options.embeddedlags)>1; 
 end
+if ~isfield(options,'regularisation'), options.regularisation = 'ARD'; end
 if length(options.embeddedlags)>1 && isfield(options,'covtype') && ...
         ~strcmpi(options.covtype,'full')
     options.covtype = 'full';
@@ -460,7 +461,15 @@ if options.uniqueAR==1 && any(options.S(:)~=1)
     warning('S has no effect if uniqueAR=1')
 end
 if (strcmp(options.covtype,'full') || strcmp(options.covtype,'uniquefull')) && any(options.S(:)~=1)
-   error('Using S with elements different from zero is only implemented for covtype=diag/uniquediag')
+    if any(options.S(:)==0)
+        error('Global modelling of MAR coefficients not supported with full or uniquefull covariance matrix');
+    end
+    S = options.S==1;
+    regressed = sum(S,2)>=1;
+    regressors = sum(S,1)>=1;
+    if any(squash(regressed*regressors ~= S))
+    	error('Decoding with full or uniquefull covariance matrix requires S to be in block design: current design not supported');
+    end
 end
 
 orders = formorders(options.order,options.orderoffset,options.timelag,options.exptimelag);
@@ -484,9 +493,7 @@ end
 if ~issymmetric(options.S) && options.symmetricprior==1
    error('In order to use a symmetric prior, you need S to be symmetric as well') 
 end
-if (strcmp(options.covtype,'full') || strcmp(options.covtype,'uniquefull')) &&  ~all(options.S(:)==1)
-    error('if S is not all set to 1, then covtype must be diag or uniquediag')
-end
+
 if (strcmp(options.covtype,'full') || strcmp(options.covtype,'uniquefull')) && options.uniqueAR
     error('covtype must be diag or uniquediag if uniqueAR==1')
 end

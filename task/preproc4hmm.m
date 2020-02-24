@@ -55,9 +55,9 @@ else, A = options.A; end
 if isfield(options,'downsample') && options.downsample~=0
     warning('Downsampling is not possible for TUDA')
 end
-
+if ~isfield(options,'encodemodel'),options.encodemodel=false;end
 %options relative to classification models:
-if ~isempty(options.classifier)
+if ~isempty(options.classifier) || options.encodemodel
     if strcmp(options.classifier,'logistic')
         %set default options for logistic regression classification:
         options.distribution = 'logistic';
@@ -97,13 +97,13 @@ if ~isempty(options.classifier)
             options.inittype = 'sequential';
         end
         add_noise = 0;
-   elseif strcmp(options.classifier,'LDA')
+   elseif strcmp(options.classifier,'LDA') || options.encodemodel
        % set default options for LDA model:
        options.distribution = 'Gaussian';
        demeanstim = false;
         if ~isfield(options,'intercept'), options.intercept = 1; end
         if options.intercept
-            if size(Y,2)==1
+            if size(Y,2)==1 && all((Y==0) + (Y==1))
                 Y = [ones(size(Y,1),1),Y==1,Y~=1];
             else
                 Y = [ones(size(Y,1),1),Y];
@@ -111,7 +111,7 @@ if ~isempty(options.classifier)
             q = size(Y,2);
         end
         if ~isfield(options,'covtype')
-            options.covtype = 'uniquediag'; % actual LDA; full for QDA
+            options.covtype = 'uniquefull'; 
         end
         options=rmfield(options,'intercept');
         if ~isfield(options,'sequential')
@@ -169,10 +169,14 @@ else % Standard regression problem
     if ~isfield(options,'inittype')
         options.inittype = 'sequential';
     end
+    if ~isfield(options,'intercept'), options.intercept = 0; end
+    if options.intercept
+       X = [X,ones(size(X,1),1)];
+    end
+    options = rmfield(options,'intercept');
     
 end
-
-if ~isfield(options,'cyc'), options.cyc = 25; end
+%if ~isfield(options,'cyc'), options.cyc = 25; end
 
 if ~isfield(options,'logisticYdim'), options.logisticYdim = 0; end
 

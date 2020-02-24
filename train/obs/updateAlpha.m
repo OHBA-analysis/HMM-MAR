@@ -31,7 +31,13 @@ for k=1:K
                     0.5 * ( hmm.state(k).W.Mu_W(index,indr) .* ...
                     (hmm.state(k).sigma.Gam_shape(n,indr) ./ hmm.state(k).sigma.Gam_rate(n,indr) ) ) * ...
                     hmm.state(k).W.Mu_W(index,indr)';
-                index =  (i-1) * (ndim*Q) + (n-1) * ndim + (1:ndim) + (~train.zeromean)*ndim; index = index(indr);
+                if all(S(:)==1)
+                    index = (i-1) * (ndim*Q) + (n-1) * ndim + (1:ndim) + (~train.zeromean)*ndim; index = index(indr);
+                else
+                    index = false(size(S));
+                    index(n,indr) = true;
+                    index = index(:);
+                end
                 hmm.state(k).alpha.Gam_rate(i) = hmm.state(k).alpha.Gam_rate(i) + ...
                     0.5 * sum(diag(hmm.state(k).W.S_W(index,index))' .* (hmm.state(k).sigma.Gam_shape(n,indr) ./ ...
                     hmm.state(k).sigma.Gam_rate(n,indr) ) );
@@ -43,9 +49,9 @@ for k=1:K
         for i=1:train.logisticYdim %note dimension iterated over outside this code
             D=ndim-orders;
             if isfield(hmm.state(k).alpha,'Gam_rate')
-                hmm.state(k).alpha=rmfield(hmm.state(k).alpha,'Gam_rate');
+                hmm.state(k).alpha = rmfield(hmm.state(k).alpha,'Gam_rate');
             end
-            w_mu=hmm.state(k).W.Mu_W(1:D,end-train.logisticYdim+i);
+            w_mu = hmm.state(k).W.Mu_W(1:D,end-train.logisticYdim+i);
             w_sig=squeeze(hmm.state(k).W.S_W(end-train.logisticYdim+i,1:D,1:D));
             hmm.state(k).alpha.Gam_rate(:,i) = hmm.state(k).prior.alpha.Gam_rate + 0.5 *(w_mu.^2 + diag(w_sig));
         end
