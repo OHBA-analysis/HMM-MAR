@@ -44,7 +44,7 @@ data = data2struct(data,T,train);
 %     disp('Standardization should be done separately and using the entire data set.')
 % end
 % Standardise data and control for ackward trials
-valid_dims = computeValidDimensions(data,train.S);
+valid_dims = computeValidDimensions(data,train);
 data = standardisedata(data,T,train.standardise,valid_dims);
 % Filtering
 if ~isempty(train.filter)
