@@ -1,4 +1,4 @@
-function [cv_acc,acc,genplot] = standard_decoding(X,Y,T,options,binsize)
+function [cv_acc,acc,cv_acc_corr,acc_corr,genplot] = standard_decoding(X,Y,T,options,binsize)
 % Compute cross-validated (CV) accuracies from a "decoding" model trained 
 % at each time point (or window, see below) in the trial  
 % The reported statistic is the cross-validated explained variance from
@@ -172,6 +172,7 @@ end
 
 % Compute CV accuracy / explained variance
 cv_acc = NaN(ttrial,q);
+cv_acc_corr = NaN(ttrial,q);
 Ystar = reshape(Ystar,[ttrial,N,q]);
 for t = halfbin+1 : ttrial-halfbin
     Yt = reshape(Ystar(t,:,:),N,q);
@@ -188,8 +189,10 @@ for t = halfbin+1 : ttrial-halfbin
     else
         if q == 1
             cv_acc(t) = 1 - sum((Yt - Ypredt).^2) ./ sum(Yt.^2);
+            cv_acc_corr(t) = diag(corr(Yt,Ypredt));
         else
             cv_acc(t,:) = 1 - sum((Yt - Ypredt).^2) ./ sum(Yt.^2);
+            cv_acc_corr(t,:) = diag(corr(Yt,Ypredt));
         end
     end
 end
@@ -228,6 +231,7 @@ end
 
 % non-cross validated
 acc = NaN(ttrial,q);
+acc_corr = NaN(ttrial,q);
 Ypred = zeros(size(Ystar));
 
 for t = halfbin+1 : ttrial-halfbin
@@ -236,22 +240,18 @@ for t = halfbin+1 : ttrial-halfbin
     Yt = reshape(Y(r,:,:),binsize*N,qstar);
     if options.encodemodel
         % fit encoding model, then convert to equivalent decode weights
-        beta_enc_t = (Yt' * Yt + RidgePen) \ (Yt' * Xt);
-        noise_X_t = cov(Xt - Yt*beta_enc_t) + 1e-5*eye(p);
-        noise_Y_t = inv(inv(Ysig) + beta_enc_t * inv(noise_X_t) * beta_enc_t');
-        beta_t = inv(noise_X_t) * beta_enc_t' * noise_Y_t;
+        beta_encode = (Yt' * Yt + RidgePen) \ (Yt' * Xt);
+        noise_X_t = cov(Xt - Yt*beta_encode) + 1e-5*eye(p);
         if qstar>q
-            % one of the predicted outputs is given; set prediction by
-            % marginalising this out:
-            mu_full = Xt * beta_enc_t;
-            sigma_full = noise_Y_t;
-            mu_conditional = mu_full(:,2:end) + sigma_full(1,2:end)*inv(sigma_full(2:end,2:end))*(1 - mu_full(:,1));
-            Ypred(t,:,:) = mu_conditional;
-            %Ypred(t,:,:) = reshape(mu_full(:,2:end),Nte,q);
+            % regress out the (fixed) intercept value:
+            Xt = Xt - ones(N,1) * beta_encode(1,:);
+            sig_Y_t = inv(inv(Ysig(2:end,2:end)) + beta_encode(2:end,:) * inv(noise_X_t) * beta_encode(2:end,:)');
+            beta_t = inv(noise_X_t) * beta_encode(2:end,:)' * sig_Y_t;
         else
-            Xt = reshape(X(t,:,:),N,p);
-            Ypred(t,:,:) = reshape(Xt * beta{t,icv},N,q);
+            sig_Y_t = inv(inv(Ysig) + beta_encode * inv(noise_X_t) * beta_encode');
+            beta_t = inv(noise_X_t) * beta_encode' * sig_Y_t;
         end
+        Ypred(t,:,:) = reshape(Xt * beta_t,N,q);
     else
         beta_t = (Xt' * Xt + RidgePen) \ (Xt' * Yt);
         Xt = reshape(X(t,:,:),N,p);
@@ -271,8 +271,10 @@ for t = halfbin+1 : ttrial-halfbin
     else
         if q == 1
             acc(t) = 1 - sum((Yt - Ypredt).^2) ./ sum(Yt.^2);
+            acc_corr(t) = diag(corr(Yt,Ypredt));
         else
             acc(t,:) = 1 - sum((Yt - Ypredt).^2) ./ sum(Yt.^2);
+            acc_corr(t,:) = diag(corr(Yt,Ypredt));
         end
         
     end
