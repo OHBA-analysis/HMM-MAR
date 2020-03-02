@@ -66,6 +66,11 @@ end
 if ~isfield(hmm.train,'id_mixture')
     hmm.train.id_mixture = 0;
 end
+if ~isfield(hmm.train,'distribution')
+    hmm.train.distribution = 'Gaussian';
+end
+
+
 
 
 end

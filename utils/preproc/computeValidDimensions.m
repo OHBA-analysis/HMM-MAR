@@ -1,10 +1,10 @@
 function valid_dims = computeValidDimensions(data,options)
 % Evaluate a matrix of connections S and return which elements are to be
 % analysed for variance and standardisation.
-S=options.S;
-if strcmp(options.distribution,'Gaussian')
+S = options.S;
+if ~isfield(options,'distribution') || strcmp(options.distribution,'Gaussian') 
     if all(S(:)==1)
-        valid_dims=[1:length(S)]; % note this omits first dimension to allow TUDA style use of intercepts
+        valid_dims = [1:length(S)]; % note this omits first dimension to allow TUDA style use of intercepts
     else
         %implies a TUDA/TUCA style setup:
         lastdatadim = find(diff(any(S==1)),1);
@@ -20,7 +20,7 @@ if strcmp(options.distribution,'Gaussian')
         valid_dims = [1:lastdatadim];
     end
 else
-    valid_dims=[];
+    valid_dims = [];
 end
 
 end

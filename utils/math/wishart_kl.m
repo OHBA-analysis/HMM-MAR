@@ -37,9 +37,8 @@ try
     Lq = -logdet(B_q,'chol');
     Lp = -logdet(B_p,'chol');  
 catch 
-    disp('Probably, part of your time series has no information and can be removed.')
-    disp('For example, check if there are segments such that data(during_segment,:) == 0')
-    disp('It could also be that your have your own logdet function, that is not Matlab''s own - remove')
+    disp('One of the two covariance matrices (or both) is not positive definite')
+    disp('Check for NaNs in the time series. Also, are there enough time points?')
     error('Error computing the inverse of the covariance matrix.')
 end
 
