@@ -65,7 +65,6 @@ Ycopy = Y; if q_star>q;Ycopy=Y(:,2:end);end %remove intercept term
 classifier = options.classifier;
 classification = ~isempty(classifier);
 if classification, Ycopy = round(Ycopy); end
-
 if q_star~=q && strcmp(options.distribution,'logistic')
     Ycopy = multinomToBinary(Ycopy);
     q = size(Ycopy,2);
@@ -106,6 +105,12 @@ end
 if isfield(options,'verbose') 
     verbose = options.verbose; options = rmfield(options,'verbose');
 else, verbose = 1; 
+end
+if isfield(options,'accuracyType')
+    accuracyType = options.accuracyType;
+    options = rmfield(options,'accuracyType');
+else
+    accuracyType = [];
 end
 options.verbose = 0; 
 
@@ -263,19 +268,27 @@ for iFitMethod = 1:nCVm
         Y = reshape(Ycopy,[ttrial*N q]);
         Ypred_star_temp =  reshape(Ypred(:,:,:,iFitMethod), [ttrial*N q]); 
         Ypred_temp = permute( mean(Ypred(:,:,:,iFitMethod),1) ,[2 3 1]);
-        % acc is explained variance 
-        acc_temp = 1 - sum( (Y - Ypred_star_temp).^2 ) ./ sum(Y.^2) ; 
+        if isempty(accuracyType) || strcmp(accuracyType,'R2')
+            % acc is explained variance 
+            acc_temp = 1 - sum( (Y - Ypred_star_temp).^2 ) ./ sum(Y.^2) ; 
+        elseif strcmp(accuracyType,'Pearson')
+            acc_temp = diag(corr(Y,Ypred_star_temp));
+        end
         acc_star_temp = zeros(ttrial,q); 
         Y = reshape(Y,[ttrial N q]);
         Ypred_star_temp = reshape(Ypred_star_temp, [ttrial N q]);
         for t = 1:ttrial
             y = permute(Y(t,:,:),[2 3 1]); 
-            acc_star_temp(t,:) = 1 - sum((y - permute(Ypred_star_temp(t,:,:),[2 3 1])).^2) ./ sum(y.^2);
+            if isempty(accuracyType) || strcmp(accuracyType,'R2')
+                acc_star_temp(t,:) = 1 - sum((y - permute(Ypred_star_temp(t,:,:),[2 3 1])).^2) ./ sum(y.^2);
+            elseif strcmp(accuracyType,'Pearson')
+                acc_star_temp(t,:) = diag(corr(y,permute(Ypred_star_temp(t,:,:),[2 3 1])));
+            end
         end
         Ypred_star_temp = reshape(Ypred_star_temp, [ttrial*N q]);
     end
     acc(:,iFitMethod) = acc_temp;
-    acc_star(:,iFitMethod) = acc_star_temp;
+    acc_star(:,:,iFitMethod) = acc_star_temp;
     Ypred_out(:,:,iFitMethod) = Ypred_temp;
     Ypred_star(:,:,iFitMethod) = Ypred_star_temp;
 end

@@ -1,8 +1,9 @@
-function [cv_acc,acc,cv_acc_corr,acc_corr,genplot] = standard_decoding(X,Y,T,options,binsize)
+function [cv_acc,acc,genplot,model] = standard_decoding(X,Y,T,options,binsize)
 % Compute cross-validated (CV) accuracies from a "decoding" model trained 
 % at each time point (or window, see below) in the trial  
-% The reported statistic is the cross-validated explained variance from
-% regressing X on the stimulus.
+% The reported statistic is either the cross-validated explained variance from
+% regressing X on the stimulus (default), or the Pearson correlation between the
+% predictions and the true values (if options.accuracyType='Pearson');
 %
 % INPUT
 % X: Brain data, (total time by regions) or (time by trials by regions)
@@ -46,7 +47,7 @@ else
 end
 
 max_num_classes = 5;
-classification = length(unique(responses(:))) < max_num_classes;
+classification = length(unique(responses(:))) < max_num_classes ;
 if ~isfield(options,'temporalgeneralisation');options.temporalgeneralisation=false;end;
 
 if classification
@@ -92,6 +93,7 @@ end
 if ~isfield(options,'encodemodel') % option to first fit an encoding model then decode - ie Linear Guassian System approach
     options.encodemodel = false;
 end
+    
 % Form CV folds; if response are categorical, then it's stratified
 if ~isfield(options,'c')
     if classification
@@ -136,11 +138,15 @@ else
 end
 
 % Perform the prediction 
+model = [];
 if ~options.encodemodel
     Ypred = NaN(ttrial,N,qstar);
 else
     Ypred = NaN(ttrial,N,q);
+    model.beta_encode = zeros(qstar,p,ttrial);
+    model.noise_encode = zeros(p,p,ttrial);
 end
+model.beta_decode = zeros(q,p,ttrial);
 beta = cell(length(halfbin+1 : ttrial-halfbin),NCV);
 for icv = 1:NCV
     Ntr = sum(c.training{icv}); Nte = sum(c.test{icv});
@@ -163,10 +169,13 @@ for icv = 1:NCV
                 sig_Y_t = inv(inv(Ysig) + beta_encode * inv(noise_X_t) * beta_encode');
                 beta{t,icv} = inv(noise_X_t) * beta_encode' * sig_Y_t;
             end
+            model.beta_encode(:,:,t) = model.beta_encode(:,:,t) + beta_encode./NCV;
+            model.noise_encode(:,:,t) = model.noise_encode(:,:,t) + noise_X_t./NCV;
         else
             beta{t,icv} = (Xtr' * Xtr + RidgePen) \ (Xtr' * Ytr);
         end
         Ypred(t,c.test{icv},:) = reshape(Xte * beta{t,icv},Nte,q);
+        model.beta_decode(:,:,t) = squeeze(model.beta_decode(:,:,t)) + beta{t,icv}'./NCV;
     end
 end
 
@@ -182,21 +191,29 @@ for t = halfbin+1 : ttrial-halfbin
         Ycopyt = reshape(Ycopy(t,:,:),N,q);
         Ypredt_star = continuous_prediction_2class(Ycopyt,Ypredt);
         if q == 1
+            Ycopyt = 2*(Ycopyt>0)-1;
             cv_acc(t) = mean(abs(Ycopyt - Ypredt_star) < 1e-4);
         else
             cv_acc(t) = mean(sum(abs(Ycopyt - Ypredt_star),2) < 1e-4);
         end        
     else
         if q == 1
-            cv_acc(t) = 1 - sum((Yt - Ypredt).^2) ./ sum(Yt.^2);
-            cv_acc_corr(t) = diag(corr(Yt,Ypredt));
+            if isfield(options,'accuracyType') && strcmp(options.accuracyType,'Pearson')
+                cv_acc(t,:) = diag(corr(Yt,Ypredt));
+            else
+                cv_acc(t,:) = 1 - sum((Yt - Ypredt).^2) ./ sum(Yt.^2);
+            end
         else
-            cv_acc(t,:) = 1 - sum((Yt - Ypredt).^2) ./ sum(Yt.^2);
-            cv_acc_corr(t,:) = diag(corr(Yt,Ypredt));
+            if isfield(options,'accuracyType') && strcmp(options.accuracyType,'Pearson')
+                cv_acc(t,:) = diag(corr(Yt,Ypredt));
+            else
+                cv_acc(t,:) = 1 - sum((Yt - Ypredt).^2) ./ sum(Yt.^2);
+            end
         end
     end
 end
 % compute temporal generalisation plots
+genplot = [];
 if options.temporalgeneralisation
     Ypred=zeros(length(halfbin+1 : ttrial-halfbin),length(halfbin+1 : ttrial-halfbin),N,q);
     for icv=1:NCV
@@ -270,11 +287,17 @@ for t = halfbin+1 : ttrial-halfbin
         end
     else
         if q == 1
-            acc(t) = 1 - sum((Yt - Ypredt).^2) ./ sum(Yt.^2);
-            acc_corr(t) = diag(corr(Yt,Ypredt));
+            if isfield(options,'accuracyType') && strcmp(options.accuracyType,'Pearson')
+                acc(t) = diag(corr(Yt,Ypredt));
+            else
+                acc(t) = 1 - sum((Yt - Ypredt).^2) ./ sum(Yt.^2);
+            end
         else
-            acc(t,:) = 1 - sum((Yt - Ypredt).^2) ./ sum(Yt.^2);
-            acc_corr(t,:) = diag(corr(Yt,Ypredt));
+            if isfield(options,'accuracyType') && strcmp(options.accuracyType,'Pearson')
+                acc(t,:) = diag(corr(Yt,Ypredt));
+            else
+                acc(t,:) = 1 - sum((Yt - Ypredt).^2) ./ sum(Yt.^2);
+            end
         end
         
     end

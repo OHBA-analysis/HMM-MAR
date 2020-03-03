@@ -122,6 +122,9 @@ if ~isempty(options.classifier) || options.encodemodel
         end
         options.add_noise = 0;
         add_noise = 0;
+        if ~isfield(options,'accuracyType')
+            options.accuracyType = 'R2';  % this can be R2 or Pearson
+        end
     elseif strcmp(options.classifier,'SVM') || strcmp(options.classifier,'KNN') ||...
             strcmp(options.classifier,'decisiontree')
         add_noise = 0;
@@ -176,7 +179,7 @@ else % Standard regression problem
     options = rmfield(options,'intercept');
     
 end
-%if ~isfield(options,'cyc'), options.cyc = 25; end
+if ~isfield(options,'cyc'), options.cyc = 4; end
 
 if ~isfield(options,'logisticYdim'), options.logisticYdim = 0; end
 

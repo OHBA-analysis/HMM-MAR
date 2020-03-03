@@ -60,7 +60,13 @@ options = rmfield(options,'classifier');
 if ~options.encodemodel,options=rmfield(options,'encodemodel');end
 if isfield(options,'add_noise'), options = rmfield(options,'add_noise'); end
 p = size(X,2); q = size(Y,2);
- 
+if isfield(options,'accuracyType')
+    accuracyType = options.accuracyType;
+    options = rmfield(options,'accuracyType');
+else
+    accuracyType = [];
+end 
+
 % init HMM, only if trials are temporally related
 if ~isfield(options,'Gamma')
     if parallel_trials
