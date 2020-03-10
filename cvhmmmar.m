@@ -13,11 +13,15 @@ function [mcv,cv,rmcv_rand,rcv_rand,rmcv_train,rcv_train] = cvhmmmar(data,T,opti
 % OUTPUT
 % mcv      the averaged cross-validated likelihood and/or fractional mean squared error
 % cv       the averaged cross-validated likelihood and/or fractional mean squared error per fold
-% rmcv_rand     the ratio of mcv for the found solution by the mcv for a random solution
-% rcv_rand     the ratio of mcv for the found solution by the mcv for a random solution
+% rmcv_rand     the mean ratio of mcv for the found solution by the mcv for a random solution
+%               log(test / random) 
+% rcv_rand      the ratio of mcv for the found solution by the mcv for a random solution
+%               log(test / random) 
 % mtr       the average training likelihood and/or fractional mean squared error
-% rmcv_train     the ratio of mcv for the found solution by the mcv for a random solution
-% rcv_train     the ratio of mcv for the found solution by the mcv for a random solution
+% rmcv_train   the mean ratio of train / test, which can considered an index of overfitting 
+%               log(train / test)
+% rcv_train    the ratio of train / test, which can considered an index of overfitting
+%               log(train / test)
 %
 % Author: Diego Vidaurre, OHBA, University of Oxford
 
@@ -213,6 +217,7 @@ for fold = 1:nfolds
                 [~,~,~,LL] = hsinference(datatr,Ttr,hmmtr);
                 LL = sum(LL) / size(datatr.X,1); % get average
                 rcv_train(fold) = LL - cv(fold); % log(train / test)
+                if rcv_train(fold)<0, keyboard; end
             end
         end
         

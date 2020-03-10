@@ -1,4 +1,4 @@
-function [MLGamma] = gammaRasterPlot(Gamma,T_hmm,t_axispoints,t_axislabels)
+function MLGamma = gammaRasterPlot(Gamma,T_hmm,t_axispoints,t_axislabels)
 % plotting function that takes a state time course Gamma, reshapes it into
 % trials given by T (which must be uniform), and plots a raster plot of the
 % max likelihood state vs trials.
