@@ -3,18 +3,17 @@ function [MLGamma] = gammaRasterPlot(Gamma,T_hmm,t_axispoints,t_axislabels)
 % trials given by T (which must be uniform), and plots a raster plot of the
 % max likelihood state vs trials.
 
-[NT,K]=size(Gamma);
-T=T_hmm(1);
+[NT,K] = size(Gamma);
+T = T_hmm(1);
 if size(T_hmm,2)>1
-    nTr=length(T_hmm);
+    nTr = length(T_hmm);
 else
-    nTr=NT/T;
+    nTr = NT/T;
 end
-
 
 MLGamma = Gamma==repmat(max(Gamma,[],2),1,K);
 MLGamma = mod(find(MLGamma'),K);
-MLGamma(MLGamma==0)=K;
+MLGamma(MLGamma==0) = K;
 
 rastimage = reshape(MLGamma,T,nTr);
 imagesc(rastimage');
@@ -25,4 +24,5 @@ if nargin>3
     xlabel('Time')
 end
 set(gca,'fontsize',16);
+
 end
