@@ -32,10 +32,8 @@ for j = 1:N
     if K < K2
         gamma1 = [gamma1_0 zeros(T,K2-K)];
         K = K2;
-    else
-        if K>K2
-            g = [g zeros(T,K-K2)];
-        end
+    elseif K>K2
+        g = [g zeros(T,K-K2)];
     end
     
     for k1 = 1:K

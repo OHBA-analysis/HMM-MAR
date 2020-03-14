@@ -6,7 +6,7 @@ function [C,hmm] = hmmtestretest(data,T,options)
 % amount of agreement between the state time courses.
 % This is computed as the mean joint probabilities between the runs.
 % For example, if state 1 has activation [0 0 1] in one run and [0 0.5 0.5]
-% on the other, the metric would be (0*0 + 0*0.5 + 1*0.5) / 3 = 0.5 / 3 .
+% on the other, the metric would be (0*0 + 0*0.5 + 1*0.5) = 0.5 .
 % Given that we sum across states, the maximum value is 1, and the minimum is 0
 %
 % INPUT

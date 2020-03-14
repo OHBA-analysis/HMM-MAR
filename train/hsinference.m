@@ -41,7 +41,9 @@ if ~isstruct(data)
     data.C = NaN(size(data.X,1)-order*length(T),K);
 end
 
-if ~do_HMM_pca && (nargin<4 || isempty(residuals))
+if do_HMM_pca
+    ndim = size(data.X,2);
+elseif nargin<4 || isempty(residuals)
     ndim = size(data.X,2);
     if ~isfield(hmm.train,'Sind')
         orders = formorders(hmm.train.order,hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag);
@@ -50,8 +52,6 @@ if ~do_HMM_pca && (nargin<4 || isempty(residuals))
     if ~hmm.train.zeromean, hmm.train.Sind = [true(1,ndim); hmm.train.Sind]; end
     residuals =  getresiduals(data.X,T,hmm.train.Sind,hmm.train.maxorder,hmm.train.order,...
         hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag,hmm.train.zeromean);
-elseif do_HMM_pca
-    ndim = size(data.X,2);
 else
     ndim = size(residuals,2);
 end

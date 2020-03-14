@@ -31,31 +31,32 @@ if ~isfield(hmm.train,'distribution') || ~strcmp(hmm.train.distribution,'logisti
     while mean_change>obs_tol && obs_it<=obs_maxit
 
         last_state = hmm.state;
-
-        %%% W
-        [hmm,XW] = updateW(hmm,Gamma,residuals,XX,XXGXX,Tfactor);
-        %XW = zeros(sum(T),size(hmm.state(1).W.Mu_W,1),K);
-        %for k = 1:K, XW(:,:,k) = XX * hmm.state(k).W.Mu_W * hmm.state(k).W.Mu_W'; end
         
-        %%% Omega
-        hmm = updateOmega(hmm,Gamma,Gammasum,residuals,T,XX,XXGXX,XW,Tfactor);
-        %disp(num2str(hmm.Omega.Gam_rate / hmm.Omega.Gam_shape))
-
-        %%% autoregression coefficient priors
-        if (isfield(hmm.train,'V') && ~isempty(hmm.train.V))
-            %%% beta - one per regression coefficient
-            hmm = updateBeta(hmm);
-        elseif ~do_HMM_pca
-            %%% sigma - channel x channel coefficients
-            hmm = updateSigma(hmm);    
-            %%% alpha - one per order
-            hmm = updateAlpha(hmm);
+        if do_HMM_pca
+            hmm = updatePCAparam (hmm,Gammasum,XXGXX,Tfactor);
+        else
+            %%% W
+            [hmm,XW] = updateW(hmm,Gamma,residuals,XX,XXGXX,Tfactor);  
+            %%% Omega
+            hmm = updateOmega(hmm,Gamma,Gammasum,residuals,T,XX,XXGXX,XW,Tfactor);
+            %disp(num2str(hmm.Omega.Gam_rate / hmm.Omega.Gam_shape))
+            
+            %%% autoregression coefficient priors
+            if (isfield(hmm.train,'V') && ~isempty(hmm.train.V))
+                %%% beta - one per regression coefficient
+                hmm = updateBeta(hmm);
+            else
+                %%% sigma - channel x channel coefficients
+                hmm = updateSigma(hmm);
+                %%% alpha - one per order
+                hmm = updateAlpha(hmm);
+            end
         end
 
         %%% termination conditions
         obs_it = obs_it + 1;
         mean_changew = 0;
-        for k=1:K
+        for k = 1:K
             mean_changew = mean_changew + ...
                 sum(sum(abs(last_state(k).W.Mu_W - hmm.state(k).W.Mu_W))) / numel(hmm.state(k).W.Mu_W) / K;
         end

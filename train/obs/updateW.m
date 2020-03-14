@@ -74,37 +74,7 @@ for k = 1:K
             ind = n:ndim:size(XX,2);
             XW(:,n,k) = XX(:,ind) * hmm.state(k).W.Mu_W;
         end
-        
-     elseif do_HMM_pca
-     
-        % unlike Bishop's mixture of PCA, we don't have a mean vector per state here 
-        %SW = sum(permute(hmm.state(k).W.S_W,[2 3 1]),3); 
-        %v = omega.Gam_rate / omega.Gam_shape;
-        %iv = omega.Gam_shape / omega.Gam_rate;
-        %Xmu = (hmm.state(k).W.Mu_W' * hmm.state(k).W.Mu_W + SW + v*eye(p)) \ hmm.state(k).W.Mu_W' * XX'; 
-        %Xmu = Xmu';
-        %for n = 1:ndim
-        %    regterm = diag(hmm.state(k).beta.Gam_shape ./ hmm.state(k).beta.Gam_rate(n,:)); % p x p
-        %    iS = regterm + Tfactor * iv * (Xmu' .* repmat(Gamma(:,k)',p,1)) * Xmu; 
-        %    iS = (iS + iS') / 2; % ensuring symmetry
-        %    S = inv(iS);
-        %    hmm.state(k).W.iS_W(n,:,:) = iS;
-        %    hmm.state(k).W.S_W(n,:,:) = S;
-        %    hmm.state(k).W.Mu_W(n,:) = ((( S * Tfactor * iv * Xmu') .* repmat(Gamma(:,k)',p,1)) * XX(:,n));
-        %end
-        
-        % unlike Bishop's mixture of PCA, we don't have a mean vector per state here
-        v = omega.Gam_rate / omega.Gam_shape;
-        W = hmm.state(k).W.Mu_W;
-        SW = XXGXX{k} * W / sum(Gamma(:,k));
-        M = W'*W+v*eye(p);
-        iS_W = v*eye(p)+M\W'*SW; S_W = inv(iS_W);
-        hmm.state(k).W.Mu_W = SW/(iS_W);
-        for n = 1:ndim
-            hmm.state(k).W.iS_W(n,:,:) = iS_W;
-            hmm.state(k).W.S_W(n,:,:) = S_W;
-        end
-
+                
     elseif strcmp(train.covtype,'diag') || strcmp(train.covtype,'uniquediag')
         for n = 1:ndim
             ndim_n = sum(S(:,n)>0);

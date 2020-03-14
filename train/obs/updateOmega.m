@@ -10,20 +10,7 @@ if isfield(hmm.train,'B'), Q = size(hmm.train.B,2);
 else Q = ndim; end
 p = hmm.train.lowrank; do_HMM_pca = (p > 0);
 
-if do_HMM_pca
-    hmm.Omega.Gam_rate = hmm.prior.Omega.Gam_rate;
-    hmm.Omega.Gam_shape = hmm.prior.Omega.Gam_shape;
-    v = hmm.Omega.Gam_rate / hmm.Omega.Gam_shape;
-    for k = 1:K
-        W = hmm.state(k).W.Mu_W;
-        M = W'*W+v*eye(p);
-        Xhat = (M \ W' * XX')' * W';
-        e = mean(repmat(Gamma(:,k),1,ndim) .* (XX - Xhat).^2,2);
-        hmm.Omega.Gam_rate = hmm.Omega.Gam_rate + 0.5 * Tfactor * sum(e);
-        hmm.Omega.Gam_shape = hmm.Omega.Gam_shape + 0.5 * Tfactor * Gammasum(k);
-    end
-    
- elseif strcmp(hmm.train.covtype,'uniquediag') && hmm.train.uniqueAR 
+if strcmp(hmm.train.covtype,'uniquediag') && hmm.train.uniqueAR
     % all are AR and there's a single covariance matrix
     hmm.Omega.Gam_rate(k) = hmm.prior.Omega.Gam_rate;
     for k = 1:K
@@ -42,7 +29,7 @@ if do_HMM_pca
         hmm.Omega.Gam_rate = hmm.Omega.Gam_rate + ...
             0.5 * Tfactor * sum( repmat(Gamma(:,k),1,ndim) .* (e + swx2) );
     end
-    hmm.Omega.Gam_shape = hmm.prior.Omega.Gam_shape + 0.5 * Tfactor * Tres;    
+    hmm.Omega.Gam_shape = hmm.prior.Omega.Gam_shape + 0.5 * Tfactor * Tres;
     
 elseif strcmp(hmm.train.covtype,'uniquediag')
     hmm.Omega.Gam_rate(regressed) = hmm.prior.Omega.Gam_rate(regressed);
@@ -85,7 +72,7 @@ elseif strcmp(hmm.train.covtype,'uniquefull')
         e = (bsxfun(@times,e,Gamma(:,k)))' * e;
         if all(S(:)==1)
             swx2 =  zeros(ndim,ndim);
-            if ~isempty(hmm.state(k).W.Mu_W)  
+            if ~isempty(hmm.state(k).W.Mu_W)
                 for n1=find(regressed)
                     for n2=find(regressed)
                         if n2<n1, continue, end
@@ -116,13 +103,13 @@ elseif strcmp(hmm.train.covtype,'uniquefull')
                 tracesum = tracesum + vecinvL'*XGX*vecinvL;
             end
             hmm.Omega.Gam_rate(regressed,regressed) = hmm.Omega.Gam_rate(regressed,regressed) + tracesum + e;
-        end        
+        end
     end
     hmm.Omega.Gam_rate(regressed,regressed) = (hmm.Omega.Gam_rate(regressed,regressed) + ...
         hmm.Omega.Gam_rate(regressed,regressed)') / 2;
     hmm.Omega.Gam_irate(regressed,regressed) = inv(hmm.Omega.Gam_rate(regressed,regressed));
     hmm.Omega.Gam_shape = hmm.prior.Omega.Gam_shape + Tfactor * Tres;
-        
+    
 else % state dependent
     
     for k = 1:K
@@ -131,7 +118,7 @@ else % state dependent
         setstateoptions;
         if ~isempty(XW)
             XWk = XW(:,:,k);
-        else 
+        else
             XWk = zeros(size(residuals));
         end
         
@@ -145,11 +132,11 @@ else % state dependent
             hmm.state(k).Omega.Gam_rate = hmm.state(k).prior.Omega.Gam_rate + ...
                 0.5 * Tfactor * sum( repmat(Gamma(:,k),1,ndim) .* (e + swx2) );
             hmm.state(k).Omega.Gam_shape = hmm.state(k).prior.Omega.Gam_shape + 0.5 * Tfactor * Gammasum(k);
-                            
+            
         elseif strcmp(train.covtype,'diag')
             e = (residuals(:,regressed) - XWk(:,regressed)).^2;
             swx2 = zeros(Tres,ndim);
-            if ~isempty(hmm.state(k).W.Mu_W)  
+            if ~isempty(hmm.state(k).W.Mu_W)
                 for n=1:ndim
                     if ~regressed(n), continue; end
                     if ndim==1
@@ -178,7 +165,7 @@ else % state dependent
             e = (bsxfun(@times,e,Gamma(:,k)))' * e;
             if all(S(:)==1)
                 swx2 =  zeros(ndim,ndim);
-                if ~isempty(hmm.state(k).W.Mu_W)  
+                if ~isempty(hmm.state(k).W.Mu_W)
                     orders = formorders(train.order,train.orderoffset,train.timelag,train.exptimelag);
                     if isempty(orders)
                         swx2 = hmm.state(k).W.S_W * XXGXX{k};
@@ -233,9 +220,9 @@ else % state dependent
             
             % ensuring symmetry
             hmm.state(k).Omega.Gam_rate(regressed,regressed) = (hmm.state(k).Omega.Gam_rate(regressed,regressed) + ...
-                hmm.state(k).Omega.Gam_rate(regressed,regressed)') / 2; 
+                hmm.state(k).Omega.Gam_rate(regressed,regressed)') / 2;
             hmm.state(k).Omega.Gam_irate(regressed,regressed) = (hmm.state(k).Omega.Gam_irate(regressed,regressed) + ...
-                hmm.state(k).Omega.Gam_irate(regressed,regressed)') / 2;  
+                hmm.state(k).Omega.Gam_irate(regressed,regressed)') / 2;
             
         end
     end

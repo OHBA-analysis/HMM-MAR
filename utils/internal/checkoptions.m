@@ -9,9 +9,9 @@ end
 if ~isfield(options,'K'), error('K was not specified'); end
 if ~isfield(options,'order')
     options.order = 0;
-    if ~isfield(options,'leida') || ~options.leida
-        warning('order was not specified - it will be set to 0'); 
-    end
+    %if ~isfield(options,'leida') || ~options.leida
+    %    warning('order was not specified - it will be set to 0'); 
+    %end
 end
 if options.K<1, error('K must be higher than 0'); end
 stochastic_learning = isfield(options,'BIGNbatch') && ...
@@ -281,8 +281,8 @@ else
     ndim = options.pca;
 end
 
-% MAR parameters
-options = checkMARparametrization(options,ndim);  
+% state parameters
+options = checkStateParametrization(options,ndim);  
 
 if ~stochastic_learning
     data = data2struct(data,T,options);
@@ -384,7 +384,7 @@ end
 end
 
 
-function options = checkMARparametrization(options,ndim)
+function options = checkStateParametrization(options,ndim)
 
 if isfield(options,'embeddedlags') && length(options.embeddedlags)>1 && options.order>0 
     error('Order needs to be zero for multiple embedded lags')
@@ -415,7 +415,7 @@ end
 if ~isfield(options,'covtype') && options.leida 
     options.covtype = 'uniquediag'; 
 elseif ~isfield(options,'covtype') && options.lowrank>0
-    options.covtype = 'uniquediag'; 
+    options.covtype = 'pca'; 
 elseif ~isfield(options,'covtype') && (ndim==1 || (isfield(options,'S') && ~isempty(options.S) && ~all(options.S==1)))
     options.covtype = 'diag'; 
 elseif ~isfield(options,'covtype') && ndim>1, options.covtype = 'full'; 
@@ -427,7 +427,9 @@ elseif (strcmp(options.covtype,'full') || strcmp(options.covtype,'uniquefull')) 
     end
 end
 if ~isfield(options,'zeromean')
-    if options.order>0, options.zeromean = 1; 
+    if length(options.embeddedlags)>0, options.zeromean = 1; 
+    elseif options.lowrank>0, options.zeromean = 1; 
+    elseif options.order>0, options.zeromean = 1; 
     else, options.zeromean = 0; % i.e. when Gaussian or LEiDA
     end
 end
@@ -512,8 +514,9 @@ else
 end
 if ~options.zeromean, options.Sind = [true(1,ndim); options.Sind]; end
 
-if ~strcmp(options.covtype,'uniquediag') && options.lowrank > 0 
-    error('lowrank can only be used for covtype=uniquediag')
+if ~strcmp(options.covtype,'pca') && options.lowrank > 0 
+    warning('When states are probabilistic PCA models (option.lowrank>0), covtype has no meaning')
+    options.covtype='pca';
 end
 if options.zeromean==0 && options.lowrank > 0 
     error('Currently, lowrank can only be used for zeromean=1')

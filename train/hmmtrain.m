@@ -101,7 +101,7 @@ for cycle = 1:hmm.train.cyc
         if cycle>(hmm.train.meancycstop+1)
             chgFrEn = mean( fehist(end:-1:(end-hmm.train.meancycstop+1)) - ...
                 fehist(end-1:-1:(end-hmm.train.meancycstop)) )  ...
-                / (fehist(1) - fehist(end));
+                / abs(fehist(1) - fehist(end));
             if hmm.train.verbose
                 fprintf('cycle %i free energy = %g, %s relative change = %g \n',...
                     cycle,fehist(end),strwin,chgFrEn);
@@ -121,7 +121,7 @@ for cycle = 1:hmm.train.cyc
     %disp(['mean MaxFO = ' num2str(mean(getMaxFractionalOccupancy(Gamma,T,hmm.train)))])
     
     %%%% M STEP
-    
+        
     % Observation model
     if hmm.train.updateObs
         hmm = obsupdate(T,Gamma,hmm,residuals,XX,XXGXX);
