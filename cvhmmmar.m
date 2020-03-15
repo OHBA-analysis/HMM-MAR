@@ -217,7 +217,7 @@ for fold = 1:nfolds
                 [~,~,~,LL] = hsinference(datatr,Ttr,hmmtr);
                 LL = sum(LL) / size(datatr.X,1); % get average
                 rcv_train(fold) = LL - cv(fold); % log(train / test)
-                if rcv_train(fold)<0, keyboard; end
+                %if rcv_train(fold)<0, keyboard; end
             end
         end
         
