@@ -10,10 +10,10 @@ function [X,options] = simmar(data,T,Tnew,options)
 % Tnew                  Length of new time series
 % options               Options for the MAR and preprocessing
 % options.AR	 	If 1, one AR model will be fitter to each channel
-%			with no cross-term interactions 
+%			with no cross-term interactions
 %
 % OUTPUTS
-% X                     simulated observations  
+% X                     simulated observations
 %
 % Author: Diego Vidaurre, OHBA, University of Oxford (2017)
 
@@ -34,10 +34,14 @@ checkdatacell;
 % Check options
 if isfield(options,'AR'), options.AR = 0; end
 options = checkspelling(options);
-options.K = 1; options.updateGamma = 0; options.updateP = 0; 
+options.K = 1; options.updateGamma = 0; options.updateP = 0;
+if ~isfield(options,'order')
+    error('In order to sample data from a MAR model, options.order is needed')
+end
+options.DirichletDiag = 100; % this is not used, it's just to stop the warning message
 [options,data] = checkoptions(options,data,T,0);
 if length(options.embeddedlags) > 1
-    error('It is not currently possible to generate data with options.embeddedlags ~= 0'); 
+    error('It is not currently possible to generate data with options.embeddedlags ~= 0');
 end
 
 % Standardise data and control for ackward trials
@@ -70,17 +74,17 @@ if options.order > 0
     maxorder = max(orders);
     XX = formautoregr(data,T,orders,maxorder,options.zeromean,0);
     Y =  getresiduals(data,T,1,max(orders));
-if options.AR
-for j = 1:ndim
-ind = (0:options.order-1)*ndim + j;
-W(ind,j) = pinv(XX(:,ind)) * Y(:,j);   
-end
-else 
-    W = pinv(XX) * Y; 
-end
-    R = Y - XX * W; 
+    if isfield(options,'AR') && options.AR
+        for j = 1:ndim
+            ind = (0:options.order-1)*ndim + j;
+            W(ind,j) = pinv(XX(:,ind)) * Y(:,j);
+        end
+    else
+        W = pinv(XX) * Y;
+    end
+    R = Y - XX * W;
     mu = mean(R);
-    C = cov(R); 
+    C = cov(R);
     nz = (~options.zeromean);
 else
     mu = mean(data);
