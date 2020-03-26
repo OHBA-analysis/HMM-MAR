@@ -1,5 +1,5 @@
 function fit = hmmspectramar(data,T,hmm,Gamma,options)
-% Get ML spectral estimates from MAR model
+% Get spectral estimates from MAR model
 % If 'hmm' is specified, it will interrogate its MAR parameters
 % If not, will recompute the MAR using maximum likelihood
 %

@@ -1,6 +1,6 @@
 function [options,data,ndim] = checkoptions_spectra (options,data,T,parametric)
 
-if nargin==3
+if nargin>=3
     if iscell(T)
         T = cell2mat(T); T = T(:);
     end
@@ -53,7 +53,7 @@ end
 
 options.updateGamma = 1; 
 options.DirichletDiag = 100; % to avoid a warning later
-[options,data] = checkoptions(options,data,[]);
+[options,data] = checkoptions(options,data,[]); 
 options.leida = 0;
 options.onpower = 0;
 options.pca = 0;
