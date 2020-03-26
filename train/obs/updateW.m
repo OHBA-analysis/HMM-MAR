@@ -232,9 +232,10 @@ for k = 1:K
             validentries = logical(S(:));
             hmm.state(k).W.iS_W(validentries,validentries) = regterm + gram;
             hmm.state(k).W.S_W(validentries,validentries) = inv(hmm.state(k).W.iS_W(validentries,validentries));
+            hmm.state(k).W.iS_W = sparse(hmm.state(k).W.iS_W);
+            hmm.state(k).W.S_W = sparse(hmm.state(k).W.S_W);
             
             % and compute mean:
-            
             temp = (bsxfun(@times,X,Gamma(:,k)))' * Y * prec;
             muW = hmm.state(k).W.S_W(validentries,validentries)*squash(temp);
             muW = reshape(muW,Xdim,Ydim);

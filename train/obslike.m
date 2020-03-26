@@ -75,6 +75,7 @@ elseif strcmpi(hmm.train.covtype,'uniquefull')
     end
     PsiWish_alphasum = PsiWish_alphasum*0.5;
     C = hmm.Omega.Gam_shape * hmm.Omega.Gam_irate;
+    
 end
 
 for k = 1:K
@@ -86,6 +87,11 @@ for k = 1:K
         ldetWishB = cache.ldetWishB{k};
         PsiWish_alphasum  = cache.PsiWish_alphasum{k};
         C = cache.C{k};
+        if isfield(cache,'WishTrace')
+            WishTrace = cache.WishTrace{k};
+        else
+            WishTrace =[];
+        end
     else
         setstateoptions;
         if do_HMM_pca
@@ -190,15 +196,37 @@ for k = 1:K
                     else
                         I = (0:length(orders)*Q+(~train.zeromean)-1) * ndim;
                     end
-                    for n1 = 1:ndim
-                        if ~regressed(n1), continue; end
-                        index1 = I + n1; index1 = index1(Sind(:,n1)); 
-                        tmp = (XX(:,Sind(:,n1)) * hmm.state(k).W.S_W(index1,:));
-                        for n2 = 1:ndim
-                            if ~regressed(n2), continue; end
-                            index2 = I + n2; index2 = index2(Sind(:,n2));
-                            NormWishtrace = NormWishtrace + 0.5 * C(n1,n2) * ...
-                                sum( tmp(:,index2) .* XX(:,Sind(:,n2)),2);
+                    if all(S(:)==1) 
+                        for n1 = 1:ndim
+                            if ~regressed(n1), continue; end
+                            index1 = I + n1; index1 = index1(Sind(:,n1)); 
+                            tmp = (XX(:,Sind(:,n1)) * hmm.state(k).W.S_W(index1,:));
+                            for n2 = 1:ndim
+                                if ~regressed(n2), continue; end
+                                index2 = I + n2; index2 = index2(Sind(:,n2));
+                                NormWishtrace = NormWishtrace + 0.5 * C(n1,n2) * ...
+                                    sum( tmp(:,index2) .* XX(:,Sind(:,n2)),2);
+                            end
+                        end
+                    elseif any(S(:)~=1) && any(var(residuals(1:end-1,~regressed))~=0)
+                        % time varying regressors - this inference will be
+                        % exceedingly slow, can be optimised if necessary
+                        validentries = logical(S(:));
+                        B_S = hmm.state(k).W.S_W(validentries,validentries);
+                        for iT=1:Tres
+                            NormWishtrace(iT) = trace(kron(C(regressed,regressed),...
+                                residuals(1,~regressed)'*residuals(1,~regressed))*B_S);
+                        end
+                    else
+                        % implies a static regressor value over full course of each trial - no time varying component:
+                        if ~isempty(WishTrace)
+                            Xval = residuals(1,~regressed)*[2.^(1:sum(~regressed))]';
+                            NormWishtrace = repmat(WishTrace(cache.codevals==Xval),Tres,1);
+                        else
+                            validentries = logical(S(:));
+                            B_S = hmm.state(k).W.S_W(validentries,validentries);
+                            normtrace = trace(kron(C(regressed,regressed),residuals(1,~regressed)'*residuals(1,~regressed))*B_S);
+                            NormWishtrace = repmat(normtrace,Tres,1); 
                         end
                     end
                 end
@@ -206,7 +234,6 @@ for k = 1:K
     end
     
     L(hmm.train.maxorder+1:T,k)= - ltpi - ldetWishB + PsiWish_alphasum + dist - NormWishtrace; 
-    
 end
 L = exp(L);
 end
