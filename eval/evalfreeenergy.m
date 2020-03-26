@@ -426,7 +426,6 @@ if todo(2)==1
                                 t = sum(T_temp(1:iT-1))+1;
                                 NormWishtrace(t:t+T_temp(iT)-1) = trace(kron(C(regressed,regressed),...
                                     XX(t,~regressed)'*XX(t,~regressed))*B_S);
->>>>>>> Stashed changes
                             end
                         end
                     end
