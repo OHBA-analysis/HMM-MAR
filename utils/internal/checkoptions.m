@@ -370,7 +370,7 @@ end
 % CV options
 if cv==1
     if ~isfield(options,'cvfolds'), options.cvfolds = length(T); end
-    if ~isfield(options,'cvrep'), options.cvrep = 1; end
+    %if ~isfield(options,'cvrep'), options.cvrep = 1; end
     if ~isfield(options,'cvmode'), options.cvmode = 1; end
     if ~isfield(options,'cvverbose'), options.cvverbose = 0; end
     if ~isobject(options.cvfolds)
@@ -378,7 +378,7 @@ if cv==1
         if length(options.cvfolds)>1 && ~isempty(options.Gamma), error('Set options.Gamma=[] for cross-validating'); end
         if length(options.cvfolds)==1 && options.cvfolds==0, error('Set options.cvfolds to a positive integer'); end
     end
-    if options.K==1 && isfield(options,'cvrep')>1, warning('If K==1, cvrep>1 has no point; cvrep is set to 1 \n'); end
+    %if options.K==1 && isfield(options,'cvrep')>1, warning('If K==1, cvrep>1 has no point; cvrep is set to 1 \n'); end
 end
 
 end

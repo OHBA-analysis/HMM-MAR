@@ -190,38 +190,38 @@ for fold = 1:nfolds
         LL_r = sum(LL_r) / size(datate.X,1); % get average 
     end
         
-    for it = 1:options.cvrep
-        
-        if options.verbose, fprintf('CV fold %d, repetition %d \n',fold,it); end
-
-        if isfield(options,'orders')
-            options = rmfield(options,'orders');
-        end
-        if isfield(options,'maxorder')
-            options = rmfield(options,'maxorder');
-        end
-        [hmmtr,~,~,~,~,~,fe] = hmmmar (datatr,Ttr,options); fe = fe(end);
-        hmmtr.train.Sind = Sind;
-        hmmtr.train.maxorder = maxorder;
-              
-        if fe < Fe
-            % test
-            Fe = fe;
-            [~,~,~,LL] = hsinference(datate,Tte,hmmtr); % LL is the sum of the loglikelihoods 
-            cv(fold) = sum(LL) / size(datate.X,1); % get average
-            if get_ratio_rand
-                rcv_rand(fold) = cv(fold) - LL_r; % log(test / random) 
-            end
-            % train
-            if get_ratio_train
-                [~,~,~,LL] = hsinference(datatr,Ttr,hmmtr);
-                LL = sum(LL) / size(datatr.X,1); % get average
-                rcv_train(fold) = LL - cv(fold); % log(train / test)
-                %if rcv_train(fold)<0, keyboard; end
-            end
-        end
-        
+    %for it = 1:options.cvrep
+    
+    if options.verbose, fprintf('CV fold %d, repetition %d \n',fold); end
+    
+    if isfield(options,'orders')
+        options = rmfield(options,'orders');
     end
+    if isfield(options,'maxorder')
+        options = rmfield(options,'maxorder');
+    end
+    [hmmtr,~,~,~,~,~,fe] = hmmmar (datatr,Ttr,options); fe = fe(end);
+    hmmtr.train.Sind = Sind;
+    hmmtr.train.maxorder = maxorder;
+    
+    if fe < Fe
+        % test
+        Fe = fe;
+        [~,~,~,LL] = hsinference(datate,Tte,hmmtr); % LL is the sum of the loglikelihoods
+        cv(fold) = sum(LL) / size(datate.X,1); % get average
+        if get_ratio_rand
+            rcv_rand(fold) = cv(fold) - LL_r; % log(test / random)
+        end
+        % train
+        if get_ratio_train
+            [~,~,~,LL] = hsinference(datatr,Ttr,hmmtr);
+            LL = sum(LL) / size(datatr.X,1); % get average
+            rcv_train(fold) = LL - cv(fold); % log(train / test)
+            %if rcv_train(fold)<0, keyboard; end
+        end
+    end
+        
+    %end
 
 end
 
