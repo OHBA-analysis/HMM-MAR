@@ -397,15 +397,35 @@ if todo(2)==1
                         else
                             I = (0:length(orders)*Q+(~train.zeromean)-1) * ndim;
                         end
-                        for n1 = 1:ndim
-                            if ~regressed(n1), continue; end
-                            index1 = I + n1; index1 = index1(Sind(:,n1));
-                            tmp = (XX(:,Sind(:,n1)) * hs.W.S_W(index1,:));
-                            for n2 = 1:ndim
-                                if ~regressed(n2), continue; end
-                                index2 = I + n2; index2 = index2(Sind(:,n2));
-                                NormWishtrace = NormWishtrace + 0.5 * C(n1,n2) * ...
-                                    sum( tmp(:,index2) .* XX(:,Sind(:,n2)),2);
+                        [WishTrace,X_coded_vals] = computeWishTrace(hmm,regressed,XX,C,k);
+                        if all(S(:)==1) && any(var(XX(1:T(1)-1,~regressed))~=0)
+                            for n1=1:ndim
+                                if ~regressed(n1), continue; end
+                                index1 = I + n1; index1 = index1(Sind(:,n1));
+                                tmp = (XX(:,Sind(:,n1)) * hs.W.S_W(index1,:));
+                                for n2=1:ndim
+                                    if ~regressed(n2), continue; end
+                                    index2 = I + n2; index2 = index2(Sind(:,n2));
+                                    NormWishtrace = NormWishtrace + 0.5 * C(n1,n2) * ...
+                                        sum( tmp(:,index2) .* XX(:,Sind(:,n2)),2);
+                                end
+                            end
+                        elseif ~isempty(WishTrace)
+                            Xval = XX(:,~regressed)*[2.^(1:sum(~regressed))]';
+                            for iR = 1:length(X_coded_vals)
+                                NormWishtrace(Xval==X_coded_vals(iR)) = WishTrace(iR);
+                            end
+                        else
+                            % time varying regressors - this inference will be
+                            % exceedingly slow, is approximated here by
+                            % using first value at each trial
+                            validentries = logical(S(:));
+                            B_S = hmm.state(k).W.S_W(validentries,validentries);
+                            for iT=1:length(T)
+                                T_temp = T - order;
+                                t = sum(T_temp(1:iT-1))+1;
+                                NormWishtrace(t:t+T_temp(iT)-1) = trace(kron(C(regressed,regressed),...
+                                    XX(t,~regressed)'*XX(t,~regressed))*B_S);
                             end
                         end
                     end
@@ -418,4 +438,27 @@ end
 
 FrEn=[-Entr -savLL -avLLGamma +KLdivTran +KLdiv];
 
+end
+
+function [WishTrace,X_coded_vals] = computeWishTrace(hmm,regressed,XX,C,k)
+X = XX(:,~regressed);
+if length(unique(X))<5
+    % regressors are low dim categorical - compute and store in cache for
+    % each regressor type - convert to binary code:
+    X_coded = X*[2.^(1:size(X,2))]';
+    X_coded_vals = unique(X_coded);
+    validentries = logical(hmm.train.S(:)==1);
+    WishTrace = zeros(1,length(X_coded_vals));
+    %for k = 1:hmm.K
+        B_S = hmm.state(k).W.S_W(validentries,validentries);
+        for i=1:length(X_coded_vals)
+            t_samp = find(X_coded==X_coded_vals(i),1);
+            WishTrace(i) = trace(kron(C(regressed,regressed),X(t_samp,:)'*X(t_samp,:))*B_S);
+        end      
+    %end
+    
+else
+    WishTrace =[];
+    X_coded_vals=[];
+end
 end

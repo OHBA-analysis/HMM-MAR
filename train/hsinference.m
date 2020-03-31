@@ -105,6 +105,9 @@ for k = 1:K
         end
         PsiWish_alphasum=PsiWish_alphasum*0.5;
         C = hmm.Omega.Gam_shape * hmm.Omega.Gam_irate;
+        for kk = 1:hmm.K
+            [hmm.cache.WishTrace{kk},hmm.cache.codevals] = computeWishTrace(hmm,regressed,XX,C,kk);
+        end
     elseif strcmp(train.covtype,'diag')
         ldetWishB=0;
         PsiWish_alphasum = 0;
@@ -121,6 +124,7 @@ for k = 1:K
             PsiWish_alphasum = PsiWish_alphasum+0.5*psi(hmm.state(k).Omega.Gam_shape/2+0.5-n/2);
         end
         C = hmm.state(k).Omega.Gam_shape * hmm.state(k).Omega.Gam_irate;
+        [hmm.cache.WishTrace{k},hmm.cache.codevals] = computeWishTrace(hmm,regressed,XX,C,k);
     end
     if  ~do_HMM_pca && (~isfield(train,'distribution') || ~strcmp(train.distribution,'logistic'))
         hmm.cache.ldetWishB{k} = ldetWishB;
@@ -320,3 +324,25 @@ if n_argout>=5, B  = cell2mat(B); end
 
 end
 
+function [WishTrace,X_coded_vals] = computeWishTrace(hmm,regressed,XX,C,k)
+X = XX(:,~regressed);
+if any(hmm.train.S(:)~=1) && length(unique(X))<5
+    % regressors are low dim categorical - compute and store in cache for
+    % each regressor type - convert to binary code:
+    X_coded = X*[2.^(1:size(X,2))]';
+    X_coded_vals = unique(X_coded);
+    validentries = logical(hmm.train.S(:)==1);
+    WishTrace = zeros(1,length(X_coded_vals));
+    %for k = 1:hmm.K
+        B_S = hmm.state(k).W.S_W(validentries,validentries);
+        for i=1:length(X_coded_vals)
+            t_samp = find(X_coded==X_coded_vals(i),1);
+            WishTrace(i) = trace(kron(C(regressed,regressed),X(t_samp,:)'*X(t_samp,:))*B_S);
+        end      
+    %end
+    
+else
+    WishTrace =[];
+    X_coded_vals=[];
+end
+end
