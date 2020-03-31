@@ -3,7 +3,7 @@ if iscell(data)
     if size(data,1)==1, data = data'; end
     if iscellstr(data) % if comes in file name format
         dfilenames = data; t0 = 0;
-        for i=1:length(dfilenames)
+        for i = 1:length(dfilenames)
             fsub = dfilenames{i};
             loadfile_sub;
             if i==1, data = zeros(sum(T),size(X,2)); end

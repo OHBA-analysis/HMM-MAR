@@ -427,7 +427,7 @@ elseif (strcmp(options.covtype,'full') || strcmp(options.covtype,'uniquefull')) 
     end
 end
 if ~isfield(options,'zeromean')
-    if length(options.embeddedlags)>0, options.zeromean = 1; 
+    if length(options.embeddedlags)>1, options.zeromean = 1; 
     elseif options.lowrank>0, options.zeromean = 1; 
     elseif options.order>0, options.zeromean = 1; 
     else, options.zeromean = 0; % i.e. when Gaussian or LEiDA
