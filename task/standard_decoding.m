@@ -48,7 +48,7 @@ end
 
 max_num_classes = 5;
 classification = length(unique(responses(:))) < max_num_classes ;
-if ~isfield(options,'temporalgeneralisation');options.temporalgeneralisation=false;end;
+if ~isfield(options,'temporalgeneralisation');options.temporalgeneralisation=false; end
 
 if classification
     Ycopy = Y;
@@ -103,7 +103,8 @@ if ~isfield(options,'c')
             rj = responses(:,j);
             uj = unique(rj);
             for jj = 1:length(uj)
-                tmp(rj == uj(jj)) = tmp(rj == uj(jj)) + (q+1)^(j-1) * jj; tmp(rj == uj(jj)) + 100^(j-1) * jj;
+                tmp(rj == uj(jj)) = tmp(rj == uj(jj)) + (q+1)^(j-1) * jj; 
+                %tmp(rj == uj(jj)) + 100^(j-1) * jj;
             end
         end
         uy = unique(tmp);
@@ -181,7 +182,6 @@ end
 
 % Compute CV accuracy / explained variance
 cv_acc = NaN(ttrial,q);
-cv_acc_corr = NaN(ttrial,q);
 Ystar = reshape(Ystar,[ttrial,N,q]);
 for t = halfbin+1 : ttrial-halfbin
     Yt = reshape(Ystar(t,:,:),N,q);
@@ -217,7 +217,6 @@ genplot = [];
 if options.temporalgeneralisation
     Ypred=zeros(length(halfbin+1 : ttrial-halfbin),length(halfbin+1 : ttrial-halfbin),N,q);
     for icv=1:NCV
-        Ntr = sum(c.training{icv}); Nte = sum(c.test{icv});
         for t_train = halfbin+1 : ttrial-halfbin
             beta_temp=beta{t_train,icv};
             for t_test = halfbin+1 : ttrial-halfbin
@@ -248,7 +247,6 @@ end
 
 % non-cross validated
 acc = NaN(ttrial,q);
-acc_corr = NaN(ttrial,q);
 Ypred = zeros(size(Ystar));
 
 for t = halfbin+1 : ttrial-halfbin

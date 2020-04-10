@@ -48,7 +48,7 @@ lZp = log(2) * (alpha_p*K/2)  - Lp * (-alpha_p/2) + K*(K-1)/4 * log(pi);
 Lq = Lq + K * log(2);
 Lp = Lp + K * log(2);
 
-for k=1:K
+for k = 1:K
     lZq = lZq + gammaln(alpha_q/2+0.5-0.5*k);
     lZp = lZp + gammaln(alpha_p/2+0.5-0.5*k);
     Lq = Lq + psi(alpha_q/2+0.5-0.5*k);

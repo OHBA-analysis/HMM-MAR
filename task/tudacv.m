@@ -149,7 +149,6 @@ end; clear c2
 
 X = reshape(X,[ttrial N p]);
 Y = reshape(Y,[ttrial N q_star]);
-RidgePen = lambda * eye(p);
 
 % Get Gamma and the Betas for each fold
 Gammapred = zeros(ttrial,N,K,3); Betas = zeros(p,q_star,K,NCV); 

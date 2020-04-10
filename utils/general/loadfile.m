@@ -3,7 +3,7 @@ function [X,XX,Y,T] = loadfile(file,T,options)
 
 if iscell(file) % T needs to be cell too
     T = cell2mat(T);
-    for j=1:length(file)
+    for j = 1:length(file)
         if ischar(file{j})
             fsub = file{j};
             loadfile_sub;
