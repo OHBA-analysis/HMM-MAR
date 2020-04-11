@@ -145,6 +145,7 @@ if ~isempty(options.classifier) || options.encodemodel
             Ytmp = Y; 
             Y = zeros(size(Y,1),length(vals));
             for jj = 1:length(vals), Y(Ytmp==vals(jj),jj) = 1; end
+            q = length(vals);
         elseif q > 1
             if any((vals ~= 0) & (vals ~= 1)) 
                 error('Format of Y incorrect for classification tasks');
