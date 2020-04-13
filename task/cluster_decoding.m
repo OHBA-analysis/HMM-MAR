@@ -1,4 +1,4 @@
-function Gamma = cluster_decoding(X,Y,T,K,cluster_method,...
+function Gamma = cluster_decoding(X,Y,T,K,cluster_method,... 
     cluster_measure,Pstructure,Pistructure,GammaInit,repetitions,nwin)
 % clustering of the time-point-by-time-point regressions, which is
 % temporally constrained unlike TUDA
@@ -15,21 +15,19 @@ function Gamma = cluster_decoding(X,Y,T,K,cluster_method,...
 % OUTPUT
 % Gamma: (trial time by K), containing the cluster assignments
 
-if nargin<5, cluster_method = 'regression'; end
-if nargin>6 && ~isempty(cluster_measure) && strcmp(cluster_method,'regression')
-    warning('cluster_measure is not used when cluster_method is regression')
-end
-if nargin<7, cluster_measure = 'error'; end
-if nargin<8, Pstructure = true(K,1); end
-if nargin<9, Pistructure = true(K); end
-if nargin<10, GammaInit = []; end
-if nargin<11, repetitions = 100; end
-
 N = length(T); p = size(X,2); q = size(Y,2); ttrial = T(1);
 
-if nargin < 12, nwin = min(50,ttrial); swin = floor(ttrial/nwin); 
-else swin = 1; 
+if nargin<5, cluster_method = 'regression'; end
+if nargin>=6 && ~isempty(cluster_measure) && strcmp(cluster_method,'regression')
+    warning('cluster_measure is not used when cluster_method is regression')
 end
+if nargin<6 || isempty(cluster_measure), cluster_measure = 'error'; end
+if nargin<7 || isempty(Pstructure), Pstructure = true(K,1); end
+if nargin<8 || isempty(Pistructure), Pistructure = true(K); end
+if nargin<9 || isempty(GammaInit), GammaInit = []; end
+if nargin<10 || isempty(repetitions), repetitions = 100; end
+if nargin<11 || isempty(swin), swin = 1; 
+else, nwin = min(50,ttrial); swin = floor(ttrial/nwin); end
 
 to_use = true(ttrial,1);
 if swin > 1
@@ -40,7 +38,7 @@ end
 X = reshape(X,[ttrial N p]);
 Y = reshape(Y,[ttrial N q]);
 
-if swin > 1
+if swin > 1 
    X = X(to_use,:,:);
    X = reshape(X,[swin nwin N p]);
    X = permute(X,[2 1 3 4]);

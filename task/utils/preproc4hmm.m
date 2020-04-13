@@ -21,6 +21,7 @@ if (size(Y,1) ~= sum(T)) && (size(Y,1) ~= length(T))
 end
 q = size(Y,2);
   
+if ~isfield(options,'K'), error('K needs to be specified'); end
 if isfield(options,'downsample') && options.downsample
    error('Downsampling is not currently an option') 
 end
@@ -55,7 +56,9 @@ else, A = options.A; end
 if isfield(options,'downsample') && options.downsample~=0
     warning('Downsampling is not possible for TUDA')
 end
-if ~isfield(options,'encodemodel'),options.encodemodel=false;end
+if ~isfield(options,'encodemodel')
+    options.encodemodel = false;
+end
 %options relative to classification models:
 if ~isempty(options.classifier) || options.encodemodel
     if strcmp(options.classifier,'logistic')
