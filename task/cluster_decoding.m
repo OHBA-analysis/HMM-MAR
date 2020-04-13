@@ -26,7 +26,7 @@ if nargin<7 || isempty(Pstructure), Pstructure = true(K,1); end
 if nargin<8 || isempty(Pistructure), Pistructure = true(K); end
 if nargin<9 || isempty(GammaInit), GammaInit = []; end
 if nargin<10 || isempty(repetitions), repetitions = 100; end
-if nargin<11 || isempty(swin), swin = 1; 
+if nargin<11 || isempty(nwin), swin = 1; 
 else, nwin = min(50,ttrial); swin = floor(ttrial/nwin); end
 
 to_use = true(ttrial,1);
