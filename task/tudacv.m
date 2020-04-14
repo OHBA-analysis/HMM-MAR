@@ -1,4 +1,4 @@
-function [acc,acc_star,Ypred,Ypred_star] = tudacv(X,Y,T,options)
+function [acc,acc_star,Ypred,Ypred_star,Gammapred] = tudacv(X,Y,T,options)
 %
 % Performs cross-validation of the TUDA model, which can be useful for
 % example to compare different number or states or other parameters
@@ -155,7 +155,8 @@ X = reshape(X,[ttrial N p]);
 Y = reshape(Y,[ttrial N q_star]);
 
 % Get Gamma and the Betas for each fold
-Gammapred = zeros(ttrial,N,K,3); Betas = zeros(p,q_star,K,NCV); 
+Gammapred = zeros(ttrial,N,K,length(CVmethod)); 
+Betas = zeros(p,q_star,K,NCV); 
 if strcmp(classifier,'LDA')
     LDAmodel = cell(NCV,1);
 end
@@ -201,10 +202,16 @@ for icv = 1:NCV
                 end
             case 3
                 % distributional model
-                Xtrain3 = reshape(X(:,c.training{icv},:),[ttrial*length(c.training{icv}),p]);
-                Xtest3 = reshape(X(:,c.test{icv},:),[ttrial*length(c.test{icv}),p]);
-                GammaTemp = fitEquivUnsupervisedModel(Xtrain3,Gammatrain,Xtest3,T(c.training{icv}),T(c.test{icv}));
+                Xtrain2 = reshape(X(:,c.training{icv},:),[ttrial*length(c.training{icv}),p]);
+                Xtest2 = reshape(X(:,c.test{icv},:),[ttrial*length(c.test{icv}),p]);
+                GammaTemp = fitEquivUnsupervisedModel(Xtrain2,Gammatrain,Xtest2,T(c.training{icv}),T(c.test{icv}));
                 Gammapred(:,c.test{icv},:,iFitMethod) = reshape(GammaTemp,[ttrial,length(c.test{icv}),K]);
+            case 4
+                % best model (subject to overfitting)
+                Xtest2 = reshape(X(:,c.test{icv},:),[ttrial*length(c.test{icv}),p]);
+                Ytest2 = reshape(Y(:,c.test{icv},:),[ttrial*length(c.test{icv}) q_star] ) ;
+                Tte = T(c.test{icv});
+                Gammapred(:,c.test{icv},:,iFitMethod) = reshape(tudadecode(Xtest2,Ytest2,Tte,tuda),[ttrial Nte K]);
         end
     end
     if verbose
@@ -299,6 +306,9 @@ for iFitMethod = 1:nCVm
     Ypred_star(:,:,iFitMethod) = Ypred_star_temp;
 end
 Ypred = Ypred_out;
+
+Gammapred = reshape(Gammapred,[ttrial,N,K,length(CVmethod)]); 
+
 end
 
 

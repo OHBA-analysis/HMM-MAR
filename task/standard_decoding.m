@@ -35,6 +35,9 @@ if size(Y,1) < size(Y,2); Y = Y'; end
 q = size(Y,2);
 if size(Y,1) == length(T) % one value per trial
     responses = Y;
+    Ystar = zeros(ttrial,N,q);
+    for t = 1:ttrial, Ystar(t,:,:) = Y; end
+    Ystar = reshape(Ystar,[ttrial*N q]);
 elseif length(Y(:)) ~= (ttrial*N*q)
     error('Incorrect dimensions in Y')
 else
@@ -48,7 +51,9 @@ end
 
 max_num_classes = 5;
 classification = length(unique(responses(:))) < max_num_classes ;
-if ~isfield(options,'temporalgeneralisation');options.temporalgeneralisation=false; end
+if ~isfield(options,'temporalgeneralisation')
+    options.temporalgeneralisation = false; 
+end
 
 if classification
     Ycopy = Y;
@@ -90,7 +95,8 @@ if isfield(options,'lossfunc')
     lossfunc = options.lossfunc; options = rmfield(options,'lossfunc');
 else, lossfunc = 'quadratic'; 
 end
-if ~isfield(options,'encodemodel') % option to first fit an encoding model then decode - ie Linear Guassian System approach
+% option to first fit an encoding model then decode - ie Linear Guassian System approach
+if ~isfield(options,'encodemodel') 
     options.encodemodel = false;
 end
     
@@ -126,6 +132,7 @@ if ~isfield(options,'c')
     end; clear c2
 else
     c = options.c;  
+    NCV = length(c.test);
 end
 
 halfbin = floor(binsize/2); 
@@ -215,8 +222,8 @@ end
 % compute temporal generalisation plots
 genplot = [];
 if options.temporalgeneralisation
-    Ypred=zeros(length(halfbin+1 : ttrial-halfbin),length(halfbin+1 : ttrial-halfbin),N,q);
-    for icv=1:NCV
+    Ypred = zeros(length(halfbin+1 : ttrial-halfbin),length(halfbin+1 : ttrial-halfbin),N,q);
+    for icv = 1:NCV
         for t_train = halfbin+1 : ttrial-halfbin
             beta_temp=beta{t_train,icv};
             for t_test = halfbin+1 : ttrial-halfbin
