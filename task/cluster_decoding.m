@@ -56,7 +56,7 @@ if strcmp(cluster_method,'regression')
     % start with no constraints
     if isempty(GammaInit)
         Gamma = cluster_decoding(reshape(X,[ttrial*N p]),reshape(Y,[ttrial*N q]),...
-            T,K,classification,'sequential',[],[],[],[],10,1);
+            T,K,'sequential',[],[],[],[],10,1);
     else
         Gamma = GammaInit; 
     end

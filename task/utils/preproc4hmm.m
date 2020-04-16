@@ -67,9 +67,11 @@ if ~isempty(options.classifier) || options.encodemodel
         demeanstim = false;
         %determine if multinomial or binomial:
         vals = unique(Y(:));
-        if length(vals) == 2 && q == 1
+        if length(vals) == 2
             if all((vals == 0) | (vals == 1))
                 Y = 2*(Y)-1;
+            elseif q==1 && all((vals == 1) | (vals == 2))
+                Y(Y==2) = -1;
             elseif any((vals ~= -1) & (vals ~= 1))  
                 error('Format of Y incorrect for classification tasks');
             end
@@ -100,6 +102,7 @@ if ~isempty(options.classifier) || options.encodemodel
             options.inittype = 'sequential';
         end
         add_noise = 0;
+        if ~isfield(options,'cyc'), options.cyc = 1; end
    elseif strcmp(options.classifier,'LDA') || options.encodemodel
        % set default options for LDA model:
        options.distribution = 'Gaussian';

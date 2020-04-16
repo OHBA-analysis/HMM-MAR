@@ -42,12 +42,11 @@ if ~all(T==T(1)), error('All elements of T must be equal for cross validation');
 
 if size(Y,1) == length(T) % one value per trial
     responses = Y;
-    Ystar = reshape(repmat(reshape(responses,[1 N q]),[ttrial,1,1]),[ttrial*N q]);
 else
     responses = reshape(Y,[ttrial N q]);
-    Ystar = reshape(repmat(responses(1,:,:),[ttrial,1,1]),[ttrial*N q]);
+    Ytemp = reshape(repmat(responses(1,:,:),[ttrial,1,1]),[ttrial*N q]);
     responses = permute(responses(1,:,:),[2 3 1]); % N x q
-    if ~all(Y(:)==Ystar(:))
+    if ~all(Y(:)==Ytemp(:))
        error('For cross-validating, the same stimulus must be presented for the entire trial');
     end
 end
@@ -69,6 +68,7 @@ if do_preproc
     if Q_star~=q && strcmp(options.distribution,'logistic')
         Ycopy = multinomToBinary(Ycopy);
         q = size(Ycopy,2);
+        responses = Ycopy(cumsum(T),:);
     end
     if length(el) > 1
         Ycopy = reshape(Ycopy,[ttrial N q]);
@@ -97,7 +97,7 @@ else
     if NCV>20;NCV=20;end
 end
 
-if ~isfield(options,'c')
+if ~isfield(options,'c') 
     % this system is thought for cases where a trial can have more than
     % 1 category, and potentially each column can have more than 2 values,
     % but there are not too many categories

@@ -59,15 +59,19 @@ else
 end
 
 options.Nfeatures = 0;
+Ycopy = Y;
+if size(Ycopy,1) == N 
+    Ycopy = repmat(reshape(Ycopy,[1 N q]),[ttrial 1 1]);
+end
 [X,Y,T,options] = preproc4hmm(X,Y,T,options); % this demeans Y if necessary
 ttrial = T(1); p = size(X,2); q_star = size(Y,2);pstar = size(X,2);
-Ycopy = Y; if q_star>q;Ycopy=Y(:,2:end);end %remove intercept term
 classifier = options.classifier;
 classification = ~isempty(classifier);
 if classification, Ycopy = round(Ycopy); end
 if q_star~=q && strcmp(options.distribution,'logistic')
     Ycopy = multinomToBinary(Ycopy);
-    q = size(Ycopy,2);
+    q = size(Ycopy,2);   
+    responses = Ycopy(cumsum(T),:);
 end
 if strcmp(classifier,'LDA') || options.encodemodel
     options.intercept = false; %this necessary to avoid double addition of intercept terms
@@ -240,10 +244,13 @@ for iFitMethod = 1:nCVm
     end
 end
 if strcmp(options.distribution,'logistic')
-    if length(unique(responses))==2 % denotes binary logistic regression
+    if q_star==q % denotes binary logistic regression
         Ypred = log_sigmoid(Ypred);
     else %multivariate logistic regression
-        Ypred = multinomLogRegPred(Ypred);
+        for i=1:size(Ypred,4)
+            Ypredtemp(:,:,:,i) = multinomLogRegPred(Ypred(:,:,:,i));
+        end
+        Ypred = Ypredtemp;
     end
 end
 for iFitMethod = 1:nCVm
