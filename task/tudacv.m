@@ -110,7 +110,7 @@ if isfield(options,'accuracyType')
     accuracyType = options.accuracyType;
     options = rmfield(options,'accuracyType');
 else
-    accuracyType = [];
+    accuracyType = 'COD';
 end
 options.verbose = 0; 
 
@@ -274,7 +274,7 @@ for iFitMethod = 1:nCVm
         Y = reshape(Ycopy,[ttrial*N q]);
         Ypred_star_temp =  reshape(Ypred(:,:,:,iFitMethod), [ttrial*N q]); 
         Ypred_temp = permute( mean(Ypred(:,:,:,iFitMethod),1) ,[2 3 1]);
-        if isempty(accuracyType) || strcmp(accuracyType,'R2')
+        if strcmp(accuracyType,'COD')
             % acc is explained variance 
             acc_temp = 1 - sum( (Y - Ypred_star_temp).^2 ) ./ sum(Y.^2) ; 
         elseif strcmp(accuracyType,'Pearson')
@@ -285,7 +285,7 @@ for iFitMethod = 1:nCVm
         Ypred_star_temp = reshape(Ypred_star_temp, [ttrial N q]);
         for t = 1:ttrial
             y = permute(Y(t,:,:),[2 3 1]); 
-            if isempty(accuracyType) || strcmp(accuracyType,'R2')
+            if strcmp(accuracyType,'COD')
                 acc_star_temp(t,:) = 1 - sum((y - permute(Ypred_star_temp(t,:,:),[2 3 1])).^2) ./ sum(y.^2);
             elseif strcmp(accuracyType,'Pearson')
                 acc_star_temp(t,:) = diag(corr(y,permute(Ypred_star_temp(t,:,:),[2 3 1])));
