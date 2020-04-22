@@ -176,10 +176,11 @@ if hmm.train.useParallel==1 && N>1
                 else slicer = t:(no_c(1)+t-2); %slice = (t-order):(no_c(1)+t-2);
                 end
             end
-            slicepoints=slicer + s0 - order;
+            slicepoints = slicer + s0 - order;
             XXt = XX(slicepoints,:); 
             if isnan(C(t,1))
-                [gammat,xit,Bt] = fb_Gamma_inference(XXt,K,hmm,R(slicer,:),slicepoints);
+                [gammat,xit,Bt] = ...
+                    fb_Gamma_inference(XXt,K,hmm,R(slicer,:),slicepoints,hmm.train.Gamma_constraint);
             else
                 gammat = zeros(length(slicer),K);
                 if t==order+1, gammat(1,:) = C(slicer(1),:); end
@@ -257,7 +258,8 @@ else
             slicepoints=slicer + s0 - order;
             XXt = XX(slicepoints,:);
             if isnan(C(t,1))
-                [gammat,xit,Bt] = fb_Gamma_inference(XXt,K,hmm,R(slicer,:),slicepoints);
+                [gammat,xit,Bt] = ...
+                    fb_Gamma_inference(XXt,K,hmm,R(slicer,:),slicepoints,hmm.train.Gamma_constraint);
                 if any(isnan(gammat(:))) % this will never come up - we treat it within fb_Gamma_inference
                     error(['State time course inference returned NaN (out of precision). ' ...
                         'There are probably extreme events in the data'])

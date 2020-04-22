@@ -1,4 +1,4 @@
-function [Gamma,Xi,L] = fb_Gamma_inference(XX,K,hmm,residuals,slicepoints)
+function [Gamma,Xi,L] = fb_Gamma_inference(XX,K,hmm,residuals,slicepoints,constraint)
 % inference using normal forward backward propagation
 
 %p = hmm.train.lowrank; do_HMM_pca = (p > 0);
@@ -24,6 +24,9 @@ Xi = [];
 
 if nargin<5
     slicepoints = [];
+end
+if nargin<6
+    constraint = [];
 end
 
 % if isfield(hmm.train,'grouping') && length(unique(hmm.train.grouping))>1
@@ -90,6 +93,15 @@ if any(isnan(beta(:)))
     Gamma = alpha; out_precision = true; 
 else
     Gamma = (alpha.*beta); out_precision = false; 
+end
+
+if ~isempty(constraint)
+    try
+        Gamma(1+order:T,:) = Gamma(1+order:T,:) .* constraint;
+    catch
+        error(['options.Gamma_constraint must be (trial time X K), ' ...
+            ' and all trials must have the same length' ])
+    end
 end
 
 Gamma = Gamma(1+order:T,:);

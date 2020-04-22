@@ -57,7 +57,7 @@ plotAverageGamma = options.plotAverageGamma;
 options.plotAverageGamma = 0; 
 options = rmfield(options,'parallel_trials');
 options = rmfield(options,'classifier');
-if ~options.encodemodel,options=rmfield(options,'encodemodel');end
+if ~options.encodemodel, options = rmfield(options,'encodemodel'); end
 if isfield(options,'add_noise'), options = rmfield(options,'add_noise'); end
 p = size(X,2); q = size(Y,2);
 if isfield(options,'accuracyType')
@@ -145,7 +145,7 @@ else
     tuda = hmmmar(Z,T,options);
     
     % 2. Run the rest of the inference
-    options.updateObs = 1;
+    options.updateObs = 0;
     options.updateGamma = 1;
     options.updateP = 1;
     options.hmm = tuda;

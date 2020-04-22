@@ -44,7 +44,7 @@ for k = 1:K
         end
         XY = zeros(npred+(~train.zeromean),1);
         XGX = zeros(npred+(~train.zeromean));
-        for n=1:ndim
+        for n = 1:ndim
             ind = n:ndim:size(XX,2);
             iomegan = omega.Gam_shape / omega.Gam_rate(n);
             XGX = XGX + iomegan * XXGXX{k}(ind,ind);
