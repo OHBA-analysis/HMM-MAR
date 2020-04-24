@@ -1,4 +1,4 @@
-function [tuda,Gamma,GammaInit,vpath,stats] = tudatrain(X,Y,T,options)
+function [tuda,Gamma,GammaInit,vpath,stats] = tudatrain(X,Y,T,options,noGamma)
 % Performs the Temporal Unconstrained Decoding Approach (TUDA), 
 % or Temporal Unconstrained Classification Approach (TUCA) if the stimulus
 % is discrete. For the latter, options.classifier must be specified.
@@ -66,6 +66,7 @@ if isfield(options,'accuracyType')
 else
     accuracyType = [];
 end 
+if nargin < 5, noGamma = 0; end
 
 % init HMM, only if trials are temporally related
 if ~isfield(options,'Gamma')
@@ -143,6 +144,11 @@ else
     options.updateGamma = 0;
     options.updateP = 0;
     tuda = hmmmar(Z,T,options);
+    
+    if noGamma
+        vpath = [];
+        return
+    end
     
     % 2. Run the rest of the inference
     options.updateObs = 0;
