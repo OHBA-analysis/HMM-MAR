@@ -1,4 +1,4 @@
-function fe = hmmfe(data,T,hmm,Gamma,Xi,preproc,grouping)
+function [fe,ll] = hmmfe(data,T,hmm,Gamma,Xi,preproc,grouping)
 % Computes the Free Energy of an HMM 
 %
 % INPUT
@@ -11,6 +11,7 @@ function fe = hmmfe(data,T,hmm,Gamma,Xi,preproc,grouping)
 %
 % OUTPUT
 % fe         the variational free energy
+% ll         log-likelihood per time point 
 %
 % Author: Diego Vidaurre, OHBA, University of Oxford (2017)
 
@@ -75,6 +76,10 @@ if preproc && ~stochastic_learn
     if options.detrend
         data = detrenddata(data,T);
     end
+    % Leakage correction
+    if options.leakagecorr ~= 0
+        data = leakcorr(data,T,options.leakagecorr);
+    end
     % Hilbert envelope
     if options.onpower
         data = rawsignal2power(data,T);
@@ -82,6 +87,16 @@ if preproc && ~stochastic_learn
     % Leading Phase Eigenvectors
     if options.leida
         data = leadingPhEigenvector(data,T);
+    end
+    % pre-embedded PCA transform
+    if length(options.pca_spatial) > 1 || (options.pca_spatial > 0 && options.pca_spatial ~= 1)
+        if isfield(options,'As')
+            data.X = bsxfun(@minus,data.X,mean(data.X));
+            data.X = data.X * options.As;
+        else
+            [options.As,data.X] = highdim_pca(data.X,T,options.pca_spatial);
+            options.pca_spatial = size(options.As,2);
+        end
     end
     % Embedding
     if length(options.embeddedlags)>1
@@ -143,21 +158,25 @@ if stochastic_learn
     fe = sum(evalfreeenergy([],[],[],[],hmm,[],[],[0 0 0 1 0]));
     % Gamma entropy&LL
     fe = fe + sum(evalfreeenergy([],Tmat,Gamma,Xi,hmm,[],[],[1 0 1 0 1]));
-    tacc = 0; tacc2 = 0; fell = 0;
+    tacc = 0; tacc2 = 0; fell = 0; ll = [];
     for i = 1:1:length(T)
         [X,XX,residuals,Ti] = loadfile(data{i},T{i},options);
         t = (1:(sum(Ti)-length(Ti)*maxorder)) + tacc;
         t2 = (1:(sum(Ti)-length(Ti)*(maxorder+1))) + tacc2;
         tacc = tacc + length(t); tacc2 = tacc2 + length(t2);
         if ~isempty(Xi)
-            fell = fell + sum(evalfreeenergy(X,Ti,Gamma(t,:),Xi(t2,:,:),hmm,residuals,XX,[0 1 0 0 0])); % state KL
+            [f,l] = evalfreeenergy(X,Ti,Gamma(t,:),Xi(t2,:,:),hmm,residuals,XX,[0 1 0 0 0]);
+            fell = fell + sum(f); % state KL
+            ll = [l; ll];
         else
-            fell = fell + sum(evalfreeenergy(X,Ti,Gamma(t,:),[],hmm,residuals,XX,[0 1 0 0 0])); % state KL
+            [f,l] = evalfreeenergy(X,Ti,Gamma(t,:),[],hmm,residuals,XX,[0 1 0 0 0]);
+            fell = fell + sum(f); % state KL
+            ll = [l; ll];
         end
     end
     fe = fe + fell;
 else
-    fe = evalfreeenergy(data,T,Gamma,Xi,hmm,residuals);
+    [fe,ll] = evalfreeenergy(data,T,Gamma,Xi,hmm,residuals);
     fe = sum(fe);
 end
 
