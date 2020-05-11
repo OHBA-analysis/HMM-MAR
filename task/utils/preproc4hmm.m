@@ -277,6 +277,7 @@ end
 if q == 1 && length(unique(Y))==2
     if ismember(0,unique(Y)) || all(unique(Y)>0)
         warning('Seems this is binary classification, transforming stimulus to have elements (-1,+1)')
+        if islogical(Y);Y=1*Y;end
         v = unique(Y);
         Y(Y==v(1)) = -1; Y(Y==v(2)) = +1;
         if options.logisticYdim==0

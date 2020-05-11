@@ -163,6 +163,8 @@ elseif strcmp(classifier,'SVM')
 elseif strcmp(classifier,'LDA')
     if isfield(options,'CVmethod');
         options_LDA = rmfield(options,'CVmethod');
+    else
+        options_LDA = rmfield(options,'accuracyType');
     end
     options_LDA.useUnsupervisedGamma = 1; %this ensures gamma is fixed for standard decoding
     options_LDA.verbose = 1;
