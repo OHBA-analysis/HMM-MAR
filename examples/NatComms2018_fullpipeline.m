@@ -422,6 +422,7 @@ for k = 1:12
     psd = diag(squeeze(fitmt_group_fact_wb.state(k).psd(1,:,:)));
     map(:,k) = spatialMap * psd;
 end
+[mask,res,xform] = nii.load(maskfile);
 nii.save(matrix2vols(map,mask),res,xform,mapfile);
 osl_render4D([mapfile '.nii.gz'],'savedir','weighted_maps/',...
     'interptype','trilinear','visualise',false)
