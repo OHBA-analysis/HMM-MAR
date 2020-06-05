@@ -64,7 +64,7 @@ if size(Ycopy,1) == N
     Ycopy = repmat(reshape(Ycopy,[1 N q]),[ttrial 1 1]);
 end
 [X,Y,T,options] = preproc4hmm(X,Y,T,options); % this demeans Y if necessary
-ttrial = T(1); p = size(X,2); q_star = size(Y,2);pstar = size(X,2);
+ttrial = T(1); p = size(X,2); q_star = size(Y,2);
 classifier = options.classifier;
 classification = ~isempty(classifier);
 if classification, Ycopy = round(Ycopy); end
@@ -234,7 +234,7 @@ for iFitMethod = 1:nCVm
         if strcmp(classifier,'LDA')
             predictions = LDApredict(LDAmodel{icv},Gammatest,Xtest,classification,var(Ytrain(:,1))==0);
             Ypred(:,c.test{icv},:,iFitMethod) = reshape(predictions,[ttrial Nte q]);
-        else %strcmp(classifier,'logistic')
+        else 
             for k = 1:K
                 sGamma = repmat(Gammatest(:,k),[1 q_star]);
                 Ypred(:,c.test{icv},:,iFitMethod) = Ypred(:,c.test{icv},:,iFitMethod) + ...

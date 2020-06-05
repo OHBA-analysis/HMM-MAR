@@ -1,5 +1,5 @@
 function data = rawsignal2power(data,T)
-% Gets power time series using the Hilbert transform,
+% Gets *square of* the power time series using the Hilbert transform,
 % as done in Baker et al (2014), eLife.
 %
 % Diego Vidaurre, OHBA, University of Oxford (2017)
