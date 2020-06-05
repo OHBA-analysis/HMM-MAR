@@ -12,11 +12,11 @@ for n = 1:length(T)
     ind = sum(T(1:n-1))+1:sum(T(1:n));
     if isstruct(data)
         for j = 1:ndim
-            data.X(ind,j) = abs(hilbert(data.X(ind,j)));
+            data.X(ind,j) = abs(hilbert(data.X(ind,j))).^2;
         end
     else
         for j = 1:ndim
-            data(ind,j) = abs(hilbert(data(ind,j)));
+            data(ind,j) = abs(hilbert(data(ind,j))).^2;
         end
     end
 end
