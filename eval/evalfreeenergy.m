@@ -48,6 +48,16 @@ S = hmm.train.S==1;
 regressed = sum(S,1)>0;
 ltpi = sum(regressed)/2 * log(2*pi);
 
+if sum(~regressed)>1
+    %catch special case where regressors do not vary within trials:
+    for t=1:length(T)
+        varcheck(t,:) = var(X(sum(T(1:t-1))+[1:T(t)-1],~regressed));
+    end
+    trialwiseregression = all(varcheck(:)==0);
+else
+    trialwiseregression = false;
+end
+
 if ~do_HMM_pca && (nargin<6 || isempty(residuals)) && todo(2)==1
     if ~isfield(hmm.train,'Sind')
         orders = formorders(hmm.train.order,hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag);
@@ -398,7 +408,8 @@ if todo(2)==1
                             I = (0:length(orders)*Q+(~train.zeromean)-1) * ndim;
                         end
                         [WishTrace,X_coded_vals] = computeWishTrace(hmm,regressed,XX,C,k);
-                        if all(S(:)==1) && any(var(XX(1:T(1)-1,~regressed))~=0)
+                        
+                        if all(S(:)==1) || ~trialwiseregression 
                             for n1=1:ndim
                                 if ~regressed(n1), continue; end
                                 index1 = I + n1; index1 = index1(Sind(:,n1));
@@ -442,7 +453,7 @@ end
 
 function [WishTrace,X_coded_vals] = computeWishTrace(hmm,regressed,XX,C,k)
 X = XX(:,~regressed);
-if length(unique(X))<5
+if length(unique(X))<5 && ~isempty(unique(X))>0
     % regressors are low dim categorical - compute and store in cache for
     % each regressor type - convert to binary code:
     X_coded = X*[2.^(1:size(X,2))]';
