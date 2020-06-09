@@ -470,7 +470,7 @@ if (strcmp(options.covtype,'full') || strcmp(options.covtype,'uniquefull')) && a
     S = options.S==1;
     regressed = sum(S,2)>=1;
     regressors = sum(S,1)>=1;
-    if any(squash(regressed*regressors ~= S))
+    if any(squash(double(regressed)*double(regressors) ~= S))
     	error('Decoding with full or uniquefull covariance matrix requires S to be in block design: current design not supported');
     end
 end
