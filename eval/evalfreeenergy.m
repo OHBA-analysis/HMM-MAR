@@ -48,7 +48,7 @@ S = hmm.train.S==1;
 regressed = sum(S,1)>0;
 ltpi = sum(regressed)/2 * log(2*pi);
 
-if sum(~regressed)>1
+if sum(~regressed)>1 && ~isempty(X)
     %catch special case where regressors do not vary within trials:
     for t=1:length(T)
         varcheck(t,:) = var(X(sum(T(1:t-1))+[1:T(t)-1],~regressed));
