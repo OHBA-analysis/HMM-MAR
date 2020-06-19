@@ -421,7 +421,8 @@ elseif ~isfield(options,'covtype') && (ndim==1 || (isfield(options,'S') && ~isem
     options.covtype = 'diag'; 
 elseif ~isfield(options,'covtype') && ndim>1, options.covtype = 'full'; 
 elseif ~isfield(options,'covtype'), options.covtype = 'diag';
-elseif (strcmp(options.covtype,'full') || strcmp(options.covtype,'uniquefull')) && ndim==1
+elseif (strcmp(options.covtype,'full') || strcmp(options.covtype,'uniquefull')) && ...
+        ndim==1 && length(options.embeddedlags)==1
     warning('Covariance can only be diag or uniquediag if data has only one channel')
     if strcmp(options.covtype,'full'), options.covtype = 'diag';
     else, options.covtype = 'uniquediag';
