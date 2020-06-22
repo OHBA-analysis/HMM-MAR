@@ -99,7 +99,11 @@ if ~isempty(options.classifier) || options.encodemodel
             options.sequential = true;
         end
         if ~isfield(options,'inittype')
-            options.inittype = 'sequential';
+            if options.sequential
+                options.inittype = 'sequential';
+            else
+                options.inittype = 'HMM-MAR';
+            end
         end
         add_noise = 0;
         if ~isfield(options,'cyc'), options.cyc = 1; end
@@ -124,7 +128,11 @@ if ~isempty(options.classifier) || options.encodemodel
             options.sequential = true;
         end
         if ~isfield(options,'inittype')
-            options.inittype = 'sequential';
+            if options.sequential
+                options.inittype = 'sequential';
+            else
+                options.inittype = 'HMM-MAR';
+            end
         end
         options.add_noise = 0;
         add_noise = 0;
@@ -162,7 +170,11 @@ if ~isempty(options.classifier) || options.encodemodel
             options.sequential = true;
         end
         if ~isfield(options,'inittype')
-            options.inittype = 'sequential';
+            if options.sequential
+                options.inittype = 'sequential';
+            else
+                options.inittype = 'HMM-MAR';
+            end
         end
     end
     
@@ -177,7 +189,11 @@ else % Standard regression problem
         options.sequential = true;
     end
     if ~isfield(options,'inittype')
-        options.inittype = 'sequential';
+        if options.sequential
+            options.inittype = 'sequential';
+        else
+            options.inittype = 'HMM-MAR';
+        end
     end
     if ~isfield(options,'intercept'), options.intercept = 0; end
     if options.intercept

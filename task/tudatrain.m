@@ -212,10 +212,11 @@ tuda.train.sequential = sequential;
 % Explained variance per state, square error &
 % Square error for the standard time point by time point regression
 if parallel_trials
-    [stats.R2_states,stats.R2] = tuda_R2(X,Y,T-1,tuda,Gamma);
+    [stats.R2_states,stats.R2] = tudaR2(X,Y,T-1,tuda,Gamma);
     stats.R2_stddec = R2_standard_dec(X,Y,T-1);
 else
-    stats.R2_states = []; stats.R2 = []; stats.R2_stddec = [];
+    [stats.R2_states,stats.R2] = tudaR2_continuous(X,Y,tuda,Gamma);
+    stats.R2_stddec = [];
 end
 
 tuda.train.pca = npca;
@@ -224,7 +225,7 @@ tuda.train.A = A;
 end
 
 
-function [R2_states,R2_tuda] = tuda_R2(X,Y,T,tuda,Gamma)
+function [R2_states,R2_tuda] = tudaR2(X,Y,T,tuda,Gamma)
 % training explained variance per time point per each state, for TUDA.
 % R2_states is per state, R2_tuda is for the entire model 
 N = length(T); ttrial = sum(T)/N; p = size(X,2);
@@ -246,6 +247,24 @@ for k = 1:K
 end
 end
 
+
+function [R2_states,R2_tuda] = tudaR2_continuous(X,Y,tuda,Gamma)
+K = length(tuda.state); q = size(Y,2); p = size(X,2);
+R2_states = zeros(q,K);
+e0 = (mean(Y) - Y).^2;
+v1 = ones(1,q);
+Yhat = zeros(size(Y));
+for k = 1:K
+    Yhatk = X * tuda.state(k).W.Mu_W(1:p,p+1:end);
+    Yhat = Yhat + Yhatk .* repmat(Gamma(:,k),1,q);
+    ek = sum(((Yhatk - Y).^2) .* repmat(Gamma(:,k),1,q));
+    e0k = sum(e0 .* repmat(Gamma(:,k),1,q));
+    R2_states(:,k) = (v1 - ek ./ e0k)';
+end
+e = sum((Yhat - Y).^2);
+e0 = sum(e0);
+R2_tuda = (v1 - e ./ e0)';
+end
 
 function R2 = R2_standard_dec(X,Y,T)
 % squared error for time point by time point decoding (time by q)
