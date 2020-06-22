@@ -69,8 +69,11 @@ end
 if ~isfield(hmm.train,'distribution')
     hmm.train.distribution = 'Gaussian';
 end
-
-
-
+if ~isfield(hmm.train,'pca_spatial')
+    hmm.train.pca_spatial = 0;
+end
+if ~isfield(hmm.train,'Gamma_constraint')
+    hmm.train.Gamma_constraint = [];
+end
 
 end
