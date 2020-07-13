@@ -53,12 +53,12 @@ else
     GammaInit = options.Gamma;
 end
 
+tuda = []; vpath = [];  
 % if cyc==0 there is just init and no HMM training 
 if isfield(options,'cyc') && options.cyc == 0 
    if ~parallel_trials
       error('Nothing to do, specify options.cyc > 0') 
    end
-   tuda = []; vpath = [];  
    Gamma = options.Gamma;
    stats.R2_stddec = R2_standard_dec(X,Y,T);
    return

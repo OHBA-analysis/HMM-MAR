@@ -224,8 +224,9 @@ genplot = [];
 if options.temporalgeneralisation
     Ypred = zeros(length(halfbin+1 : ttrial-halfbin),length(halfbin+1 : ttrial-halfbin),N,q);
     for icv = 1:NCV
+        Ntr = sum(c.training{icv}); Nte = sum(c.test{icv});
         for t_train = halfbin+1 : ttrial-halfbin
-            beta_temp=beta{t_train,icv};
+            beta_temp = beta{t_train,icv};
             for t_test = halfbin+1 : ttrial-halfbin
                 Xte = reshape(X(t_test,c.test{icv},:),Nte,p);
                 Ypred(t_test,t_train,c.test{icv},:) = reshape(Xte * beta_temp,Nte,q);
@@ -235,7 +236,7 @@ if options.temporalgeneralisation
     
     for t_train = halfbin+1 : ttrial-halfbin
         Yt = reshape(Y(t_test,:,:),N,q);
-        Ycopyt = reshape(Ycopy(t_test,:,:),N,q);
+        if classification; Ycopyt = reshape(Ycopy(t_test,:,:),N,q); end
         for t_test = halfbin+1 : ttrial-halfbin
             Ypredt_test = reshape(Ypred(t_test,t_train,:,:),N,q);
             if classification
@@ -246,7 +247,11 @@ if options.temporalgeneralisation
                     genplot(t_test,t_train) = mean(sum(abs(Ycopyt - Ypredt_star),2) < 1e-4);
                 end        
             else
-                genplot(t_test,t_train) = 1 - sum((Yt - Ypredt_test).^2) ./ sum(Yt.^2);
+                if isfield(options,'accuracyType') && strcmp(options.accuracyType,'Pearson')
+                    genplot(t_test,t_train,:) = diag(corr(Yt,Ypredt_test));
+                else
+                    genplot(t_test,t_train,:) = 1 - sum((Yt - Ypredt_test).^2) ./ sum(Yt.^2);
+                end
             end
         end
     end
