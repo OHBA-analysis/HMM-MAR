@@ -26,7 +26,7 @@ function [cv_acc,acc,genplot,model] = standard_decoding(X,Y,T,options,binsize)
 % Author: Diego Vidaurre, OHBA, University of Oxford (2018)
 
 if nargin < 4 || isempty(options), options = struct(); end
-if nargin < 5, binsize = 1; end
+if nargin < 5 || isempty(binsize), binsize = 1; end
 
 if ~all(T==T(1)), error('All elements of T must be equal for cross validation'); end 
 N = length(T); ttrial = T(1); 
@@ -235,8 +235,8 @@ if options.temporalgeneralisation
     end
     
     for t_train = halfbin+1 : ttrial-halfbin
-        Yt = reshape(Y(t_test,:,:),N,q);
-        if classification; Ycopyt = reshape(Ycopy(t_test,:,:),N,q); end
+        Yt = reshape(Ystar(t_train,:,:),N,q);
+        if classification; Ycopyt = reshape(Ycopy(t_train,:,:),N,q); end
         for t_test = halfbin+1 : ttrial-halfbin
             Ypredt_test = reshape(Ypred(t_test,t_train,:,:),N,q);
             if classification
