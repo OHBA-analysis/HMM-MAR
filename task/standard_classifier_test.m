@@ -86,7 +86,7 @@ else
     classifier = model.classifier; 
     if ~(strcmp(classifier,'logistic') || strcmp(classifier,'SVM') ||...
             strcmp(classifier,'LDA') || strcmp(classifier,'KNN') || ...
-            strcmp(classifier,'decisiontree'));
+            strcmp(classifier,'decisiontree') || strcmp(classifier,'SVM_rbf'));
         error('model.classifier can only take values "logistic", "SVM" or "LDA"');
     end
 end
@@ -113,11 +113,11 @@ if strcmp(classifier,'logistic')
     Y_pred_genplot=zeros(ttrial,ttrial,N,Q_star,L);
     for iLambda=1:L
         for t=1:ttrial
-            Y_pred(t,:,:,iLambda)=squeeze(X(t,:,:))*squeeze(model.betas(t,:,:,iLambda)) + repmat(model.intercepts(t,:,iLambda),N,1);
+            Y_pred(t,:,:,iLambda)=squeeze(X(t,:,:))*permute(model.betas(t,:,:,iLambda),[2,3,1,4]) + repmat(model.intercepts(t,:,iLambda),N,1);
             if options.generalisationplot
                 for t2=1:ttrial
                     Y_pred_genplot(t,t2,:,:,iLambda)= ...
-                        squeeze(X(t2,:,:))*squeeze(model.betas(t,:,:,iLambda)) + repmat(model.intercepts(t,:,iLambda),N,1);
+                        squeeze(X(t2,:,:))*permute(model.betas(t,:,:,iLambda),[2,3,1,4]) + repmat(model.intercepts(t,:,iLambda),N,1);
                 end
             end
         end
@@ -131,7 +131,11 @@ if strcmp(classifier,'logistic')
         else
             Y_pred = reshape(Y_pred,[ttrial*N,q,L]);
             predictions_soft(:,:,iL)=log_sigmoid(Y_pred(:,:,iL));
-            predictions_hard(:,:,iL)=hardmax(Y_pred(:,:,iL));
+            if Q_star>1
+                predictions_hard(:,:,iL)=hardmax(Y_pred(:,:,iL));
+            else
+                predictions_hard(:,:,iL) = Y_pred(:,:,iL)>0;
+            end
         end
     end
     if options.generalisationplot    
@@ -154,7 +158,7 @@ if strcmp(classifier,'logistic')
             Y_pred_genplot=Y_pred_genplot_q;
         end
     end
-elseif strcmp(classifier,'SVM')
+elseif strcmp(classifier,'SVM') || strcmp(classifier,'SVM_rbf')
      % note this uses distance from hyperplane as soft score to allow
      % multiclass categorisation
      Y_pred = zeros(ttrial,N,q);

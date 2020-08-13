@@ -139,7 +139,7 @@ if ~isempty(options.classifier) || options.encodemodel
         if ~isfield(options,'accuracyType')
             options.accuracyType = 'COD';  % this can be COD or Pearson
         end
-    elseif strcmp(options.classifier,'SVM') || strcmp(options.classifier,'KNN') ||...
+    elseif strcmp(options.classifier,'SVM') || strcmp(options.classifier,'SVM_rbf') || strcmp(options.classifier,'KNN') ||...
             strcmp(options.classifier,'decisiontree')
         add_noise = 0;
         demeanstim = false;

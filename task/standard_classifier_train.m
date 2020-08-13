@@ -83,7 +83,7 @@ if isfield(options,'classifier')
     classifier = options.classifier; options = rmfield(options,'classifier');
     if ~(strcmp(classifier,'logistic') || strcmp(classifier,'SVM') ||...
             strcmp(classifier,'LDA') || strcmp(classifier,'KNN') || ...
-            strcmp(classifier,'decisiontree'))
+            strcmp(classifier,'decisiontree') || strcmp(classifier,'SVM_rbf')) 
         error('options.classifier can only take values "logistic", "SVM" or "LDA"');
     end
 else, classifier = 'logistic'; 
@@ -154,10 +154,20 @@ elseif strcmp(classifier,'SVM')
     model.SVM=cell(ttrial,Q_star);
     for t=1:ttrial
         if options.verbose;
-            fprintf(['Inferring SVM classifiers for t = ',int2str(t),'th sample\n']);
+            fprintf(['Inferring SVM (linear) classifiers for t = ',int2str(t),'th sample\n']);
         end
         for iStim=1:Q_star
             model.SVM{t,iStim} = fitclinear(squeeze(X(t,:,:)),squeeze(Y(t,:,iStim)));%,ones(sum(tselect(:,t))));
+        end
+    end
+elseif strcmp(classifier,'SVM_rbf')
+    model.SVM=cell(ttrial,Q_star);
+    for t=1:ttrial
+        if options.verbose;
+            fprintf(['Inferring SVM (w radial basis function) classifiers for t = ',int2str(t),'th sample\n']);
+        end
+        for iStim=1:Q_star
+            model.SVM{t,iStim} = fitcsvm(squeeze(X(t,:,:)),squeeze(Y(t,:,iStim)));%,ones(sum(tselect(:,t))));
         end
     end
 elseif strcmp(classifier,'LDA')
