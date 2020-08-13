@@ -12,7 +12,7 @@ function [Y_orth,Y_partialled] = decorrelateDesignMatrix(Y)
 % that the columns of Y_partialled are NOT orthogonal to each other,
 % but they are orthogonal with respect to the original columns of Y and 
 % should be interpreted appropriately.
-
+Y = normalise(Y,1);
 temp = ROInets.remove_source_leakage(Y', 'symmetric');
 Y_orth = temp';
 
