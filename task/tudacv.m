@@ -1,4 +1,4 @@
-function [acc,acc_star,Ypred,Ypred_star,Gammapred] = tudacv(X,Y,T,options)
+function [acc,acc_star,Ypred,Ypred_star,Gammapred,acc_Gamma] = tudacv(X,Y,T,options)
 %
 % Performs cross-validation of the TUDA model, which can be useful for
 % example to compare different number or states or other parameters
@@ -44,6 +44,12 @@ function [acc,acc_star,Ypred,Ypred_star,Gammapred] = tudacv(X,Y,T,options)
 % acc_star: cross-validated accuracy across time (trial time by 1) 
 % Ypred: predicted stimulus (trials by stimuli/classes)
 % Ypred_star: predicted stimulus across time (time by trials by stimuli/classes)
+% Gammapred: the predicted state timecourses used on the held out data set.
+%       Note that unbiased testing requires a secondary estimation of the
+%       state timecourses, so these may deviate from slightly from the true
+%       model state timecourses and are returned for error checking.
+% acc_Gamma: the decoder accuracy across all trials as a function of the 
+%       active state.
 %
 % Author: Diego Vidaurre, OHBA, University of Oxford 
 % Author: Cam Higgins, OHBA, University of Oxford  
@@ -253,6 +259,7 @@ if strcmp(options.distribution,'logistic')
         Ypred = Ypredtemp;
     end
 end
+acc_Gamma = zeros(K,nCVm);
 for iFitMethod = 1:nCVm
     if classification
         Y = reshape(Ycopy,[ttrial*N q]);
@@ -277,15 +284,34 @@ for iFitMethod = 1:nCVm
         end
         acc_temp = mean(tmp);
         acc_star_temp = squeeze(mean(reshape(tmp, [ttrial N 1]),2));
-    else   
+        if nargin==6
+            Gammapredtemp = reshape(Gammapred(:,:,:,iFitMethod),[ttrial*N K]);
+            for iK=1:K
+                acc_Gamma(iK,iFitMethod) = sum(tmp.*Gammapredtemp(:,iK)) ./ sum(Gammapredtemp(:,iK));
+            end
+        end    
+    else
         Y = reshape(Ycopy,[ttrial*N q]);
         Ypred_star_temp =  reshape(Ypred(:,:,:,iFitMethod), [ttrial*N q]); 
         Ypred_temp = permute( mean(Ypred(:,:,:,iFitMethod),1) ,[2 3 1]);
         if strcmp(accuracyType,'COD')
             % acc is explained variance 
             acc_temp = 1 - sum( (Y - Ypred_star_temp).^2 ) ./ sum(Y.^2) ; 
+            if nargout==6
+                Gammapredtemp = reshape(Gammapred(:,:,:,iFitMethod),[ttrial*N K]);
+                for iK=1:K
+                    acc_Gamma(iK,iFitMethod) = 1 - weighted_covariance(Y - Ypred_star_temp,Gammapredtemp(:,iK)) ./ weighted_covariance(Y,Gammapredtemp(:,iK));
+                end
+            end
         elseif strcmp(accuracyType,'Pearson')
             acc_temp = diag(corr(Y,Ypred_star_temp));
+            if nargout==6
+                Gammapredtemp = reshape(Gammapred(:,:,:,iFitMethod),[ttrial*N K]);
+                for iK=1:K
+                    Ctemp = weighted_covariance([Y,Ypred_star_temp],Gammapredtemp(:,iK));
+                    acc_Gamma(iK,iFitMethod) = Ctemp(2,1)./sqrt(prod(diag(Ctemp)));
+                end
+            end
         end
         acc_star_temp = zeros(ttrial,q); 
         Y = reshape(Y,[ttrial N q]);
@@ -296,6 +322,7 @@ for iFitMethod = 1:nCVm
                 acc_star_temp(t,:) = 1 - sum((y - permute(Ypred_star_temp(t,:,:),[2 3 1])).^2) ./ sum(y.^2);
             elseif strcmp(accuracyType,'Pearson')
                 acc_star_temp(t,:) = diag(corr(y,permute(Ypred_star_temp(t,:,:),[2 3 1])));
+                
             end
         end
         Ypred_star_temp = reshape(Ypred_star_temp, [ttrial*N q]);
