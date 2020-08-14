@@ -132,4 +132,8 @@ else
     m = max(loglikelihoodX(:,:),[],2);
     Y_pred = loglikelihoodX(:,:)==repmat(m,1,numconds);
 end
+if numconds==2 && all(Y_pred(:,1) == 1-Y_pred(:,2))
+    % binary output:
+    Y_pred = Y_pred(:,1);
+end
 end

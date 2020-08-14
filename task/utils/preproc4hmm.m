@@ -114,7 +114,7 @@ if ~isempty(options.classifier) || options.encodemodel
         if ~isfield(options,'intercept'), options.intercept = 1; end
         if options.intercept
             if size(Y,2)==1 && all((Y==0) + (Y==1))
-                Y = [ones(size(Y,1),1),Y==1,Y~=1];
+                Y = [ones(size(Y,1),1),Y==1];
             else
                 Y = [ones(size(Y,1),1),Y];
             end
