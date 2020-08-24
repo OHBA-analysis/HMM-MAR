@@ -113,7 +113,11 @@ if strcmp(classifier,'logistic')
     Y_pred_genplot=zeros(ttrial,ttrial,N,Q_star,L);
     for iLambda=1:L
         for t=1:ttrial
-            Y_pred(t,:,:,iLambda)=squeeze(X(t,:,:))*permute(model.betas(t,:,:,iLambda),[2,3,1,4]) + repmat(model.intercepts(t,:,iLambda),N,1);
+            if p>1
+                Y_pred(t,:,:,iLambda)=squeeze(X(t,:,:))*permute(model.betas(t,:,:,iLambda),[2,3,1,4]) + repmat(model.intercepts(t,:,iLambda),N,1);
+            else
+                Y_pred(t,:,:,iLambda)=X(t,:)'*permute(model.betas(t,:,:,iLambda),[2,3,1,4]) + repmat(model.intercepts(t,:,iLambda),N,1);
+            end
             if options.generalisationplot
                 for t2=1:ttrial
                     Y_pred_genplot(t,t2,:,:,iLambda)= ...
