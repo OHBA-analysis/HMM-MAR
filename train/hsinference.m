@@ -77,10 +77,10 @@ B = cell(N,1);
 n_argout = nargout;
 S = hmm.train.S==1;
 regressed = sum(S,1)>0;
-
+setstateoptions;
 % Cache shared results for use in obslike
 for k = 1:K
-    setstateoptions;
+    
     %hmm.cache = struct();
     hmm.cache.train{k} = train;
     hmm.cache.order{k} = order;

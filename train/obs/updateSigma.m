@@ -5,9 +5,9 @@ if isfield(hmm.train,'B'), Q = size(hmm.train.B,2);
 else Q = ndim; end
 if Q==1, return; end
 
+setstateoptions;
 for k=1:K
     if ~hmm.train.active(k), continue; end
-    setstateoptions;
     if isempty(orders) || train.uniqueAR || ~isempty(train.prior), continue; end
     %shape
     if train.symmetricprior
