@@ -78,9 +78,13 @@ elseif strcmpi(hmm.train.covtype,'uniquefull')
     
 end
 
+if ~(use_cache && ~do_HMM_pca)
+    setstateoptions;
+end
+
 for k = 1:K
 
-    if use_cache && ~do_HMM_pca
+    if use_cache
         train = cache.train{k};
         orders = cache.orders{k};
         Sind = cache.Sind{k};
@@ -93,9 +97,11 @@ for k = 1:K
             WishTrace =[];
         end
     else
-        setstateoptions;
         if do_HMM_pca
-            % we do ldetWishB and PsiWish_alphasum later
+            W = hmm.state(k).W.Mu_W;
+            v = hmm.Omega.Gam_rate / hmm.Omega.Gam_shape;
+            C = W * W' + v * eye(ndim); 
+            ldetWishB = 0.5*logdet(C); PsiWish_alphasum = 0;
         elseif strcmpi(hmm.train.covtype,'diag')
             ldetWishB = 0;
             PsiWish_alphasum = 0;
@@ -116,11 +122,6 @@ for k = 1:K
     end
     
     if do_HMM_pca
-        % we do here also ldetWishB and PsiWish_alphasum
-        W = hmm.state(k).W.Mu_W;
-        v = hmm.Omega.Gam_rate / hmm.Omega.Gam_shape; 
-        C = W * W' + v * eye(ndim); 
-        ldetWishB = 0.5*logdet(C); PsiWish_alphasum = 0; 
         dist = - 0.5 * sum((XX / C) .* XX,2);
 
         % This is the expected loglik

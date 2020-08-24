@@ -88,7 +88,12 @@ for k = 1:K
     hmm.cache.Sind{k} = Sind;
     hmm.cache.S{k} = S;
    
-    if k == 1 && strcmp(train.covtype,'uniquediag') && ~do_HMM_pca
+    if do_HMM_pca
+        W = hmm.state(k).W.Mu_W;
+        v = hmm.Omega.Gam_rate / hmm.Omega.Gam_shape;
+        C = W * W' + v * eye(ndim); 
+        ldetWishB = 0.5*logdet(C); PsiWish_alphasum = 0;
+    elseif k == 1 && strcmp(train.covtype,'uniquediag') 
         ldetWishB = 0;
         PsiWish_alphasum = 0;
         for n = 1:ndim
@@ -126,7 +131,7 @@ for k = 1:K
         C = hmm.state(k).Omega.Gam_shape * hmm.state(k).Omega.Gam_irate;
         [hmm.cache.WishTrace{k},hmm.cache.codevals] = computeWishTrace(hmm,regressed,XX,C,k);
     end
-    if  ~do_HMM_pca && (~isfield(train,'distribution') || ~strcmp(train.distribution,'logistic'))
+    if  (~isfield(train,'distribution') || ~strcmp(train.distribution,'logistic'))
         hmm.cache.ldetWishB{k} = ldetWishB;
         hmm.cache.PsiWish_alphasum{k} = PsiWish_alphasum;
         hmm.cache.C{k} = C;
