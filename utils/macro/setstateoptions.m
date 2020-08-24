@@ -10,4 +10,3 @@ if ~isfield(train,'Sind')
     if ~train.zeromean, train.Sind = [true(1,size(train.Sind,2)); train.Sind]; end
 end
 Sind = train.Sind==1; S = train.S==1;
-

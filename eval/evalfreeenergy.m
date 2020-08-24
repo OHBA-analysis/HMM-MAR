@@ -45,6 +45,7 @@ if pcapred, M = hmm.train.pcapred; end
 
 Tres = sum(T) - length(T)*hmm.train.maxorder;
 S = hmm.train.S==1;
+setstateoptions;
 regressed = sum(S,1)>0;
 ltpi = sum(regressed)/2 * log(2*pi);
 
@@ -112,7 +113,6 @@ if todo(5)==1
     for k = 1:K
         hs = hmm.state(k);
         pr = hmm.state(k).prior;
-        setstateoptions;
         WKL = 0;
         
         if ~isempty(hs.W.Mu_W)
@@ -312,7 +312,6 @@ if todo(2)==1
     
     for k = 1:K
         hs = hmm.state(k);
-        setstateoptions;
         
         if strcmp(train.covtype,'diag')
             ldetWishB = 0;

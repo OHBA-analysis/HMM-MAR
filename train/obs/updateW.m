@@ -9,10 +9,12 @@ end
 if nargin<6, Tfactor = 1; end
 reweight = 0; % compensate for classes that have fewer instances?  
 if isfield(hmm.train,'B'), Q = size(hmm.train.B,2);
-else Q = ndim; end
+else, Q = ndim; 
+end
 pcapred = hmm.train.pcapred>0;
 if pcapred, M = hmm.train.pcapred; end
 p = hmm.train.lowrank; do_HMM_pca = (p > 0);
+setstateoptions;
 
 if reweight % assumes there are two classes, encoded by -1 and 1   
     count = zeros(2,1); 
@@ -23,7 +25,6 @@ end
 for k = 1:K
     
     if ~hmm.train.active(k), continue; end
-    setstateoptions;
     if isempty(orders) && train.zeromean && ~do_HMM_pca, continue; end
     if strcmp(train.covtype,'diag') || strcmp(train.covtype,'full'), omega = hmm.state(k).Omega;
     elseif ~isfield(train,'distribution') || ~strcmp(train.distribution,'logistic'), omega = hmm.Omega;

@@ -32,9 +32,9 @@ if strcmp(hmm.train.covtype,'uniquediag') && hmm.train.uniqueAR
     hmm.Omega.Gam_shape = hmm.prior.Omega.Gam_shape + 0.5 * Tfactor * Tres;
     
 elseif strcmp(hmm.train.covtype,'uniquediag')
+    setstateoptions;
     hmm.Omega.Gam_rate(regressed) = hmm.prior.Omega.Gam_rate(regressed);
     for k = 1:K
-        setstateoptions;
         if ~isempty(XW)
             XWk = XW(:,:,k);
         else
@@ -60,8 +60,8 @@ elseif strcmp(hmm.train.covtype,'uniquediag')
     
 elseif strcmp(hmm.train.covtype,'uniquefull')
     hmm.Omega.Gam_rate(regressed,regressed) = hmm.prior.Omega.Gam_rate(regressed,regressed);
+    setstateoptions;
     for k = 1:K
-        setstateoptions;
         if ~isempty(XW)
             XWk = XW(:,:,k);
         else
@@ -112,16 +112,14 @@ elseif strcmp(hmm.train.covtype,'uniquefull')
     
 else % state dependent
     
+    setstateoptions;
     for k = 1:K
-        
         if ~hmm.train.active, continue; end
-        setstateoptions;
         if ~isempty(XW)
             XWk = XW(:,:,k);
         else
             XWk = zeros(size(residuals));
         end
-        
         if train.uniqueAR
             e = (residuals - XWk).^2;
             swx2 = zeros(Tres,ndim);
