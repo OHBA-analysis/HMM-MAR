@@ -57,7 +57,9 @@ if size(Ycopy,1) == N
 end
 % no demeaning by default if this is a classification problem
 if ~isfield(options,'demeanstim'), options.demeanstim = 0; end
-if ~isfield(options,'verbose'),options.verbose=0;end
+if ~isfield(options,'verbose'),options.verbose=0;verbose_CV=1;
+else,verbose_CV=options.verbose;
+end
 
 % Preproc data and put in the right format 
 if do_preproc
@@ -147,8 +149,9 @@ for icv = 1:NCV
     Ytest = reshape(Ycopy(:,c.test{icv},:),[ttrial*Nte q]);
     Ttest = T(c.test{icv});
     [cv_acc(:,icv),~,~,genplot{icv}] = standard_classifier_test(model,Xtest,Ytest,Ttest,options);
-    
-    fprintf(['CV iteration: ' num2str(icv),' of ',int2str(NCV),'\n']); 
+    if verbose_CV
+        fprintf(['CV iteration: ' num2str(icv),' of ',int2str(NCV),'\n']); 
+    end
     
 end
 acc = mean(cv_acc(:));

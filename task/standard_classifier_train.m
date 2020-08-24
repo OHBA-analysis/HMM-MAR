@@ -41,6 +41,7 @@ if size(Y,1) < size(Y,2); Y = Y'; end
 q = size(Y,2);
 if size(Y,1) == length(T) % one value per trial
     responses = Y;
+    Ystar = Y;
 elseif length(Y(:)) ~= (ttrial*N*q)
     error('Incorrect dimensions in Y')
 else
@@ -140,8 +141,13 @@ if strcmp(classifier,'logistic')
                         'binomial','Alpha', 1, 'Lambda', lambda(ilambda),'Standardize', false);
                     intercepts(c) = fitInfo.Intercept;
                 elseif strcmp(regtype,'L2')
-                     [betas(:,c),fitInfo] = lassoglm(squeeze(X(t,vp,:)),Ysample, ...
+                    if p>1
+                        [betas(:,c),fitInfo] = lassoglm(squeeze(X(t,vp,:)),Ysample, ...
                             'binomial','Alpha', 0.00001, 'Lambda', lambda(ilambda),'Standardize', false);
+                    else
+                        [betas(:,c),fitInfo] = lassoglm(squeeze(X(t,vp,:))',Ysample, ...
+                            'binomial','Alpha', 0.00001, 'Lambda', lambda(ilambda),'Standardize', false);
+                    end
                     intercepts(c) = fitInfo.Intercept;
                 end
             end

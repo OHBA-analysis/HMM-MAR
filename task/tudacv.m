@@ -259,9 +259,10 @@ if strcmp(options.distribution,'logistic')
         Ypred = Ypredtemp;
     end
 end
-acc_Gamma = zeros(K,nCVm);
+
 for iFitMethod = 1:nCVm
     if classification
+        acc_Gamma = zeros(K,nCVm);
         Y = reshape(Ycopy,[ttrial*N q]);
         Y = continuous_prediction_2class(Ycopy,Y); % get rid of noise we might have injected 
         Ypred_temp = reshape(Ypred(:,:,:,iFitMethod),[ttrial*N q]);
@@ -291,6 +292,7 @@ for iFitMethod = 1:nCVm
             end
         end    
     else
+        acc_Gamma = zeros(K,q,nCVm);
         Y = reshape(Ycopy,[ttrial*N q]);
         Ypred_star_temp =  reshape(Ypred(:,:,:,iFitMethod), [ttrial*N q]); 
         Ypred_temp = permute( mean(Ypred(:,:,:,iFitMethod),1) ,[2 3 1]);
@@ -309,7 +311,9 @@ for iFitMethod = 1:nCVm
                 Gammapredtemp = reshape(Gammapred(:,:,:,iFitMethod),[ttrial*N K]);
                 for iK=1:K
                     Ctemp = weighted_covariance([Y,Ypred_star_temp],Gammapredtemp(:,iK));
-                    acc_Gamma(iK,iFitMethod) = Ctemp(2,1)./sqrt(prod(diag(Ctemp)));
+                    for ireg=1:q
+                        acc_Gamma(iK,ireg,iFitMethod) = Ctemp(q+ireg,1)./sqrt(prod([Ctemp(ireg,ireg),Ctemp(q+ireg,q+ireg)]));
+                    end
                 end
             end
         end
