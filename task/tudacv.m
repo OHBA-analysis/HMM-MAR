@@ -302,7 +302,7 @@ for iFitMethod = 1:nCVm
             if nargout==6
                 Gammapredtemp = reshape(Gammapred(:,:,:,iFitMethod),[ttrial*N K]);
                 for iK=1:K
-                    acc_Gamma(iK,iFitMethod) = 1 - weighted_covariance(Y - Ypred_star_temp,Gammapredtemp(:,iK)) ./ weighted_covariance(Y,Gammapredtemp(:,iK));
+                    acc_Gamma(iK,:,iFitMethod) = diag(1 - weighted_covariance(Y - Ypred_star_temp,Gammapredtemp(:,iK)) ./ weighted_covariance(Y,Gammapredtemp(:,iK)));
                 end
             end
         elseif strcmp(accuracyType,'Pearson')
