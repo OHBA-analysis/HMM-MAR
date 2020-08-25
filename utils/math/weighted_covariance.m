@@ -17,7 +17,8 @@ if size(w,2)~=1
 end
 
 mu_w = sum(x.*repmat(w,[1,size(x,2)]))./sum(w);
-C_sq = (x.*repmat(w,[1,size(x,2)]))'*x;
+xminusmu = x-repmat(mu_w,size(x,1),1);
+C_sq = (xminusmu.*repmat(w,[1,size(xminusmu,2)]))'*xminusmu;
 C_sq = C_sq ./ sum(w);
 
 end
