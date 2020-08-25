@@ -128,15 +128,29 @@ if stochastic_learn
     else
         options.As = [];
     end    
-    % get PCA loadings 
+    if length(options.embeddedlags) > 1
+        elmsg = '(embedded)';
+    else
+        elmsg = '';
+    end
+    % get PCA loadings
     if length(options.pca) > 1 || (options.pca > 0 && options.pca ~= 1) || ...
             isfield(options,'A')
         if ~isfield(options,'A')
-            options.A = highdim_pca(data,T,options.pca,...
+            [options.A,~,e] = highdim_pca(data,T,options.pca,...
                 options.embeddedlags,options.standardise,...
                 options.onpower,options.varimax,options.detrend,...
                 options.filter,options.leakagecorr,options.Fs,options.As);
             options.pca = size(options.A,2);
+            if options.verbose
+                if options.varimax
+                    fprintf('Working in PCA/Varimax %s space, with %d components. \n',elmsg,options.pca)
+                    fprintf('(explained variance = %1f)  \n',e(options.pca))
+                else
+                    fprintf('Working in PCA %s space, with %d components. \n',elmsg,options.pca)
+                    fprintf('(explained variance = %1f)  \n',e(options.pca))
+                end
+            end
         end
         options.ndim = size(options.A,2);
         options.S = ones(options.ndim);
@@ -235,6 +249,9 @@ else
     % Embedding
     if length(options.embeddedlags) > 1  
         [data,T] = embeddata(data,T,options.embeddedlags);
+        elmsg = '(embedded)';
+    else
+        elmsg = ''; 
     end
     % PCA transform
     if length(options.pca) > 1 || (options.pca > 0 && options.pca ~= 1) || ...
@@ -243,8 +260,17 @@ else
             data.X = bsxfun(@minus,data.X,mean(data.X));   
             data.X = data.X * options.A; 
         else
-            [options.A,data.X] = highdim_pca(data.X,T,options.pca,0,0,0,options.varimax);
+            [options.A,data.X,e] = highdim_pca(data.X,T,options.pca,0,0,0,options.varimax);
             options.pca = size(options.A,2);
+            if options.verbose
+                if options.varimax
+                    fprintf('Working in PCA/Varimax %s space, with %d components. \n',elmsg,options.pca)
+                    fprintf('(explained variance = %1f)  \n',e(options.pca))
+                else
+                    fprintf('Working in PCA %s space, with %d components. \n',elmsg,options.pca)
+                    fprintf('(explained variance = %1f)  \n',e(options.pca))
+                end
+            end
         end
         % Standardise principal components and control for ackward trials
         data = standardisedata(data,T,options.standardise_pc);

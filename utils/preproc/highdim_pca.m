@@ -49,7 +49,7 @@ options.downsample = 0; % this is always done after PCA
 
 if isfield(options,'A'), options = rmfield(options,'A'); end
 if ~isempty(As), options.As = As; end
-verbose = 1; 
+verbose = 0; 
 
 if is_cell_strings || is_cell_matrices
     B = [];
@@ -136,9 +136,9 @@ if ncomp > size(A,2)
 end
 
 A = A(:,1:ncomp);
+if varimax, A = rotatefactors(A); end
 if verbose
     if varimax
-        A = rotatefactors(A);
         fprintf('Working in PCA/Varimax %s space, with %d components. \n',msg,ncomp)
         fprintf('(explained variance = %1f)  \n',e(ncomp))
     else
