@@ -301,18 +301,28 @@ for iFitMethod = 1:nCVm
             acc_temp = 1 - sum( (Y - Ypred_star_temp).^2 ) ./ sum(Y.^2) ; 
             if nargout==6
                 Gammapredtemp = reshape(Gammapred(:,:,:,iFitMethod),[ttrial*N K]);
+                GammaMLE = Gammapredtemp==repmat(max(Gammapredtemp,[],2),1,K);
+                if all(sum(GammaMLE)>10)
+                    % use hard state assignments unless insufficient samples:
+                    Gammapredtemp = GammaMLE;
+                end
                 for iK=1:K
-                    acc_Gamma(iK,iFitMethod) = 1 - weighted_covariance(Y - Ypred_star_temp,Gammapredtemp(:,iK)) ./ weighted_covariance(Y,Gammapredtemp(:,iK));
+                    acc_Gamma(iK,:,iFitMethod) = diag(1 - weighted_covariance(Y - Ypred_star_temp,Gammapredtemp(:,iK)) ./ weighted_covariance(Y,Gammapredtemp(:,iK)));
                 end
             end
         elseif strcmp(accuracyType,'Pearson')
             acc_temp = diag(corr(Y,Ypred_star_temp));
             if nargout==6
                 Gammapredtemp = reshape(Gammapred(:,:,:,iFitMethod),[ttrial*N K]);
+                GammaMLE = Gammapredtemp==repmat(max(Gammapredtemp,[],2),1,K);
+                if all(sum(GammaMLE)>10)
+                    % use hard state assignments unless insufficient samples:
+                    Gammapredtemp = GammaMLE;
+                end
                 for iK=1:K
                     Ctemp = weighted_covariance([Y,Ypred_star_temp],Gammapredtemp(:,iK));
                     for ireg=1:q
-                        acc_Gamma(iK,ireg,iFitMethod) = Ctemp(q+ireg,1)./sqrt(prod([Ctemp(ireg,ireg),Ctemp(q+ireg,q+ireg)]));
+                        acc_Gamma(iK,ireg,iFitMethod) = Ctemp(q+ireg,ireg)./sqrt(prod([Ctemp(ireg,ireg),Ctemp(q+ireg,q+ireg)]));
                     end
                 end
             end
