@@ -140,6 +140,13 @@ else
     % 1. With the restriction that, for each time point,
     %   all trials have the same state (i.e. no between-trial variability),
     %   we estimate a first approximation of the decoding models   
+    if isfield(options,'covtype') && strcmp(options.covtype,'full') | strcmp(options.covtype,'uniquefull') 
+        options_temp = options;
+        options_temp.covtype = 'uniquediag'; % just for initialisation
+        [tuda,GammaInit] = hmmmar(Z,T,options_temp);
+        options.Gamma = GammaInit;
+    end
+    
     options.updateObs = 1;
     options.updateGamma = 0;
     options.updateP = 0;

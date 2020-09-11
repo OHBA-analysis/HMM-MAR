@@ -136,9 +136,6 @@ if ~isempty(options.classifier) || options.encodemodel
         end
         options.add_noise = 0;
         add_noise = 0;
-        if ~isfield(options,'accuracyType')
-            options.accuracyType = 'COD';  % this can be COD or Pearson
-        end
     elseif strcmp(options.classifier,'SVM') || strcmp(options.classifier,'SVM_rbf') || strcmp(options.classifier,'KNN') ||...
             strcmp(options.classifier,'decisiontree')
         add_noise = 0;
@@ -200,7 +197,6 @@ else % Standard regression problem
        X = [X,ones(size(X,1),1)];
     end
     options = rmfield(options,'intercept');
-    
 end
 if ~isfield(options,'cyc'), options.cyc = 4; end
 
