@@ -72,6 +72,7 @@ end
 
 if do_preproc
     if isfield(tuda.train,'embeddedlags'), el = tuda.train.embeddedlags; end
+    tuda.train.intercept = 0;
     [X,Y,T,options] = preproc4hmm(X,Y,T,tuda.train); % this demeans Y
     p = size(X,2);
     if classification && length(el) > 1
@@ -97,11 +98,16 @@ end
 Ttmp = T;
 T = T + 1;
 Z = zeros(sum(T),q+p,'single');
-for n = 1:N
-    t1 = (1:T(n)) + sum(T(1:n-1));
-    t2 = (1:Ttmp(n)) + sum(Ttmp(1:n-1));
-    Z(t1(1:end-1),1:p) = X(t2,:);
-    Z(t1(2:end),(p+1):end) = Y(t2,:);
+for j = 1:N
+    t1 = (1:T(j)) + sum(T(1:j-1));
+    t2 = (1:Ttmp(j)) + sum(Ttmp(1:j-1));
+    if strcmp(options.classifier,'LDA') || (isfield(options,'encodemodel') && options.encodemodel)
+        Z(t1(2:end),1:p) = X(t2,:);
+        Z(t1(1:end-1),(p+1):end) = Y(t2,:);
+    else
+        Z(t1(1:end-1),1:p) = X(t2,:);
+        Z(t1(2:end),(p+1):end) = Y(t2,:);        
+    end
 end 
 
 if new_experiment
@@ -115,7 +121,11 @@ end
 
 % Run TUDA inference
 options.S = -ones(p+q);
-options.S(1:p,p+1:end) = 1;
+if strcmp(options.classifier,'LDA') || (isfield(options,'encodemodel') && options.encodemodel)
+    options.S(p+1:end,1:p) = 1;
+else
+    options.S(1:p,p+1:end) = 1;
+end
 options.updateObs = 0;
 options.updateGamma = 1;
 options.updateP = 1; 
@@ -137,38 +147,39 @@ else
     end    
 end
 Betas = tudabeta(tuda);
-
-for k = 1:K 
-  Ypred = X * Betas(:,:,k);
-  if classification
-      Ypred = continuous_prediction_2class(Ycopy,Ypred);
-      Y = continuous_prediction_2class(Ycopy,Y);
-      if q == 1
-          e = abs(Y - Ypred) < 1e-4;
+if nargout>2
+    for k = 1:K 
+      Ypred = X * Betas(:,:,k);
+      if classification
+          Ypred = continuous_prediction_2class(Ycopy,Ypred);
+          Y = continuous_prediction_2class(Ycopy,Y);
+          if q == 1
+              e = abs(Y - Ypred) < 1e-4;
+          else
+              e = sum(abs(Y - Ypred),2) < 1e-4;
+          end
       else
-          e = sum(abs(Y - Ypred),2) < 1e-4;
+          e = (Y - Ypred).^2;
       end
-  else
-      e = (Y - Ypred).^2;
-  end
-  if parallel_trials
-      maxT = max(T);
-      me = zeros(maxT,1);
-      ntrials = zeros(maxT,1);
-      for j = 1:N
-          t0 = sum(T(1:j-1));
-          ind_1 = (1:T(j)) + t0;
-          ind_2 = 1:length(ind_1);
-          me(ind_2,:) = me(ind_2,:) + e(ind_1,:);
-          ntrials(ind_2) = ntrials(ind_2) + 1;
+      if parallel_trials
+          maxT = max(T);
+          me = zeros(maxT,1);
+          ntrials = zeros(maxT,1);
+          for j = 1:N
+              t0 = sum(T(1:j-1));
+              ind_1 = (1:T(j)) + t0;
+              ind_2 = 1:length(ind_1);
+              me(ind_2,:) = me(ind_2,:) + e(ind_1,:);
+              ntrials(ind_2) = ntrials(ind_2) + 1;
+          end
+          e = me ./ ntrials;
       end
-      e = me ./ ntrials;
-  end
-  if classification, error(:,k) = e;
-  else, error(:,:,k) = e;
-  end
-end
+      if classification, error(:,k) = e;
+      else, error(:,:,k) = e;
+      end
+    end
 
-error = squeeze(error); 
+    error = squeeze(error); 
+end
 
 end
