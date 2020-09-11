@@ -171,9 +171,7 @@ for fold = 1:nfolds
     datate.X = data.X(indte,:); 
     %datatr.C = data.C(indtr,:); 
     %datate.C = data.C(indte,:);     
-        
-    Fe = Inf;  
-    
+            
     if get_ratio_rand
         options_r = options;
         options_r.cyc = 1;
@@ -189,9 +187,7 @@ for fold = 1:nfolds
         [~,~,~,LL_r] = hsinference(datate,Tte,hmmtr_r); % LL is the sum of the loglikelihoods 
         LL_r = sum(LL_r) / size(datate.X,1); % get average 
     end
-        
-    %for it = 1:options.cvrep
-    
+            
     if options.verbose, fprintf('CV fold %d, repetition %d \n',fold); end
     
     if isfield(options,'orders')
@@ -200,29 +196,24 @@ for fold = 1:nfolds
     if isfield(options,'maxorder')
         options = rmfield(options,'maxorder');
     end
-    [hmmtr,~,~,~,~,~,fe] = hmmmar (datatr,Ttr,options); fe = fe(end);
+    hmmtr = hmmmar (datatr,Ttr,options); 
     hmmtr.train.Sind = Sind;
     hmmtr.train.maxorder = maxorder;
     
-    if fe < Fe
-        % test
-        Fe = fe;
-        [~,~,~,LL] = hsinference(datate,Tte,hmmtr); % LL is the sum of the loglikelihoods
-        cv(fold) = sum(LL) / size(datate.X,1); % get average
-        if get_ratio_rand
-            rcv_rand(fold) = cv(fold) - LL_r; % log(test / random)
-        end
-        % train
-        if get_ratio_train
-            [~,~,~,LL] = hsinference(datatr,Ttr,hmmtr);
-            LL = sum(LL) / size(datatr.X,1); % get average
-            rcv_train(fold) = LL - cv(fold); % log(train / test)
-            %if rcv_train(fold)<0, keyboard; end
-        end
+    % test
+    [~,~,~,LL] = hsinference(datate,Tte,hmmtr); % LL is the sum of the loglikelihoods
+    cv(fold) = sum(LL) / size(datate.X,1); % get average
+    if get_ratio_rand
+        rcv_rand(fold) = cv(fold) - LL_r; % log(test / random)
     end
-        
-    %end
-
+    % train
+    if get_ratio_train
+        [~,~,~,LL] = hsinference(datatr,Ttr,hmmtr);
+        LL = sum(LL) / size(datatr.X,1); % get average
+        rcv_train(fold) = LL - cv(fold); % log(train / test)
+        %if rcv_train(fold)<0, keyboard; end
+    end
+    
 end
 
 mcv = mean(cv); % mean average LL
