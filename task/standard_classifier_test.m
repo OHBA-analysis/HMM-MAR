@@ -193,6 +193,8 @@ elseif strcmp(classifier,'SVM') || strcmp(classifier,'SVM_rbf')
 elseif strcmp(classifier,'LDA')
     X = reshape(X,[ttrial*N,p]);
     [predictions_hard, predictions_soft] = LDApredict(model,repmat(eye(ttrial),N,1),X);
+    predictions_soft = exp(predictions_soft - repmat(max(predictions_soft,[],2),1,q));
+    predictions_soft = rdiv(predictions_soft,sum(predictions_soft,2)); 
 elseif strcmp(classifier,'KNN')
     if ~isfield(model,'K');model.K=1;end
     predictions_hard = zeros(ttrial,N,q);

@@ -96,9 +96,9 @@ if isfield(options,'lossfunc')
 else, lossfunc = 'quadratic'; 
 end
 % option to first fit an encoding model then decode - ie Linear Guassian System approach
-if ~isfield(options,'encodemodel') 
-    options.encodemodel = false;
-end
+if ~isfield(options,'encodemodel'),options.encodemodel = false;end
+if ~isfield(options,'SVMreg'),options.SVMreg = false;
+elseif (options.SVMreg & ~isfield(options,'SVMkernel')),options.SVMkernel = 'linear',end
     
 % Form CV folds; if response are categorical, then it's stratified
 if ~isfield(options,'c')
@@ -179,11 +179,21 @@ for icv = 1:NCV
             end
             model.beta_encode(:,:,t) = model.beta_encode(:,:,t) + beta_encode./NCV;
             model.noise_encode(:,:,t) = model.noise_encode(:,:,t) + noise_X_t./NCV;
+        elseif options.SVMreg
+            for i=1:q
+                beta{t,icv,i} = fitrsvm(Xtr,Ytr(:,i),'KernelFunction',options.SVMkernel);
+            end
         else
             beta{t,icv} = (Xtr' * Xtr + RidgePen) \ (Xtr' * Ytr);
         end
-        Ypred(t,c.test{icv},:) = reshape(Xte * beta{t,icv},Nte,q);
-        model.beta_decode(:,:,t) = squeeze(model.beta_decode(:,:,t)) + beta{t,icv}'./NCV;
+        if ~options.SVMreg
+            Ypred(t,c.test{icv},:) = reshape(Xte * beta{t,icv},Nte,q);
+            model.beta_decode(:,:,t) = squeeze(model.beta_decode(:,:,t)) + beta{t,icv}'./NCV;
+        else
+            for i=1:q
+                Ypred(t,c.test{icv},i) = predict(beta{t,icv,i},Xte);
+            end
+        end
     end
 end
 

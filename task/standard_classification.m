@@ -1,4 +1,4 @@
-function [cv_acc,acc,meanGenPlot] = standard_classification(X,Y,T,options,binsize)
+function [cv_acc,acc,meanGenPlot,AUC,LL] = standard_classification(X,Y,T,options,binsize)
 % Determine the cross validated accuracy of a classification type on brain
 % data X with mutually exclusive classes Y
 %
@@ -135,6 +135,7 @@ Ycopy = reshape(Ycopy,[ttrial N q]);
 
 % Fit classifier to each fold:
 cv_acc = zeros(ttrial,NCV);
+LL = zeros(ttrial,N);
 for icv = 1:NCV
     % train classifier on training set:
     Ntr = length(c.training{icv}); 
@@ -148,14 +149,42 @@ for icv = 1:NCV
     Xtest = reshape(X(:,c.test{icv},:),[ttrial*Nte p]);
     Ytest = reshape(Ycopy(:,c.test{icv},:),[ttrial*Nte q]);
     Ttest = T(c.test{icv});
-    [cv_acc(:,icv),~,~,genplot{icv}] = standard_classifier_test(model,Xtest,Ytest,Ttest,options);
+    [cv_acc(:,icv),~,softpreds,genplot{icv}] = standard_classifier_test(model,Xtest,Ytest,Ttest,options);
+    LL(:,c.test{icv}) = reshape(sum(Ytest.*log(softpreds),2),[ttrial, Nte]);
+    Ypreds(:,c.test{icv},:) = reshape(softpreds,[ttrial,Nte,q]);
     if verbose_CV
         fprintf(['CV iteration: ' num2str(icv),' of ',int2str(NCV),'\n']); 
     end
-    
 end
 acc = mean(cv_acc(:));
 cv_acc = mean(cv_acc,2);
+LL = mean(LL,2);
+
+% compute AUC:
+for t=1:ttrial
+    AUC_t = zeros(q);
+    for i=1:q
+        for j=(i+1):q
+            % find valid samples:
+            validtrials = union(find(Ycopy(t,:,i)),find(Ycopy(t,:,j)));
+            ytemp = permute(Ycopy(t,validtrials,[i,j]),[2,3,1]);
+            temp = exp(squeeze(Ypreds(t,validtrials,[i,j])) - max(squeeze(Ypreds(t,validtrials,[i,j])),[],2));
+            temp = rdiv(temp,sum(temp,2));
+            [temp,inds] = sort(temp(:,1),'descend');
+            ytemp = ytemp(inds,:);
+            for n=1:length(temp)
+                TPr(n) = sum(ytemp(1:n,1))/sum(ytemp(:,1));
+                p = temp(n,1);
+                FPr(n) = sum(ytemp(1:n,2))/sum(ytemp(:,2));
+            end
+            AUC_t(i,j) = sum(diff([0,FPr,1,1]) .* [0,TPr,1]);
+        end
+    end
+    AUC(t) = mean(AUC_t(logical(triu(ones(q),1))));
+end
+
+
+
 meanGenPlot = [];
 if isfield(options,'generalisationplot') && options.generalisationplot
     for icv = 1:NCV
