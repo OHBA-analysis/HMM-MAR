@@ -15,7 +15,7 @@ if nargout>6
         LL = Ycopy.*log(Ypred(:,:,:,iF));
         expLL(:,:,iF) = mean(sum(LL,3),2);
 
-        Ypreds = Ypred(:,:,:,iF);
+        Ypreds = Ypred_star(:,:,:,iF);
         for t=1:T(1)
             AUC_t = zeros(q);
             for i=1:q

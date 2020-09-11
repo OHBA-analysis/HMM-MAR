@@ -43,7 +43,7 @@ function [acc,acc_star,Ypred,Ypred_star,Gammapred,acc_Gamma] = tudacv(X,Y,T,opti
 %           classification accuracy if Y is categorical (one value)
 % acc_star: cross-validated accuracy across time (trial time by 1) 
 % Ypred: predicted stimulus (trials by stimuli/classes)
-% Ypred_star: predicted stimulus across time (time by trials by stimuli/classes)
+% Ypred_star: (soft) predicted stimulus across time (time by trials by stimuli/classes)
 % Gammapred: the predicted state timecourses used on the held out data set.
 %       Note that unbiased testing requires a secondary estimation of the
 %       state timecourses, so these may deviate from slightly from the true
@@ -360,8 +360,8 @@ for iFitMethod = 1:nCVm
     Ypred_out(:,:,iFitMethod) = Ypred_temp;
     Ypred_star(:,:,iFitMethod) = Ypred_star_temp;
 end
-%Ypred = Ypred_out;
-Ypred = reshape(Ypred,[ttrial,N,q,length(CVmethod)]);
+Ypred_star = reshape(Ypred,[ttrial,N,q,length(CVmethod)]);
+Ypred = Ypred_out;
 Gammapred = reshape(Gammapred,[ttrial,N,K,length(CVmethod)]); 
 
 end
