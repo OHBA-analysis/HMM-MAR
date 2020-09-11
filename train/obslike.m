@@ -236,5 +236,9 @@ for k = 1:K
     
     L(hmm.train.maxorder+1:T,k)= - ltpi - ldetWishB + PsiWish_alphasum + dist - NormWishtrace; 
 end
+% correct for stability problems by adding constant:
+if any(all(L<0,2))
+    L(all(L<0,2),:) = L(all(L<0,2),:) - repmat(max(L(all(L<0,2),:),[],2),1,K);
+end
 L = exp(L);
 end
