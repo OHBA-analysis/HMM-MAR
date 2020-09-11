@@ -218,6 +218,19 @@ for icv = 1:NCV
                 Ytest2 = reshape(Y(:,c.test{icv},:),[ttrial*length(c.test{icv}) q_star] ) ;
                 Tte = T(c.test{icv});
                 Gammapred(:,c.test{icv},:,iFitMethod) = reshape(tudadecode(Xtest2,Ytest2,Tte,tuda),[ttrial Nte K]);
+            case 5
+                % estimate MLE for Y and then state timecourses:
+                Xtest2 = reshape(X(:,c.test{icv},:),[ttrial*length(c.test{icv}),p]);
+                Tte = T(c.test{icv});
+                mGammatest = squeeze(repmat(mean(reshape(Gammatrain,[ttrial Ntr K]),2),[Nte,1]));
+                [Y_test_MLE,Y_test_LL] = LDApredict(LDAmodel{icv},mGammatest,Xtest2,classification,var(Ytrain(:,1))==0);
+                if classification % use soft probabilities:
+                    %Y_test_MLE = exp(Y_test_LL - repmat(max(Y_test_LL,[],2),1,K));
+                    %Y_test_MLE = rdiv(Y_test_MLE,sum(Y_test_MLE,2));
+                end
+                if q_star>q,Y_test_MLE = [ones(sum(Tte),1),Y_test_MLE];end
+                Gammapred(:,c.test{icv},:,iFitMethod) = reshape(tudadecode(Xtest2,Y_test_MLE,Tte,tuda),[ttrial Nte K]);
+            
         end
     end
     if verbose
@@ -238,8 +251,10 @@ for iFitMethod = 1:nCVm
         Xtest = reshape(X(:,c.test{icv},:),[ttrial*Nte p]);
         Gammatest = reshape(Gammapred(:,c.test{icv},:,iFitMethod),[ttrial*Nte K]);
         if strcmp(classifier,'LDA')
-            predictions = LDApredict(LDAmodel{icv},Gammatest,Xtest,classification,var(Ytrain(:,1))==0);
-            Ypred(:,c.test{icv},:,iFitMethod) = reshape(predictions,[ttrial Nte q]);
+            [predictions,predictions_soft] = LDApredict(LDAmodel{icv},Gammatest,Xtest,classification,var(Ytrain(:,1))==0);
+            predictions_soft = exp(predictions_soft - repmat(max(predictions_soft,[],2),1,q));
+            predictions_soft = rdiv(predictions_soft,sum(predictions_soft,2)); 
+            Ypred(:,c.test{icv},:,iFitMethod) = reshape(predictions_soft,[ttrial Nte q]);
         else 
             for k = 1:K
                 sGamma = repmat(Gammatest(:,k),[1 q_star]);
@@ -259,10 +274,9 @@ if strcmp(options.distribution,'logistic')
         Ypred = Ypredtemp;
     end
 end
-
+acc_Gamma = zeros(K,nCVm);
 for iFitMethod = 1:nCVm
     if classification
-        acc_Gamma = zeros(K,nCVm);
         Y = reshape(Ycopy,[ttrial*N q]);
         Y = continuous_prediction_2class(Ycopy,Y); % get rid of noise we might have injected 
         Ypred_temp = reshape(Ypred(:,:,:,iFitMethod),[ttrial*N q]);
@@ -285,7 +299,7 @@ for iFitMethod = 1:nCVm
         end
         acc_temp = mean(tmp);
         acc_star_temp = squeeze(mean(reshape(tmp, [ttrial N 1]),2));
-        if nargin==6
+        if nargout==6
             Gammapredtemp = reshape(Gammapred(:,:,:,iFitMethod),[ttrial*N K]);
             for iK=1:K
                 acc_Gamma(iK,iFitMethod) = sum(tmp.*Gammapredtemp(:,iK)) ./ sum(Gammapredtemp(:,iK));
@@ -346,8 +360,8 @@ for iFitMethod = 1:nCVm
     Ypred_out(:,:,iFitMethod) = Ypred_temp;
     Ypred_star(:,:,iFitMethod) = Ypred_star_temp;
 end
-Ypred = Ypred_out;
-
+%Ypred = Ypred_out;
+Ypred = reshape(Ypred,[ttrial,N,q,length(CVmethod)]);
 Gammapred = reshape(Gammapred,[ttrial,N,K,length(CVmethod)]); 
 
 end
