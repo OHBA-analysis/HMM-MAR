@@ -1,4 +1,4 @@
-function [covmat,corrmat,icovmat] = getFuncConn(hmm,k,verbose)
+function [covmat,corrmat,icovmat] = getFuncConn(hmm,k,original_space,verbose)
 % Get the covariance, correlation and precision matrices for state k, 
 %   from the estimated model hmm
 % If order==0 (Gaussian distribution), these purely represents functional
@@ -7,7 +7,8 @@ function [covmat,corrmat,icovmat] = getFuncConn(hmm,k,verbose)
 %
 % Diego Vidaurre, OHBA, University of Oxford (2016)
 
-if nargin < 3, verbose = 1; end
+if nargin < 3, verbose = 0; end
+if nargin < 4, original_space = true; end
 p = hmm.train.lowrank; do_HMM_pca = (p > 0);
 
 if ~isfield(hmm.state(1),'Omega') && ~do_HMM_pca
@@ -43,7 +44,7 @@ if isfield(hmm.train,'embeddedlags') && length(hmm.train.embeddedlags) > 1 && ve
         'be (lags x regions) by (lags x regions)'])
 end
 
-if isfield(hmm.train,'A') 
+if isfield(hmm.train,'A') && original_space
     if do_HMM_pca, error('Incorrect parametrisation'); end 
     A = hmm.train.A;
     covmat = A * covmat * A';
