@@ -53,6 +53,6 @@ if isfield(hmm.train,'A') && original_space
     icovmat = A * icovmat * A';
 end
 corrmat = corrcov(covmat,0);
-if nargout > 3, icorrmat = inv(icorrmat); end
+if nargout > 3, icorrmat = inv(corrmat); end
 
 end
