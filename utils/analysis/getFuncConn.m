@@ -1,4 +1,4 @@
-function [covmat,corrmat,icovmat] = getFuncConn(hmm,k,original_space,verbose)
+function [covmat,corrmat,icovmat,icorrmat] = getFuncConn(hmm,k,original_space,verbose)
 % Get the covariance, correlation and precision matrices for state k, 
 %   from the estimated model hmm
 % If order==0 (Gaussian distribution), these purely represents functional
@@ -18,6 +18,8 @@ if k>length(hmm.state)
     error('k is higher than the number of states')
 end
 is_diagonal = ~do_HMM_pca && size(hmm.state(k).Omega.Gam_rate,1) == 1;
+
+icorrmat = [];
 
 if do_HMM_pca
     ndim = size(hmm.state(k).W.Mu_W,1);
@@ -51,5 +53,6 @@ if isfield(hmm.train,'A') && original_space
     icovmat = A * icovmat * A';
 end
 corrmat = corrcov(covmat,0);
+if nargout > 3, icorrmat = inv(icorrmat); end
 
 end
