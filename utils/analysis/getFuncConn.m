@@ -7,8 +7,8 @@ function [covmat,corrmat,icovmat,icorrmat] = getFuncConn(hmm,k,original_space,ve
 %
 % Diego Vidaurre, OHBA, University of Oxford (2016)
 
-if nargin < 3, verbose = 0; end
-if nargin < 4, original_space = true; end
+if nargin < 4, verbose = 0; end
+if nargin < 3, original_space = true; end
 p = hmm.train.lowrank; do_HMM_pca = (p > 0);
 
 if ~isfield(hmm.state(1),'Omega') && ~do_HMM_pca
