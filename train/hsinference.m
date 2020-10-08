@@ -1,4 +1,4 @@
-function [Gamma,Gammasum,Xi,LL,B] = hsinference(data,T,hmm,residuals,options,XX)
+function [Gamma,Gammasum,Xi,LL,B] = hsinference(data,T,hmm,residuals,options,XX,Gamma0)
 %
 % inference engine for HMMs.
 %
@@ -15,15 +15,23 @@ function [Gamma,Gammasum,Xi,LL,B] = hsinference(data,T,hmm,residuals,options,XX)
 % Gamma     Probability of hidden state given the data
 % Gammasum  sum of Gamma over t
 % Xi        joint Prob. of child and parent states given the data
-% LL        Log-likelihood
+% LL        Log-likelihood, summed across time points
+% B         Likelihood, for each time point
 %
 % Author: Diego Vidaurre, OHBA, University of Oxford
 
 N = length(T);
-K = length(hmm.state);
+K = hmm.K;
 p = hmm.train.lowrank; do_HMM_pca = (p > 0);
-
+if nargin < 7, Gamma0 = []; end
 mixture_model = isfield(hmm.train,'id_mixture') && hmm.train.id_mixture;
+if isfield(hmm.train,'additiveHMM'), additiveHMM = hmm.train.additiveHMM; 
+else, additiveHMM = 0; 
+end
+if additiveHMM, rangeK = 1:K+1; else, rangeK = 1:K; end
+n_argout = nargout;
+return_likelihood = (n_argout>=4);
+return_likelihood_tbyt = (n_argout>=5);
 
 if ~isfield(hmm,'train')
     if nargin<5 || isempty(options)
@@ -56,7 +64,7 @@ else
     ndim = size(residuals,2);
 end
 
-if ~isfield(hmm,'P')
+if (additiveHMM && ~isfield(hmm.state(1),'P')) || (~additiveHMM && ~isfield(hmm,'P'))
     hmm = hmmhsinit(hmm);
 end
 
@@ -74,12 +82,11 @@ else
 end
 B = cell(N,1);
 
-n_argout = nargout;
 S = hmm.train.S==1;
 regressed = sum(S,1)>0;
 setstateoptions;
 % Cache shared results for use in obslike
-for k = 1:K
+for k = rangeK
     
     %hmm.cache = struct();
     hmm.cache.train{k} = train;
@@ -110,7 +117,7 @@ for k = 1:K
         end
         PsiWish_alphasum=PsiWish_alphasum*0.5;
         C = hmm.Omega.Gam_shape * hmm.Omega.Gam_irate;
-        for kk = 1:hmm.K
+        for kk = rangeK
             [hmm.cache.WishTrace{kk},hmm.cache.codevals] = computeWishTrace(hmm,regressed,XX,C,kk);
         end
     elseif strcmp(train.covtype,'diag')
@@ -122,6 +129,7 @@ for k = 1:K
             PsiWish_alphasum = PsiWish_alphasum+0.5*psi(hmm.state(k).Omega.Gam_shape);
         end
         C = hmm.state(k).Omega.Gam_shape ./ hmm.state(k).Omega.Gam_rate;
+        if additiveHMM, iC = hmm.state(k).Omega.Gam_rate / hmm.state(k).Omega.Gam_shape; end
     elseif strcmp(train.covtype,'full')
         ldetWishB = 0.5*logdet(hmm.state(k).Omega.Gam_rate(regressed,regressed));
         PsiWish_alphasum = 0;
@@ -129,12 +137,17 @@ for k = 1:K
             PsiWish_alphasum = PsiWish_alphasum+0.5*psi(hmm.state(k).Omega.Gam_shape/2+0.5-n/2);
         end
         C = hmm.state(k).Omega.Gam_shape * hmm.state(k).Omega.Gam_irate;
+        if additiveHMM, iC = hmm.state(k).Omega.Gam_rate / hmm.state(k).Omega.Gam_shape; end
         [hmm.cache.WishTrace{k},hmm.cache.codevals] = computeWishTrace(hmm,regressed,XX,C,k);
     end
+    % Set up cache
     if  (~isfield(train,'distribution') || ~strcmp(train.distribution,'logistic'))
         hmm.cache.ldetWishB{k} = ldetWishB;
         hmm.cache.PsiWish_alphasum{k} = PsiWish_alphasum;
         hmm.cache.C{k} = C;
+        if additiveHMM && (strcmp(train.covtype,'diag') || strcmp(train.covtype,'full')) 
+            hmm.cache.iC{k} = iC; 
+        end
     end
 end
 
@@ -142,25 +155,42 @@ if hmm.train.useParallel==1 && N>1
     
     % to duplicate this code is really ugly but there doesn't seem to be
     % any other way - more Matlab's fault than mine
+
+    % to avoid the entire data being copied entirely in each parfor loop
+    XX_copy = cell(N,1); residuals_copy = cell(N,1); 
+    Gamma0_copy = cell(N,1); C_copy = cell(N,1);
+    for j = 1:N
+        t0 = sum(T(1:j-1)); s0 = t0 - order*(j-1); 
+        XX_copy{j} = XX(s0+1:s0+T(j),:);
+        if ~do_HMM_pca
+            residuals_copy{j} = residuals(s0+1:s0+T(j)-order,:);
+        end
+        if isfield(data,'C')
+            C_copy{j} = data.C(s0+1:s0+T(j)-order,:);
+        end
+        if ~isempty(Gamma0)
+            Gamma0_copy{j} = Gamma0(s0+1:s0+T(j)-order,:);
+        end
+    end; clear data; clear Gamma0; clear XX; clear  residuals
+    
     parfor j = 1:N
         xit = [];
         Bt = [];
-        t0 = sum(T(1:j-1)); s0 = t0 - order*(j-1);
         if order>0
-            R = [zeros(order,size(residuals,2));  residuals(s0+1:s0+T(j)-order,:)];
-            if isfield(data,'C')
-                C = [zeros(order,K); data.C(s0+1:s0+T(j)-order,:)];
+            R = [zeros(order,size(residuals_copy{j},2));  residuals_copy{j}];
+            if ~isempty(C_copy)
+                C = [zeros(order,K); C_copy{j}];
             else
                 C = NaN(size(R,1),K);
             end
         else
             if do_HMM_pca
-                R = XX(s0+1:s0+T(j),:);
+                R = XX_copy{j};
             else
-                R = residuals(s0+1:s0+T(j),:);
+                R = residuals_copy{j};
             end
-            if isfield(data,'C')
-                C = data.C(s0+1:s0+T(j),:);
+            if ~isempty(C_copy)
+                C = C_copy{j};
             else
                 C = NaN(size(R,1),K);
             end
@@ -170,54 +200,78 @@ if hmm.train.useParallel==1 && N>1
         xi = []; gamma = []; gammasum = zeros(1,K); ll = 0;
         while t <= T(j)
             if isnan(C(t,1)), no_c = find(~isnan(C(t:T(j),1)));
-            else no_c = find(isnan(C(t:T(j),1)));
+            else, no_c = find(isnan(C(t:T(j),1)));
             end
             if t>order+1
                 if isempty(no_c), slicer = (t-1):T(j); %slice = (t-order-1):T(in);
-                else slicer = (t-1):(no_c(1)+t-2); %slice = (t-order-1):(no_c(1)+t-2);
+                else, slicer = (t-1):(no_c(1)+t-2); %slice = (t-order-1):(no_c(1)+t-2);
                 end
             else
                 if isempty(no_c), slicer = t:T(j); %slice = (t-order):T(in);
-                else slicer = t:(no_c(1)+t-2); %slice = (t-order):(no_c(1)+t-2);
+                else, slicer = t:(no_c(1)+t-2); %slice = (t-order):(no_c(1)+t-2);
                 end
             end
-            slicepoints = slicer + s0 - order;
-            XXt = XX(slicepoints,:); 
+            slicepoints = slicer - order;
+            XXt = XX_copy{j}(slicepoints,:); 
             if isnan(C(t,1))
-                [gammat,xit,Bt] = ...
-                    fb_Gamma_inference(XXt,K,hmm,R(slicer,:),slicepoints,hmm.train.Gamma_constraint);
+                if additiveHMM
+                    [gammat,xit,Bt] = ...
+                        fb_Gamma_inference_addHMM(XXt,hmm,R(slicer,:),Gamma0_copy{j}(slicer,:)); 
+                else
+                    [gammat,xit,Bt] = ...
+                        fb_Gamma_inference(XXt,hmm,R(slicer,:),slicepoints,hmm.train.Gamma_constraint);
+                end
             else
                 gammat = zeros(length(slicer),K);
                 if t==order+1, gammat(1,:) = C(slicer(1),:); end
-                if ~mixture_model, xit = zeros(length(slicer)-1, K^2); end
+                if ~mixture_model
+                    if additiveHMM, xit = zeros(length(slicer)-1, K, 4);
+                    else, xit = zeros(length(slicer)-1, K^2);
+                    end
+                end
                 for i = 2:length(slicer)
                     gammat(i,:) = C(slicer(i),:);
                     if ~mixture_model
-                        xitr = gammat(i-1,:)' * gammat(i,:) ;
-                        xit(i-1,:) = xitr(:)';
+                        if additiveHMM
+                            for k = 1:K
+                                gg = [gammat(i-1,k) (1-gammat(i-1,k))];
+                                xitr = gg' * gg; 
+                                xit(i-1,k,:) = xitr(:)';
+                            end
+                        else
+                            xitr = gammat(i-1,:)' * gammat(i,:) ;
+                            xit(i-1,:) = xitr(:)';
+                        end
                     end
                 end
-                if n_argout>=4, Bt = obslike([],hmm,R(slicer,:),XXt,hmm.cache); end
+                if return_likelihood, Bt = obslike([],hmm,R(slicer,:),XXt,hmm.cache); end
             end
             if t>order+1
                 gammat = gammat(2:end,:);
             end
-            if ~mixture_model, xi = [xi; xit]; end
-            gamma = [gamma; gammat];
-            gammasum = gammasum + sum(gamma);
-            if n_argout>=4 
-                ll = ll + sum(log(sum(Bt(order+1:end,:) .* gammat, 2))); 
+            if ~mixture_model 
+                xi = cat(1,xi,xit);
             end
-            if n_argout>=5, B{j} = [B{j}; Bt(order+1:end,:) ]; end
+            gamma = cat(1,gamma,gammat);
+            gammasum = gammasum + sum(gamma);
+            if return_likelihood 
+                ll = ll + add_loglik(Bt(order+1:end,:),gammat,additiveHMM);
+            end
+            if return_likelihood_tbyt, B{j} = [B{j}; Bt(order+1:end,:) ]; end
             if isempty(no_c), break;
             else, t = no_c(1)+t-1;
             end
         end
         Gamma{j} = gamma;
         Gammasum(j,:) = gammasum;
-        if n_argout>=4, LL(j) = ll; end
-        %Xi=cat(1,Xi,reshape(xi,T(in)-order-1,K,K));
-        if ~mixture_model, Xi{j} = reshape(xi,T(j)-order-1,K,K); end
+        if return_likelihood, LL(j) = ll; end
+        if ~mixture_model
+            if additiveHMM
+                Xi{j} = reshape(xi,T(j)-order-1,K,2,2);
+            else
+                Xi{j} = reshape(xi,T(j)-order-1,K,K);
+            end
+        end
     end
     
 else
@@ -232,7 +286,7 @@ else
             else
                 C = NaN(size(R,1),K);
             end
-        else
+        else %s0==t0
             if do_HMM_pca
                 R = XX(s0+1:s0+T(j),:);
             else
@@ -244,27 +298,35 @@ else
                 C = NaN(size(R,1),K);
             end
         end
+        if additiveHMM
+            G = Gamma0(s0+1:s0+T(j),:);
+        end
         % we jump over the fixed parts of the chain
         t = order+1;
         xi = []; gamma = []; gammasum = zeros(1,K); ll = 0;
         while t <= T(j)
             if isnan(C(t,1)), no_c = find(~isnan(C(t:T(j),1)));
-            else no_c = find(isnan(C(t:T(j),1)));
+            else, no_c = find(isnan(C(t:T(j),1)));
             end
             if t > order+1
                 if isempty(no_c), slicer = (t-1):T(j); %slice = (t-order-1):T(in);
-                else slicer = (t-1):(no_c(1)+t-2); %slice = (t-order-1):(no_c(1)+t-2);
+                else, slicer = (t-1):(no_c(1)+t-2); %slice = (t-order-1):(no_c(1)+t-2);
                 end
             else
                 if isempty(no_c), slicer = t:T(j); %slice = (t-order):T(in);
-                else slicer = t:(no_c(1)+t-2); %slice = (t-order):(no_c(1)+t-2);
+                else, slicer = t:(no_c(1)+t-2); %slice = (t-order):(no_c(1)+t-2);
                 end
             end
-            slicepoints=slicer + s0 - order;
+            slicepoints = slicer + s0 - order;
             XXt = XX(slicepoints,:);
             if isnan(C(t,1))
-                [gammat,xit,Bt] = ...
-                    fb_Gamma_inference(XXt,K,hmm,R(slicer,:),slicepoints,hmm.train.Gamma_constraint);
+                if additiveHMM
+                    [gammat,xit,Bt] = ...
+                        fb_Gamma_inference_addHMM(XXt,hmm,R(slicer,:),G(slicer,:));
+                else
+                    [gammat,xit,Bt] = ...
+                        fb_Gamma_inference(XXt,hmm,R(slicer,:),slicepoints,hmm.train.Gamma_constraint);
+                end
                 if any(isnan(gammat(:))) % this will never come up - we treat it within fb_Gamma_inference
                     error(['State time course inference returned NaN (out of precision). ' ...
                         'There are probably extreme events in the data'])
@@ -272,12 +334,24 @@ else
             else
                 gammat = zeros(length(slicer),K);
                 if t==order+1, gammat(1,:) = C(slicer(1),:); end
-                if ~mixture_model, xit = zeros(length(slicer)-1, K^2); end
+                if ~mixture_model
+                    if additiveHMM, xit = zeros(length(slicer)-1, K, 4);
+                    else, xit = zeros(length(slicer)-1, K^2);
+                    end
+                end
                 for i=2:length(slicer)
                     gammat(i,:) = C(slicer(i),:);
                     if ~mixture_model
-                        xitr = gammat(i-1,:)' * gammat(i,:) ;
-                        xit(i-1,:) = xitr(:)';
+                        if additiveHMM
+                            for k = 1:K
+                                gg = [gammat(i-1,k) (1-gammat(i-1,k))];
+                                xitr = gg' * gg;
+                                xit(i-1,k,:) = xitr(:)';
+                            end
+                        else
+                            xitr = gammat(i-1,:)' * gammat(i,:) ;
+                            xit(i-1,:) = xitr(:)';
+                        end
                     end
                 end
                 if nargout>=4, Bt = obslike([],hmm,R(slicer,:),XXt,hmm.cache); end
@@ -285,11 +359,13 @@ else
             if t > order+1
                 gammat = gammat(2:end,:);
             end
-            if ~mixture_model, xi = [xi; xit]; end
-            gamma = [gamma; gammat];
+            if ~mixture_model
+                xi = cat(1,xi,xit);
+            end
+            gamma = cat(1,gamma,gammat);
             gammasum = gammasum + sum(gamma);
             if nargout>=4 
-                ll = ll + sum(log(sum(Bt(order+1:end,:) .* gammat, 2)));
+                ll = ll + add_loglik(Bt(order+1:end,:),gammat,additiveHMM);  
             end
             if nargout>=5, B{j} = [B{j}; Bt(order+1:end,:) ]; end
             if isempty(no_c), break;
@@ -299,15 +375,20 @@ else
         Gamma{j} = gamma;
         Gammasum(j,:) = gammasum;
         if nargout>=4, LL(j) = ll; end
-        %Xi=cat(1,Xi,reshape(xi,T(in)-order-1,K,K));
-        if ~mixture_model, Xi{j} = reshape(xi,T(j)-order-1,K,K); end
+        if ~mixture_model
+            if additiveHMM
+                Xi{j} = reshape(xi,T(j)-order-1,K,2,2);
+            else
+                Xi{j} = reshape(xi,T(j)-order-1,K,K);
+            end
+        end
     end
 end
 
 % join
 Gamma = cell2mat(Gamma);
 if ~mixture_model, Xi = cell2mat(Xi); end
-if n_argout>=5, B  = cell2mat(B); end
+if return_likelihood_tbyt, B  = cell2mat(B); end
 
 % orthogonalise = 1; 
 % Gamma0 = Gamma; 
@@ -340,14 +421,11 @@ if any(hmm.train.S(:)~=1) && length(unique(X))<5
     X_coded_vals = unique(X_coded);
     validentries = logical(hmm.train.S(:)==1);
     WishTrace = zeros(1,length(X_coded_vals));
-    %for k = 1:hmm.K
-        B_S = hmm.state(k).W.S_W(validentries,validentries);
-        for i=1:length(X_coded_vals)
-            t_samp = find(X_coded==X_coded_vals(i),1);
-            WishTrace(i) = trace(kron(C(regressed,regressed),X(t_samp,:)'*X(t_samp,:))*B_S);
-        end      
-    %end
-    
+    B_S = hmm.state(k).W.S_W(validentries,validentries);
+    for i=1:length(X_coded_vals)
+        t_samp = find(X_coded==X_coded_vals(i),1);
+        WishTrace(i) = trace(kron(C(regressed,regressed),X(t_samp,:)'*X(t_samp,:))*B_S);
+    end
 else
     WishTrace =[];
     X_coded_vals=[];

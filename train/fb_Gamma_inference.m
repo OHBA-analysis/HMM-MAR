@@ -1,4 +1,4 @@
-function [Gamma,Xi,L] = fb_Gamma_inference(XX,K,hmm,residuals,slicepoints,constraint)
+function [Gamma,Xi,L] = fb_Gamma_inference(XX,hmm,residuals,slicepoints,constraint)
 % inference using normal forward backward propagation
 
 %p = hmm.train.lowrank; do_HMM_pca = (p > 0);
@@ -21,11 +21,12 @@ else
 end
 T = size(residuals,1) + order;
 Xi = [];
+K = length(hmm.state);
 
-if nargin<5
+if nargin<4
     slicepoints = [];
 end
-if nargin<6
+if nargin<5
     constraint = [];
 end
 
@@ -56,7 +57,7 @@ end
 L(L<realmin) = realmin;
 
 if hmm.train.useMEX 
-    [Gamma, Xi, scale] = hidden_state_inference_mx(L, Pi, P, order);
+    [Gamma, Xi] = hidden_state_inference_mx(L, Pi, P, order);
     if any(isnan(Gamma(:))) || any(isnan(Xi(:)))
         clear Gamma Xi scale
         warning('hidden_state_inference_mx file produce NaNs - will use Matlab''s code')
