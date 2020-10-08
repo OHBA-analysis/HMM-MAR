@@ -12,6 +12,7 @@ function [Gamma,fehist] = hmmmar_init(data,T,options,Sind)
 % Gamma     p(state given X)
 %
 % Author: Diego Vidaurre, University of Oxford
+% Author: Romesh Abeysuriya, University of Oxford
 
 if ~isfield(options,'maxorder')
     [~,order] = formorders(options.order,options.orderoffset,options.timelag,options.exptimelag);
@@ -36,8 +37,12 @@ if options.useParallel && length(init_k) > 1 % not very elegant
         felast(it) = fehist{it}(end);
         maxfo(it) = mean(getMaxFractionalOccupancy(Gamma{it},T,options));
         if options.verbose
-            fprintf('Init run %2d, %2d->%2d states, Free Energy = %f \n',...
-                it,init_k(it),size(Gamma{it},2),felast(it));
+            if options.additiveHMM
+                fprintf('Init run %2d, Free Energy = %f \n',it,felast(it));
+            else
+                fprintf('Init run %2d, %2d->%2d states, Free Energy = %f \n',...
+                    it,init_k(it),size(Gamma{it},2),felast(it));
+            end
         end
     end
 else
@@ -46,8 +51,12 @@ else
         felast(it) = fehist{it}(end);
         maxfo(it) = mean(getMaxFractionalOccupancy(Gamma{it},T,options));
         if options.verbose
-            fprintf('Init run %2d, %2d->%2d states, Free Energy = %f \n',...
-                it,init_k(it),size(Gamma{it},2),felast(it));
+            if options.additiveHMM
+                fprintf('Init run %2d, Free Energy = %f \n',it,felast(it));
+            else
+                fprintf('Init run %2d, %2d->%2d states, Free Energy = %f \n',...
+                    it,init_k(it),size(Gamma{it},2),felast(it));
+            end
         end
     end 
 end
@@ -75,7 +84,7 @@ function [Gamma,fehist] = run_initialization(data,T,options,Sind,init_k)
 % - init_k is the number of states to use for this initialization
 
 % Need to adjust the worker dirichletdiags if testing smaller K values
-if init_k < options.K
+if ~options.additiveHMM && init_k < options.K
     for jj = 1:length(options.DirichletDiag)
         p = options.DirichletDiag(j)/(options.DirichletDiag(j) + options.K - 1); % Probability of remaining in same state
         f_prob = dirichletdiags.mean_lifetime(); % Function that returns the lifetime in steps given the probability
@@ -92,11 +101,12 @@ data.C = data.C(:,1:options.K);
 % Note - initGamma_random uses DD=1 so that there are lots of transition times, which
 % helps the inference not get stuck in a local minimum. options.DirichletDiag is
 % then used inside hmmtrain when computing the free energy
-keep_trying = true; 
+keep_trying = true; notries = 0;
 while keep_trying
-    options.Gamma = initGamma_random(T-options.maxorder,options.K,...
+    Gamma = initGamma_random(T-options.maxorder,options.K,...
         min(median(double(T))/10,500),...
-        options.Pstructure,options.Pistructure);
+        options.Pstructure,options.Pistructure,...
+        options.additiveHMM,options.priorOFFvsON);
     hmm = struct('train',struct());
     hmm.K = options.K;
     hmm.train = options;
@@ -104,11 +114,14 @@ while keep_trying
     hmm.train.cyc = hmm.train.initcyc;
     hmm.train.verbose = 0;
     hmm = hmmhsinit(hmm);
-    [hmm,residuals] = obsinit(data,T,hmm,options.Gamma);
+    if isfield(hmm.train,'Gamma'), hmm.train = rmfield(hmm.train,'Gamma'); end
+    [hmm,residuals] = obsinit(data,T,hmm,Gamma);
     try
-        [~,Gamma,~,fehist] = hmmtrain(data,T,hmm,options.Gamma,residuals);
+        [~,Gamma,~,fehist] = hmmtrain(data,T,hmm,Gamma,residuals);
         keep_trying = false;
     catch
+        notries = notries + 1; 
+        if notries > 10, error('Initialisation went wrong'); end
         disp('Something strange happened in the initialisation - repeating')
     end
 end
