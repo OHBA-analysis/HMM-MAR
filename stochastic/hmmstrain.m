@@ -15,6 +15,7 @@ N = length(Xin); K = length(hmm.state);
 X = loadfile(Xin{1},T{1},options); ndim = size(X,2); XW = [];
 orders = formorders(hmm.train.order,hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag);
 pcapred = hmm.train.pcapred>0;
+p = hmm.train.lowrank; do_HMM_pca = (p > 0);
 if pcapred
     npred = hmm.train.pcapred;
 else
@@ -118,31 +119,36 @@ for cycle = 2:options.BIGcyc
     % global parameters (hmm), and collect state free energy
     rho(cycle) = (cycle + options.BIGdelay)^(-options.BIGforgetrate); 
     MGamma = cell2mat(Gamma);
-    % W
-    if isfield(hmm.state(1),'W') && ~isempty(hmm.state(1).W.Mu_W)
-        [hmm_noisy,XW] = updateW(hmm,MGamma,Y,XX,XXGXX,Tfactor);
-        hmm = states_supdate(hmm,hmm_noisy,rho(cycle),1);
-    end
-    % Omega 
-    if isfield(hmm.state(1),'Omega') || isfield(hmm,'Omega')  
-        hmm_noisy = updateOmega(hmm,MGamma,sum(MGamma),Y,Tbatch,XX,XXGXX,XW,Tfactor);
+    if do_HMM_pca
+        hmm_noisy = updatePCAparam (hmm,sum(MGamma),XXGXX,Tfactor,rangeK);
         hmm = states_supdate(hmm,hmm_noisy,rho(cycle),2);
-    end    
-    % Priors
-    if pcapred
-        % beta
-        hmm_noisy = updateBeta(hmm);
-        hmm = states_supdate(hmm,hmm_noisy,rho(cycle),5);
     else
-        % sigma
-        if ~isempty(orders)
-            hmm_noisy = updateSigma(hmm);
-            hmm = states_supdate(hmm,hmm_noisy,rho(cycle),3);
+        % W
+        if isfield(hmm.state(1),'W') && ~isempty(hmm.state(1).W.Mu_W)
+            [hmm_noisy,XW] = updateW(hmm,MGamma,Y,XX,XXGXX,Tfactor);
+            hmm = states_supdate(hmm,hmm_noisy,rho(cycle),1);
         end
-        % alpha
-        if ~isempty(orders)
-            hmm_noisy = updateAlpha(hmm);
-            hmm = states_supdate(hmm,hmm_noisy,rho(cycle),4);
+        % Omega
+        if isfield(hmm.state(1),'Omega') || isfield(hmm,'Omega')
+            hmm_noisy = updateOmega(hmm,MGamma,sum(MGamma),Y,Tbatch,XX,XXGXX,XW,Tfactor);
+            hmm = states_supdate(hmm,hmm_noisy,rho(cycle),2);
+        end
+        % Priors
+        if pcapred
+            % beta
+            hmm_noisy = updateBeta(hmm);
+            hmm = states_supdate(hmm,hmm_noisy,rho(cycle),5);
+        else
+            % sigma
+            if ~isempty(orders)
+                hmm_noisy = updateSigma(hmm);
+                hmm = states_supdate(hmm,hmm_noisy,rho(cycle),3);
+            end
+            % alpha
+            if ~isempty(orders)
+                hmm_noisy = updateAlpha(hmm);
+                hmm = states_supdate(hmm,hmm_noisy,rho(cycle),4);
+            end
         end
     end
    

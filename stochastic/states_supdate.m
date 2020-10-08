@@ -45,4 +45,16 @@ for k = 1:K
             rho * hmm_noisy.state(k).beta.Gam_shape;        
     end
 end
+
+if update==2 && isfield(hmm_noisy,'Omega')
+    hmm.Omega.Gam_rate = (1-rho) * hmm.Omega.Gam_rate + ...
+        rho * hmm_noisy.Omega.Gam_rate;
+    hmm.Omega.Gam_shape = (1-rho) * hmm.Omega.Gam_shape + ...
+        rho * hmm_noisy.Omega.Gam_shape;
+    if strcmp(hmm_noisy.train.covtype,'full') || strcmp(hmm_noisy.train.covtype,'uniquefull')
+        hmm.Omega.Gam_irate(regressed,regressed) = ...
+            inv(hmm.Omega.Gam_rate(regressed,regressed));
+    end
+end
+
 end
