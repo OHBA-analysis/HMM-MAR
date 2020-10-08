@@ -60,11 +60,37 @@ if ~isfield(options,'plotAverageGamma'), options.plotAverageGamma = 0; end
 
 % classic HMM or mixture?
 if ~isfield(options,'id_mixture'), options.id_mixture = 0; end
+% standard HMM or additive (Factorial) HMM
+if ~isfield(options,'additiveHMM'), options.additiveHMM = 0; end
 % clustering of time series? 
 if ~isfield(options,'cluster'), options.cluster = 0; end
 
+if options.additiveHMM % additive HMM specific things
+    if options.lowrank > 0
+        error('Additive probabilistic PCA is not yet inplemented')
+    end
+    if options.K == 1
+        error('An additive HMM must have more than options.K=1 chain')
+    end
+    if options.sequential
+        error('options.additiveHMM and options.sequential are not compatible')
+    end
+    if isfield(options,'Pstructure')
+        error('You cannot constraint the chains with Pstructure when using the additiveHMM')
+    end
+    if isfield(options,'Pistructure')
+        error('You cannot constraint the chains with Pistructure when using the additiveHMM')
+    end
+    if ~isfield(options,'priorOFFvsON'), options.priorOFFvsON = 10; end % 10times more likely to be OFF
+else
+    options.priorOFFvsON = [];
+end
+    
 % stochastic options
 if stochastic_learning
+    if options.additiveHMM  
+        error('Stochastic inference not yet implemented for the additiveHMM')
+    end
     if options.K==1
         error('There is no purpose on using stochastic inference with K=1. Please restart')
     end
@@ -141,6 +167,9 @@ else
     if ~isfield(options,'useParallel')
         options.useParallel = (length(T)>1);
     end
+    if options.additiveHMM && options.initTestSmallerK
+        error('options.additiveHMM and options.initTestSmallerK are not compatible')
+    end
 end
 
 % TUDA specific option 
@@ -166,7 +195,9 @@ elseif ~all(options.grouping==1)
 end  
 if size(options.grouping,1)==1,  options.grouping = options.grouping'; end
 
-if options.sequential
+if options.additiveHMM
+    options.Pstructure = []; options.Pistructure = [];
+elseif options.sequential
     if isfield(options,'Pstructure'), Pstructure = options.Pstructure;
     else, Pstructure = [];
     end
@@ -195,9 +226,9 @@ else
     for k = 1:options.K, options.Pstructure(k,k) = 1; end
     options.Pstructure = (options.Pstructure~=0);
 end
-if ~isfield(options,'Pistructure')
+if ~isfield(options,'Pistructure') && ~options.additiveHMM
     options.Pistructure = true(1,options.K);
-else
+elseif ~options.additiveHMM
     if length(options.Pistructure) ~= options.K 
         error('The dimensions of options.Pistructure are incorrect')
     end
@@ -210,10 +241,13 @@ if ~isfield(options,'dropstates')
     %if any(~options.Pstructure), options.dropstates = 0;
     %else, options.dropstates = ~stochastic_learning; end
 else
-    if options.dropstates == 1 && any(~options.Pstructure(:))
+    if options.dropstates && options.additiveHMM
+        warning('additiveHMM and dropstates are incompatible options')
+        options.dropstates = 0;
+    elseif options.dropstates && any(~options.Pstructure(:))
         warning('If Pstructure  has zeros, dropstates must be zero')
         options.dropstates = 0;
-    elseif options.dropstates == 1 && stochastic_learning 
+    elseif options.dropstates && stochastic_learning 
         warning('With stochastic learning, dropstates is set to 0')
         options.dropstates = 0;
     end

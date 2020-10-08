@@ -84,7 +84,8 @@ function [Gamma,fehist] = run_initialization(data,T,options,Sind,init_k)
 % - init_k is the number of states to use for this initialization
 
 % Need to adjust the worker dirichletdiags if testing smaller K values
-if ~options.additiveHMM && init_k < options.K
+%if ~options.additiveHMM && init_k < options.K
+if init_k < options.K
     for jj = 1:length(options.DirichletDiag)
         p = options.DirichletDiag(j)/(options.DirichletDiag(j) + options.K - 1); % Probability of remaining in same state
         f_prob = dirichletdiags.mean_lifetime(); % Function that returns the lifetime in steps given the probability
