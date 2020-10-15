@@ -12,11 +12,57 @@ function [hmm,info] = hmmsinit(Xin,T,options)
 % Diego Vidaurre, OHBA, University of Oxford (2016)
 
 N = length(T); K = options.K;
-X = loadfile(Xin{1},T{1},options); ndim = size(X,2);
 subjfe_init = zeros(N,3);
 loglik_init = zeros(N,1);
 pcaprec = options.pcapred>0;
+do_HMM_pca = (options.lowrank > 0);
+tp_less = max(options.embeddedlags) + max(-options.embeddedlags);
+if options.downsample > 0, downs_ratio = (options.downsample/options.Fs);
+else, downs_ratio = 1; 
+end
 
+if do_HMM_pca
+    I = randperm(N,options.BIGNinit);
+    options_copy = options;
+    removesoptions;
+    options = rmfield(options,'orders');
+    options.verbose = 0;
+    hmm = hmmmar(Xin(I),T(I),options);
+    hmm.train.Sind = formindexes(hmm.train.orders,hmm.train.S)==1;
+    options = options_copy;
+    Dir2d_alpha_init = zeros(K,K,N); Dir_alpha_init = zeros(K,N);
+    for i = 1:N
+        [X,~,Y,Ti] = loadfile(Xin{i},T{i},options); XX = X;
+        data = struct('X',X,'C',NaN(size(XX,1),K));
+        [Gamma,~,Xi] = hsinference(data,Ti,hmm,Y,[],XX);
+        checkGamma(Gamma,Ti,hmm.train,i);
+        subjfe_init(i,1:2) = evalfreeenergy([],Ti,Gamma,Xi,hmm,[],[],[1 0 1 0 0]); % Gamma entropy & Gamma LL  
+        loglik_init(i) = - sum(evalfreeenergy(X,Ti,Gamma,Xi,hmm,Y,XX,[0 1 0 0 0])); % data LL
+        Ti = ceil(downs_ratio*(Ti-tp_less)); tacc = 0; tacc2 = 0; 
+        for trial = 1:length(Ti)
+            t = tacc + 1;
+            Dir_alpha_init(:,i) = Dir_alpha_init(:,i) + Gamma(t,:)';
+            tacc = tacc + Ti(trial) - hmm.train.maxorder;
+            t = tacc2 + (1:Ti(trial)-hmm.train.maxorder-1);
+            Dir2d_alpha_init(:,:,i) = Dir2d_alpha_init(:,:,i) + squeeze(sum(Xi(t,:,:),1));
+            tacc2 = tacc2 + Ti(trial) - hmm.train.maxorder - 1;
+        end
+    end
+    subjfe_init(:,3) = evalfreeenergy([],[],[],[],hmm,[],[],[0 0 0 1 0]) / N; % "share" P and Pi KL
+    statekl_init = sum(evalfreeenergy([],[],[],[],hmm,[],[],[0 0 0 0 1])); % state KL
+    info.Dir2d_alpha = Dir2d_alpha_init; info.Dir_alpha = Dir_alpha_init;
+    info.subjfe = subjfe_init;
+    info.loglik = loglik_init;
+    info.statekl = statekl_init;
+    info.fehist = -sum(info.loglik) + sum(info.statekl) + sum(sum(info.subjfe));
+    if options.BIGverbose
+        fprintf('Init done for a subset of subjects, free energy = %g  \n',info.fehist);
+    end
+    
+    return
+end
+
+X = loadfile(Xin{1},T{1},options); ndim = size(X,2);
 S = options.S==1; regressed = sum(S,1)>0;
 if isfield(options,'B') && ~isempty(options.B)
     npred = length(options.orders)*size(options.B,2) + (~options.zeromean);
@@ -31,12 +77,6 @@ if isfield(options,'initial_hmm')
     options = rmfield(options,'initial_hmm');
 else 
     initial_hmm = [];
-end
-tp_less = max(options.embeddedlags) + max(-options.embeddedlags);
-if options.downsample > 0
-    downs_ratio = (options.downsample/options.Fs);
-else
-    downs_ratio = 1; 
 end
 
 % init sufficient statistics
@@ -65,7 +105,7 @@ for rep = 1:options.BIGinitrep
         I = cell(1,length(II));
         for ii = 1:length(I), I{ii} = initial_hmm{II(ii)}.subset; end
     else
-        I = randpermNK(N,round(N/options.BIGNinitbatch));
+        I = randpermNK(N,options.BIGNinit);
     end
     covered = [];
     for ii = 1:length(I)
@@ -135,10 +175,10 @@ for rep = 1:options.BIGinitrep
         end
         % update transition probabilities
         tacc = 0; tacc2 = 0;
-        for i=1:length(subset)
+        for i = 1:length(subset)
             subj = subset(i);
             Tsubj = ceil(downs_ratio*(T{subj}-tp_less)); 
-            for trial=1:length(Tsubj)
+            for trial = 1:length(Tsubj)
                 t = tacc + 1;
                 Dir_alpha_init(:,subj) = Dir_alpha_init(:,subj) + Gamma(t,:)';
                 tacc = tacc + Tsubj(trial) - hmm_i.train.maxorder;
@@ -175,7 +215,7 @@ for rep = 1:options.BIGinitrep
             Tsubj = ceil(downs_ratio*(T{subj}-tp_less)); 
             t = tacc + (1 : (sum(Tsubj)-length(Tsubj)*hmm_i.train.maxorder));
             tacc = tacc + length(t);
-            for k=1:K_i
+            for k = 1:K_i
                 XG = XX(t,:)' .* repmat(Gamma(t,k)',npred,1);
                 subj_m_init(:,:,subj,assig(k)) = XG * Y(t,:);
                 subj_gram_init(:,:,subj,assig(k)) = XG * XX(t,:);

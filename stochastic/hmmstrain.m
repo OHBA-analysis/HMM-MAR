@@ -15,12 +15,12 @@ N = length(Xin); K = length(hmm.state);
 X = loadfile(Xin{1},T{1},options); ndim = size(X,2); XW = [];
 orders = formorders(hmm.train.order,hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag);
 pcapred = hmm.train.pcapred>0;
-p = hmm.train.lowrank; do_HMM_pca = (p > 0);
+p = hmm.train.lowrank; do_HMM_pca = (p > 0); rangeK = 1:K;
 if pcapred
     npred = hmm.train.pcapred;
 else
     if isfield(hmm.train,'B') && ~isempty(hmm.train.B), Q = size(hmm.train.B,2);
-    else Q = ndim;
+    else Q = ndim;  
     end
     npred = length(orders)*Q;
 end
@@ -32,8 +32,8 @@ Dir_alpha = info.Dir_alpha;
 fehist = info.fehist;
 
 hmm_best = hmm;
-Dir2d_alpha_best = Dir2d_alpha; 
-Dir_alpha_best = Dir_alpha;
+% Dir2d_alpha_best = Dir2d_alpha; 
+% Dir_alpha_best = Dir_alpha;
 cyc_best = 1;
 tp_less = max(hmm.train.embeddedlags) + max(-hmm.train.embeddedlags);
 
@@ -68,13 +68,14 @@ for cycle = 2:options.BIGcyc
     end
     
     [X,XX,Y] = loadfile(Xin(I),T(I),options);
+    if hmm.train.lowrank > 0,  XX = X; end
     
     % local parameters (Gamma, Xi, P, Pi, Dir2d_alpha and Dir_alpha),
     % and free energy relative these local parameters
     tacc = 0; t2acc = 0;
     Gamma = cell(options.BIGNbatch,1); Xi = cell(options.BIGNbatch,1);
     XXGXX = cell(K,1);
-    for k=1:K, XXGXX{k} = zeros(size(XX,2)); end
+    for k = 1:K, XXGXX{k} = zeros(size(XX,2)); end
     for ii = 1:length(I)
         i = I(ii);
         t = (1:sum(Tbatch_list{ii})) + tacc;
@@ -86,12 +87,12 @@ for cycle = 2:options.BIGcyc
         hmm_i = hmm;
         [Gamma{ii},~,Xi{ii}] = hsinference(data,Tbatch_list{ii},hmm_i,Y_i,[],XX_i); % state time courses
         checkGamma(Gamma{ii},Tbatch_list{ii},hmm_i.train,i);
-        for k=1:K
+        for k = 1:K
             XXGXX{k} = XXGXX{k} + (XX_i' .* repmat(Gamma{ii}(:,k)',size(XX_i,2),1)) * XX_i;
         end
         % update transition probabilities
         Dir_alpha(:,i) = 0;
-        for trial=1:length(Tbatch_list{ii})
+        for trial = 1:length(Tbatch_list{ii})
             t3 = sum(Tbatch_list{ii}(1:trial-1)) - options.order*(trial-1) + 1;
             Dir_alpha(:,i) = Dir_alpha(:,i) + Gamma{ii}(t3,:)';
         end
@@ -121,7 +122,7 @@ for cycle = 2:options.BIGcyc
     MGamma = cell2mat(Gamma);
     if do_HMM_pca
         hmm_noisy = updatePCAparam (hmm,sum(MGamma),XXGXX,Tfactor,rangeK);
-        hmm = states_supdate(hmm,hmm_noisy,rho(cycle),2);
+        hmm = states_supdate(hmm,hmm_noisy,rho(cycle),[1 2]);
     else
         % W
         if isfield(hmm.state(1),'W') && ~isempty(hmm.state(1).W.Mu_W)
@@ -153,7 +154,7 @@ for cycle = 2:options.BIGcyc
     end
    
     % rest of the free energy (states' KL and data loglikelihood)
-    [fe,ll] = evalfreeenergy(X,Tbatch,MGamma,cell2mat(Xi),hmm,Y,XX,[0 1 0 0 1]); % state KL
+    [fe,ll] = evalfreeenergy(X,Tbatch,MGamma,cell2mat(Xi),hmm,Y,XX,[0 1 0 0 1]); % state KL & loglik
     statekl(cycle) = sum(fe(2:end));
     tacc = 0;
     for ii = 1:length(I)
@@ -172,7 +173,7 @@ for cycle = 2:options.BIGcyc
     if min(fehist)==fehist(cycle)
         hmm_best = hmm; 
         cyc_best = cycle;
-        Dir2d_alpha_best = Dir2d_alpha; Dir_alpha_best = Dir_alpha;
+        %Dir2d_alpha_best = Dir2d_alpha; Dir_alpha_best = Dir_alpha;
         count = 0;
     else
         count = count + 1; 
@@ -219,8 +220,13 @@ for fn = fieldnames(options)'
 end
 
 if options.BIGverbose
-    fprintf('Model: %d states, %d subjects, batch size %d, covariance: %s \n', ...
-        K,length(T),options.BIGNbatch,hmm.train.covtype);
+    if do_HMM_pca
+        fprintf('Model: %d states, %d subjects, batch size %d, covariance: %s \n', ...
+            K,length(T),options.BIGNbatch,hmm.train.covtype);
+    else
+        fprintf('Model: %d states, %d subjects, batch size %d, covariance: %s \n', ...
+            K,length(T),options.BIGNbatch,hmm.train.covtype);
+    end
     if hmm.train.exptimelag>1
         fprintf('Exponential lapse: %g, order %g, offset %g \n', ...
             hmm.train.exptimelag,hmm.train.order,hmm.train.orderoffset)

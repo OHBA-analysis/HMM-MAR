@@ -22,9 +22,15 @@ Dir2d_alpha_init = zeros(K,K,N); Dir_alpha_init = zeros(K,N);
 for i = 1:N
     % read data
     [X,XX,Y,Ti] = loadfile(Xin{i},T{i},options);
+    if hmm.train.lowrank > 0,  XX = X; end
+    
     if i==1 % complete a few things
-        if isfield(options,'hmm')
+        if isfield(options,'hmm')  % VER ESTO BIEN
+            if isfield(options.hmm.train,'A'), A = options.hmm.train.A; 
+            else, A = []; 
+            end
             hmm.train = rmfield(options,'hmm');
+            if ~isempty(A), hmm.train.A = A; end
         else
             hmm.train = options; 
         end
@@ -39,11 +45,13 @@ for i = 1:N
         end
         if ~hmm.train.zeromean, hmm.train.Sind = [true(1,hmm.train.ndim); hmm.train.Sind]; end
         Dir2d_alpha = hmm.Dir2d_alpha; Dir_alpha = hmm.Dir_alpha; P = hmm.P; Pi = hmm.Pi;
-        if isfield(hmm,'prior'), hmm = rmfield(hmm,'prior'); end
+        Omega_prior = [];
+        if isfield(hmm,'prior'), Omega_prior = hmm.prior.Omega; hmm = rmfield(hmm,'prior'); end
         hmm = hmmhsinit(hmm); % set priors
+        if ~isempty(Omega_prior), hmm.prior.Omega = Omega_prior; end
         hmm.Dir2d_alpha = Dir2d_alpha; hmm.Dir_alpha = Dir_alpha; hmm.P = P; hmm.Pi = Pi;
     end
-
+    
     [Gamma,~,Xi] = hsinference(X,Ti,hmm,Y,options,XX);
     checkGamma(Gamma,Ti,hmm.train,i);
     for trial=1:length(Ti)

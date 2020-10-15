@@ -15,6 +15,8 @@ if isempty(Sind), regressed = true(1,ndim);
 else, regressed = sum(Sind,1)>0;
 end
 
+
+
 % Omega
 if uniquecovmat
     if fullcovmat

@@ -48,6 +48,7 @@ end
 tacc = 0; tacc2 = 0;
 for i = 1:N
     [X,XX,Y,Ti] = loadfile(Xin{i},T{i},hmm.train);
+    if hmm.train.lowrank > 0,  XX = X; end
     hmm_i = hmm;
     hmm_i.train.embeddedlags = 0;
     hmm_i.train.pca = 0;

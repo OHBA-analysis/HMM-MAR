@@ -5,7 +5,7 @@ Sind = hmm.train.Sind==1;
 regressed = sum((hmm.train.S==1),1)>0;
 
 for k = 1:K
-    if update==1 && isfield(hmm_noisy.state(1),'W') && ~isempty(hmm_noisy.state(1).W.Mu_W)
+    if any(update==1) && isfield(hmm_noisy.state(1),'W') && ~isempty(hmm_noisy.state(1).W.Mu_W)
         hmm.state(k).W.Mu_W = (1-rho) * hmm.state(k).W.Mu_W + ...
             rho * hmm_noisy.state(k).W.Mu_W;
         hmm.state(k).W.iS_W = (1-rho) * hmm.state(k).W.iS_W + ...
@@ -19,7 +19,7 @@ for k = 1:K
                     inv(permute(hmm.state(k).W.iS_W(n,Sind(:,n),Sind(:,n)),[2 3 1]));
             end
         end
-    elseif update==2 && isfield(hmm_noisy.state(1),'Omega')
+    elseif any(update==2) && isfield(hmm_noisy.state(1),'Omega')
         hmm.state(k).Omega.Gam_rate = (1-rho) * hmm.state(k).Omega.Gam_rate + ...
             rho * hmm_noisy.state(k).Omega.Gam_rate;
         hmm.state(k).Omega.Gam_shape = (1-rho) * hmm.state(k).Omega.Gam_shape + ...
@@ -28,17 +28,17 @@ for k = 1:K
             hmm.state(k).Omega.Gam_irate(regressed,regressed) = ...
                 inv(hmm.state(k).Omega.Gam_rate(regressed,regressed));
         end
-    elseif update==3 && isfield(hmm_noisy.state(1),'sigma')
+    elseif any(update==3) && isfield(hmm_noisy.state(1),'sigma')
         hmm.state(k).sigma.Gam_rate = (1-rho) * hmm.state(k).sigma.Gam_rate + ...
             rho * hmm_noisy.state(k).sigma.Gam_rate;
         hmm.state(k).sigma.Gam_shape = (1-rho) * hmm.state(k).sigma.Gam_shape + ...
             rho * hmm_noisy.state(k).sigma.Gam_shape;
-    elseif update==4 && isfield(hmm_noisy.state(1),'alpha')
+    elseif any(update==4) && isfield(hmm_noisy.state(1),'alpha')
         hmm.state(k).alpha.Gam_rate = (1-rho) * hmm.state(k).alpha.Gam_rate + ...
             rho * hmm_noisy.state(k).alpha.Gam_rate;
         hmm.state(k).alpha.Gam_shape = (1-rho) * hmm.state(k).alpha.Gam_shape + ...
             rho * hmm_noisy.state(k).alpha.Gam_shape;
-    elseif update==5 && isfield(hmm_noisy.state(1),'beta')
+    elseif any(update==5) && isfield(hmm_noisy.state(1),'beta')
         hmm.state(k).beta.Gam_rate = (1-rho) * hmm.state(k).beta.Gam_rate + ...
             rho * hmm_noisy.state(k).beta.Gam_rate;
         hmm.state(k).beta.Gam_shape = (1-rho) * hmm.state(k).beta.Gam_shape + ...
@@ -46,12 +46,12 @@ for k = 1:K
     end
 end
 
-if update==2 && isfield(hmm_noisy,'Omega')
+if any(update==2) && isfield(hmm_noisy,'Omega')
     hmm.Omega.Gam_rate = (1-rho) * hmm.Omega.Gam_rate + ...
         rho * hmm_noisy.Omega.Gam_rate;
     hmm.Omega.Gam_shape = (1-rho) * hmm.Omega.Gam_shape + ...
         rho * hmm_noisy.Omega.Gam_shape;
-    if strcmp(hmm_noisy.train.covtype,'full') || strcmp(hmm_noisy.train.covtype,'uniquefull')
+    if strcmp(hmm_noisy.train.covtype,'uniquefull')
         hmm.Omega.Gam_irate(regressed,regressed) = ...
             inv(hmm.Omega.Gam_rate(regressed,regressed));
     end
