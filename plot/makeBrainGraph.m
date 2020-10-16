@@ -1,8 +1,9 @@
-function graphs = makeBrainGraph(hmm,parcellation_file,maskfile,...
+function graphs = makeBrainGraph(hmm,k,parcellation_file,maskfile,...
     centergraphs,scalegraphs,partialcorr,threshold,outputfile)
 % Project HMM connectomes into brain space for visualisation  
 %
 % hmm: hmm struct as comes out of hmmmar
+% k: which state or states to plot, e.g. 1:4. If left empty, then all of them
 % parcellation_file is either a nifti or a cifti file, containing either a
 %   parcellation or an ICA decomposition
 % maskfile: mask to be used with the right spatial resolution
@@ -27,12 +28,11 @@ function graphs = makeBrainGraph(hmm,parcellation_file,maskfile,...
 %
 % Diego Vidaurre (2020)
 
-if nargin < 4 || isempty(centergraphs), centergraphs = 0; end
-if nargin < 5 || isempty(scalegraphs), scalegraphs = 0; end
-if nargin < 6 || isempty(partialcorr), partialcorr = 0; end
-if nargin < 7 || isempty(threshold), threshold = 0.95; end
-if nargin < 8 || isempty(outputfile), outputfile = []; end
-
+if nargin < 5 || isempty(centergraphs), centergraphs = 0; end
+if nargin < 6 || isempty(scalegraphs), scalegraphs = 0; end
+if nargin < 7 || isempty(partialcorr), partialcorr = 0; end
+if nargin < 8 || isempty(threshold), threshold = 0.95; end
+if nargin < 9 || isempty(outputfile), outputfile = []; end
 
 do_HMM_pca = strcmpi(hmm.train.covtype,'pca');
 if ~do_HMM_pca && ~strcmp(hmm.train.covtype,'full')
@@ -53,6 +53,8 @@ catch
     error('Error with OSL: find_ROI_centres in path?')
 end   
 ndim = size(spatialMap,2); K = length(hmm.state);
+if ~isempty(k), index_k = k; else, index_k = 1:K; end
+
 % compensate the parcels to have comparable weights 
 for j = 1:ndim % iterate through regions : make max value to be 1
     spatialMap(:,j) =  spatialMap(:,j) / max(spatialMap(:,j));
@@ -78,7 +80,8 @@ if scalegraphs
     graphs = graphs ./ repmat(std(graphs,[],3),[1 1 K]);
 end
 
-for k = 1:K
+for ik = 1:length(index_k)
+    k = index_k(ik); 
     C = graphs(:,:,k);
     %c = C(triu(true(ndim),1)==1); c = sort(c); c = c(end-1:-1:1); 
     %th = c(round(length(c)*(1-threshold))); 
@@ -92,6 +95,8 @@ for k = 1:K
     end
     %fig_handle = gcf;
 end
+
+graphs = graphs(:,:,index_k);
 
 end
 

@@ -1,8 +1,9 @@
-function graphs = makeConnectivityCircle(hmm,labels,...
+function graphs = makeConnectivityCircle(hmm,k,labels,...
     centergraphs,scalegraphs,partialcorr,threshold)
 % Plot HMM connectomes in connectivity circle format
 %
 % hmm: hmm struct as comes out of hmmmar
+% k: which state or states to plot, e.g. 1:4. If left empty, then all of them
 % labels : names of the regions
 % centermaps: whether to center the maps according to the across-map average
 % scalemaps: whether to scale the maps so that each voxel has variance
@@ -21,10 +22,10 @@ function graphs = makeConnectivityCircle(hmm,labels,...
 %
 % Diego Vidaurre (2020)
 
-if nargin < 3 || isempty(centergraphs), centergraphs = 0; end
-if nargin < 4 || isempty(scalegraphs), scalegraphs = 0; end
-if nargin < 5 || isempty(partialcorr), partialcorr = 0; end
-if nargin < 6 || isempty(threshold), threshold = 0.95; end
+if nargin < 4 || isempty(centergraphs), centergraphs = 0; end
+if nargin < 5 || isempty(scalegraphs), scalegraphs = 0; end
+if nargin < 6 || isempty(partialcorr), partialcorr = 0; end
+if nargin < 7 || isempty(threshold), threshold = 0.95; end
 
 do_HMM_pca = strcmpi(hmm.train.covtype,'pca');
 if ~do_HMM_pca && ~strcmp(hmm.train.covtype,'full')
@@ -32,13 +33,14 @@ if ~do_HMM_pca && ~strcmp(hmm.train.covtype,'full')
 end
 
 K = length(hmm.state);
+if ~isempty(k), index_k = k; else, index_k = 1:K; end
 if do_HMM_pca
     ndim = size(hmm.state(1).W.Mu_W,1);
 else
     ndim = size(hmm.state(1).Omega.Gam_rate,1);
 end
 
-if nargin < 2 || isempty(labels)
+if nargin < 3 || isempty(labels)
     labels = cell(ndim,1);
     for j = 1:ndim
        labels{j} = ['Parcel ' num2str(j)];
@@ -64,7 +66,8 @@ if scalegraphs
     graphs = graphs ./ repmat(std(graphs,[],3),[1 1 K]);
 end
 
-for k = 1:K
+for ik = 1:length(index_k)
+    k = index_k(ik); 
     C = graphs(:,:,k);
     c = C(triu(true(ndim),1)==1); c = sort(c); c = c(end-1:-1:1);
     th = c(round(length(c)*(1-threshold)));
@@ -77,7 +80,9 @@ for k = 1:K
     end
 end
 
-% end
+graphs = graphs(:,:,index_k);
+
+end
 % 
 % 
 % 
