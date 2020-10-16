@@ -1,8 +1,9 @@
-function graphs = makeSpectralConnectivityCircle(sp_fit,freqindex,type,...
+function graphs = makeSpectralConnectivityCircle(sp_fit,k,freqindex,type,...
     labels,centergraphs,scalegraphs,threshold)
 % Plot spectral connectomes in connectivity circle format
 %
 % sp_fit: spectral fit, from hmmspectramt, hmmspectramar, spectbands or spectdecompose
+% k: which state or states to plot, e.g. 1:4. If left empty, then all of them
 % freqindex: which frequency bin or band to plot; it can be a value or a
 %   range, in which case it will sum across the range.
 %   e.g. 1:20, to integrate the first 20 frequency bins, or, if sp_fit is
@@ -26,17 +27,18 @@ function graphs = makeSpectralConnectivityCircle(sp_fit,freqindex,type,...
 
 if isempty(type), disp('type not specified, using coherence.'); type = 1; end
 
-if nargin < 5 || isempty(centergraphs), centergraphs = 0; end
-if nargin < 6 || isempty(scalegraphs), scalegraphs = 0; end
-if nargin < 7 || isempty(threshold), threshold = 0.95; end
+if nargin < 6 || isempty(centergraphs), centergraphs = 0; end
+if nargin < 7 || isempty(scalegraphs), scalegraphs = 0; end
+if nargin < 8 || isempty(threshold), threshold = 0.95; end
 
 if ~isfield(sp_fit.state(1),'psd')
     error('Input must be a spectral estimation, e.g. from hmmspectramt')
 end
 
 K = length(sp_fit.state); ndim = size(sp_fit.state(1).psd,2);
+if ~isempty(k), index_k = k; else, index_k = 1:K; end
 
-if nargin < 4 || isempty(labels)
+if nargin < 5 || isempty(labels)
     labels = cell(ndim,1);
     for j = 1:ndim
        labels{j} = ['Parcel ' num2str(j)];
@@ -68,7 +70,8 @@ if scalegraphs
     graphs = graphs ./ repmat(std(graphs,[],3),[1 1 K]);
 end
 
-for k = 1:K
+for ik = 1:length(index_k)
+    k = index_k(ik); 
     C = graphs(:,:,k);
     c = C(triu(true(ndim),1)==1); c = sort(c); c = c(end-1:-1:1);
     th = c(round(length(c)*(1-threshold)));
@@ -81,7 +84,9 @@ for k = 1:K
     end
 end
 
-% end
+graphs = graphs(:,:,index_k);
+
+end
 % 
 % 
 % 

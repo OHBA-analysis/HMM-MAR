@@ -1,8 +1,9 @@
-function maps = makeMap(hmm,parcellation_file,maskfile,...
+function maps = makeMap(hmm,k,parcellation_file,maskfile,...
     centermaps,scalemaps,outputfile,wbdir)
 % Project HMM maps into brain space for visualisation 
 %
 % hmm: hmm struct as comes out of hmmmar
+% k: which state or states to plot, e.g. 1:4. If left empty, then all of them
 % parcellation_file is either a nifti or a cifti file, containing either a
 %   parcellation or an ICA decomposition
 % maskfile: if using NIFTI, this is the mask to be used (leave empty when using CIFTIs)
@@ -26,13 +27,13 @@ function maps = makeMap(hmm,parcellation_file,maskfile,...
 %
 % Diego Vidaurre (2020)
 
-if nargin < 4 || isempty(centermaps), centermaps = 0; end
-if nargin < 5 || isempty(scalemaps), scalemaps = 0; end
-if nargin < 6 || isempty(outputfile)
+if nargin < 5 || isempty(centermaps), centermaps = 0; end
+if nargin < 6 || isempty(scalemaps), scalemaps = 0; end
+if nargin < 7 || isempty(outputfile)
     outputfile = './map';
     warning('No output file specified, using "./map"')
 end
-if nargin < 7, wbdir = ''; end
+if nargin < 8, wbdir = ''; end
 
 if strcmp(parcellation_file(end-11:end),'dtseries.nii')
     CIFTI = ciftiopen(parcellation_file,wbdir);
@@ -45,7 +46,9 @@ else
 end
 
 q = size(spatialMap,2); K = length(hmm.state);
+if ~isempty(k), index_k = k; else, index_k = 1:K; end
 % compensate the parcels to have comparable weights 
+
 for j = 1:q % iterate through regions : make max value to be 1
     spatialMap(:,j) =  spatialMap(:,j) / max(spatialMap(:,j));
 end
@@ -80,6 +83,8 @@ end
 if scalemaps
     maps = maps ./ repmat(std(maps,[],2),1,K);
 end
+
+maps = maps(:,index_k);
 
 if strcmp(parcellation_file(end-11:end),'dtseries.nii')
     CIFTI.cdata = maps;

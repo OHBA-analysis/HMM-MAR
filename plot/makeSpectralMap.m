@@ -1,8 +1,9 @@
-function maps = makeSpectralMap(sp_fit,freqindex,parcellation_file,maskfile,...
+function maps = makeSpectralMap(sp_fit,k,freqindex,parcellation_file,maskfile,...
     centermaps,scalemaps,outputfile,wbdir)
 % Make brain maps from spectral power in NIFTI and CIFTI formats  
 %
 % sp_fit: spectral fit, from hmmspectramt, hmmspectramar, spectbands or spectdecompose
+% k: which state or states to plot, e.g. 1:4. If left empty, then all of them
 % freqindex: which frequency bin or band to plot; it can be a value or a
 %   range, in which case it will sum across the range.
 %   e.g. 1:20, to integrate the first 20 frequency bins, or, if sp_fit is
@@ -30,13 +31,13 @@ function maps = makeSpectralMap(sp_fit,freqindex,parcellation_file,maskfile,...
 %
 % Diego Vidaurre (2020)
 
-if nargin < 5 || isempty(centermaps), centermaps = 0; end
-if nargin < 6 || isempty(scalemaps), scalemaps = 0; end
-if nargin < 7 || isempty(outputfile)
+if nargin < 6 || isempty(centermaps), centermaps = 0; end
+if nargin < 7 || isempty(scalemaps), scalemaps = 0; end
+if nargin < 8 || isempty(outputfile)
     outputfile = './map';
     warning('No output file specified, using "./map"')
 end
-if nargin < 8, wbdir = ''; end
+if nargin < 9, wbdir = ''; end
 
 try
     NIFTI = parcellation(parcellation_file);
@@ -50,7 +51,9 @@ if ~isfield(sp_fit.state(1),'psd')
 end
 
 q = size(spatialMap,2); K = length(sp_fit.state);
+if ~isempty(k), index_k = k; else, index_k = 1:K; end
 % compensate the parcels to have comparable weights 
+
 for j = 1:q % iterate through regions : make max value to be 1
     spatialMap(:,j) =  spatialMap(:,j) / max(spatialMap(:,j));
 end
@@ -60,7 +63,7 @@ for k = 1:K
     try
         if isempty(freqindex)
             disp('No frequency range specified, adding all them up.')
-            freqindex = 1:size(sp_fit.state(k).psd,1); 
+            freqindex = 1:size(sp_fit.state(k).psd,1);
         end
         mapsParc(:,k) = diag(permute(sum(sp_fit.state(k).psd(freqindex,:,:),1),[2 3 1]));
     catch
@@ -74,6 +77,8 @@ end
 if scalemaps
     maps = maps ./ repmat(std(maps,[],2),1,K);
 end
+
+maps = maps(:,index_k);
 
 [mask,res,xform] = nii.load(maskfile);
 [directory,~] = fileparts(outputfile);

@@ -1,8 +1,9 @@
-function graphs = makeSpectralGraph(sp_fit,freqindex,type,parcellation_file,...
+function graphs = makeSpectralGraph(sp_fit,k,freqindex,type,parcellation_file,...
     maskfile,centergraphs,scalegraphs,threshold,outputfile)
 % Project spectral connectomes into brain space for visualisation  
 %
 % sp_fit: spectral fit, from hmmspectramt, hmmspectramar, spectbands or spectdecompose
+% k: which state or states to plot, e.g. 1:4. If left empty, then all of them
 % freqindex: which frequency bin or band to plot; it can be a value or a
 %   range, in which case it will sum across the range.
 %   e.g. 1:20, to integrate the first 20 frequency bins, or, if sp_fit is
@@ -32,10 +33,10 @@ function graphs = makeSpectralGraph(sp_fit,freqindex,type,parcellation_file,...
 
 if isempty(type), disp('type not specified, using coherence.'); type = 1; end
 
-if nargin < 6 || isempty(centergraphs), centergraphs = 0; end
-if nargin < 7 || isempty(scalegraphs), scalegraphs = 0; end
-if nargin < 8 || isempty(threshold), threshold = 0.95; end
-if nargin < 9 || isempty(outputfile), outputfile = []; end
+if nargin < 7 || isempty(centergraphs), centergraphs = 0; end
+if nargin < 8 || isempty(scalegraphs), scalegraphs = 0; end
+if nargin < 9 || isempty(threshold), threshold = 0.95; end
+if nargin < 10 || isempty(outputfile), outputfile = []; end
 
 if ~isfield(sp_fit.state(1),'psd')
     error('Input must be a spectral estimation, e.g. from hmmspectramt')
@@ -55,6 +56,8 @@ catch
 end   
 
 ndim = size(spatialMap,2); K = length(sp_fit.state);
+if ~isempty(k), index_k = k; else, index_k = 1:K; end
+
 % compensate the parcels to have comparable weights 
 for j = 1:ndim % iterate through regions : make max value to be 1
     spatialMap(:,j) =  spatialMap(:,j) / max(spatialMap(:,j));
@@ -86,7 +89,8 @@ if scalegraphs
     graphs = graphs ./ repmat(std(graphs,[],3),[1 1 K]);
 end
 
-for k = 1:K
+for ik = 1:length(index_k)
+    k = index_k(ik); 
     C = graphs(:,:,k);
     %c = C(triu(true(ndim),1)==1); c = sort(c); c = c(end-1:-1:1); 
     %th = c(round(length(c)*(1-threshold))); 
@@ -100,6 +104,8 @@ for k = 1:K
     end
     %fig_handle = gcf;
 end
+
+graphs = graphs(:,:,index_k);
 
 end
 
