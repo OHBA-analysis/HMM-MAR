@@ -1,8 +1,14 @@
-function graph = makeBrainGraph(hmm,parcellation_file,maskfile,...
-    centergraphs,scalegraphs,partialcorr,threshold,outputfile)
-% Project HMM connectomes into brain space for visualisation  
+function graph = makeSpectralGraph(sp_fit,freqindex,type,parcellation_file,...
+    maskfile,centergraphs,scalegraphs,threshold,outputfile)
+% Project spectral connectomes into brain space for visualisation  
 %
-% hmm: hmm struct as comes out of hmmmar
+% sp_fit: spectral fit, from hmmspectramt, hmmspectramar, spectbands or spectdecompose
+% freqindex: which frequency bin or band to plot, it can be a value or a
+%   range, in which case it will sum across te range.
+%   e.g. 1:20, to integrate the first 20 frequency bins, or, if sp_fit is
+%   already organised into bands: 2 to plot the second band.
+% type: which connectivity measure to use: 1 for coherence, 2 for pdc, 3
+%   for partial coherence
 % parcellation_file is either a nifti or a cifti file, containing either a
 %   parcellation or an ICA decomposition
 % maskfile: mask to be used with the right spatial resolution
@@ -11,8 +17,6 @@ function graph = makeBrainGraph(hmm,parcellation_file,maskfile,...
 %       (default: 0)
 % scalemaps: whether to scale the maps so that each voxel has variance
 %       equal 1 across maps; (default: 0)
-% partialcorr: whether to use a partial correlation matrix or a correlation
-%   matrix (default: 0)
 % threshold: proportion threshold above which graph connections are
 %       displayed (between 0 and 1, the higher the fewer displayed connections)
 % outputfile: where to put things (do not indicate extension)
@@ -24,40 +28,51 @@ function graph = makeBrainGraph(hmm,parcellation_file,maskfile,...
 %
 % Diego Vidaurre (2020)
 
-if nargin < 4 || isempty(centergraphs), centergraphs = 0; end
-if nargin < 5 || isempty(scalegraphs), scalegraphs = 0; end
-if nargin < 6 || isempty(partialcorr), partialcorr = 0; end
-if nargin < 7 || isempty(threshold), threshold = 0.95; end
-if nargin < 8 || isempty(outputfile), outputfile = []; end
+if isempty(type), disp('type not specified, using coherence.'); type = 1; end
 
+if nargin < 6 || isempty(centergraphs), centergraphs = 0; end
+if nargin < 7 || isempty(scalegraphs), scalegraphs = 0; end
+if nargin < 8 || isempty(threshold), threshold = 0.95; end
+if nargin < 9 || isempty(outputfile), outputfile = []; end
 
-do_HMM_pca = strcmpi(hmm.train.covtype,'pca');
-if ~do_HMM_pca && ~strcmp(hmm.train.covtype,'full')
-    error('Cannot great a brain graph because the states do not contain any functional connectivity')
+if ~isfield(sp_fit.state(1),'psd')
+    error('Input must be a spectral estimation, e.g. from hmmspectramt')
 end
 
-if strcmp(parcellation_file(end-11:end),'dtseries.nii')
-    error('Cannot make a brain graph on surface space right now...')
-elseif ~strcmp(parcellation_file(end-5:end),'nii.gz')
-    error('Incorrect format: parcellation must have dtseries.nii or nii.gz extension')
+try
+    NIFTI = parcellation(parcellation_file);
+    spatialMap = NIFTI.to_matrix(NIFTI.weight_mask); % voxels x components/parcels
+catch
+    error('Incorrect format: parcellation must have nii.gz extension')
 end
 
-NIFTI = parcellation(parcellation_file);
-spatialMap = NIFTI.to_matrix(NIFTI.weight_mask); % voxels x components/parcels
 try
     mni_coords = find_ROI_centres_2(spatialMap, maskfile, 0); % adapted from OSL
 catch
     error('Error with OSL: find_ROI_centres in path?')
 end   
-ndim = size(spatialMap,2); K = length(hmm.state);
+
+ndim = size(spatialMap,2); K = length(sp_fit.state);
 graph = zeros(ndim,ndim,K);
 edgeLims = [4 8]; colorLims = [0.1 1.1]; sphereCols = repmat([30 144 255]/255, ndim, 1);
 
 for k = 1:K
-    if partialcorr
-        [~,~,~,C] = getFuncConn(hmm,k,1);
+    if type==1
+        C = permute(sum(sp_fit.state(k).coh(freqindex,:,:),1),[2 3 1]);
+    elseif type==2
+        try
+            C = permute(sum(sp_fit.state(k).pdc(freqindex,:,:),1),[2 3 1]);
+        catch
+            error('PDC was not estimated so it could not be used')
+        end
+    elseif type==3
+        try
+            C = permute(sum(sp_fit.state(k).pcoh(freqindex,:,:),1),[2 3 1]);
+        catch
+            error('Partial coherence was not estimated so it could not be used')
+        end
     else
-        [~,C] = getFuncConn(hmm,k,1);
+        error('Not a valid value for type')
     end
     C(eye(ndim)==1) = 0;
     graph(:,:,k) = C;

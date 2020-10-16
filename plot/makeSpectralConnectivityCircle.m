@@ -1,14 +1,18 @@
-function graph = makeConnectivityCircle(hmm,labels,...
-    centergraphs,scalegraphs,partialcorr,threshold)
-% Plot HMM connectomes in connectivity circle format
+function graph = makeSpectralConnectivityCircle(sp_fit,freqindex,type,...
+    labels,centergraphs,scalegraphs,threshold)
+% Plot spectral connectomes in connectivity circle format
 %
-% hmm: hmm struct as comes out of hmmmar
+% sp_fit: spectral fit, from hmmspectramt, hmmspectramar, spectbands or spectdecompose
+% freqindex: which frequency bin or band to plot, it can be a value or a
+%   range, in which case it will sum across te range.
+%   e.g. 1:20, to integrate the first 20 frequency bins, or, if sp_fit is
+%   already organised into bands: 2 to plot the second band.
+% type: which connectivity measure to use: 1 for coherence, 2 for pdc, 3
+%   for partial coherence
 % labels : names of the regions
 % centermaps: whether to center the maps according to the across-map average
 % scalemaps: whether to scale the maps so that each voxel has variance
 %       equal 1 across maps
-% partialcorr: whether to use a partial correlation matrix or a correlation
-%   matrix (default: 0)
 % threshold: proportion threshold above which graph connections are
 %       displayed (between 0 and 1, the higher the fewer displayed connections)
 %
@@ -18,24 +22,19 @@ function graph = makeConnectivityCircle(hmm,labels,...
 %
 % Diego Vidaurre (2020)
 
-if nargin < 3 || isempty(centergraphs), centergraphs = 0; end
-if nargin < 4 || isempty(scalegraphs), scalegraphs = 0; end
-if nargin < 5 || isempty(partialcorr), partialcorr = 0; end
-if nargin < 6 || isempty(threshold), threshold = 0.95; end
+if isempty(type), disp('type not specified, using coherence.'); type = 1; end
 
-do_HMM_pca = strcmpi(hmm.train.covtype,'pca');
-if ~do_HMM_pca && ~strcmp(hmm.train.covtype,'full')
-    error('Cannot great a brain graph because the states do not contain any functional connectivity')
+if nargin < 5 || isempty(centergraphs), centergraphs = 0; end
+if nargin < 6 || isempty(scalegraphs), scalegraphs = 0; end
+if nargin < 7 || isempty(threshold), threshold = 0.95; end
+
+if ~isfield(sp_fit.state(1),'psd')
+    error('Input must be a spectral estimation, e.g. from hmmspectramt')
 end
 
-K = length(hmm.state);
-if do_HMM_pca
-    ndim = size(hmm.state(1).W.Mu_W,1);
-else
-    ndim = size(hmm.state(1).Omega.Gam_rate,1);
-end
+K = length(sp_fit.state); ndim = size(sp_fit.state(1).psd,2);
 
-if nargin < 2 || isempty(labels)
+if nargin < 4 || isempty(labels)
     labels = cell(ndim,1);
     for j = 1:ndim
        labels{j} = ['Parcel ' num2str(j)];
@@ -45,10 +44,22 @@ end
 graph = zeros(ndim,ndim,K);
 
 for k = 1:K
-    if partialcorr
-        [~,~,~,C] = getFuncConn(hmm,k,1);
+    if type==1
+        C = permute(sum(sp_fit.state(k).coh(freqindex,:,:),1),[2 3 1]);
+    elseif type==2
+        try
+            C = permute(sum(sp_fit.state(k).pdc(freqindex,:,:),1),[2 3 1]);
+        catch
+            error('PDC was not estimated so it could not be used')
+        end
+    elseif type==3
+        try
+            C = permute(sum(sp_fit.state(k).pcoh(freqindex,:,:),1),[2 3 1]);
+        catch
+            error('Partial coherence was not estimated so it could not be used')
+        end
     else
-        [~,C,] = getFuncConn(hmm,k,1);
+        error('Not a valid value for type')
     end
     C(eye(ndim)==1) = 0;
     graph(:,:,k) = C;
