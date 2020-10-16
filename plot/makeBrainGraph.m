@@ -53,6 +53,11 @@ catch
     error('Error with OSL: find_ROI_centres in path?')
 end   
 ndim = size(spatialMap,2); K = length(hmm.state);
+% compensate the parcels to have comparable weights 
+for j = 1:ndim % iterate through regions : make max value to be 1
+    spatialMap(:,j) =  spatialMap(:,j) / max(spatialMap(:,j));
+end
+
 graphs = zeros(ndim,ndim,K);
 edgeLims = [4 8]; colorLims = [0.1 1.1]; sphereCols = repmat([30 144 255]/255, ndim, 1);
 

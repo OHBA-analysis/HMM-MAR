@@ -50,6 +50,11 @@ if ~isfield(sp_fit.state(1),'psd')
 end
 
 q = size(spatialMap,2); K = length(sp_fit.state);
+% compensate the parcels to have comparable weights 
+for j = 1:q % iterate through regions : make max value to be 1
+    spatialMap(:,j) =  spatialMap(:,j) / max(spatialMap(:,j));
+end
+
 mapsParc = zeros(q,K);
 for k = 1:K
     try

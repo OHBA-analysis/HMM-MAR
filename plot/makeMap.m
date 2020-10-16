@@ -45,6 +45,11 @@ else
 end
 
 q = size(spatialMap,2); K = length(hmm.state);
+% compensate the parcels to have comparable weights 
+for j = 1:q % iterate through regions : make max value to be 1
+    spatialMap(:,j) =  spatialMap(:,j) / max(spatialMap(:,j));
+end
+
 do_HMM_pca = strcmpi(hmm.train.covtype,'pca');
 try
     mapsParc = zeros(q,K);
