@@ -395,63 +395,21 @@ significant_spectra = spectsignificance(tests_spectra,0.01);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%
 %% Get maps in both NIFTI and CIFTI formats
+% here using makeSpectralMap; for a circle plot use makeSpectralConnectivityCircle
 
 workbenchdir = [mydir '/workbench/bin_macosx64']; % set this to yours
-path1 = getenv('PATH');
-if ~contains(path1,workbenchdir)
-    path1 = [path1 ':' workbenchdir];
-    setenv('PATH', path1);
-end
-
 maskfile = [codedir '/std_masks/MNI152_T1_8mm_brain'];
 parcdir = [codedir '/parcellations'];
 parcfile = [parcdir '/fmri_d100_parcellation_with_3PCC_ips_reduced_2mm_ss5mm_ds8mm_adj.nii.gz'];
 
-spatialMap = parcellation(parcfile);
-spatialMap = spatialMap.to_matrix(spatialMap.weight_mask);
-
-% compensate the parcels to have comparable weights 
-for j=1:size(spatialMap,2) % iterate through regions : make max value to be 1
-    spatialMap(:,j) =  spatialMap(:,j) / max(spatialMap(:,j));
-end
-
 % Wideband
 mapfile = [mapsdir '/state_maps_wideband'];
-map = zeros(size(spatialMap,1),length(fitmt_group_fact_wb.state));
-for k = 1:12
-    psd = diag(squeeze(fitmt_group_fact_wb.state(k).psd(1,:,:)));
-    map(:,k) = spatialMap * psd;
-end
-[mask,res,xform] = nii.load(maskfile);
-nii.save(matrix2vols(map,mask),res,xform,mapfile);
-osl_render4D([mapfile '.nii.gz'],'savedir','weighted_maps/',...
-    'interptype','trilinear','visualise',false)
-% centered by voxel across states
-mapfile = [mapsdir '/state_maps_wideband_centered'];
-map = map - repmat(mean(map,2),1,size(map,2));
-nii.save(matrix2vols(map,mask),res,xform,mapfile);
-osl_render4D([mapfile '.nii.gz'],'savedir','weighted_maps/',...
-    'interptype','trilinear','visualise',false)
-
+maps = makeSpectralMap(fitmt_group_fact_wb,1,parcfile,maskfile,1,0,mapfile,workbenchdir);
 % Per frequency band
 for fr = 1:3
     mapfile = [mapsdir '/state_maps_band' num2str(fr)];
-    map = zeros(size(spatialMap,1),length(fitmt_group_fact_4b.state));
-    for k = 1:12
-        psd = diag(squeeze(fitmt_group_fact_4b.state(k).psd(fr,:,:)));
-        map(:,k) = spatialMap * psd;
-    end
-    nii.save(matrix2vols(map,mask),res,xform,mapfile);
-    osl_render4D([mapfile '.nii.gz'],'savedir','weighted_maps/',...
-        'interptype','trilinear','visualise',false)
-    % centered by voxel across states
-    mapfile = [mapsdir '/state_maps_band' num2str(fr) '_centered'];
-    map = map - repmat(mean(map,2),1,size(map,2));
-    nii.save(matrix2vols(map,mask),res,xform,mapfile);
-    osl_render4D([mapfile '.nii.gz'],'savedir','weighted_maps/',...
-        'interptype','trilinear','visualise',false)
+    maps = makeSpectralMap(fitmt_group_fact_4b,fr,parcfile,maskfile,1,0,mapfile,workbenchdir);
 end
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%
 %% compute state life times, state interval times, 
