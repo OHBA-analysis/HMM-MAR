@@ -223,7 +223,7 @@ for icv = 1:NCV
                 Xtest2 = reshape(X(:,c.test{icv},:),[ttrial*length(c.test{icv}),p]);
                 Tte = T(c.test{icv});
                 mGammatest = squeeze(repmat(mean(reshape(Gammatrain,[ttrial Ntr K]),2),[Nte,1]));
-                [Y_test_MLE,Y_test_LL] = LDApredict(LDAmodel{icv},mGammatest,Xtest2,classification,var(Ytrain(:,1))==0);
+                [Y_test_MLE,Y_test_LL] = LDApredict_optimised(LDAmodel{icv},mGammatest,Xtest2,classification,var(Ytrain(:,1))==0);
                 if classification % use soft probabilities:
                     %Y_test_MLE = exp(Y_test_LL - repmat(max(Y_test_LL,[],2),1,K));
                     %Y_test_MLE = rdiv(Y_test_MLE,sum(Y_test_MLE,2));

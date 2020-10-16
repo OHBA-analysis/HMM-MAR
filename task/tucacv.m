@@ -12,7 +12,7 @@ if nargout>6
     q = size(Y,2);
     Ycopy = reshape(Y,[T(1),length(T),q]);
     for iF=1:size(acc_star,3)
-        LL = Ycopy.*log(Ypred(:,:,:,iF));
+        LL = Ycopy.*log(Ypred_star(:,:,:,iF));
         expLL(:,:,iF) = mean(sum(LL,3),2);
 
         Ypreds = Ypred_star(:,:,:,iF);
