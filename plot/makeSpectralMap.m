@@ -3,8 +3,8 @@ function maps = makeSpectralMap(sp_fit,freqindex,parcellation_file,maskfile,...
 % Make brain maps from spectral power in NIFTI and CIFTI formats  
 %
 % sp_fit: spectral fit, from hmmspectramt, hmmspectramar, spectbands or spectdecompose
-% freqindex: which frequency bin or band to plot, it can be a value or a
-%   range, in which case it will sum across te range.
+% freqindex: which frequency bin or band to plot; it can be a value or a
+%   range, in which case it will sum across the range.
 %   e.g. 1:20, to integrate the first 20 frequency bins, or, if sp_fit is
 %   already organised into bands: 2 to plot the second band.
 %   By default, it sumes across all frequency bins or bands
@@ -20,6 +20,9 @@ function maps = makeSpectralMap(sp_fit,freqindex,parcellation_file,maskfile,...
 % wbdir: HCP workbench directory, if you want to create a CIFTI
 %    from the volumetric file; if not, provide empty)
 %   e.g. '/Applications/workbench/bin_macosx64'
+%
+% OUTPUT
+% maps: (voxels by states) matrix with the projected maps
 %
 % Notes:
 % if parcellation is a cifti, need to have HCPpipelines/global in path

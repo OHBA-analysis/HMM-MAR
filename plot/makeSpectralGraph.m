@@ -1,14 +1,13 @@
-function graph = makeSpectralGraph(sp_fit,freqindex,type,parcellation_file,...
+function graphs = makeSpectralGraph(sp_fit,freqindex,type,parcellation_file,...
     maskfile,centergraphs,scalegraphs,threshold,outputfile)
 % Project spectral connectomes into brain space for visualisation  
 %
 % sp_fit: spectral fit, from hmmspectramt, hmmspectramar, spectbands or spectdecompose
-% freqindex: which frequency bin or band to plot, it can be a value or a
-%   range, in which case it will sum across te range.
+% freqindex: which frequency bin or band to plot; it can be a value or a
+%   range, in which case it will sum across the range.
 %   e.g. 1:20, to integrate the first 20 frequency bins, or, if sp_fit is
 %   already organised into bands: 2 to plot the second band.
-% type: which connectivity measure to use: 1 for coherence, 2 for pdc, 3
-%   for partial coherence
+% type: which connectivity measure to use: 1 for coherence, 2 for partial coherence
 % parcellation_file is either a nifti or a cifti file, containing either a
 %   parcellation or an ICA decomposition
 % maskfile: mask to be used with the right spatial resolution
@@ -23,6 +22,9 @@ function graph = makeSpectralGraph(sp_fit,freqindex,type,parcellation_file,...
 %   e.g. 'my_directory/maps'
 % maskfile: if using NIFTI, mask to be used 
 %   e.g. 'std_masks/MNI152_T1_2mm_brain'
+%
+% OUTPUT:
+% graph: (voxels by voxels by state) array with the estimated connectivity maps
 %
 % Notes: need to have OSL in path
 %
@@ -53,19 +55,13 @@ catch
 end   
 
 ndim = size(spatialMap,2); K = length(sp_fit.state);
-graph = zeros(ndim,ndim,K);
+graphs = zeros(ndim,ndim,K);
 edgeLims = [4 8]; colorLims = [0.1 1.1]; sphereCols = repmat([30 144 255]/255, ndim, 1);
 
 for k = 1:K
     if type==1
         C = permute(sum(sp_fit.state(k).coh(freqindex,:,:),1),[2 3 1]);
     elseif type==2
-        try
-            C = permute(sum(sp_fit.state(k).pdc(freqindex,:,:),1),[2 3 1]);
-        catch
-            error('PDC was not estimated so it could not be used')
-        end
-    elseif type==3
         try
             C = permute(sum(sp_fit.state(k).pcoh(freqindex,:,:),1),[2 3 1]);
         catch
@@ -75,18 +71,18 @@ for k = 1:K
         error('Not a valid value for type')
     end
     C(eye(ndim)==1) = 0;
-    graph(:,:,k) = C;
+    graphs(:,:,k) = C;
 end
 
 if centergraphs
-    graph = graph - repmat(mean(graph,3),[1 1 K]);
+    graphs = graphs - repmat(mean(graphs,3),[1 1 K]);
 end
 if scalegraphs
-    graph = graph ./ repmat(std(graph,[],3),[1 1 K]);
+    graphs = graphs ./ repmat(std(graphs,[],3),[1 1 K]);
 end
 
 for k = 1:K
-    C = graph(:,:,k);
+    C = graphs(:,:,k);
     %c = C(triu(true(ndim),1)==1); c = sort(c); c = c(end-1:-1:1); 
     %th = c(round(length(c)*(1-threshold))); 
     %C(C<th) = NaN; 

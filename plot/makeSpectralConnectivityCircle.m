@@ -1,20 +1,22 @@
-function graph = makeSpectralConnectivityCircle(sp_fit,freqindex,type,...
+function graphs = makeSpectralConnectivityCircle(sp_fit,freqindex,type,...
     labels,centergraphs,scalegraphs,threshold)
 % Plot spectral connectomes in connectivity circle format
 %
 % sp_fit: spectral fit, from hmmspectramt, hmmspectramar, spectbands or spectdecompose
-% freqindex: which frequency bin or band to plot, it can be a value or a
-%   range, in which case it will sum across te range.
+% freqindex: which frequency bin or band to plot; it can be a value or a
+%   range, in which case it will sum across the range.
 %   e.g. 1:20, to integrate the first 20 frequency bins, or, if sp_fit is
 %   already organised into bands: 2 to plot the second band.
-% type: which connectivity measure to use: 1 for coherence, 2 for pdc, 3
-%   for partial coherence
+% type: which connectivity measure to use: 1 for coherence, 2 for partial coherence
 % labels : names of the regions
 % centermaps: whether to center the maps according to the across-map average
 % scalemaps: whether to scale the maps so that each voxel has variance
 %       equal 1 across maps
 % threshold: proportion threshold above which graph connections are
 %       displayed (between 0 and 1, the higher the fewer displayed connections)
+%
+% OUTPUT:
+% graph: (regions by regions by state) array with the estimated connectivity maps
 %
 % Notes:
 % It needs the circularGraph toolbox from Matlab in the path: 
@@ -41,18 +43,12 @@ if nargin < 4 || isempty(labels)
     end
 end
 
-graph = zeros(ndim,ndim,K);
+graphs = zeros(ndim,ndim,K);
 
 for k = 1:K
     if type==1
         C = permute(sum(sp_fit.state(k).coh(freqindex,:,:),1),[2 3 1]);
     elseif type==2
-        try
-            C = permute(sum(sp_fit.state(k).pdc(freqindex,:,:),1),[2 3 1]);
-        catch
-            error('PDC was not estimated so it could not be used')
-        end
-    elseif type==3
         try
             C = permute(sum(sp_fit.state(k).pcoh(freqindex,:,:),1),[2 3 1]);
         catch
@@ -62,18 +58,18 @@ for k = 1:K
         error('Not a valid value for type')
     end
     C(eye(ndim)==1) = 0;
-    graph(:,:,k) = C;
+    graphs(:,:,k) = C;
 end
 
 if centergraphs
-    graph = graph - repmat(mean(graph,3),[1 1 K]);
+    graphs = graphs - repmat(mean(graphs,3),[1 1 K]);
 end
 if scalegraphs
-    graph = graph ./ repmat(std(graph,[],3),[1 1 K]);
+    graphs = graphs ./ repmat(std(graphs,[],3),[1 1 K]);
 end
 
 for k = 1:K
-    C = graph(:,:,k);
+    C = graphs(:,:,k);
     c = C(triu(true(ndim),1)==1); c = sort(c); c = c(end-1:-1:1);
     th = c(round(length(c)*(1-threshold)));
     C(C<th) = 0;

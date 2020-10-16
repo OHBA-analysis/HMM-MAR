@@ -1,4 +1,4 @@
-function graph = makeConnectivityCircle(hmm,labels,...
+function graphs = makeConnectivityCircle(hmm,labels,...
     centergraphs,scalegraphs,partialcorr,threshold)
 % Plot HMM connectomes in connectivity circle format
 %
@@ -11,6 +11,9 @@ function graph = makeConnectivityCircle(hmm,labels,...
 %   matrix (default: 0)
 % threshold: proportion threshold above which graph connections are
 %       displayed (between 0 and 1, the higher the fewer displayed connections)
+%
+% OUTPUT:
+% graph: (regions by regions by state) array with the estimated connectivity maps
 %
 % Notes:
 % It needs the circularGraph toolbox from Matlab in the path: 
@@ -42,7 +45,7 @@ if nargin < 2 || isempty(labels)
     end
 end
 
-graph = zeros(ndim,ndim,K);
+graphs = zeros(ndim,ndim,K);
 
 for k = 1:K
     if partialcorr
@@ -51,18 +54,18 @@ for k = 1:K
         [~,C,] = getFuncConn(hmm,k,1);
     end
     C(eye(ndim)==1) = 0;
-    graph(:,:,k) = C;
+    graphs(:,:,k) = C;
 end
 
 if centergraphs
-    graph = graph - repmat(mean(graph,3),[1 1 K]);
+    graphs = graphs - repmat(mean(graphs,3),[1 1 K]);
 end
 if scalegraphs
-    graph = graph ./ repmat(std(graph,[],3),[1 1 K]);
+    graphs = graphs ./ repmat(std(graphs,[],3),[1 1 K]);
 end
 
 for k = 1:K
-    C = graph(:,:,k);
+    C = graphs(:,:,k);
     c = C(triu(true(ndim),1)==1); c = sort(c); c = c(end-1:-1:1);
     th = c(round(length(c)*(1-threshold)));
     C(C<th) = 0;

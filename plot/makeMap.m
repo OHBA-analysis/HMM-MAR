@@ -17,6 +17,9 @@ function maps = makeMap(hmm,parcellation_file,maskfile,...
 %     or want to create a CIFTI from the volumetric file; if not, provide empty)
 %   e.g. '/Applications/workbench/bin_macosx64'
 %
+% OUTPUT
+% maps: (voxels by states) matrix with the projected maps
+%
 % Notes:
 % if parcellation is a cifti, need to have HCPpipelines/global in path
 % if parcellation is a nifti, need to have OSL in path

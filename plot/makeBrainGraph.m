@@ -1,4 +1,4 @@
-function graph = makeBrainGraph(hmm,parcellation_file,maskfile,...
+function graphs = makeBrainGraph(hmm,parcellation_file,maskfile,...
     centergraphs,scalegraphs,partialcorr,threshold,outputfile)
 % Project HMM connectomes into brain space for visualisation  
 %
@@ -19,6 +19,9 @@ function graph = makeBrainGraph(hmm,parcellation_file,maskfile,...
 %   e.g. 'my_directory/maps'
 % maskfile: if using NIFTI, mask to be used 
 %   e.g. 'std_masks/MNI152_T1_2mm_brain'
+%
+% OUTPUT:
+% graph: (voxels by voxels by state) array with the estimated connectivity maps
 %
 % Notes: need to have OSL in path
 %
@@ -50,7 +53,7 @@ catch
     error('Error with OSL: find_ROI_centres in path?')
 end   
 ndim = size(spatialMap,2); K = length(hmm.state);
-graph = zeros(ndim,ndim,K);
+graphs = zeros(ndim,ndim,K);
 edgeLims = [4 8]; colorLims = [0.1 1.1]; sphereCols = repmat([30 144 255]/255, ndim, 1);
 
 for k = 1:K
@@ -60,18 +63,18 @@ for k = 1:K
         [~,C] = getFuncConn(hmm,k,1);
     end
     C(eye(ndim)==1) = 0;
-    graph(:,:,k) = C;
+    graphs(:,:,k) = C;
 end
 
 if centergraphs
-    graph = graph - repmat(mean(graph,3),[1 1 K]);
+    graphs = graphs - repmat(mean(graphs,3),[1 1 K]);
 end
 if scalegraphs
-    graph = graph ./ repmat(std(graph,[],3),[1 1 K]);
+    graphs = graphs ./ repmat(std(graphs,[],3),[1 1 K]);
 end
 
 for k = 1:K
-    C = graph(:,:,k);
+    C = graphs(:,:,k);
     %c = C(triu(true(ndim),1)==1); c = sort(c); c = c(end-1:-1:1); 
     %th = c(round(length(c)*(1-threshold))); 
     %C(C<th) = NaN; 
