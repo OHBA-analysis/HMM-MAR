@@ -37,7 +37,9 @@ if ~isempty(k), index_k = k; else, index_k = 1:K; end
 if do_HMM_pca
     ndim = size(hmm.state(1).W.Mu_W,1);
 else
-    ndim = size(hmm.state(1).Omega.Gam_rate,1);
+    if isfield(hmm.train,'A'), ndim = size(hmm.train.A,1);
+    else, ndim = size(hmm.state(1).Omega.Gam_rate,1);
+    end
 end
 
 if nargin < 3 || isempty(labels)

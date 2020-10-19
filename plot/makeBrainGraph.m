@@ -61,7 +61,8 @@ for j = 1:ndim % iterate through regions : make max value to be 1
 end
 
 graphs = zeros(ndim,ndim,K);
-edgeLims = [4 8]; colorLims = [0.1 1.1]; sphereCols = repmat([30 144 255]/255, ndim, 1);
+edgeLims = [4 8]; colorLims = [0.1 1.1]; 
+sphereCols = repmat([30 144 255]/255, ndim, 1);
 
 for k = 1:K
     if partialcorr

@@ -35,7 +35,8 @@ if nargin < 5, options = struct(); end
 if nargin < 4, Gamma = []; end
 if nargin < 3, hmm = []; end
 
-MLestimation = isempty(hmm) || ~isfield(hmm.state(1),'W') || isempty(hmm.state(1).W.Mu_W);
+MLestimation = isempty(hmm) || isfield(hmm.train,'A') || ...
+    ~isfield(hmm.state(1),'W') || isempty(hmm.state(1).W.Mu_W);
 
 if MLestimation && ~isempty(options) && isempty(Gamma) && options.K==1
     Gamma = ones(size(data,1),1);
@@ -241,7 +242,6 @@ for j=1:NN
         end
         hmm = mlhmmmar(Xj,Tj,hmm0,Gammaj,options.completelags);
     end
-    
     for k = 1:K
         setstateoptions;
         W = zeros(length(orders),ndim,ndim);
