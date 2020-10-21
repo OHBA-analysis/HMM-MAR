@@ -102,7 +102,17 @@ if stochastic_learning
         warning(['BIGNbatch needs to be > 0. Setting to ' num2str(new_BIGNbatch) ])
         options.BIGNbatch = new_BIGNbatch;
     end 
-    if ~isfield(options,'BIGNinitbatch'), options.BIGNinitbatch = options.BIGNbatch; end
+    if ~isfield(options,'BIGNinit') || isempty(options.BIGNinit) 
+        if ~isfield(options,'BIGNinitbatch') || isempty(options.BIGNinitbatch) 
+            options.BIGNinitbatch = options.BIGNbatch; 
+        end
+        options.BIGNinit = round(length(T)/options.BIGNinitbatch);
+    else
+        if isfield(options,'BIGNinitbatch') && ~isempty(options.BIGNinitbatch)
+            warning('Both BIGNinit and BIGNinitbatch were specified. Ignoring BIGNinitbatch')
+        end
+        options.BIGNinitbatch = [];
+    end 
     if ~isfield(options,'BIGprior'), options.BIGprior = []; end
     if ~isfield(options,'BIGcyc'), options.BIGcyc = 200; end
     if ~isfield(options,'BIGmincyc'), options.BIGmincyc = 10; end
