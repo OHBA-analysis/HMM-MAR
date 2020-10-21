@@ -75,5 +75,7 @@ end
 if ~isfield(hmm.train,'Gamma_constraint')
     hmm.train.Gamma_constraint = [];
 end
-
+if ~isfield(hmm.train,'additiveHMM')
+    hmm.train.additiveHMM = 0;
+end
 end

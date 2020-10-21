@@ -36,7 +36,7 @@ end
 if nargin < 8, wbdir = ''; end
 
 if strcmp(parcellation_file(end-11:end),'dtseries.nii')
-    CIFTI = ciftiopen(parcellation_file,wbdir);
+    CIFTI = ciftiopen(parcellation_file,[wbdir '/wb_command']);
     spatialMap = CIFTI.cdata; % vertices x components/parcels
 elseif strcmp(parcellation_file(end-5:end),'nii.gz')
     NIFTI = parcellation(parcellation_file);
@@ -88,7 +88,7 @@ maps = maps(:,index_k);
 
 if strcmp(parcellation_file(end-11:end),'dtseries.nii')
     CIFTI.cdata = maps;
-    ciftisave(CIFTI,[outputfile '.dtseries.nii'],wbdir);
+    ciftisave(CIFTI,[outputfile '.dtseries.nii'],[wbdir '/wb_command']);
 else
     [mask,res,xform] = nii.load(maskfile);
     [directory,~] = fileparts(outputfile);

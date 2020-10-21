@@ -1,12 +1,13 @@
-function hmm = updateSigma(hmm)
+function hmm = updateSigma(hmm,rangeK)
 
-K = length(hmm.state); ndim = hmm.train.ndim;
+K = hmm.K; ndim = hmm.train.ndim;
+if nargin < 2 || isempty(rangeK), rangeK = 1:K; end
 if isfield(hmm.train,'B'), Q = size(hmm.train.B,2);
 else Q = ndim; end
 if Q==1, return; end
 
 setstateoptions;
-for k=1:K
+for k = rangeK
     if ~hmm.train.active(k), continue; end
     if isempty(orders) || train.uniqueAR || ~isempty(train.prior), continue; end
     %shape
@@ -42,7 +43,7 @@ for k=1:K
     end
     % cov(W)
     if strcmp(train.covtype,'full') || strcmp(train.covtype,'uniquefull')
-        for n1=1:Q
+        for n1 = 1:Q
             if any(S(n1,:)==1)
                 for n2=find(S(n1,:)==1)
                     if train.symmetricprior && n1>n2
@@ -69,7 +70,7 @@ for k=1:K
         end
 
     else
-        for n1=1:Q
+        for n1 = 1:Q
             if any(S(n1,:)==1)
                 for n2=find(S(n1,:)==1)
                     if train.symmetricprior && n1>n2

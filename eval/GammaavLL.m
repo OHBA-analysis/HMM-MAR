@@ -7,9 +7,9 @@ function avLL = GammaavLL(hmm,Gamma,Xi,T)
 %     Q = 1;
 % end
 Q = 1;
-N = length(T);
+N = length(T); K = hmm.K;
 order = (sum(T) - size(Gamma,1))/N;
-avLL = 0; K = size(Gamma,2);
+avLL = 0; 
 do_clustering = isfield(hmm.train,'cluster') && hmm.train.cluster;    
 
 % avLL initial state % DEPRECATED
@@ -30,8 +30,7 @@ do_clustering = isfield(hmm.train,'cluster') && hmm.train.cluster;
 %     end
 % end
 
-if ~isempty(Xi) && ~do_clustering % a proper HMM
-    
+if ~isempty(Xi) && ~do_clustering % a proper HMM   
     jj = zeros(N,1); % reference to first time point of the segments
     for in = 1:N
         jj(in) = sum(T(1:in-1)) - order*(in-1) + 1;
@@ -63,21 +62,17 @@ if ~isempty(Xi) && ~do_clustering % a proper HMM
                 else
                     for n = ii
                         t = (1:T(n)-1-order) + sum(T(1:n-1)) - (order+1)*(n-1) ;
-                        avLL = avLL + sum(Xi(t,l,k)) * ...
-                            (psi(hmm.Dir2d_alpha(l,k,i))-PsiDir2d_alphasum(l));
+                        avLL = avLL + sum(Xi(t,l,k)) * (psi(hmm.Dir2d_alpha(l,k,i))-PsiDir2d_alphasum(l));
                     end
                 end
             end
         end
     end
-    
 else % Simple mixture of distributions
-    
     PsiDir_alphasum = psi(sum(hmm.Dir_alpha));
     for k = 1:K
         avLL = avLL + sum(Gamma(:,k)) * (psi(hmm.Dir_alpha(k)) - PsiDir_alphasum);
     end
-    
 end
 
 end

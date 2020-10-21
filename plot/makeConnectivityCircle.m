@@ -45,7 +45,11 @@ end
 if nargin < 3 || isempty(labels)
     labels = cell(ndim,1);
     for j = 1:ndim
-       labels{j} = ['Parcel ' num2str(j)];
+        if ndim < 200
+            labels{j} = ['Parcel ' num2str(j)];
+        else
+            labels{j} = num2str(j);
+        end
     end
 end
 

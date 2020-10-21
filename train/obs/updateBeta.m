@@ -1,9 +1,10 @@
-function hmm = updateBeta(hmm)
+function hmm = updateBeta(hmm,rangeK)
 
-K = length(hmm.state); ndim = hmm.train.ndim;
+K = hmm.K; ndim = hmm.train.ndim;
+if nargin < 2 || isempty(rangeK), rangeK = 1:K; end
 M = hmm.train.pcapred;
 
-for k = 1:K
+for k = rangeK
     if ~hmm.train.active(k), continue; end
     setstateoptions;
     

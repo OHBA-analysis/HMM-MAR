@@ -144,7 +144,9 @@ if preproc % Adjust the data if necessary
 end
 
 if type==0
-   [Path,~,Xi] = hsinference(data,T,hmm,residuals); 
+   if nargout == 1, Path = hsinference(data,T,hmm,residuals);
+   else, [Path,~,Xi] = hsinference(data,T,hmm,residuals); 
+   end
    return
 end
 

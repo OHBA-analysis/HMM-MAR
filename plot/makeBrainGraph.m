@@ -39,36 +39,17 @@ if ~do_HMM_pca && ~strcmp(hmm.train.covtype,'full')
     error('Cannot great a brain graph because the states do not contain any functional connectivity')
 end
 
-if strcmp(parcellation_file(end-11:end),'dtseries.nii')
-    error('Cannot make a brain graph on surface space right now...')
-elseif ~strcmp(parcellation_file(end-5:end),'nii.gz')
-    error('Incorrect format: parcellation must have dtseries.nii or nii.gz extension')
-end
-
-NIFTI = parcellation(parcellation_file);
-spatialMap = NIFTI.to_matrix(NIFTI.weight_mask); % voxels x components/parcels
-try
-    mni_coords = find_ROI_centres_2(spatialMap, maskfile, 0); % adapted from OSL
-catch
-    error('Error with OSL: find_ROI_centres in path?')
-end   
-ndim = size(spatialMap,2); K = length(hmm.state);
-if ~isempty(k), index_k = k; else, index_k = 1:K; end
-
-% compensate the parcels to have comparable weights 
-for j = 1:ndim % iterate through regions : make max value to be 1
-    spatialMap(:,j) =  spatialMap(:,j) / max(spatialMap(:,j));
-end
-
-graphs = zeros(ndim,ndim,K);
-edgeLims = [4 8]; colorLims = [0.1 1.1]; 
-sphereCols = repmat([30 144 255]/255, ndim, 1);
+K = length(hmm.state); if ~isempty(k), index_k = k; else, index_k = 1:K; end
 
 for k = 1:K
     if partialcorr
         [~,~,~,C] = getFuncConn(hmm,k,1);
     else
         [~,C] = getFuncConn(hmm,k,1);
+    end
+    if k == 1
+       ndim = size(C,1);
+       graphs = zeros(ndim,ndim,K);
     end
     C(eye(ndim)==1) = 0;
     graphs(:,:,k) = C;
@@ -81,18 +62,54 @@ if scalegraphs
     graphs = graphs ./ repmat(std(graphs,[],3),[1 1 K]);
 end
 
+if strcmp(parcellation_file(end-11:end),'dtseries.nii')
+    disp('Cannot make a brain graph on surface space.')
+    disp('Map the parcellation to volumetric space first using parc_surf2vol()')
+    return
+elseif ~strcmp(parcellation_file(end-5:end),'nii.gz')
+    error('Incorrect format: parcellation must have nii.gz extension')
+end
+
+NIFTI = parcellation(parcellation_file);
+spatialMap = NIFTI.to_matrix(NIFTI.weight_mask); % voxels x components/parcels
+
+% compensate the parcels to have comparable weights 
+for j = 1:ndim % iterate through regions : make max value to be 1
+    spatialMap(:,j) =  spatialMap(:,j) / max(spatialMap(:,j));
+end
+
+try
+    mni_coords = find_ROI_centres_2(spatialMap, maskfile, 0); % adapted from OSL
+catch
+    error('Error finding ROI centres: wrong mask?')
+end
+
+edgeLims = [4 8]; 
+sphereCols = repmat([30 144 255]/255, ndim, 1);
+
 for ik = 1:length(index_k)
     k = index_k(ik); 
     C = graphs(:,:,k);
     %c = C(triu(true(ndim),1)==1); c = sort(c); c = c(end-1:-1:1); 
     %th = c(round(length(c)*(1-threshold))); 
     %C(C<th) = NaN; 
-    figure(k+100);
-    osl_braingraph(C, colorLims, repmat(0.5,ndim,1), [0.1 1.1], mni_coords, ...
+    figure(k+100); m = max(abs(C(:)));
+    colorLims = [-0.9*m 0.9*m];
+    osl_braingraph(C, colorLims, repmat(0.2,ndim,1), [0.1 1.1], mni_coords, ...
         [], 100*threshold, sphereCols, edgeLims);
-    colorbar off
+    %colorbar off
     if ~isempty(outputfile)
-        saveas(gcf,[outputfile '_' num2str(k) '.png'])
+        view(0,80);
+        saveas(gcf,[outputfile '_' num2str(k) '_TOP.png'])
+        view(60,-20);
+        saveas(gcf,[outputfile '_' num2str(k) '_RIGHT.png'])
+        view(-60,-20);
+        saveas(gcf,[outputfile '_' num2str(k) '_LEFT.png'])
+        view(0,0);
+        saveas(gcf,[outputfile '_' num2str(k) '_BACK.png'])        
+        view(180,0);
+        saveas(gcf,[outputfile '_' num2str(k) '_FRONT.png'])        
+        close(k+100)
     end
     %fig_handle = gcf;
 end
@@ -128,4 +145,6 @@ for iParcel = nParcels:-1:1
     coords(iParcel, :) = CoM;
 end
 end
+
+
 

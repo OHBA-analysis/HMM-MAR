@@ -1,5 +1,6 @@
 options = rmfield(options,'BIGNbatch');
 if isfield(options,'BIGNinitbatch'),  options = rmfield(options,'BIGNinitbatch'); end
+if isfield(options,'BIGNinit'),  options = rmfield(options,'BIGNinit'); end
 if isfield(options,'BIGtol'),  options = rmfield(options,'BIGtol'); end 
 if isfield(options,'BIGcyc'),  options = rmfield(options,'BIGcyc'); end 
 if isfield(options,'BIGprior'),  options = rmfield(options,'BIGprior'); end
