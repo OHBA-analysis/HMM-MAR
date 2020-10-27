@@ -223,14 +223,13 @@ for icv = 1:NCV
                 Xtest2 = reshape(X(:,c.test{icv},:),[ttrial*length(c.test{icv}),p]);
                 Tte = T(c.test{icv});
                 mGammatest = squeeze(repmat(mean(reshape(Gammatrain,[ttrial Ntr K]),2),[Nte,1]));
-                [Y_test_MLE,Y_test_LL] = LDApredict_optimised(LDAmodel{icv},mGammatest,Xtest2,classification,var(Ytrain(:,1))==0);
+                Y_test_MLE = LDApredict(LDAmodel{icv},mGammatest,Xtest2,classification,var(Ytrain(:,1))==0);
                 if classification % use soft probabilities:
                     %Y_test_MLE = exp(Y_test_LL - repmat(max(Y_test_LL,[],2),1,K));
                     %Y_test_MLE = rdiv(Y_test_MLE,sum(Y_test_MLE,2));
                 end
                 if q_star>q,Y_test_MLE = [ones(sum(Tte),1),Y_test_MLE];end
                 Gammapred(:,c.test{icv},:,iFitMethod) = reshape(tudadecode(Xtest2,Y_test_MLE,Tte,tuda),[ttrial Nte K]);
-            
         end
     end
     if verbose
@@ -252,9 +251,13 @@ for iFitMethod = 1:nCVm
         Gammatest = reshape(Gammapred(:,c.test{icv},:,iFitMethod),[ttrial*Nte K]);
         if strcmp(classifier,'LDA')
             [predictions,predictions_soft] = LDApredict(LDAmodel{icv},Gammatest,Xtest,classification,var(Ytrain(:,1))==0);
-            predictions_soft = exp(predictions_soft - repmat(max(predictions_soft,[],2),1,q));
-            predictions_soft = rdiv(predictions_soft,sum(predictions_soft,2)); 
-            Ypred(:,c.test{icv},:,iFitMethod) = reshape(predictions_soft,[ttrial Nte q]);
+            if classification
+                predictions_soft = exp(predictions_soft - repmat(max(predictions_soft,[],2),1,q));
+                predictions_soft = rdiv(predictions_soft,sum(predictions_soft,2)); 
+                Ypred(:,c.test{icv},:,iFitMethod) = reshape(predictions_soft,[ttrial Nte q]);
+            else
+                Ypred(:,c.test{icv},:,iFitMethod) = reshape(predictions,[ttrial Nte q]);
+            end
         else 
             for k = 1:K
                 sGamma = repmat(Gammatest(:,k),[1 q_star]);
@@ -274,7 +277,7 @@ if strcmp(options.distribution,'logistic')
         Ypred = Ypredtemp;
     end
 end
-acc_Gamma = zeros(K,nCVm);
+%acc_Gamma = zeros(K,nCVm);
 for iFitMethod = 1:nCVm
     if classification
         Y = reshape(Ycopy,[ttrial*N q]);
@@ -306,41 +309,32 @@ for iFitMethod = 1:nCVm
             end
         end    
     else
-        acc_Gamma = zeros(K,q,nCVm);
         Y = reshape(Ycopy,[ttrial*N q]);
         Ypred_star_temp =  reshape(Ypred(:,:,:,iFitMethod), [ttrial*N q]); 
         Ypred_temp = permute( mean(Ypred(:,:,:,iFitMethod),1) ,[2 3 1]);
-        if strcmp(accuracyType,'COD')
-            % acc is explained variance 
-            acc_temp = 1 - sum( (Y - Ypred_star_temp).^2 ) ./ sum(Y.^2) ; 
-            if nargout==6
-                Gammapredtemp = reshape(Gammapred(:,:,:,iFitMethod),[ttrial*N K]);
-                GammaMLE = Gammapredtemp==repmat(max(Gammapredtemp,[],2),1,K);
-                if all(sum(GammaMLE)>10)
-                    % use hard state assignments unless insufficient samples:
-                    Gammapredtemp = GammaMLE;
-                end
-                for iK=1:K
-                    acc_Gamma(iK,:,iFitMethod) = diag(1 - weighted_covariance(Y - Ypred_star_temp,Gammapredtemp(:,iK)) ./ weighted_covariance(Y,Gammapredtemp(:,iK)));
-                end
+        
+        % first determine COD accuracy (acc is explained variance)
+        acc_temp(:,1) = 1 - sum( (Y - Ypred_star_temp).^2 ) ./ sum(Y.^2) ; 
+        % now determine Pearson Correlation:
+        acc_temp(:,2) = diag(corr(Y,Ypred_star_temp));
+        if nargout==6
+            Gammapredtemp = reshape(Gammapred(:,:,:,iFitMethod),[ttrial*N K]);
+            GammaMLE = Gammapredtemp==repmat(max(Gammapredtemp,[],2),1,K);
+            if all(sum(GammaMLE)>10)
+                % use hard state assignments unless insufficient samples:
+                Gammapredtemp = GammaMLE;
             end
-        elseif strcmp(accuracyType,'Pearson')
-            acc_temp = diag(corr(Y,Ypred_star_temp));
-            if nargout==6
-                Gammapredtemp = reshape(Gammapred(:,:,:,iFitMethod),[ttrial*N K]);
-                GammaMLE = Gammapredtemp==repmat(max(Gammapredtemp,[],2),1,K);
-                if all(sum(GammaMLE)>10)
-                    % use hard state assignments unless insufficient samples:
-                    Gammapredtemp = GammaMLE;
+            acc_Gamma_Pearson = zeros(K,q);
+            acc_Gamma_COD = zeros(K,q);
+            for iK=1:K
+                Ctemp = weighted_covariance([Y,Ypred_star_temp],Gammapredtemp(:,iK));
+                for ireg=1:q
+                    acc_Gamma_Pearson(iK,ireg) = Ctemp(q+ireg,ireg)./sqrt(prod([Ctemp(ireg,ireg),Ctemp(q+ireg,q+ireg)]));
                 end
-                for iK=1:K
-                    Ctemp = weighted_covariance([Y,Ypred_star_temp],Gammapredtemp(:,iK));
-                    for ireg=1:q
-                        acc_Gamma(iK,ireg,iFitMethod) = Ctemp(q+ireg,ireg)./sqrt(prod([Ctemp(ireg,ireg),Ctemp(q+ireg,q+ireg)]));
-                    end
-                end
+                acc_Gamma_COD(iK,:) = diag(1 - weighted_covariance(Y - Ypred_star_temp,Gammapredtemp(:,iK)) ./ weighted_covariance(Y,Gammapredtemp(:,iK)));
             end
         end
+        
         acc_star_temp = zeros(ttrial,q); 
         Y = reshape(Y,[ttrial N q]);
         Ypred_star_temp = reshape(Ypred_star_temp, [ttrial N q]);
@@ -350,13 +344,41 @@ for iFitMethod = 1:nCVm
                 acc_star_temp(t,:) = 1 - sum((y - permute(Ypred_star_temp(t,:,:),[2 3 1])).^2) ./ sum(y.^2);
             elseif strcmp(accuracyType,'Pearson')
                 acc_star_temp(t,:) = diag(corr(y,permute(Ypred_star_temp(t,:,:),[2 3 1])));
-                
+            elseif strcmp(accuracyType,'all')
+                acc_star_temp(t,:,1) = 1 - sum((y - permute(Ypred_star_temp(t,:,:),[2 3 1])).^2) ./ sum(y.^2);
+                acc_star_temp(t,:,2) = diag(corr(y,permute(Ypred_star_temp(t,:,:),[2 3 1])));
             end
         end
         Ypred_star_temp = reshape(Ypred_star_temp, [ttrial*N q]);
     end
-    acc(:,iFitMethod) = acc_temp;
-    acc_star(:,:,iFitMethod) = acc_star_temp;
+%     acc(:,iFitMethod) = acc_temp;
+%     acc_star(:,:,iFitMethod) = acc_star_temp;
+%     Ypred_out(:,:,iFitMethod) = Ypred_temp;
+%     Ypred_star(:,:,iFitMethod) = Ypred_star_temp;
+    
+    if classification
+        acc(:,iFitMethod) = acc_temp;
+        acc_star(:,:,iFitMethod) = acc_star_temp;
+    elseif strcmp(accuracyType,'COD') 
+        acc(:,iFitMethod) = acc_temp(:,1);
+        acc_star(:,:,iFitMethod) = acc_star_temp;
+        if nargout==6
+            acc_Gamma(:,:,iFitMethod) = acc_Gamma_COD;
+        end
+    elseif strcmp(accuracyType,'Pearson')
+        acc(:,iFitMethod) = acc_temp(:,2);
+        acc_star(:,:,iFitMethod) = acc_star_temp;
+        if nargout==6
+            acc_Gamma(:,:,iFitmethod) = acc_Gamma_Pearson;
+        end
+    elseif strcmp(accuracyType,'all')
+        acc(:,iFitMethod,:) = acc_temp(2);
+        acc_star(:,:,iFitMethod,:) = acc_star_temp;
+        if nargout==6
+            acc_Gamma(:,:,iFitMethod,1) = acc_Gamma_COD;
+            acc_Gamma(:,:,iFitMethod,2) = acc_Gamma_Pearson;
+        end
+    end
     Ypred_out(:,:,iFitMethod) = Ypred_temp;
     Ypred_star(:,:,iFitMethod) = Ypred_star_temp;
 end
