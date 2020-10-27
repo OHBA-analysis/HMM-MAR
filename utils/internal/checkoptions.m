@@ -2,7 +2,7 @@ function [options,data] = checkoptions (options,data,T,cv)
 
 % Basic checks
 if nargin<4, cv = 0; end
-if isempty(strfind(which('pca'),matlabroot))
+if isempty(strfind(which('pca'),matlabroot)) && ~isdeployed
     error(['Function pca() seems to be other than Matlab''s own - you need to rmpath() it. ' ...
         'Use ''rmpath(fileparts(which(''pca'')))'''])
 end
