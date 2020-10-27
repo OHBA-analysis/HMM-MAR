@@ -12,7 +12,7 @@ else
 end
 
 MLGamma = Gamma==repmat(max(Gamma,[],2),1,K);
-MLGamma = mod(find(MLGamma'),K);
+MLGamma = mod(find(MLGamma',length(MLGamma)),K);
 MLGamma(MLGamma==0) = K;
 
 rastimage = reshape(MLGamma,T,nTr);

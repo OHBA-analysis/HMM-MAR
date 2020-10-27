@@ -36,9 +36,8 @@ for testcond = 1:numconds
     % compute each state's distribution in x space - assuming intercept has
     % been used
     for k=1:K
-        if classification && intercept %include mean in generative model:
-            betamu_givenY(testcond,k,:) = betas_mu{k}(1,:) + betas_mu{k}(1 + testcond,:);
-        elseif intercept
+        if intercept %account for mean term in generative model:
+            %betamu_givenY(testcond,k,:) = betas_mu{k}(1,:) + betas_mu{k}(1 + testcond,:);
             betamu_givenY(testcond,k,:) = betas_mu{k}(1 + testcond,:);
         else
             betamu_givenY(testcond,k,:) = betas_mu{k}(testcond,:);
@@ -87,7 +86,7 @@ if intercept
 else
     Y_pred = zeros(T,nDimY);
 end
-
+loglikelihoodX = zeros(size(Y_pred));
 if T==T2
     for t=1:T
         CovMat_t = sum(CovMat .* repmat(permute(Gamma(t,:),[3,1,2]),nDimX,nDimX,1),3);
