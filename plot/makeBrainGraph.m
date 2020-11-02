@@ -66,6 +66,11 @@ if strcmp(parcellation_file(end-11:end),'dtseries.nii')
     disp('Cannot make a brain graph on surface space.')
     disp('Map the parcellation to volumetric space first using parc_surf2vol()')
     return
+elseif strcmp(parcellation_file(end-7:end),'func.gii')
+    disp('Cannot make a brain graph on surface space.')
+    disp('Map the parcellation to dtseries using parc_gii2dtseries,')
+    disp('then to volumetric space using parc_surf2vol()')
+    return
 elseif ~strcmp(parcellation_file(end-5:end),'nii.gz')
     error('Incorrect format: parcellation must have nii.gz extension')
 end

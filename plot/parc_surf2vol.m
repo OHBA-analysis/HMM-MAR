@@ -35,12 +35,10 @@ g1.cdata = zeros(size(g1.cdata,1), length(unique(c1))+length(unique(c2))-2);
 g2.cdata = zeros(size(g2.cdata,1), length(unique(c1))+length(unique(c2))-2); 
 
 for j = 1:max(c1)
-   ind = (c1 == j);
-   g1.cdata(ind,j) = 1; 
+   ind = (c1 == j); g1.cdata(ind,j) = 1; 
 end
 for j = max(c1)+1:max(c2)
-   ind = (c2 == j);
-   g2.cdata(ind,j) = 1; 
+   ind = (c2 == j); g2.cdata(ind,j) = 1; 
 end
 
 save(g1,tmp1)

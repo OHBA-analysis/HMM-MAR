@@ -1,6 +1,8 @@
 function graphs = makeConnectivityCircle(hmm,k,labels,...
     centergraphs,scalegraphs,partialcorr,threshold)
-% Plot HMM connectomes in connectivity circle format
+% Plot HMM connectomes in connectivity circle format 
+%   (not to be used on an HMM-TDE model or an HMM-MAR model directly; 
+%   for this use makeSpectralConnectivityCircle)
 %
 % hmm: hmm struct as comes out of hmmmar
 % k: which state or states to plot, e.g. 1:4. If left empty, then all of them
