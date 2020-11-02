@@ -15,8 +15,10 @@ function maps = makeMap(hmm,k,parcellation_file,maskfile,...
 % scalemaps: whether to scale the maps so that each voxel has variance
 %       equal 1 across maps; (default: 0)
 % onconectivity: whether or not to make the map using connectivity (>0) or mean activity (0). 
-%   If onconectivity==2, then the first eigenvector of the connectivity matrix will be used. 
-%   If onconectivity==1, then the degree of the connectivity matrix will be used. 
+%   If onconectivity==2, then the first eigenvector of the covariance matrix will be used. 
+%   If onconectivity==20, then the first eigenvector of the correlation matrix will be used. 
+%   If onconectivity==1, then the degree of the covariance matrix will be used. 
+%   If onconectivity==10, then the degree of the correlation matrix will be used. 
 %   If onconectivity==0 and there is no mean activity parameter, then the variance will be used.
 %   If there's no mean parameter, it's 1 by default; 
 %   if there's a mean parameter, then it's 0 by default. 
@@ -179,6 +181,10 @@ end
 
 
 function map = connmap(C,mode)
+if mode > 5
+    C = corrcov(C,0);
+    mode = mode / 2; 
+end
 if mode == 2
     [V,~] = eig(C); map = V(:,1);
 else
