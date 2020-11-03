@@ -87,6 +87,9 @@ for cycle = 2:options.BIGcyc
         hmm_i = hmm;
         [Gamma{ii},~,Xi{ii}] = hsinference(data,Tbatch_list{ii},hmm_i,Y_i,[],XX_i); % state time courses
         checkGamma(Gamma{ii},Tbatch_list{ii},hmm_i.train,i);
+        if isempty(Xi{ii}) % id_mixture
+            Xi{ii} = approximateXi(Gamma{ii},Tbatch_list{ii},hmm_i);
+        end
         for k = 1:K
             XXGXX{k} = XXGXX{k} + (XX_i' .* repmat(Gamma{ii}(:,k)',size(XX_i,2),1)) * XX_i;
         end

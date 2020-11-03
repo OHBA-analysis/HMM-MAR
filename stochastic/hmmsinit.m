@@ -35,6 +35,9 @@ if do_HMM_pca
         [X,~,Y,Ti] = loadfile(Xin{i},T{i},options); XX = X;
         data = struct('X',X,'C',NaN(size(XX,1),K));
         [Gamma,~,Xi] = hsinference(data,Ti,hmm,Y,[],XX);
+        if isempty(Xi) % id_mixture
+            Xi = approximateXi(Gamma,Ti,hmm);
+        end
         checkGamma(Gamma,Ti,hmm.train,i);
         subjfe_init(i,1:2) = evalfreeenergy([],Ti,Gamma,Xi,hmm,[],[],[1 0 1 0 0]); % Gamma entropy & Gamma LL  
         loglik_init(i) = - sum(evalfreeenergy(X,Ti,Gamma,Xi,hmm,Y,XX,[0 1 0 0 0])); % data LL
