@@ -1,7 +1,7 @@
 function [predictedY,stats] = predictPhenotype (Yin,Din,options,varargin)
 %
 % Kernel ridge regression or nearest-neighbour estimation using
-% a distance matrix using (stratified) LOO and permutation testing
+% a distance matrix using (stratified) LOO 
 %
 % INPUT
 % Yin       (no. subjects by 1) vector of phenotypic values to predict,
@@ -38,10 +38,14 @@ function [predictedY,stats] = predictPhenotype (Yin,Din,options,varargin)
 % OUTPUT
 % predictedY    predicted response,in the original (non-decounfounded) space
 % stats         structure, with fields
-%   + sse - cross-validated sum of squared error (i.e. deviance)
-%   + cod - coeficient of determination
-%   + corr - correlation between estimation and phenotype, in original space
-%   + pval - (parametric Student) pvalue on the correlation
+%   + pval - permutation-based p-value, if permutation is run;
+%            otherwise, correlation-based p-value
+%   + cod - coeficient of determination 
+%   + corr - correlation between predicted and observed Y 
+%   + baseline_corr - baseline correlation between predicted and observed Y for null model 
+%   + sse - sum of squared errors
+%   + baseline_sse - baseline sum of squared errors
+%   PLUS: All of the above +'_deconf' in the deconfounded space, if counfounds were specified
 %   + alpha - selected values for alpha at each CV fold
 %   + sigmaf - selected values for sigmafact at each CV fold
 %
@@ -50,8 +54,7 @@ function [predictedY,stats] = predictPhenotype (Yin,Din,options,varargin)
 
 Din(eye(size(Din,1))==1) = 0; 
 N = size(Yin,1);
-if isempty(options), options = struct(); end
-if nargin<3, options = struct(); end
+if nargin < 3 || isempty(options), options = struct(); end
 if ~isfield(options,'method')
     if isfield(options,'K')
         method = 'K';
@@ -83,39 +86,30 @@ if ~isfield(options,'CVfolds'), CVfolds = [];
 else, CVfolds = options.CVfolds; end
 if ~isfield(options,'biascorrect'), biascorrect = 0;
 else, biascorrect = options.biascorrect; end
-if ~isfield(options,'Nperm'), Nperm=1;
-else, Nperm = options.Nperm; end
 if ~isfield(options,'verbose'), verbose = 1;
 else, verbose = options.verbose; end
 
-if (nargin>3) && ~isempty(varargin{1})
-    cs = varargin{1};
+% check correlation structure
+allcs = []; 
+if (nargin>4) && ~isempty(varargin{1})
+    cs=varargin{1};
     if ~isempty(cs)
-        if size(cs,2)>1 % matrix format
-            [allcs(:,2),allcs(:,1)]=ind2sub([length(cs) length(cs)],find(cs>0));
+        is_cs_matrix = (size(cs,2) == size(cs,1));
+        if is_cs_matrix 
+            [allcs(:,2),allcs(:,1)]=ind2sub([length(cs) length(cs)],find(cs>0));    
             [grotMZi(:,2),grotMZi(:,1)]=ind2sub([length(cs) length(cs)],find(tril(cs,1)==1));
             [grotDZi(:,2),grotDZi(:,1)]=ind2sub([length(cs) length(cs)],find(tril(cs,1)==2));
         else
-            allcs = [];
-            nz = cs>0;
-            gr = unique(cs(nz));
-            for g=gr'
-                ss = find(cs==g);
-                for s1=ss
-                    for s2=ss
-                        allcs = [allcs; [s1 s2]];
-                    end
-                end
-            end
-            % grotMZi and grotDZi need to be computer here
+            allcs = find(cs > 0);
+            grotMZi = find(cs == 1); 
+            grotDZi = find(cs == 2); 
         end
     end
-else
-    cs = [];
+else, cs = []; 
 end
-if ~exist('allcs','var'), allcs = []; end
-% get confounds, and deconfound Xin
-if (nargin>4) && ~isempty(varargin{2})
+
+% get confounds
+if (nargin>5) && ~isempty(varargin{2})
     confounds = varargin{2};
     confounds = confounds - repmat(mean(confounds),N,1);
     deconfounding = 1;
@@ -123,13 +117,11 @@ else
     confounds = []; deconfounding = 0;
 end
 
-YinORIG = Yin;
-YinORIGmean = zeros(size(Yin));
-YC = zeros(size(Yin)); % deconfounded signal
-YCmean = zeros(size(Yin)); % mean in deconfounded space
-
+Ymean = zeros(size(Yin));
+YD = zeros(size(Yin)); % deconfounded signal
+YmeanD = zeros(size(Yin)); % mean in deconfounded space
 predictedY = zeros(N,1);
-if deconfounding, predictedYpC = zeros(N,1); end
+if deconfounding, predictedYD = zeros(N,1); end
 
 % create the inner CV structure - stratified for family=multinomial
 if isempty(CVfolds)
@@ -175,7 +167,7 @@ for ifold = 1:length(folds)
     
     % centering response
     my = mean(Y); Y = Y - my;
-    YCmean(J) = my;
+    YmeanD(J) = my;
     
     QDin = Din(ji,ji);
     QYin = Y;
@@ -233,10 +225,10 @@ for ifold = 1:length(folds)
         I = eye(Nji);
         
         ridg_pen_scale = mean(diag(K));
-        beta = (K + ridg_pen_scale * alph * I) \ Y;
+        beta = (K + ridg_pen_scale * alph * I) \ Y; 
         
         % predict the test fold
-        predictedY(J) = K2 * beta + repmat(my,length(J),1);
+        predictedY(J) = K2 * beta + my;
     
     else % Nearest Neighbour estimator
         Dev = Inf(length(K),1);
@@ -276,19 +268,19 @@ for ifold = 1:length(folds)
      
     end
     
-    % predictedYpC and YC in deconfounded space; Yin and predictedYp are confounded
-    predictedYpC(J,:) = predictedY(J,:);
-    YC(J,:) = Yin(J,:);
-    YinORIGmean(J) = YCmean(J,:);
+    % predictedYD and YD in deconfounded space; Yin and predictedY are confounded
+    predictedYD(J,:) = predictedY(J,:);
+    YD(J,:) = Yin(J,:);
+    YmeanD(J) = Ymean(J,:);
     if deconfounding % in order to later estimate prediction accuracy in deconfounded space
-        [~,~,YC(J,:)] = deconfoundPhen(YC(J,:),confounds(J,:),betaY,interceptY);
+        [~,~,YD(J,:)] = deconfoundPhen(YD(J,:),confounds(J,:),betaY,interceptY);
         % original space
         predictedY(J,:) = confoundPhen(predictedY(J,:),confounds(J,:),betaY,interceptY); 
-        YinORIGmean(J) = confoundPhen(YCmean(J,:),confounds(J,:),betaY,interceptY);
+        Ymean(J) = confoundPhen(YmeanD(J,:),confounds(J,:),betaY,interceptY);
     end
     
     if biascorrect % we do this in the original space
-        Yhattrain = K * beta + repmat(my,length(ji),1);
+        Yhattrain = K * beta + my;
         if deconfounding
             Yhattrain = confoundPhen(Yhattrain,confounds(ji,:),betaY,interceptY);
             Ytrain = [confoundPhen(QYin,confounds(ji,:),betaY,interceptY) ...
@@ -305,13 +297,24 @@ for ifold = 1:length(folds)
     
 end
 
-stats.sse = sum((YinORIG-predictedY).^2);
-nullsse = sum((YinORIG-YinORIGmean).^2);
-stats.corr = corr(YinORIG,predictedY);
+stats.sse = sum((Yin-predictedY).^2);
+nullsse = sum((Yin-Ymean).^2);
 stats.cod = 1 - stats.sse / nullsse;
-[~,pv] = corrcoef(YinORIG,predictedY); % original space
-if corr(YinORIG,predictedY)<0, stats.pval = 1; 
+stats.corr = corr(Yin,predictedY);
+stats.baseline_corr = corr(Yin,Ymean);
+[~,pv] = corrcoef(Yin,predictedY); % original space
+if corr(Yin,predictedY)<0, stats.pval = 1; 
 else, stats.pval=pv(1,2);
+end
+
+stats.sse_deconf = sum((YD-predictedYD).^2);
+nullsse_deconf = sum((YD-YmeanD).^2);
+stats.cod_deconf = 1 - stats.sse_deconf / nullsse_deconf;
+stats.corr_deconf = corr(YD,predictedYD);
+stats.baseline_corr_deconf = corr(YD,YmeanD);
+[~,pv] = corrcoef(YD,predictedYD); % original space
+if corr(YD,predictedYD)<0, stats.pval_deconf = 1; 
+else, stats.pval_deconf=pv(1,2);
 end
 
 end
@@ -328,91 +331,6 @@ function sigma = auto_sigma (D)
 % gets a data-driven estimation of the kernel parameter
 D = D(triu(true(size(D,1)),1));
 sigma = median(D);
-end
-
-
-function folds = cvfolds(Y,CVscheme,allcs)
-% deterministic CV folding
-N = size(Y,1);
-q = length(unique(Y));
-if q<=3
-    Y = nets_class_vectomat(Y);
-end
-if CVscheme==0, nfolds = N;
-else, nfolds = CVscheme;
-end
-folds = {}; ifold = 1;
-grotDONE = zeros(N,1);
-if q<=3   % stratified CV that respects the family structure
-    counts = zeros(nfolds,q); Scounts = mean(Y); 
-    for k = 1:nfolds
-        if sum(grotDONE)==N, break; end
-        folds{ifold} = [];
-        while length(folds{ifold}) < ceil(N/nfolds)
-            d = Inf(N,1); j=1;
-            % find the family that best preserves the class proportions
-            grotDONEI = grotDONE;
-            while j<=N
-                if (grotDONEI(j)==0)
-                    Jj=[folds{ifold} j];
-                    if (~isempty(allcs))  % leave out all samples related to the one in question
-                        if size(find(allcs(:,1)==j),1)>0, Jj=[Jj allcs(allcs(:,1)==j,2)']; end
-                    end
-                    if length(Jj)>1, countsI = sum(Y(Jj,:)); % before: counts(LOfracI,:) + sum(Y(Jj,:));
-                    else countsI = Y(Jj,:); % before: counts(LOfracI,:) + Y(Jj,:);
-                    end
-                    countsI = countsI / sum(countsI);
-                    d(j) = sum( ( Scounts - countsI ).^2 ); % distance from the overall class proportions
-                    grotDONEI(Jj) = 1;
-                end
-                j=j+1;
-            end
-            % and assign it to this fold
-            [~,j] = min(d); j = j(1); 
-            folds{ifold}=[folds{ifold} j];
-            if (~isempty(allcs))  % leave out all samples related (according to cs) to the one in question
-                if size(find(allcs(:,1)==j),1)>0, folds{ifold}=[folds{ifold} allcs(allcs(:,1)==j,2)']; end
-            end
-            grotDONE(folds{ifold})=1; counts(k,:) = sum(Y(folds{ifold},:));
-            if k>1 && k<nfolds
-                if sum(grotDONE)>k*N/nfolds, break; end
-            end
-        end
-        if ~isempty(folds{ifold}), ifold = ifold + 1; end
-    end
-else % standard CV respecting the family structure
-    for k = 1:nfolds
-        if sum(grotDONE)==N, break; end
-        j=1;  folds{ifold} = [];
-        while length(folds{ifold}) < ceil(N/nfolds) && j<=N
-            if (grotDONE(j)==0)
-                folds{ifold}=[folds{ifold} j];
-                if (~isempty(allcs))  % leave out all samples related to the one in question
-                    if size(find(allcs(:,1)==j),1)>0
-                        folds{ifold}=[folds{ifold} allcs(allcs(:,1)==j,2)'];
-                    end
-                end
-                grotDONE(folds{ifold})=1;
-            end
-            j=j+1;
-            if k>1 && k<nfolds
-                if sum(grotDONE)>k*N/nfolds
-                    break
-                end
-            end
-        end
-        if ~isempty(folds{ifold}), ifold = ifold + 1; end
-    end
-end
-end
-
-
-function Ym = nets_class_vectomat(Y,classes)
-N = length(Y);
-if nargin<2, classes = unique(Y); end
-q = length(classes);
-Ym = zeros(N,q);
-for j=1:q, Ym(Y==classes(j),j) = 1; end
 end
 
 
