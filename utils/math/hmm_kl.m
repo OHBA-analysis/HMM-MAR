@@ -33,13 +33,13 @@ nu = compute_nu (hmm_p.Pi,hmm_p.P); % weight vector
 if strcmp(hmm.train.covtype,'uniquediag')
     for n = 1:ndim
         if ~regressed(n), continue; end
-        D = D + gamma_kl(hmm.Omega.Gam_shape,hmm.prior.Omega.Gam_shape, ...
-            hmm.Omega.Gam_rate(n),hmm.prior.Omega.Gam_rate(n));
+        D = D + gamma_kl(hmm_p.Omega.Gam_shape,hmm_q.Omega.Gam_shape, ...
+            hmm_p.Omega.Gam_rate(n),hmm_q.Omega.Gam_rate(n));
     end
 elseif strcmp(hmm.train.covtype,'uniquefull')
-    D = D + wishart_kl(hmm.Omega.Gam_rate(regressed,regressed),...
-        hmm.prior.Omega.Gam_rate(regressed,regressed), ...
-        hmm.Omega.Gam_shape,hmm.prior.Omega.Gam_shape);
+    D = D + wishart_kl(hmm_p.Omega.Gam_rate(regressed,regressed),...
+        hmm_q.Omega.Gam_rate(regressed,regressed), ...
+        hmm_p.Omega.Gam_shape,hmm_q.Omega.Gam_shape);
 end
 
 % State specific stuff
@@ -62,7 +62,7 @@ for k = 1:K
                     permute(hs.W.S_W,[2 3 1]), permute(hs0.W.S_W,[2 3 1]));
             end
         elseif strcmp(train.covtype,'diag') || strcmp(train.covtype,'uniquediag')
-            for n=1:ndim
+            for n = 1:ndim
                 D = D + nu(k) * gauss_kl(hs.W.Mu_W(Sind(:,n),n),hs0.W.Mu_W(Sind(:,n),n), ...
                     permute(hs.W.S_W(n,Sind(:,n),Sind(:,n)),[2 3 1]),...
                     permute(hs0.W.S_W(n,Sind(:,n),Sind(:,n)),[2 3 1]));
