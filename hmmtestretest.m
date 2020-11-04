@@ -145,7 +145,7 @@ end
 
 % re-order the states
 for irun = 2:nrep
-    [~,assig, Gamma{irun}] = getGammaSimilarity (Gamma{irun}, Gamma(1:irun-1));
+    [~,assig, Gamma{irun}] = getGammaSimilarity (Gamma(1:irun-1), Gamma{irun});
     hmm{irun}.state(assig) = hmm{irun}.state;
     hmm{irun}.Pi(assig) = hmm{irun}.Pi;
     hmm{irun}.Dir_alpha(assig) = hmm{irun}.Dir_alpha; 
