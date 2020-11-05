@@ -27,19 +27,26 @@ S = hmm.train.S==1;
 regressed = sum(S,1)>0;
 
 D = 0;
+if hmm_p.train.id_mixture
+   hmm_p.P = 1/K*ones(K); hmm_q.P = 1/K*ones(K); 
+end
 nu = compute_nu (hmm_p.Pi,hmm_p.P); % weight vector
 
 % Non-state specific stuff
-if strcmp(hmm.train.covtype,'uniquediag')
-    for n = 1:ndim
-        if ~regressed(n), continue; end
+switch train.covtype
+    case 'uniquediag'
+        for n = 1:ndim
+            if ~regressed(n), continue; end
+            D = D + gamma_kl(hmm_p.Omega.Gam_shape,hmm_q.Omega.Gam_shape, ...
+                hmm_p.Omega.Gam_rate(n),hmm_q.Omega.Gam_rate(n));
+        end
+    case 'uniquefull'
+        D = D + wishart_kl(hmm_p.Omega.Gam_rate(regressed,regressed),...
+            hmm_q.Omega.Gam_rate(regressed,regressed), ...
+            hmm_p.Omega.Gam_shape,hmm_q.Omega.Gam_shape);
+    case 'pca'
         D = D + gamma_kl(hmm_p.Omega.Gam_shape,hmm_q.Omega.Gam_shape, ...
-            hmm_p.Omega.Gam_rate(n),hmm_q.Omega.Gam_rate(n));
-    end
-elseif strcmp(hmm.train.covtype,'uniquefull')
-    D = D + wishart_kl(hmm_p.Omega.Gam_rate(regressed,regressed),...
-        hmm_q.Omega.Gam_rate(regressed,regressed), ...
-        hmm_p.Omega.Gam_shape,hmm_q.Omega.Gam_shape);
+                hmm_p.Omega.Gam_rate,hmm_q.Omega.Gam_rate);
 end
 
 % State specific stuff
@@ -61,7 +68,8 @@ for k = 1:K
                 D = D + nu(k) * gauss_kl(hs.W.Mu_W, hs0.W.Mu_W, ...
                     permute(hs.W.S_W,[2 3 1]), permute(hs0.W.S_W,[2 3 1]));
             end
-        elseif strcmp(train.covtype,'diag') || strcmp(train.covtype,'uniquediag')
+        elseif strcmp(train.covtype,'diag') || ...
+                strcmp(train.covtype,'uniquediag') || strcmp(train.covtype,'pca')
             for n = 1:ndim
                 D = D + nu(k) * gauss_kl(hs.W.Mu_W(Sind(:,n),n),hs0.W.Mu_W(Sind(:,n),n), ...
                     permute(hs.W.S_W(n,Sind(:,n),Sind(:,n)),[2 3 1]),...
@@ -91,7 +99,7 @@ for k = 1:K
             catch
                 error(['Error computing kullback-leibler divergence of the cov matrix - ' ...
                     'Something strange with the data?'])
-            end
+            end            
     end
     
     if ~isempty(orders) && ~train.uniqueAR && ndim>1
