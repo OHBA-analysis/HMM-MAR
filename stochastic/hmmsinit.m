@@ -150,8 +150,11 @@ for rep = 1:options.BIGinitrep
             %options.initcriterion = 'FreeEnergy';
             if length(Ti)==1, options.useParallel = 0; end
             [hmm_i,Gamma,Xi] = hmmmar(X,Ti,options);
+            if isempty(Xi) % id_mixture
+                Xi = approximateXi(Gamma,Ti,hmm_i);
+            end
             options = options_copy;
-            hmm_i.train.pca = options.pca; 
+            hmm_i.train.pca = options.pca;
             hmm_i.train.pca_spatial = options.pca_spatial;
             hmm_i.train.embeddedlags = options.embeddedlags;
             hmm_i.train.filter = options.filter;
