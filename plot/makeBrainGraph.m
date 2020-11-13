@@ -1,5 +1,5 @@
 function graphs = makeBrainGraph(hmm,k,parcellation_file,maskfile,...
-    centergraphs,scalegraphs,partialcorr,threshold,outputfile)
+    centergraphs,scalegraphs,partialcorr,threshold,outputfile,figure_number)
 % Project HMM connectomes into brain space for visualisation  
 %
 % hmm: hmm struct as comes out of hmmmar
@@ -8,9 +8,9 @@ function graphs = makeBrainGraph(hmm,k,parcellation_file,maskfile,...
 %   parcellation or an ICA decomposition
 % maskfile: mask to be used with the right spatial resolution
 %   e.g. 'std_masks/MNI152_T1_2mm_brain'
-% centermaps: whether to center the maps according to the across-map average
+% centergraphs: whether to center the graphs according to the across-map average
 %       (default: 0)
-% scalemaps: whether to scale the maps so that each voxel has variance
+% scalegraphs: whether to scale the graphs so that each voxel has variance
 %       equal 1 across maps; (default: 0)
 % partialcorr: whether to use a partial correlation matrix or a correlation
 %   matrix (default: 0)
@@ -18,8 +18,7 @@ function graphs = makeBrainGraph(hmm,k,parcellation_file,maskfile,...
 %       displayed (between 0 and 1, the higher the fewer displayed connections)
 % outputfile: where to put things (do not indicate extension)
 %   e.g. 'my_directory/maps'
-% maskfile: if using NIFTI, mask to be used 
-%   e.g. 'std_masks/MNI152_T1_2mm_brain'
+% figure_number: number of figure to display
 %
 % OUTPUT:
 % graph: (voxels by voxels by state) array with the estimated connectivity maps
@@ -33,6 +32,7 @@ if nargin < 6 || isempty(scalegraphs), scalegraphs = 0; end
 if nargin < 7 || isempty(partialcorr), partialcorr = 0; end
 if nargin < 8 || isempty(threshold), threshold = 0.95; end
 if nargin < 9 || isempty(outputfile), outputfile = []; end
+if nargin < 10 || isempty(figure_number), figure_number = randi(100); end
 
 do_HMM_pca = strcmpi(hmm.train.covtype,'pca');
 if ~do_HMM_pca && ~strcmp(hmm.train.covtype,'full')
@@ -98,7 +98,7 @@ for ik = 1:length(index_k)
     %c = C(triu(true(ndim),1)==1); c = sort(c); c = c(end-1:-1:1); 
     %th = c(round(length(c)*(1-threshold))); 
     %C(C<th) = NaN; 
-    figure(k+100); m = max(abs(C(:)));
+    figure(k+figure_number); m = max(abs(C(:)));
     colorLims = [-0.9*m 0.9*m];
     osl_braingraph(C, colorLims, repmat(0.2,ndim,1), [0.1 1.1], mni_coords, ...
         [], 100*threshold, sphereCols, edgeLims);

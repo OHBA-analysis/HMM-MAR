@@ -1,5 +1,5 @@
 function graphs = makeSpectralGraph(sp_fit,k,freqindex,type,parcellation_file,...
-    maskfile,centergraphs,scalegraphs,threshold,outputfile)
+    maskfile,centergraphs,scalegraphs,threshold,outputfile,figure_numbe)
 % Project spectral connectomes into brain space for visualisation  
 %
 % sp_fit: spectral fit, from hmmspectramt, hmmspectramar, spectbands or spectdecompose
@@ -13,9 +13,9 @@ function graphs = makeSpectralGraph(sp_fit,k,freqindex,type,parcellation_file,..
 %   parcellation or an ICA decomposition
 % maskfile: mask to be used with the right spatial resolution
 %   e.g. 'std_masks/MNI152_T1_2mm_brain'
-% centermaps: whether to center the maps according to the across-map average
+% centergraphs: whether to center the graphs according to the across-map average
 %       (default: 0)
-% scalemaps: whether to scale the maps so that each voxel has variance
+% scalegraphs: whether to scale the graphs so that each voxel has variance
 %       equal 1 across maps; (default: 0)
 % threshold: proportion threshold above which graph connections are
 %       displayed (between 0 and 1, the higher the fewer displayed connections)
@@ -23,6 +23,7 @@ function graphs = makeSpectralGraph(sp_fit,k,freqindex,type,parcellation_file,..
 %   e.g. 'my_directory/maps'
 % maskfile: if using NIFTI, mask to be used 
 %   e.g. 'std_masks/MNI152_T1_2mm_brain'
+% figure_number: number of figure to display
 %
 % OUTPUT:
 % graph: (voxels by voxels by state) array with the estimated connectivity maps
@@ -37,6 +38,7 @@ if nargin < 7 || isempty(centergraphs), centergraphs = 0; end
 if nargin < 8 || isempty(scalegraphs), scalegraphs = 0; end
 if nargin < 9 || isempty(threshold), threshold = 0.95; end
 if nargin < 10 || isempty(outputfile), outputfile = []; end
+if nargin < 11 || isempty(figure_number), figure_number = randi(100); end
 
 if ~isfield(sp_fit.state(1),'psd')
     error('Input must be a spectral estimation, e.g. from hmmspectramt')
@@ -95,7 +97,7 @@ for ik = 1:length(index_k)
     %c = C(triu(true(ndim),1)==1); c = sort(c); c = c(end-1:-1:1); 
     %th = c(round(length(c)*(1-threshold))); 
     %C(C<th) = NaN; 
-    figure(k+100);
+    figure(k+figure_number);
     osl_braingraph(C, colorLims, repmat(0.5,ndim,1), [0.1 1.1], mni_coords, ...
         [], 100*threshold, sphereCols, edgeLims);
     colorbar off

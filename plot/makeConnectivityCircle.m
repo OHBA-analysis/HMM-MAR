@@ -1,5 +1,5 @@
 function graphs = makeConnectivityCircle(hmm,k,labels,...
-    centergraphs,scalegraphs,partialcorr,threshold)
+    centergraphs,scalegraphs,partialcorr,threshold,figure_number)
 % Plot HMM connectomes in connectivity circle format 
 %   (not to be used on an HMM-TDE model or an HMM-MAR model directly; 
 %   for this use makeSpectralConnectivityCircle)
@@ -7,13 +7,14 @@ function graphs = makeConnectivityCircle(hmm,k,labels,...
 % hmm: hmm struct as comes out of hmmmar
 % k: which state or states to plot, e.g. 1:4. If left empty, then all of them
 % labels : names of the regions
-% centermaps: whether to center the maps according to the across-map average
-% scalemaps: whether to scale the maps so that each voxel has variance
+% centergraphs: whether to center the graphs according to the across-map average
+% scalegraphs: whether to scale the graphs so that each voxel has variance
 %       equal 1 across maps
 % partialcorr: whether to use a partial correlation matrix or a correlation
 %   matrix (default: 0)
 % threshold: proportion threshold above which graph connections are
 %       displayed (between 0 and 1, the higher the fewer displayed connections)
+% figure_number: number of figure to display
 %
 % OUTPUT:
 % graph: (regions by regions by state) array with the estimated connectivity maps
@@ -28,6 +29,7 @@ if nargin < 4 || isempty(centergraphs), centergraphs = 0; end
 if nargin < 5 || isempty(scalegraphs), scalegraphs = 0; end
 if nargin < 6 || isempty(partialcorr), partialcorr = 0; end
 if nargin < 7 || isempty(threshold), threshold = 0.95; end
+if nargin < 8 || isempty(figure_number), figure_number = randi(100); end
 
 do_HMM_pca = strcmpi(hmm.train.covtype,'pca');
 if ~do_HMM_pca && ~strcmp(hmm.train.covtype,'full')
@@ -81,7 +83,7 @@ for ik = 1:length(index_k)
     th = c(round(length(c)*(1-threshold)));
     C(C<th) = 0;
     try
-        figure(k+200)
+        figure(k+figure_number)
         circularGraph(C,'Label',labels);
     catch
         error('Please get the Matlab circularGraph toolbox first')

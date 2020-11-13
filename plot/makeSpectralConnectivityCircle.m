@@ -1,5 +1,5 @@
 function graphs = makeSpectralConnectivityCircle(sp_fit,k,freqindex,type,...
-    labels,centergraphs,scalegraphs,threshold)
+    labels,centergraphs,scalegraphs,threshold,figure_number)
 % Plot spectral connectomes in connectivity circle format
 %
 % sp_fit: spectral fit, from hmmspectramt, hmmspectramar, spectbands or spectdecompose
@@ -10,11 +10,12 @@ function graphs = makeSpectralConnectivityCircle(sp_fit,k,freqindex,type,...
 %   already organised into bands: 2 to plot the second band.
 % type: which connectivity measure to use: 1 for coherence, 2 for partial coherence
 % labels : names of the regions
-% centermaps: whether to center the maps according to the across-map average
-% scalemaps: whether to scale the maps so that each voxel has variance
+% centermaps: whether to center the graphs according to the across-map average
+% scalemaps: whether to scale the graphs so that each voxel has variance
 %       equal 1 across maps
 % threshold: proportion threshold above which graph connections are
 %       displayed (between 0 and 1, the higher the fewer displayed connections)
+% figure_number: number of figure to display
 %
 % OUTPUT:
 % graph: (regions by regions by state) array with the estimated connectivity maps
@@ -30,6 +31,7 @@ if isempty(type), disp('type not specified, using coherence.'); type = 1; end
 if nargin < 6 || isempty(centergraphs), centergraphs = 0; end
 if nargin < 7 || isempty(scalegraphs), scalegraphs = 0; end
 if nargin < 8 || isempty(threshold), threshold = 0.95; end
+if nargin < 9 || isempty(figure_number), figure_number = randi(100); end
 
 if ~isfield(sp_fit.state(1),'psd')
     error('Input must be a spectral estimation, e.g. from hmmspectramt')
@@ -77,7 +79,7 @@ for ik = 1:length(index_k)
     th = c(round(length(c)*(1-threshold)));
     C(C<th) = 0;
     try
-        figure(k+200)
+        figure(k+figure_number)
         circularGraph(C,'Label',labels);
     catch
         error('Please get the Matlab circularGraph toolbox first')
