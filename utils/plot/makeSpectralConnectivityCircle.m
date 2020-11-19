@@ -1,19 +1,22 @@
-function graphs = makeConnectivityCircle(hmm,k,labels,...
-    centergraphs,scalegraphs,partialcorr,threshold,figure_number)
-% Plot HMM connectomes in connectivity circle format 
-%   (not to be used on an HMM-TDE model or an HMM-MAR model directly; 
-%   for this use makeSpectralConnectivityCircle)
+function graphs = makeSpectralConnectivityCircle(sp_fit,k,freqindex,type,...
+    labels,centergraphs,scalegraphs,threshold,figure_number)
+% Plot spectral connectomes in connectivity circle format
 %
-% hmm: hmm struct as comes out of hmmmar
+% sp_fit: spectral fit, from hmmspectramt, hmmspectramar, spectbands or spectdecompose
 % k: which state or states to plot, e.g. 1:4. If left empty, then all of them
+% freqindex: which frequency bin or band to plot; it can be a value or a
+%   range, in which case it will sum across the range.
+%   e.g. 1:20, to integrate the first 20 frequency bins, or, if sp_fit is
+%   already organised into bands: 2 to plot the second band.
+% type: which connectivity measure to use: 1 for coherence, 2 for partial coherence
 % labels : names of the regions
-% centergraphs: whether to center the graphs according to the across-map average
-% scalegraphs: whether to scale the graphs so that each voxel has variance
+% centermaps: whether to center the graphs according to the across-map average
+% scalemaps: whether to scale the graphs so that each voxel has variance
 %       equal 1 across maps
-% partialcorr: whether to use a partial correlation matrix or a correlation
-%   matrix (default: 0)
 % threshold: proportion threshold above which graph connections are
 %       displayed (between 0 and 1, the higher the fewer displayed connections)
+% ColorMap: a (nodes by 3) matrix of [r g b] triples, with colours 
+%           to be used for the nodes
 % figure_number: number of figure to display
 %
 % OUTPUT:
@@ -25,45 +28,41 @@ function graphs = makeConnectivityCircle(hmm,k,labels,...
 %
 % Diego Vidaurre (2020)
 
-if nargin < 4 || isempty(centergraphs), centergraphs = 0; end
-if nargin < 5 || isempty(scalegraphs), scalegraphs = 0; end
-if nargin < 6 || isempty(partialcorr), partialcorr = 0; end
-if nargin < 7 || isempty(threshold), threshold = 0.95; end
-if nargin < 8 || isempty(figure_number), figure_number = randi(100); end
+if isempty(type), disp('type not specified, using coherence.'); type = 1; end
 
-do_HMM_pca = strcmpi(hmm.train.covtype,'pca');
-if ~do_HMM_pca && ~strcmp(hmm.train.covtype,'full')
-    error('Cannot great a brain graph because the states do not contain any functional connectivity')
+if nargin < 6 || isempty(centergraphs), centergraphs = 0; end
+if nargin < 7 || isempty(scalegraphs), scalegraphs = 0; end
+if nargin < 8 || isempty(threshold), threshold = 0.95; end
+if nargin < 9 || isempty(ColorMap), ColorMap = []; end
+if nargin < 10 || isempty(figure_number), figure_number = randi(100); end
+
+if ~isfield(sp_fit.state(1),'psd')
+    error('Input must be a spectral estimation, e.g. from hmmspectramt')
 end
 
-K = length(hmm.state);
+K = length(sp_fit.state); ndim = size(sp_fit.state(1).psd,2);
 if ~isempty(k), index_k = k; else, index_k = 1:K; end
-if do_HMM_pca
-    ndim = size(hmm.state(1).W.Mu_W,1);
-else
-    if isfield(hmm.train,'A'), ndim = size(hmm.train.A,1);
-    else, ndim = size(hmm.state(1).Omega.Gam_rate,1);
-    end
-end
 
-if nargin < 3 || isempty(labels)
+if nargin < 5 || isempty(labels)
     labels = cell(ndim,1);
     for j = 1:ndim
-        if ndim < 200
-            labels{j} = ['Parcel ' num2str(j)];
-        else
-            labels{j} = num2str(j);
-        end
+       labels{j} = ['Parcel ' num2str(j)];
     end
 end
 
 graphs = zeros(ndim,ndim,K);
 
 for k = 1:K
-    if partialcorr
-        [~,~,~,C] = getFuncConn(hmm,k,1);
+    if type==1
+        C = permute(sum(sp_fit.state(k).coh(freqindex,:,:),1),[2 3 1]);
+    elseif type==2
+        try
+            C = permute(sum(sp_fit.state(k).pcoh(freqindex,:,:),1),[2 3 1]);
+        catch
+            error('Partial coherence was not estimated so it could not be used')
+        end
     else
-        [~,C,] = getFuncConn(hmm,k,1);
+        error('Not a valid value for type')
     end
     C(eye(ndim)==1) = 0;
     graphs(:,:,k) = C;
@@ -84,7 +83,11 @@ for ik = 1:length(index_k)
     C(C<th) = 0;
     try
         figure(k+figure_number)
-        circularGraph(C,'Label',labels);
+        if isempty(ColorMap)
+            circularGraph(C,'Label',labels);
+        else
+            circularGraph(C,'Label',labels,'Colormap',ColorMap);
+        end
     catch
         error('Please get the Matlab circularGraph toolbox first')
     end

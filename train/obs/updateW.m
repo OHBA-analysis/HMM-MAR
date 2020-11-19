@@ -236,7 +236,7 @@ for k = rangeK
             
             % and compute mean:
             temp = (bsxfun(@times,X,Gamma(:,k)))' * Y * prec;
-            muW = hmm.state(k).W.S_W(validentries,validentries)*squash(temp);
+            muW = hmm.state(k).W.S_W(validentries,validentries)*temp(:);
             muW = reshape(muW,Xdim,Ydim);
             
             hmm.state(k).W.Mu_W = zeros(size(S));

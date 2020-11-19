@@ -442,7 +442,7 @@ end
 for k = 1:K
     graph = squeeze(abs(fitmt_group_fact_wb.state(k).coh(1,:,:)));
     graph = (graph - M);  
-    tmp = squash(triu(graph));
+    tmp = triu(graph); tmp = tmp(:);
     inds2 = find(tmp>1e-10);
     data = tmp(inds2);
     S2 = [];
@@ -476,7 +476,7 @@ for fr = 1:3
     for k = 1:K
         graph = squeeze(abs(fitmt_group_fact_4b.state(k).coh(fr,:,:)));
         graph = (graph - M);
-        tmp = squash(triu(graph));
+        tmp = triu(graph); tmp = tmp(:);
         inds2 = find(tmp>1e-10);
         data = tmp(inds2);
         S2 = [];
