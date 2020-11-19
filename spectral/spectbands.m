@@ -34,7 +34,7 @@ for k=1:K
         av_fit.state(k).psd(j,:,:) = sum(sp_fit.state(k).psd(ind,:,:));
     end
     
-    if isfield(sp_fit.state(1),'coh')
+    if isfield(sp_fit.state(1),'coh') && ~isempty(sp_fit.state(1).coh)
         av_fit.state(k).coh = zeros(Nbands,ndim,ndim);
         for j=1:Nbands
             ind = (f>=bands(j,1)) & (f<=bands(j,2));
@@ -42,7 +42,7 @@ for k=1:K
         end
     end
     
-    if isfield(sp_fit.state(1),'pcoh')
+    if isfield(sp_fit.state(1),'pcoh') && ~isempty(sp_fit.state(1).pcoh)
         av_fit.state(k).pcoh = zeros(Nbands,ndim,ndim);
         for j=1:Nbands
             ind = (f>=bands(j,1)) & (f<=bands(j,2));
@@ -50,7 +50,7 @@ for k=1:K
         end
     end    
     
-    if isfield(sp_fit.state(1),'pdc')
+    if isfield(sp_fit.state(1),'pdc') && ~isempty(sp_fit.state(1).pdc)
         av_fit.state(k).pdc = zeros(Nbands,ndim,ndim);
         for j=1:Nbands
             ind = (f>=bands(j,1)) & (f<=bands(j,2));
