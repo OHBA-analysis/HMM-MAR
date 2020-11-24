@@ -191,7 +191,7 @@ if mode > 5
     mode = mode / 2; 
 end
 if mode == 2
-    [V,~] = eig(C); map = V(:,1);
+    [V,D] = eig(C); d = diag(D); [~,j] = max(d); map = V(:,j);
 else
     C(C<0) = 0;
     C(eye(size(C,1))==1) = 0; map = sum(C);
