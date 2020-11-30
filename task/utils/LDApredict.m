@@ -107,8 +107,6 @@ if T==T2
             end
         else
             betas_t = permute(sum(repmat(Gamma(t,:),[numconds,1,nDimX]).* betamu_givenY,2),[1,3,2]);
-%             Y_pred(t,:) = (betas_t * inv(CovMat_t) * X(t,:)') ...
-%                *inv(betas_t * inv(CovMat_t) * betas_t');
             
             %alternative implementation:
             if ~intercept

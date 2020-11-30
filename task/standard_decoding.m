@@ -214,18 +214,13 @@ for t = halfbin+1 : ttrial-halfbin
             cv_acc(t) = mean(sum(abs(Ycopyt - Ypredt_star),2) < 1e-4);
         end        
     else
-        if q == 1
-            if isfield(options,'accuracyType') && strcmp(options.accuracyType,'Pearson')
-                cv_acc(t,:) = diag(corr(Yt,Ypredt));
-            else
-                cv_acc(t,:) = 1 - sum((Yt - Ypredt).^2) ./ sum(Yt.^2);
-            end
+        if isfield(options,'accuracyType') && strcmp(options.accuracyType,'Pearson')
+            cv_acc(t,:) = diag(corr(Yt,Ypredt));
+        elseif isfield(options,'accuracyType') && strcmp(options.accuracyType,'all')
+            cv_acc(t,:,1) = 1 - sum((Yt - Ypredt).^2) ./ sum(Yt.^2);
+            cv_acc(t,:,2) = diag(corr(Yt,Ypredt));
         else
-            if isfield(options,'accuracyType') && strcmp(options.accuracyType,'Pearson')
-                cv_acc(t,:) = diag(corr(Yt,Ypredt));
-            else
-                cv_acc(t,:) = 1 - sum((Yt - Ypredt).^2) ./ sum(Yt.^2);
-            end
+            cv_acc(t,:) = 1 - sum((Yt - Ypredt).^2) ./ sum(Yt.^2);
         end
     end
 end
