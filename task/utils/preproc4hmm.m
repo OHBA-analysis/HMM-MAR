@@ -152,8 +152,10 @@ if ~isempty(options.classifier) || options.encodemodel
             elseif any((vals ~= -1) & (vals ~= 1)) 
                 error('Format of Y incorrect for classification tasks');
             end
+            c1 = sum(Y==-1); c2 = sum(Y==1); c12 = length(Y);
+            Y(Y==-1) = - c12 / c1;  Y(Y==+1) = c12 / c2;
         elseif length(vals) > 2 && q == 1
-            Ytmp = Y; 
+            Ytmp = Y;
             Y = zeros(size(Y,1),length(vals));
             for jj = 1:length(vals), Y(Ytmp==vals(jj),jj) = 1; end
             q = length(vals);
