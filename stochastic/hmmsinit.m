@@ -35,6 +35,9 @@ if do_HMM_pca
         [X,~,Y,Ti] = loadfile(Xin{i},T{i},options); XX = X;
         data = struct('X',X,'C',NaN(size(XX,1),K));
         [Gamma,~,Xi] = hsinference(data,Ti,hmm,Y,[],XX);
+        if isempty(Xi) % id_mixture
+            Xi = approximateXi(Gamma,Ti,hmm);
+        end
         checkGamma(Gamma,Ti,hmm.train,i);
         subjfe_init(i,1:2) = evalfreeenergy([],Ti,Gamma,Xi,hmm,[],[],[1 0 1 0 0]); % Gamma entropy & Gamma LL  
         loglik_init(i) = - sum(evalfreeenergy(X,Ti,Gamma,Xi,hmm,Y,XX,[0 1 0 0 0])); % data LL
@@ -147,8 +150,11 @@ for rep = 1:options.BIGinitrep
             %options.initcriterion = 'FreeEnergy';
             if length(Ti)==1, options.useParallel = 0; end
             [hmm_i,Gamma,Xi] = hmmmar(X,Ti,options);
+            if isempty(Xi) % id_mixture
+                Xi = approximateXi(Gamma,Ti,hmm_i);
+            end
             options = options_copy;
-            hmm_i.train.pca = options.pca; 
+            hmm_i.train.pca = options.pca;
             hmm_i.train.pca_spatial = options.pca_spatial;
             hmm_i.train.embeddedlags = options.embeddedlags;
             hmm_i.train.filter = options.filter;

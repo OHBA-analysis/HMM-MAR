@@ -31,18 +31,19 @@ for n = 1:N
         X = data{n};
     end
     HMMs_dualregr{n} = hmmdual(X,T{n},hmm); %preprocessing is done here
-    for k = 1:length(HMMs_dualregr{n}.state) % making it lighter
-        HMMs_dualregr{n}.state(k).prior = [];
-    end
-end
+    HMMs_dualregr{n}.state = rmfield(HMMs_dualregr{n}.state,'prior');
+end 
 
-D = NaN(N);
-for n1 = 1:N-1
+D = zeros(N,N);
+parfor n1 = 1:N-1
+    din = zeros(1,N);
     for n2 = n1+1:N
-        D(n1,n2) = (hmm_kl(HMMs_dualregr{n1},HMMs_dualregr{n2}) ...
+        % FO is contained in TPC; TPC is contained in HMM
+        din(n2) = (hmm_kl(HMMs_dualregr{n1},HMMs_dualregr{n2}) ...
             + hmm_kl(HMMs_dualregr{n2},HMMs_dualregr{n1}))/2;
-        D(n2,n1) = D(n1,n2);
     end
-end
+    D(n1,:) = din;
+end; D = D' + D;
+
 
 end

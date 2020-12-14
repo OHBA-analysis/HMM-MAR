@@ -3,11 +3,6 @@ function [actstates,hmm,Gamma,Xi] = getactivestates(hmm,Gamma,Xi)
 %ndim = size(X,2);
 K = hmm.K;
 orders = formorders(hmm.train.order,hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag);
-if isfield(hmm.state(1),'Omega')
-    ndim = size(hmm.state(1).Omega.Gam_rate,2);
-else
-    ndim = size(hmm.state(1).W.Mu_W,2);
-end
 
 Gammasum = sum(Gamma);
 if isfield(hmm.train,'B'), Q = size(hmm.train.B,2);
@@ -16,7 +11,7 @@ else, Q = sum(any(hmm.train.S==1)); end
 threshold = max(4*length(orders)*Q+5,10);
 
 actstates = ones(1,K); % length = to the last no. of states (=the original K if dropstates==0)
-for k=1:K
+for k = 1:K
     if Gammasum(:,k) <= threshold
         if ~hmm.train.dropstates && hmm.train.active(k)==1
             if hmm.train.verbose

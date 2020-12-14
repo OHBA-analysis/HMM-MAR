@@ -1,10 +1,11 @@
-function hmm = updatePCAparam (hmm,Gammasum,XXGXX,Tfactor)
+function hmm = updatePCAparam (hmm,Gammasum,XXGXX,Tfactor,rangeK)
 
-K = length(hmm.state); ndim = hmm.train.ndim;
-if nargin<5, Tfactor = 1; end
+K = hmm.K; ndim = hmm.train.ndim;
+if nargin < 5 || isempty(rangeK), rangeK = 1:K; end
+if nargin < 4, Tfactor = 1; end
 p = hmm.train.lowrank; 
 
-for k = 1:K
+for k = rangeK
     
     % unlike Bishop's mixture of PCA, we don't have a mean vector per state here
     v = hmm.Omega.Gam_rate / hmm.Omega.Gam_shape;

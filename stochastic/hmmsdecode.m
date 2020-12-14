@@ -11,6 +11,10 @@ function [Path,Xi] = hmmsdecode(Xin,T,hmm,type)
 % Diego Vidaurre, OHBA, University of Oxford (2015)
 
 if nargin<4, type = 0; end
+mixture_model = isfield(hmm.train,'id_mixture') && hmm.train.id_mixture;
+if mixture_model && type==1
+   error('Viterbi path not implemented for mixture model') 
+end
 
 for i = 1:length(T)
     if size(T{i},1)==1, T{i} = T{i}'; end
@@ -64,7 +68,7 @@ for i = 1:N
         [gamma,~,xi] = hsinference(data,Ti,hmm_i,Y,[],XX);
         checkGamma(gamma,Ti,hmm_i.train,i);
         Path(t,:) = single(gamma);
-        if nargout>=2, Xi(t2,:,:) = xi; end
+        if nargout>=2 && ~mixture_model, Xi(t2,:,:) = xi; end
     else
         Path(t,:) = hmmdecode(X,Ti,hmm_i,type,Y,0);
     end

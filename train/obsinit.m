@@ -20,7 +20,7 @@ do_HMM_pca = (hmm.train.lowrank > 0);
 if ~do_HMM_pca
     [residuals,W0] =  getresiduals(data.X,T,hmm.train.Sind,hmm.train.maxorder,hmm.train.order,...
         hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag,hmm.train.zeromean);
-else 
+else
     residuals = []; W0 = [];
 end
 hmm = initpriors(data.X,T,hmm,residuals);
@@ -34,36 +34,46 @@ function hmm = initpriors(X,T,hmm,residuals)
 
 ndim = size(X,2);
 rangresiduals2 = (range(residuals)/2).^2;
-if isfield(hmm.train,'B'), Q = size(hmm.train.B,2); 
-else Q = ndim; 
+if isfield(hmm.train,'B'), Q = size(hmm.train.B,2);
+else Q = ndim;
 end
 pcapred = hmm.train.pcapred>0;
 if pcapred, M = hmm.train.pcapred; end
 p = hmm.train.lowrank; do_HMM_pca = (p > 0);
 
-for k = 1:hmm.K
+if hmm.train.additiveHMM
+    rangeK = 1:hmm.K+1;
+else
+    rangeK = 1:hmm.K;
+end
 
+for k = rangeK
+    
     train = hmm.train;
     orders = train.orders;
     %train.orders = formorders(train.order,train.orderoffset,train.timelag,train.exptimelag);
-
+    
     if (strcmp(train.covtype,'diag') || strcmp(train.covtype,'full')) && pcapred
-        defstateprior(k)=struct('beta',[],'Omega',[],'Mean',[]);
+        st = struct('beta',[],'Omega',[],'Mean',[]);
     elseif do_HMM_pca
-        defstateprior(k)=struct('Omega',[]); %'beta',[]
-    elseif (strcmp(train.covtype,'diag') || strcmp(train.covtype,'full')) 
-        defstateprior(k)=struct('sigma',[],'alpha',[],'Omega',[],'Mean',[]);
+        st = struct('Omega',[]); %'beta',[]
+    elseif (strcmp(train.covtype,'diag') || strcmp(train.covtype,'full'))
+        st = struct('sigma',[],'alpha',[],'Omega',[],'Mean',[]);
     elseif (strcmp(train.covtype,'uniquediag') || strcmp(train.covtype,'uniquefull')) && pcapred
-        defstateprior(k)=struct('beta',[],'Mean',[]);
+        st = struct('beta',[],'Mean',[]);
     elseif isfield(train,'distribution') && strcmp(train.distribution,'logistic')
-        defstateprior(k)=struct('sigma',[],'alpha',[]);
+        st = struct('sigma',[],'alpha',[]);
     else
-        defstateprior(k)=struct('sigma',[],'alpha',[],'Mean',[]);
+        st = struct('sigma',[],'alpha',[],'Mean',[]);
     end
+    if hmm.train.additiveHMM
+        st.P = []; st.Pi = []; st.Dir_alpha = []; st.Dir2d_alpha = [];
+    end
+    defstateprior(k) = st; 
     
     if do_HMM_pca
         %defstateprior(k).beta = struct('Gam_shape',[],'Gam_rate',[]);
-        %defstateprior(k).beta.Gam_shape = 0.1; 
+        %defstateprior(k).beta.Gam_shape = 0.1;
         %defstateprior(k).beta.Gam_rate = 0.1 * ones(1,p);
     elseif pcapred
         defstateprior(k).beta = struct('Gam_shape',[],'Gam_rate',[]);
@@ -92,7 +102,7 @@ for k = 1:hmm.K
         defstateprior(k).Mean.S = rangresiduals2';
         defstateprior(k).Mean.iS = 1./rangresiduals2';
     end
-    if isempty(hmm.train.priorcov_rate) 
+    if isempty(hmm.train.priorcov_rate)
         priorcov_rate = rangeerror(X,T,residuals,orders,hmm.train);
     else
         priorcov_rate = hmm.train.priorcov_rate * ones(1,ndim);
@@ -104,7 +114,10 @@ for k = 1:hmm.K
         defstateprior(k).Omega.Gam_rate = 0.5 * priorcov_rate;
         defstateprior(k).Omega.Gam_shape = 0.5 * (ndim+0.1-1);
     end
-    
+    if hmm.train.additiveHMM && k < hmm.K+1
+        defstateprior(k).Dir_alpha = hmm.state(k).prior.Dir_alpha;
+        defstateprior(k).Dir2d_alpha = hmm.state(k).prior.Dir2d_alpha;
+    end
 end
 
 if strcmp(hmm.train.covtype,'uniquefull')
@@ -113,26 +126,31 @@ if strcmp(hmm.train.covtype,'uniquefull')
 elseif do_HMM_pca
     hmm.prior.Omega.Gam_shape = 0.5 * (ndim+0.1-1);
     hmm.prior.Omega.Gam_rate = 0.5 * median(priorcov_rate);
-elseif strcmp(hmm.train.covtype,'uniquediag') 
+elseif strcmp(hmm.train.covtype,'uniquediag')
     hmm.prior.Omega.Gam_shape = 0.5 * (ndim+0.1-1);
-    hmm.prior.Omega.Gam_rate = 0.5 * priorcov_rate;     
+    hmm.prior.Omega.Gam_rate = 0.5 * priorcov_rate;
 end
 
 % assigning default priors for observation models
 if ~isfield(hmm,'state') || ~isfield(hmm.state,'prior')
-    for k = 1:hmm.K
+    for k = rangeK
         hmm.state(k).prior = defstateprior(k);
     end
 else
-    for k = 1:hmm.K
+    for k = rangeK
         % prior not specified are set to default
         statepriorlist = fieldnames(defstateprior(k));
         fldname = fieldnames(hmm.state(k).prior);
+%         try fldname = fieldnames(hmm.state(k).prior);
+%         catch, keyboard; %hmm.state(k).prior = defstateprior(k); 
+%         end
         misfldname = find(~ismember(statepriorlist,fldname));
         for i = 1:length(misfldname)
+            if k==hmm.K+1 && (strcmp(statepriorlist{i},'Dir2d_alpha') || strcmp(statepriorlist{i},'Dir_alpha'))
+                continue; 
+            end
             priorval = getfield(defstateprior(k),statepriorlist{i});
-            hmm.state(k).prior = setfield(hmm.state,k,'prior',statepriorlist{i}, ...
-                priorval);
+            hmm.state(k).prior = setfield(hmm.state(k).prior,statepriorlist{i},priorval);
         end
     end
 end
@@ -149,22 +167,47 @@ K = hmm.K;
 S = hmm.train.S==1; regressed = sum(S)>0;
 hmm.train.active = ones(1,K);
 if isfield(hmm.train,'B'), B = hmm.train.B; Q = size(B,2);
-else Q = ndim; end
+else Q = ndim; 
+end
 pcapred = hmm.train.pcapred>0;
 p = hmm.train.lowrank; do_HMM_pca = (p > 0);
+additiveHMM = hmm.train.additiveHMM;
 
-% initial random values for the states - multinomial
-Gammasum = sum(Gamma);
+% This is so that, on average, each chain contributes 1/K to the prediction
+% Note that's also true for the baseline state; therefore, the correct
+% interpretation is that there are K copies of the baseline state
+% contributing simultaneously ? each with probability (0,1)
+if additiveHMM, residuals = residuals / K; end
+
 setxx; % build XX and get orders
+rangeK = 1:K;
+if additiveHMM % renormalize state time courses and readjust the baseline state
+    % Note that obsinit is the only place where we will update the baseline
+    % state parameters
+    rangeK = 1:K+1;
+    Gamma = [Gamma sum(1 - Gamma,2) ];
+    % baseline is just the average across the entire data set, 
+    % BUT: each chain contribution of baseline accounts for at most 1/K
+    Gamma(:,K+1) = 1; 
+    XXGXX = cell(K+1,1);
+    if ~isfield(hmm.train,'distribution') || ~strcmp(hmm.train.distribution,'logistic') ...
+            || ~isfield(hmm.state,'W')
+        for k = 1:K, XXGXX{k} = bsxfun(@times, XX, Gamma(:,k))' * XX; end
+        XXGXX{K+1} = XX' * XX;
+    else
+        error('AdditiveHMM not yet implemented for logistic models')
+    end
+end
+Gammasum = sum(Gamma); % if additiveHMM, Gammasum doesn't sum up to T
 
 % W
-for k = 1:K
+for k = rangeK
     setstateoptions;
     if pcapred, npred = hmm.train.pcapred;
     else npred = Q*length(orders);
     end
     hmm.state(k).W = struct('Mu_W',[],'S_W',[]);
-  
+    
     if do_HMM_pca || order>0 || ~train.zeromean || ...
             (isfield(train,'distribution') && strcmp(train.distribution,'logistic'))
         if train.uniqueAR || ndim==1 % it is assumed that order>0 and cov matrix is diagonal
@@ -185,11 +228,11 @@ for k = 1:K
             end
             
         elseif do_HMM_pca
-            weights = Gamma(:,k); weights(weights==0) = eps; 
+            weights = Gamma(:,k); weights(weights==0) = eps;
             hmm.state(k).W.Mu_W = pca(XX,'NumComponents',p,'Weights',weights,'Centered',false);
             Xpca = XX * hmm.state(k).W.Mu_W;
             hmm.state(k).W.iS_W = zeros(ndim,p,p);
-            hmm.state(k).W.S_W = zeros(ndim,p,p);      
+            hmm.state(k).W.S_W = zeros(ndim,p,p);
             for n = 1:ndim
                 hmm.state(k).W.iS_W(n,:,:) = (Xpca' .* repmat(Gamma(:,k)',p,1)) * Xpca + 0.01*eye(p);
                 hmm.state(k).W.S_W(n,:,:) =  diag(1 ./ diag(permute(hmm.state(k).W.iS_W(n,:,:),[2 3 1])));
@@ -240,7 +283,7 @@ end
 % Omega
 if strcmp(hmm.train.covtype,'uniquediag') && hmm.train.uniqueAR
     hmm.Omega.Gam_rate = hmm.prior.Omega.Gam_rate;
-    for k = 1:K
+    for k = rangeK
         XW = zeros(size(XX,1),ndim);
         for n = 1:ndim
             ind = n:ndim:size(XX,2);
@@ -256,9 +299,9 @@ elseif do_HMM_pca
     hmm.Omega.Gam_rate = hmm.prior.Omega.Gam_rate;
     hmm.Omega.Gam_shape = hmm.prior.Omega.Gam_shape;
     v = hmm.Omega.Gam_rate / hmm.Omega.Gam_shape;
-    for k = 1:K
+    for k = rangeK
         W = hmm.state(k).W.Mu_W;
-        M = W' * W + v * eye(p); % posterior dist of the precision matrix 
+        M = W' * W + v * eye(p); % posterior dist of the precision matrix
         omega_i = mean(diag(XXGXX{k} - XXGXX{k} * W * (M \ W')));
         %e = sum(repmat(Gamma(:,k),1,ndim) .* (XX - XX * W * W').^2,2);
         hmm.Omega.Gam_rate_state(k) = 0.5 * omega_i; %sum(e);
@@ -271,7 +314,7 @@ elseif strcmp(hmm.train.covtype,'uniquediag')
     hmm.Omega.Gam_shape = hmm.prior.Omega.Gam_shape + Tres / 2;
     hmm.Omega.Gam_rate = zeros(1,ndim);
     hmm.Omega.Gam_rate(regressed) = hmm.prior.Omega.Gam_rate(regressed);
-    for k = 1:hmm.K
+    for k = rangeK
         if ~isempty(hmm.state(k).W.Mu_W(:,regressed))
             e = residuals(:,regressed) - XX * hmm.state(k).W.Mu_W(:,regressed);
         else
@@ -285,7 +328,7 @@ elseif strcmp(hmm.train.covtype,'uniquefull')
     hmm.Omega.Gam_shape = hmm.prior.Omega.Gam_shape + Tres;
     hmm.Omega.Gam_rate = zeros(ndim,ndim); hmm.Omega.Gam_irate = zeros(ndim,ndim);
     hmm.Omega.Gam_rate(regressed,regressed) = hmm.prior.Omega.Gam_rate(regressed,regressed);
-    for k = 1:hmm.K
+    for k = rangeK
         if ~isempty(hmm.state(k).W.Mu_W(:,regressed))
             e = residuals(:,regressed) - XX * hmm.state(k).W.Mu_W(:,regressed);
         else
@@ -294,10 +337,10 @@ elseif strcmp(hmm.train.covtype,'uniquefull')
         hmm.Omega.Gam_rate(regressed,regressed) = hmm.Omega.Gam_rate(regressed,regressed) +  ...
             (e' .* repmat(Gamma(:,k)',sum(regressed),1)) * e;
     end
-    hmm.Omega.Gam_irate(regressed,regressed) = inv(hmm.Omega.Gam_rate(regressed,regressed));   
+    hmm.Omega.Gam_irate(regressed,regressed) = inv(hmm.Omega.Gam_rate(regressed,regressed));
     
 elseif ~isfield(hmm.train,'distribution') || ~strcmp(hmm.train.distribution,'logistic') % state dependent
-    for k = 1:K
+    for k = rangeK
         setstateoptions;
         if train.uniqueAR
             XW = zeros(size(XX,1),ndim);
@@ -309,7 +352,7 @@ elseif ~isfield(hmm.train,'distribution') || ~strcmp(hmm.train.distribution,'log
             hmm.state(k).Omega.Gam_rate = hmm.state(k).prior.Omega.Gam_rate + ...
                 0.5* sum( repmat(Gamma(:,k),1,ndim) .* e );
             hmm.state(k).Omega.Gam_shape = hmm.state(k).prior.Omega.Gam_shape + Gammasum(k) / 2;
-
+            
         elseif strcmp(train.covtype,'diag')
             if ~isempty(hmm.state(k).W.Mu_W)
                 e = (residuals(:,regressed) - XX * hmm.state(k).W.Mu_W(:,regressed)).^2;
@@ -339,9 +382,9 @@ elseif ~isfield(hmm.train,'distribution') || ~strcmp(hmm.train.distribution,'log
     
 end
 
-%%% Priors
+% Priors over the parameters
 if ~pcapred && ~do_HMM_pca
-    for k = 1:K
+    for k = rangeK
         if hmm.train.order>0 && isempty(hmm.train.prior)
             hmm.state(k).alpha.Gam_shape = hmm.state(k).prior.alpha.Gam_shape;
             hmm.state(k).alpha.Gam_rate = hmm.state(k).prior.alpha.Gam_rate;
@@ -353,7 +396,7 @@ if ~pcapred && ~do_HMM_pca
     hmm = updateAlpha(hmm);
     if isfield(train,'distribution') && strcmp(train.distribution,'logistic')
         if train.logisticYdim>1
-            for k = 1:train.K
+            for k = rangeK
                 hmm.state(k).alpha.Gam_rate = ...
                     repmat(hmm.state(k).alpha.Gam_rate(1:ndim_n,end),1,train.logisticYdim);
             end
@@ -366,6 +409,21 @@ elseif pcapred
             sum(hmm.state(k).W.Mu_W.^2);
     end
 end
+
+% final pass, including baseline for additiveHMM, which won't be touched again. 
+%   we don't call obsupdate here because for additiveHMM the Gamma
+%   normalisation was already done at the beginning of the function. 
+% Note that for the additiveHMM, this is assuming that the contribution of
+% each chain is exactly 1/K, which is only an approximation
+if do_HMM_pca
+    hmm = updatePCAparam (hmm,Gammasum,XXGXX,1,rangeK);
+else
+    %%% W
+    [hmm,XW] = updateW(hmm,Gamma,residuals,XX,XXGXX,1,rangeK);
+    %%% Omega
+    hmm = updateOmega(hmm,Gamma,Gammasum,residuals,T,XX,XXGXX,XW,1,rangeK);
+end
+
 
 end
 

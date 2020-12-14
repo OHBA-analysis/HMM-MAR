@@ -55,6 +55,7 @@ if isfield(hmm.train,'id_mixture') && hmm.train.id_mixture
 end
 
 L(L<realmin) = realmin;
+L(L>realmax) = realmax;
 
 if hmm.train.useMEX 
     [Gamma, Xi] = hidden_state_inference_mx(L, Pi, P, order);

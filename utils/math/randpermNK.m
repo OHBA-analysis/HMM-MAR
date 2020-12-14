@@ -1,7 +1,7 @@
 function I = randpermNK(N,K) 
 % N is the number of trials/subjects
 % K is the number of groups
-if K==1, 
+if K==1
     I = cell(1);
     I{1} = randperm(N); 
     return; 

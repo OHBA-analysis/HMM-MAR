@@ -1,24 +1,22 @@
-function [predictedY,predictedYD,YD,stats] = predictPhenotype (Yin,Din,options,varargin)
+function [predictedY,predictedYD,YD,stats] = predictPhenotype_CVall (Yin,Fin,T,...
+    options_HMM,options_prediction,varargin)
 %
 % Kernel ridge regression or nearest-neighbour estimation using
 % a distance matrix using (stratified) LOO 
 %
 % INPUT
-% Yin       (no. subjects by 1) vector of phenotypic values to predict,
-%           which can be continuous or binary. If a multiclass variable
+% Yin       (no. subjects by no. phenotypes) matrix of phenotypic values to predict,
+%           where each element can be continuous or binary. If a multiclass variable
 %           is to be predicted, then Yin should be encoded by a
 %           (no. subjects by no. classes) matrix, with zeros or ones
 %           indicator entries.
-% Din       (no. subjects by no. subjects) matrix of distances between
-%           subjects, calculated (for example) by computeDistMatrix or
-%           computeDistMatrix_AVFC
+% Fin       (no. subjects by 1) cell with files of subject data, or data
 % options   Struct with the prediction options, with fields:
 %   + alpha - for method='KRR', a vector of weights on the L2 penalty on the regression
 %           By default: [0.0001 0.001 0.01 0.1 0.4 0.7 1.0 10 100]
 %   + sigmafact - for method='KRR', a vector of parameters for the kernel; in particular,
 %           this is the factor by which we will multiply a data-driven estimation
 %           of the kernel parameter. By default: [1/5 1/3 1/2 1 2 3 5];
-%   + K - for method='NN', a vector with the number of nearest neighbours to use
 %   + CVscheme - vector of two elements: first is number of folds for model evaluation;
 %             second is number of folds for the model selection phase (0 in both for LOO)
 %   + CVfolds - prespecified CV folds for the outer loop
@@ -46,36 +44,28 @@ function [predictedY,predictedYD,YD,stats] = predictPhenotype (Yin,Din,options,v
 %   + sse - sum of squared errors
 %   + baseline_sse - baseline sum of squared errors
 %   PLUS: All of the above +'_deconf' in the deconfounded space, if counfounds were specified
-%   + alpha - selected values for alpha at each CV fold
-%   + sigmaf - selected values for sigmafact at each CV fold
 %
 % Author: Diego Vidaurre, OHBA, University of Oxford
-%         Steve Smith, fMRIB University of Oxford
 
-Din(eye(size(Din,1))==1) = 0; 
+options = options_prediction;
 [N,q] = size(Yin);
+
+if ~iscell(Fin), error('Argument Fin must be a cell'); end
 
 which_nan = false(N,1); 
 if q == 1
     which_nan = isnan(Yin);
     if any(which_nan)
         Yin = Yin(~which_nan);
-        Din = Din(~which_nan,~which_nan);
+        Fin = Fin(~which_nan,:);
         warning('NaN found on Yin, will remove...')
     end
     N = size(Yin,1);
 end
 
-if nargin < 3 || isempty(options), options = struct(); end
-% if ~isfield(options,'method')
-%     if isfield(options,'K')
-%         method = 'K';
-%     else
-%         method = 'KRR';
-%     end
-% else
-%     method = 'KRR';
-% end
+if isempty(options), options = struct(); end
+if nargin<3, options = struct(); end
+
 if ~isfield(options,'alpha')
     alpha = [0.0001 0.001 0.01 0.1 0.4 0.7 1.0 10 100];
 else
@@ -103,15 +93,15 @@ else, verbose = options.verbose; end
 
 % check correlation structure
 allcs = []; 
-if (nargin>4) && ~isempty(varargin{1})
+if (nargin>=6) && ~isempty(varargin{1})
     cs = varargin{1};
     if ~isempty(cs)
         is_cs_matrix = (size(cs,2) == size(cs,1));
-        if is_cs_matrix 
+        if size(cs,2)>1 % matrix format
             if any(which_nan)
                 cs = cs(~which_nan,~which_nan);
             end
-            [allcs(:,2),allcs(:,1)]=ind2sub([length(cs) length(cs)],find(cs>0));    
+            [allcs(:,2),allcs(:,1)]=ind2sub([length(cs) length(cs)],find(cs>0));
         else
             if any(which_nan)
                 cs = cs(~which_nan);
@@ -123,7 +113,7 @@ else, cs = [];
 end
 
 % get confounds
-if (nargin>5) && ~isempty(varargin{2})
+if (nargin>=7) && ~isempty(varargin{2})
     confounds = varargin{2};
     confounds = confounds - repmat(mean(confounds),N,1);
     deconfounding = 1;
@@ -140,21 +130,20 @@ YmeanD = zeros(N,q); % mean in deconfounded space
 predictedY = zeros(N,q);
 if deconfounding, predictedYD = zeros(N,q); end
 
-% create the inner CV structure - stratified for family=multinomial
+% create the inner CV structure - we can't to stratified because it's the
+% same fold structure for all variables
 if isempty(CVfolds)
     if CVscheme(1)==1
         folds = {1:N};
     elseif q == 1
         Yin_copy = Yin; Yin_copy(isnan(Yin)) = realmax;
         folds = cvfolds(Yin_copy,CVscheme(1),allcs);
-    else % no stratification
-        folds = cvfolds(randn(size(Yin,1),1),CVscheme(1),allcs);
+    else  % no stratification
+        folds = cvfolds(randn(size(Yin,1),1),CVscheme(1),allcs); 
     end
 else
     folds = CVfolds;
 end
-
-stats = struct();
 
 for ifold = 1:length(folds)
     
@@ -167,6 +156,34 @@ for ifold = 1:length(folds)
     else
         ji = setdiff(1:N,J); % train
     end
+    
+    hmm = hmmmar(Fin(ji),T(ji),options_HMM);
+    HMMs_dualregr = cell(N,1);
+    
+    % dual-estimation
+    for j = 1:N
+        if ischar(Fin{j})
+            fsub = Fin{j};
+            loadfile_sub;
+        else
+            X = Fin{j};
+        end
+        HMMs_dualregr{j} = hmmdual(X,T{j},hmm);
+        HMMs_dualregr{j}.state = rmfield(HMMs_dualregr{j}.state,'prior');
+    end
+    
+    disp('HMM done')
+    
+    Din = zeros(N,N);
+    parfor n1 = 1:N-1
+        din = zeros(1,N);
+        for n2 = n1+1:N
+            % FO is contained in TPC; TPC is contained in HMM
+             din(n2) = (hmm_kl(HMMs_dualregr{n1},HMMs_dualregr{n2}) ...
+                + hmm_kl(HMMs_dualregr{n2},HMMs_dualregr{n1}))/2;
+        end
+        Din(n1,:) = din;
+    end; Din = Din' + Din; 
     
     D = Din(ji,ji); 
     Y = Yin(ji,:);
@@ -182,10 +199,10 @@ for ifold = 1:length(folds)
             Qallcs = find(cs(ji) > 0);
         end
     end
+            
+    parfor ii = 1:q
         
-    for ii = 1:q
-        
-        Dii = D; Yii = Y; % in case you use parfor
+        Dii = D; Yii = Y; 
         
         ind = find(~isnan(Y(:,ii)));
         Yii = Yii(ind,ii); 
@@ -193,7 +210,7 @@ for ifold = 1:length(folds)
         QN = length(ind);
         
         Qfolds = cvfolds(Yii,CVscheme(2),Qallcs); % we stratify
-
+        
         % deconfounding business
         if deconfounding
             Cii = confounds(ji,:); Cii = Cii(ind,:);
@@ -218,9 +235,9 @@ for ifold = 1:length(folds)
             % Inner CV loop
             for Qifold = 1:length(Qfolds)
                 
-                QJ = Qfolds{Qifold}; Qji=setdiff(1:QN,QJ);
+                QJ = Qfolds{Qifold}; Qji = setdiff(1:QN,QJ);
                 QD = QDin(Qji,Qji);
-                QY = QYin(Qji,:); Qmy = mean(QY); QY=QY-Qmy;
+                QY = QYin(Qji); Qmy = mean(QY); QY = QY-Qmy;
                 Nji = length(Qji);
                 QD2 = QDin(QJ,Qji);
                 
@@ -263,75 +280,40 @@ for ifold = 1:length(folds)
         
         % predict the test fold
         predictedY(J,ii) = K2 * beta + my; % some may be NaN actually
-    
-%     else % Nearest Neighbour estimator
-%         Dev = Inf(length(K),1);
-%         
-%         QpredictedY = Inf(QN,length(K));
-%         QYinCOMPARE = QYin;
-%         
-%         % Inner CV loop
-%         for Qifold = 1:length(Qfolds)
-%             
-%             QJ = Qfolds{Qifold}; Qji=setdiff(1:QN,QJ);
-%             QD = QDin(Qji,Qji);
-%             QY = QYin(Qji,:); Qmy = mean(QY); QY=QY-Qmy;
-%             
-%             for j = 1:length(QJ)
-%                 [~,order] = sort(QD(:,j));
-%                 Yordered = QY(order,:);
-%                 for ik = 1:length(K)
-%                     k = K(ik);
-%                     QpredictedY(QJ(j),ik) = mean(Yordered(1:k,:));
-%                 end
-%             end
-%         end
-%         
-%         for ik = 1:length(K)
-%             Dev(k) = (sum(( QpredictedY - ...
-%                 repmat(QYinCOMPARE,1,length(K))).^2) / QN)';
-%         end
-%             
-%         [~,ik] = min(Dev); % Pick the one with the lowest deviance
-%         k = K(ik);
-%         for j = 1:length(J)
-%             [~,order] = sort(D(:,j));
-%             Yordered = Y(order,:);
-%             predictedY(J(j)) = mean(Yordered(1:k,:));
-%         end
-%      
-%     end
-    
+        
         % predictedYD and YD in deconfounded space; Yin and predictedY are confounded
         predictedYD(J,ii) = predictedY(J,ii);
         YD(J,ii) = Yin(J,ii);
         YmeanD(J,ii) = Ymean(J,ii);
         if deconfounding % in order to later estimate prediction accuracy in deconfounded space
-            [~,~,YD(J,ii)] = deconfoundPhen(YD(J,ii),confounds(J,ii),betaY,interceptY);
+            [~,~,YD(J,ii)] = deconfoundPhen(YD(J,ii),confounds(J,:),betaY,interceptY);
             % original space
-            predictedY(J,ii) = confoundPhen(predictedY(J,ii),confounds(J,ii),betaY,interceptY);
-            Ymean(J,ii) = confoundPhen(YmeanD(J,ii),confounds(J,ii),betaY,interceptY);
+            predictedY(J,ii) = confoundPhen(predictedY(J,ii),confounds(J,:),betaY,interceptY);
+            Ymean(J,ii) = confoundPhen(YmeanD(J,ii),confounds(J,:),betaY,interceptY);
         end
-    
-%     if biascorrect % we do this in the original space
-%         Yhattrain = K * beta + my;
-%         if deconfounding
-%             Yhattrain = confoundPhen(Yhattrain,confounds(ji,:),betaY,interceptY);
-%             Ytrain = [confoundPhen(QYin,confounds(ji,:),betaY,interceptY) ...
-%                 ones(size(QYin,1),1)];
-%         else
-%             Ytrain = [QYin ones(size(QYin,1),1)];
+        
+%         if biascorrect % we do this in the original space
+%             Yhattrain = K * beta + my;
+%             if deconfounding
+%                 Yhattrain = confoundPhen(Yhattrain,confounds(ji,:),betaY,interceptY);
+%                 Ytrain = [confoundPhen(QYin,confounds(ji,:),betaY,interceptY) ...
+%                     ones(size(QYin,1),1)];
+%             else
+%                 Ytrain = [QYin ones(size(QYin,1),1)];
+%             end
+%             b = pinv(Ytrain) * Yhattrain;
+%             predictedY(J,ii) = (predictedY(J,ii) - b(2)) / b(1);
 %         end
-%         b = pinv(Ytrain) * Yhattrain;
-%         predictedY(J,:) = (predictedY(J,:) - b(2)) / b(1);
-%     end
-    
+
+        if rem(ii,100)==0, disp(['Variable ' num2str(ii) ]); end
+        
     end
-    
+
     disp(['Fold ' num2str(ifold) ])
-    
+        
 end
 
+stats = struct();
 stats.sse = zeros(q,1);
 stats.cod = zeros(q,1);
 stats.corr = zeros(q,1);
@@ -372,7 +354,6 @@ end
 end
 
 
-
 function K = gauss_kernel(D,sigma)
 % Gaussian kernel
 D = D.^2; % because distance is sqrt-ed
@@ -391,14 +372,13 @@ function [betaY,my,Y] = deconfoundPhen(Y,confX,betaY,my)
 if nargin<3, betaY = []; end
 if isempty(betaY)
     my = mean(Y);
-    Y = Y - my;
+    Y = Y - repmat(my,size(Y,1),1);
     betaY = (confX' * confX + 0.00001 * eye(size(confX,2))) \ confX' * Y;
 end
-res = Y - confX*betaY;
-Y = res;
+Y = Y - confX*betaY;
 end
 
 
 function Y = confoundPhen(Y,conf,betaY,my) 
-Y = Y+conf*betaY+my;
+Y = Y + conf*betaY + repmat(my,size(Y,1),1);
 end

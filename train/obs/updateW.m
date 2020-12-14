@@ -1,12 +1,13 @@
-function [hmm,XW] = updateW(hmm,Gamma,residuals,XX,XXGXX,Tfactor) 
+function [hmm,XW] = updateW(hmm,Gamma,residuals,XX,XXGXX,Tfactor,rangeK) 
 
-K = length(hmm.state); ndim = hmm.train.ndim;
+K = hmm.K; ndim = hmm.train.ndim;
+if nargin < 6, Tfactor = 1; end
+if nargin < 7 || isempty(rangeK), rangeK = 1:K; end
 if ~isempty(hmm.state(1).W.Mu_W)
     XW = zeros(size(XX,1),ndim,K);
 else
     XW = [];
 end
-if nargin<6, Tfactor = 1; end
 reweight = 0; % compensate for classes that have fewer instances?  
 if isfield(hmm.train,'B'), Q = size(hmm.train.B,2);
 else, Q = ndim; 
@@ -22,9 +23,9 @@ if reweight % assumes there are two classes, encoded by -1 and 1
     count(2) = mean(residuals(:,end)>0);
 end
 
-for k = 1:K
+for k = rangeK
     
-    if ~hmm.train.active(k), continue; end
+    if k<hmm.K && ~hmm.train.active(k), continue; end
     if isempty(orders) && train.zeromean && ~do_HMM_pca, continue; end
     if strcmp(train.covtype,'diag') || strcmp(train.covtype,'full'), omega = hmm.state(k).Omega;
     elseif ~isfield(train,'distribution') || ~strcmp(train.distribution,'logistic'), omega = hmm.Omega;
@@ -49,7 +50,7 @@ for k = 1:K
             ind = n:ndim:size(XX,2);
             iomegan = omega.Gam_shape / omega.Gam_rate(n);
             XGX = XGX + iomegan * XXGXX{k}(ind,ind);
-            XY = XY + (iomegan * XX(:,ind)' .* repmat(Gamma(:,k)',length(ind),1)) * residuals(:,n);
+            XY = XY + bsxfun(@times, iomegan * XX(:,ind), Gamma(:,k))' * residuals(:,n);
         end
         if ~isempty(train.prior)
             hmm.state(k).W.S_W = inv(train.prior.iS + XGX);
@@ -103,9 +104,9 @@ for k = 1:K
                 permute(hmm.state(k).W.iS_W(n,Sind(:,n),Sind(:,n)),[2 3 1])' ) / 2; % ensuring symmetry
             hmm.state(k).W.S_W(n,Sind(:,n),Sind(:,n)) = ...
                 inv(permute(hmm.state(k).W.iS_W(n,Sind(:,n),Sind(:,n)),[2 3 1]));
-            hmm.state(k).W.Mu_W(Sind(:,n),n) = (( permute(hmm.state(k).W.S_W(n,Sind(:,n),Sind(:,n)),[2 3 1]) * ...
-                Tfactor * (omega.Gam_shape / omega.Gam_rate(n)) * XX(:,Sind(:,n))') .* ...
-                repmat(Gamma(:,k)',sum(Sind(:,n)),1)) * residuals(:,n);
+            sx = permute(hmm.state(k).W.S_W(n,Sind(:,n),Sind(:,n)),[2 3 1]) * ...
+                Tfactor * (omega.Gam_shape / omega.Gam_rate(n)) * XX(:,Sind(:,n))';
+            hmm.state(k).W.Mu_W(Sind(:,n),n) = bsxfun(@times, sx, Gamma(:,k)') * residuals(:,n);
         end
         XW(:,:,k) = XX * hmm.state(k).W.Mu_W;
         
@@ -135,9 +136,9 @@ for k = 1:K
         for n = 1:ndim
             ndim_n = sum(S(:,n));
             if ndim_n==0, continue; end
-            WW=cell(K,1);
-            for i=1:K
-                WW{i}=hmm.state(i).W.Mu_W(Sind(:,n),n)*hmm.state(i).W.Mu_W(Sind(:,n),n)' + ...
+            WW = cell(K,1);
+            for i = rangeK
+                WW{i} = hmm.state(i).W.Mu_W(Sind(:,n),n)*hmm.state(i).W.Mu_W(Sind(:,n),n)' + ...
                             squeeze(hmm.state(i).W.S_W(n,S(:,n),S(:,n)));
             end
             if ~isfield(hmm,'psi')
@@ -162,13 +163,9 @@ for k = 1:K
         end
         
     else % full or unique full
+        
         if all(S(:)==1)
-            if pcapred
-                mlW = (( XXGXX{k} \ XX') .* repmat(Gamma(:,k)',(~train.zeromean)+M,1) * residuals)';
-            else
-                mlW = (( XXGXX{k} \ XX') .* repmat(Gamma(:,k)',...
-                    (~train.zeromean)+Q*length(orders),1) * residuals)';
-            end
+            mlW =  (bsxfun(@times, XXGXX{k} \ XX', Gamma(:,k)') * residuals)';
             regterm = [];
             if ~train.zeromean, regterm = hmm.state(k).prior.Mean.iS; end % ndim by 1
             if ~isempty(orders) 
@@ -199,6 +196,7 @@ for k = 1:K
                 hmm.state(k).W.Mu_W = reshape(muW,ndim,~train.zeromean+Q*length(orders))';
             end
             XW(:,:,k) = XX * hmm.state(k).W.Mu_W;
+            
         else
             
             dependentvariables = sum(S,1)>0;
@@ -238,7 +236,7 @@ for k = 1:K
             
             % and compute mean:
             temp = (bsxfun(@times,X,Gamma(:,k)))' * Y * prec;
-            muW = hmm.state(k).W.S_W(validentries,validentries)*squash(temp);
+            muW = hmm.state(k).W.S_W(validentries,validentries)*temp(:);
             muW = reshape(muW,Xdim,Ydim);
             
             hmm.state(k).W.Mu_W = zeros(size(S));

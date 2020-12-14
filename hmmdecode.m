@@ -46,7 +46,12 @@ if nargin<6 || isempty(preproc), preproc = 1; end
 % end
 
 stochastic_learn = isfield(hmm.train,'BIGNbatch') && hmm.train.BIGNbatch < length(T);
+mixture_model = isfield(hmm.train,'id_mixture') && hmm.train.id_mixture;
 p = hmm.train.lowrank; do_HMM_pca = (p > 0);
+
+if mixture_model && type==1
+   error('Viterbi path not implemented for mixture model') 
+end
 
 if xor(iscell(data),iscell(T)), error('data and T must be cells, either both or none of them.'); end
 if stochastic_learn
@@ -144,7 +149,9 @@ if preproc % Adjust the data if necessary
 end
 
 if type==0
-   [Path,~,Xi] = hsinference(data,T,hmm,residuals); 
+   if nargout == 1, Path = hsinference(data,T,hmm,residuals);
+   else, [Path,~,Xi] = hsinference(data,T,hmm,residuals); 
+   end
    return
 end
 

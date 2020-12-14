@@ -6,9 +6,9 @@ if nargin>=3
     end
 end
 
-if isfield(options,'pca') && options.pca~=0 && options.pca~=1
-    options.pca = 0;
-end
+% if isfield(options,'pca') && options.pca~=0 && options.pca~=1
+%     options.pca = 0;
+% end
 
 if ~isempty(data)
     if iscell(data) && ischar(data{1})
@@ -65,7 +65,7 @@ if isstruct(data), data = data.X; end
 
 % MAR 
 % if ~isfield(options,'loadings'), options.loadings=eye(ndim); end;
-if ~isfield(options,'Nf'),  options.Nf=256; end
+if ~isfield(options,'Nf'), options.Nf = 256; end
 if ~isfield(options,'completelags'), options.completelags = 1; end
 
 end

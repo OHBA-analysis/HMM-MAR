@@ -1,6 +1,6 @@
 function Gamma = simgamma_ltd(T,P,Pi,rate,L,refractory_period,grouping)
 %
-% Simulate state time courses with longer-than-markov time dependencies
+% Simulate state time courses with longer-than-order-1-markov time dependencies
 %
 % INPUTS:
 %
@@ -49,7 +49,7 @@ for n = 1:N
         Gammai(1,:) = mnrnd(1,Pin);
     end
     last_ch = Inf; 
-    for t=2:L 
+    for t = 2:L 
         if last_ch < refractory_period
             Gammai(t,:) = Gammai(t-1,:); 
             last_ch = last_ch + 1;

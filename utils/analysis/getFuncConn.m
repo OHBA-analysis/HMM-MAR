@@ -1,5 +1,5 @@
 function [covmat,corrmat,icovmat,icorrmat] = getFuncConn(hmm,k,original_space,verbose)
-% Get the covariance, correlation and precision matrices for state k, 
+% Get the covariance, correlation and partial matrices for state k, 
 %   from the estimated model hmm
 % If order==0 (Gaussian distribution), these purely represents functional
 %   connectivity
@@ -22,10 +22,16 @@ is_diagonal = ~do_HMM_pca && size(hmm.state(k).Omega.Gam_rate,1) == 1;
 icorrmat = [];
 
 if do_HMM_pca
+    if ~original_space
+        warning('Connectivity maps will necessarily be in original space')
+    end
     ndim = size(hmm.state(k).W.Mu_W,1);
     covmat = hmm.state(k).W.Mu_W * hmm.state(k).W.Mu_W' + ...
         hmm.Omega.Gam_rate / hmm.Omega.Gam_shape * eye(ndim); 
-    icovmat = inv(covmat); 
+    icovmat = - inv(covmat);
+    icovmat = (icovmat ./ repmat(sqrt(abs(diag(icovmat))),1,ndim)) ...
+        ./ repmat(sqrt(abs(diag(icovmat)))',ndim,1);
+    icovmat(eye(ndim)>0) = 0;
 elseif is_diagonal
     covmat = diag( hmm.state(k).Omega.Gam_rate / (hmm.state(k).Omega.Gam_shape-1) );
     if ~isfield(hmm.state(k).Omega,'Gam_irate')
@@ -39,6 +45,9 @@ else
         hmm.state(k).Omega.Gam_irate = inv(hmm.state(k).Omega.Gam_rate);
     end
     icovmat = hmm.state(k).Omega.Gam_irate * (hmm.state(k).Omega.Gam_shape-ndim-1);
+    icovmat = (icovmat ./ repmat(sqrt(abs(diag(icovmat))),1,ndim)) ...
+        ./ repmat(sqrt(abs(diag(icovmat)))',ndim,1);
+    icovmat(eye(ndim)>0) = 0;
 end
 
 if isfield(hmm.train,'embeddedlags') && length(hmm.train.embeddedlags) > 1 && verbose
@@ -53,6 +62,11 @@ if isfield(hmm.train,'A') && original_space
     icovmat = A * icovmat * A';
 end
 corrmat = corrcov(covmat,0);
-if nargout > 3, icorrmat = pinv(corrmat); end
+if nargout > 3
+    icorrmat = - pinv(corrmat);
+    icorrmat = (icorrmat ./ repmat(sqrt(abs(diag(icorrmat))),1,ndim)) ...
+        ./ repmat(sqrt(abs(diag(icorrmat)))',ndim,1);
+    icorrmat(eye(ndim)>0) = 0;
+end
 
 end

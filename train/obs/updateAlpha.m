@@ -1,11 +1,12 @@
-function hmm = updateAlpha(hmm)
+function hmm = updateAlpha(hmm,rangeK)
 
-K = length(hmm.state); ndim = hmm.train.ndim;
+K = hmm.K; ndim = hmm.train.ndim;
+if nargin < 2 || isempty(rangeK), rangeK = 1:K; end
 if isfield(hmm.train,'B'), Q = size(hmm.train.B,2);
 else Q = ndim; end
 setstateoptions;
 
-for k=1:K
+for k = rangeK
     if ~hmm.train.active(k), continue; end
     if isempty(orders) || ~isempty(train.prior), continue; end
     hmm.state(k).alpha.Gam_shape = hmm.state(k).prior.alpha.Gam_shape;

@@ -2,7 +2,7 @@ function [options,data] = checkoptions (options,data,T,cv)
 
 % Basic checks
 if nargin<4, cv = 0; end
-if isempty(strfind(which('pca'),matlabroot))
+if isempty(strfind(which('pca'),matlabroot)) && ~isdeployed
     error(['Function pca() seems to be other than Matlab''s own - you need to rmpath() it. ' ...
         'Use ''rmpath(fileparts(which(''pca'')))'''])
 end
@@ -102,7 +102,17 @@ if stochastic_learning
         warning(['BIGNbatch needs to be > 0. Setting to ' num2str(new_BIGNbatch) ])
         options.BIGNbatch = new_BIGNbatch;
     end 
-    if ~isfield(options,'BIGNinitbatch'), options.BIGNinitbatch = options.BIGNbatch; end
+    if ~isfield(options,'BIGNinit') || isempty(options.BIGNinit) 
+        if ~isfield(options,'BIGNinitbatch') || isempty(options.BIGNinitbatch) 
+            options.BIGNinitbatch = options.BIGNbatch; 
+        end
+        options.BIGNinit = round(length(T)/options.BIGNinitbatch);
+    else
+        if isfield(options,'BIGNinitbatch') && ~isempty(options.BIGNinitbatch)
+            warning('Both BIGNinit and BIGNinitbatch were specified. Ignoring BIGNinitbatch')
+        end
+        options.BIGNinitbatch = [];
+    end 
     if ~isfield(options,'BIGprior'), options.BIGprior = []; end
     if ~isfield(options,'BIGcyc'), options.BIGcyc = 200; end
     if ~isfield(options,'BIGmincyc'), options.BIGmincyc = 10; end
@@ -115,7 +125,11 @@ if stochastic_learning
     if ~isfield(options,'BIGbase_weights'), options.BIGbase_weights = 0.95; end % < 1 will promote democracy
     if ~isfield(options,'BIGcomputeGamma'), options.BIGcomputeGamma = 1; end
     if ~isfield(options,'BIGdecodeGamma'), options.BIGdecodeGamma = 1; end
-    if ~isfield(options,'BIGverbose'), options.BIGverbose = 1; end
+    if ~isfield(options,'BIGverbose')
+        if isfield(options,'verbose'), options.BIGverbose = options.verbose; 
+        else, options.BIGverbose = 1; 
+        end
+    end
     if ~isfield(options,'initial_hmm'), options.initial_hmm = []; end
     if length(options.BIGbase_weights)==1
         options.BIGbase_weights = options.BIGbase_weights * ones(1,length(T));
@@ -503,7 +517,8 @@ if (strcmp(options.covtype,'full') || strcmp(options.covtype,'uniquefull')) && a
     S = options.S==1;
     regressed = sum(S,2)>=1;
     regressors = sum(S,1)>=1;
-    if any(squash(double(regressed)*double(regressors) ~= S))
+    tmp = double(regressed)*double(regressors) ~= S; 
+    if any(tmp(:))
     	error('Decoding with full or uniquefull covariance matrix requires S to be in block design: current design not supported');
     end
 end

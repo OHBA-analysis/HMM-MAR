@@ -1,4 +1,4 @@
-function [S,assig, gamma1] = getGammaSimilarity (gamma1, gamma2)
+function [S,assig, gamma2] = getGammaSimilarity (gamma1, gamma2)
 % Computes a measure of similarity between two sets of state time courses.
 % These can have different number of states, but they must have the same
 % number of time points. 
@@ -6,8 +6,8 @@ function [S,assig, gamma1] = getGammaSimilarity (gamma1, gamma2)
 % elements of gamma2 
 % S: similarity, measured as the sum of joint probabilities under the
 %       optimal state alignment
-% assig: optimal state aligmnent (uses munkres' algorithm)
-% gamma1: the first set of state time courses reordered to match gamma2
+% assig: optimal state aligmnent for gamma2 (uses munkres' algorithm)
+% gamma2: the second set of state time courses reordered to match gamma1
 %
 % Author: Diego Vidaurre, University of Oxford (2017)
 
@@ -48,7 +48,7 @@ end
 S = K - cost;
 
 if nargout > 2
-    gamma1(:,assig) = gamma1;
+    gamma2(:,assig) = gamma2;
 end
 
 end

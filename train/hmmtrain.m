@@ -25,6 +25,7 @@ function [hmm,Gamma,Xi,fehist] = hmmtrain(data,T,hmm,Gamma,residuals,fehist)
 if nargin<6, fehist=[]; end
 cyc_to_go = 0;
 setxx;
+additiveHMM = hmm.train.additiveHMM;
 
 do_clustering = isfield(hmm.train,'cluster') && hmm.train.cluster;
 if do_clustering
@@ -33,6 +34,12 @@ if do_clustering
     hmm.P(eye(hmm.K)==1) = 1;
 end
 
+% figure(5);clf(5)
+% area(Gamma(1:1000,:));
+% drawnow
+% pause(0.5)
+% % G0= Gamma;
+
 for cycle = 1:hmm.train.cyc
     
     if hmm.train.updateGamma
@@ -40,8 +47,13 @@ for cycle = 1:hmm.train.cyc
         %%%% E step
         if hmm.K>1 || cycle==1
             % state inference
-            [Gamma,~,Xi] = hsinference(data,T,hmm,residuals,[],XX);
+            if additiveHMM
+                [Gamma,~,Xi] = hsinference(data,T,hmm,residuals,[],XX,Gamma);
+            else
+                [Gamma,~,Xi] = hsinference(data,T,hmm,residuals,[],XX);
+            end
             status = checkGamma(Gamma,T,hmm.train);
+
             % check local minima
             epsilon = 1;
             while status == 1
@@ -62,7 +74,13 @@ for cycle = 1:hmm.train.cyc
                     checkGamma(Gamma,T,hmm.train);
                 end
                 if sum(hmm.train.active)==1
-                    fehist(end+1) = sum(evalfreeenergy(data.X,T,Gamma,Xi,hmm,residuals,XX));
+                    if isfield(hmm.train,'distribution') && strcmp(hmm.train.distribution,'logistic')
+                        fehist(end+1) = sum(evalfreeenergylogistic(T,Gamma,Xi,hmm,residuals,XX));
+                    elseif additiveHMM
+                        fehist(end+1) = sum(evalfreeenergy(data.X,T,Gamma,Xi,hmm,residuals,XX));
+                    else
+                        fehist(end+1) = sum(evalfreeenergy_addHMM(data.X,T,Gamma,Xi,hmm,residuals,XX));
+                    end
                     if hmm.train.verbose
                         fprintf('cycle %i: All the points collapsed in one state, free energy = %g \n',...
                             cycle,fehist(end));
@@ -70,7 +88,6 @@ for cycle = 1:hmm.train.cyc
                     K = 1; break
                 end
             end
-            setxx;
             
             if hmm.train.plotAverageGamma
                 figure(100);clf(100);
@@ -91,24 +108,36 @@ for cycle = 1:hmm.train.cyc
             
         end
         
+%         figure(5);clf(5)
+%         area(Gamma(1:1000,:));
+%         drawnow
+%         pause(0.5)
+        
         %%%% Free energy computation
         if isfield(hmm.train,'distribution') && strcmp(hmm.train.distribution,'logistic')
             fehist(end+1) = sum(evalfreeenergylogistic(T,Gamma,Xi,hmm,residuals,XX));
+        elseif additiveHMM
+            fehist(end+1) = sum(evalfreeenergy_addHMM(data.X,T,Gamma,Xi,hmm,residuals,XX));
         else
             fehist(end+1) = sum(evalfreeenergy(data.X,T,Gamma,Xi,hmm,residuals,XX));
         end
-        strwin = ''; if hmm.train.meancycstop>1, strwin = 'windowed'; end
-        if cycle > (hmm.train.meancycstop+1)
+        strwin = ''; if hmm.train.meancycstop>1, strwin = ' windowed'; end
+        if length(fehist) > (hmm.train.meancycstop+1)
             chgFrEn = mean( fehist(end:-1:(end-hmm.train.meancycstop+1)) - ...
                 fehist(end-1:-1:(end-hmm.train.meancycstop)) )  ...
                 / abs(fehist(1) - fehist(end));
             if hmm.train.verbose
-                fprintf('cycle %i free energy = %g, %s relative change = %g \n',...
+                fprintf('cycle %i free energy = %.10g,%s relative change = %g \n',...
                     cycle,fehist(end),strwin,chgFrEn);
             end
             if (abs(chgFrEn) < hmm.train.tol) && cyc_to_go==0
                 break;
             end
+        elseif hmm.train.verbose && (length(fehist) == (hmm.train.meancycstop+1))
+            chgFrEn = mean( fehist(end:-1:(end-hmm.train.meancycstop+1)) - ...
+                fehist(end-1:-1:(end-hmm.train.meancycstop)) ) ;
+            fprintf('cycle %i free energy = %.10g,%s absolute change = %g \n',...
+                cycle,fehist(end),strwin,chgFrEn);
         elseif hmm.train.verbose
             fprintf('cycle %i free energy = %g \n',cycle,fehist(end)); %&& cycle>1
         end
@@ -118,26 +147,45 @@ for cycle = 1:hmm.train.cyc
         Xi = []; fehist = 0;
     end
     
-    %disp(['mean MaxFO = ' num2str(mean(getMaxFractionalOccupancy(Gamma,T,hmm.train)))])
-    
     %%%% M STEP
-        
+    
     % Observation model
-    if hmm.train.updateObs
-        hmm = obsupdate(T,Gamma,hmm,residuals,XX,XXGXX);
-    end
+        if hmm.train.updateObs
+            setxx
+            if additiveHMM
+                hmm = obsupdate_addHMM(T,Gamma,hmm,residuals,XX,XXGXX);
+            else
+                hmm = obsupdate(T,Gamma,hmm,residuals,XX,XXGXX);
+            end
+        end
     
     % Transition matrices and initial state
     if hmm.train.updateP
-        hmm = hsupdate(Xi,Gamma,T,hmm);
+        if additiveHMM
+            hmm = hsupdate_addHMM(Xi,Gamma,T,hmm);
+        else
+            hmm = hsupdate(Xi,Gamma,T,hmm);
+        end
     end
+    
+    %FE = sum(evalfreeenergy_addHMM(data.X,T,Gamma,Xi,hmm,residuals,XX));
+    %fprintf('cycle %i free energy = %.10g \n',cycle,FE); %&& cycle>1
     
     if ~hmm.train.updateGamma
         break % one iteration is enough
     end
     
-    if sum(hmm.train.updateObs + hmm.train.updateGamma + hmm.train.updateP) < 2
-        break % one iteration is enough
+    % some breaking conditions
+    if ~additiveHMM
+        if  (sum(hmm.train.updateObs + hmm.train.updateGamma + hmm.train.updateP) < 2)
+            break % one iteration is enough
+        end
+        if (hmm.train.maxFOth < Inf)
+            if max(getMaxFractionalOccupancy(Gamma,T,hmm.train)) > hmm.train.maxFOth
+                disp('Training has been stopped for reaching the threshold of maximum FO')
+                break
+            end
+        end
     end
     
     if hmm.train.tudamonitoring
@@ -157,13 +205,6 @@ for cycle = 1:hmm.train.cyc
         end
     end
     
-    if hmm.train.maxFOth < Inf
-        if max(getMaxFractionalOccupancy(Gamma,T,hmm.train)) > hmm.train.maxFOth
-            disp('Training has been stopped for reaching the threshold of maximum FO')
-            break
-        end
-    end
-    
     if do_clustering
         if cycle < 20
             hmm.P = root_P^(cycle+1) * ones(hmm.K);
@@ -173,41 +214,33 @@ for cycle = 1:hmm.train.cyc
         end
     end
     
-    if 0
-        figure(500);clf(500)
-        subplot(211)
-        area(Gamma(1:sum(T(1:5)),:)); ylim([0 1]); xlim([1 sum(T(1:5))])
-        hold on; for jjj = 1:4, plot([sum(T(1:jjj)) sum(T(1:jjj))],[0 1],'k','LineWidth',3); end
-        %area(Gamma); ylim([0 1])
-        title([num2str(cycle) ' ' num2str(hmm.P(1,2))])
-        subplot(212)
-        plot(getFractionalOccupancy(Gamma,T,hmm.train,1),'LineWidth',3); ylim([0 1])
-        
-        drawnow
-        pause(0.1)
-        
-        CC = zeros(hmm.train.K);
-        for k1 = 1:hmm.train.K
-            for k2 = 1:hmm.train.K
-                if k1==k2, continue; end
-                CC(k1,k2) = wishart_kl(hmm.state(k1).Omega.Gam_rate,...
-                    hmm.state(k2).Omega.Gam_rate, ...
-                    hmm.state(k1).Omega.Gam_shape,hmm.state(k2).Omega.Gam_shape);
-            end
-        end
-        m = getFractionalOccupancy(Gamma,T,hmm.train,2);
-        m =(max(m,[],2));
-        sum(CC(:))
-        [median(m) mean(m)]
-        
-    end
+    %     figure(500);clf(500)
+    %     subplot(211)
+    %     area(Gamma(1:sum(T(1:5)),:)); ylim([0 1]); xlim([1 sum(T(1:5))])
+    %     hold on; for jjj = 1:4, plot([sum(T(1:jjj)) sum(T(1:jjj))],[0 1],'k','LineWidth',3); end
+    %     %area(Gamma); ylim([0 1])
+    %     title([num2str(cycle) ' ' num2str(hmm.P(1,2))])
+    %     subplot(212)
+    %     plot(getFractionalOccupancy(Gamma,T,hmm.train,1),'LineWidth',3); ylim([0 1])
+    %
+    %     drawnow
+    %     pause(0.1)
+    %
+    %     CC = zeros(hmm.train.K);
+    %     for k1 = 1:hmm.train.K
+    %         for k2 = 1:hmm.train.K
+    %             if k1==k2, continue; end
+    %             CC(k1,k2) = wishart_kl(hmm.state(k1).Omega.Gam_rate,...
+    %                 hmm.state(k2).Omega.Gam_rate, ...
+    %                 hmm.state(k1).Omega.Gam_shape,hmm.state(k2).Omega.Gam_shape);
+    %         end
+    %     end
+    %     m = getFractionalOccupancy(Gamma,T,hmm.train,2);
+    %     m =(max(m,[],2));
+    %     sum(CC(:))
+    %     [median(m) mean(m)]
     
 end
-
-%p = hmm.train.lowrank; do_HMM_pca = (p > 0);
-%if do_HMM_pca
-%    hmm = hmmrotatepca(hmm,Gamma,XXGXX);
-%end
 
 for k = 1:K
     if isfield(hmm.state(k),'cache')
@@ -232,19 +265,15 @@ if hmm.train.tudamonitoring
 end
 
 if hmm.train.verbose
-    if ~isfield(hmm.train,'distribution') || strcmp(hmm.train.distribution,'Gaussian')
-        fprintf('Model: %d states, %d data samples, covariance: %s \n', ...
-            K,sum(T),hmm.train.covtype);
-    elseif strcmp(hmm.train.distribution,'logistic')
-        fprintf('Model: %d states, %d data samples, logistic regression model. \n', ...
-            K,sum(T));
+    if hmm.train.additiveHMM, str = 'Additive HMM '; str2 = 'chains';
+    else, str = 'HMM '; str2 = 'states';
     end
-    if hmm.train.exptimelag>1
-        fprintf('Exponential lapse: %g, order %g, offset %g \n', ...
-            hmm.train.exptimelag,hmm.train.order,hmm.train.orderoffset)
-    else
-        fprintf('Lapse: %d, order %g, offset %g \n', ...
-            hmm.train.timelag,hmm.train.order,hmm.train.orderoffset)
+    if ~isfield(hmm.train,'distribution') || strcmp(hmm.train.distribution,'Gaussian')
+        fprintf('%s Model: %d %s, %d data samples, covariance: %s, order %d \n', ...
+            str,K,str2,sum(T),hmm.train.covtype,hmm.train.order);
+    elseif strcmp(hmm.train.distribution,'logistic')
+        fprintf('%s Model: %d %s, %d data samples, logistic regression model. \n', ...
+            str,K,str2,sum(T));
     end
     if hmm.train.useMEX==0
         fprintf('MEX file was not used \n')

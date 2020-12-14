@@ -2,11 +2,13 @@ function Entr = GammaEntropy(Gamma,Xi,T,order)
 % Entropy of the state time courses
 Entr = 0; K = size(Gamma,2);
 for tr = 1:length(T)
+    % First time point of series
     t = sum(T(1:tr-1)) - (tr-1)*order + 1;
     Gamma_nz = Gamma(t,:); 
     Gamma_nz(Gamma_nz==0) = realmin;
     if any(isinf(log(Gamma_nz(:)))), Gamma_nz(Gamma_nz==0) = eps; end
     Entr = Entr - sum(Gamma_nz.*log(Gamma_nz));
+    % Second to last time points
     if ~isempty(Xi)
         t = (sum(T(1:tr-1)) - (tr-1)*(order+1) + 1) : ((sum(T(1:tr)) - tr*(order+1)));
         Xi_nz = Xi(t,:,:);

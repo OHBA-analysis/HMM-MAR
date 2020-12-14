@@ -35,6 +35,7 @@ stochastic_learn = isfield(options,'BIGNbatch') && (options.BIGNbatch < N && opt
 options = checkspelling(options);
 if ~stochastic_learn && ...
         (isfield(options,'BIGNinitbatch') || ...
+        isfield(options,'BIGNinit') || ...
         isfield(options,'BIGprior') || ...
         isfield(options,'BIGcyc') || ...
         isfield(options,'BIGmincyc') || ...
@@ -65,7 +66,7 @@ if stochastic_learn % data is a cell, either with strings or with matrices
     end
     if ~iscell(data) % make it cell
        dat = cell(N,1); TT = cell(N,1);
-       for i=1:N
+       for i = 1:N
           t = 1:T(i);
           dat{i} = data(t,:); TT{i} = T(i);
           try data(t,:) = []; 
@@ -78,6 +79,11 @@ if stochastic_learn % data is a cell, either with strings or with matrices
        data = dat; T = TT; clear dat TT
     end
 else % data can be a cell or a matrix
+    if isstruct(data) && isfield(data,'C') && ...
+            isfield(options,'additiveHMM') && options.additiveHMM
+        warning('data.C and options.additiveHMM are not compatible')
+        data = data.X;
+    end
     if iscell(T)
         T = cell2mat(T);
     end
@@ -165,7 +171,7 @@ if stochastic_learn
         options.ndim = size(options.As,2);
     else
         X = loadfile(data{1},T{1},options); 
-        options.ndim = size(X,2);
+        options.ndim = size(X,2); clear X 
     end
     if options.pcamar > 0 && ~isfield(options,'B')
         % PCA on the predictors of the MAR regression, per lag: X_t = \sum_i X_t-i * B_i * W_i + e
@@ -316,7 +322,8 @@ else
                 %options.Gamma = gmm_init(data,T,options);
             elseif strcmpi(options.inittype,'random') || options.initrep==0 || options.initcyc==0
                 GammaInit = initGamma_random(T-options.maxorder,options.K,...
-                    options.DirichletDiag,options.Pstructure,options.Pistructure);
+                    options.DirichletDiag,options.Pstructure,options.Pistructure,...
+                    options.priorOFFvsON);
             else
                 error('Unknown init method')
             end
@@ -325,7 +332,11 @@ else
             GammaInit = options.Gamma;
         end
     elseif isempty(options.Gamma) && ~isempty(options.hmm) % Gamma unspecified, hmm specified
-        GammaInit = [];
+        if options.additiveHMM
+            GammaInit = zeros(sum(T)-length(T)*options.maxorder,options.K);
+        else
+            GammaInit = [];
+        end
     else % Gamma specified
         if ~isempty(options.hmm)
            warning('options.hmm will not be used because options.Gamma was specified') 
@@ -338,7 +349,7 @@ else
 
     % If initialization Gamma has fewer states than options.K, put those states back in
     % and renormalize
-    if ~isempty(GammaInit) && (size(GammaInit,2) < options.K)
+    if ~isempty(GammaInit) && (size(GammaInit,2) < options.K) && options.additiveHMM
         % States were knocked out, but semisupervised in use, so put them back
         GammaInit = [GammaInit 0.0001*rand(size(GammaInit,1),options.K-size(GammaInit,2))];
         GammaInit = bsxfun(@rdivide,GammaInit,sum(GammaInit,2));
@@ -400,6 +411,7 @@ else
     end
     
     fehist = Inf; 
+    if isfield(hmm_wr.train,'Gamma'), hmm_wr.train = rmfield(hmm_wr.train,'Gamma'); end
     for it = 1:options.repetitions
         hmm0 = hmm_wr;
         [hmm0,Gamma0,Xi0,fehist0] = hmmtrain(data,T,hmm0,GammaInit,residuals_wr,fehistInit);
@@ -424,8 +436,8 @@ else
         
         vpath = hmmdecode(data.X,T,hmm,1,residuals,0);
         if ~options.keepS_W
-            for i=1:hmm.K
-                hmm.state(i).W.S_W = [];
+            for k = 1:hmm.K
+                hmm.state(k).W.S_W = [];
             end
         end
     else
