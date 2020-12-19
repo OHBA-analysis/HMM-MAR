@@ -35,11 +35,20 @@ if nargin < 5, options = struct(); end
 if nargin < 4, Gamma = []; end
 if nargin < 3, hmm = []; end
 
-MLestimation = isempty(hmm) || isfield(hmm.train,'A') || ...
-    ~isfield(hmm.state(1),'W') || isempty(hmm.state(1).W.Mu_W);
+MLestimation = isempty(hmm) || ~isfield(hmm.state(1),'W') || isempty(hmm.state(1).W.Mu_W);
 
-if MLestimation && ~isempty(options) && isempty(Gamma) && options.K==1
-    Gamma = ones(size(data,1),1);
+if ~MLestimation && ~isempty(hmm) && isfield(hmm.train,'A')
+   warning(['Since the HMM was run on PCA space, a new refit is recommended. ' ...
+       'For this, call hmmspectramar again specifying Gamma and leave the hmm input parameter empty'])
+   fit = []; return
+end
+
+if MLestimation && isempty(Gamma) 
+    if ~isempty(hmm) && length(hmm.state)>1
+        error('The HMM structure has more than 1 state; you need to supply Gamma in this case')
+    else
+        Gamma = ones(size(data,1),1);
+    end
 end
 
 if MLestimation && isempty(Gamma)
@@ -226,7 +235,7 @@ if MLestimation
 end
 
 % Compute the PSD and PDC
-for j=1:NN
+for j = 1:NN
     % re-estimate the MAR models
     if MLestimation
         if options.p==0 
