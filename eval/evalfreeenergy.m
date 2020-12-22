@@ -43,11 +43,9 @@ pcapred = hmm.train.pcapred>0;
 if pcapred, M = hmm.train.pcapred; end
 
 Tres = sum(T) - length(T)*hmm.train.maxorder;
-S = hmm.train.S==1;
 setstateoptions;
 regressed = sum(S,1)>0;
 ltpi = sum(regressed)/2 * log(2*pi);
-
 
 if sum(~regressed)>1 && ~isempty(X)
     %catch special case where regressors do not vary within trials:
@@ -351,7 +349,7 @@ if todo(2)==1
             end
             d = residuals(:,regressed) - meand;
             if strcmp(train.covtype,'diag') || strcmp(train.covtype,'uniquediag')
-                Cd =  repmat(C(regressed)',1,Tres) .* d';
+                Cd = bsxfun(@times, C(regressed), d)';
             else
                 Cd = C(regressed,regressed) * d';
             end
@@ -401,7 +399,9 @@ if todo(2)==1
                         else
                             I = (0:length(orders)*Q+(~train.zeromean)-1) * ndim;
                         end
-                        [WishTrace,X_coded_vals] = computeWishTrace(hmm,regressed,XX,C,k);
+                        if ~(all(S(:)==1) || ~trialwiseregression)
+                            [WishTrace,X_coded_vals] = computeWishTrace(hmm,regressed,XX,C,k);
+                        end
                         
                         if all(S(:)==1) || ~trialwiseregression
                             for n1 = 1:ndim

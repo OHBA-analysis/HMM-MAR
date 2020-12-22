@@ -8,10 +8,11 @@ if additiveHMM
     for j = 1:length(T)
         indG = (1:(T(j)-order)) + sum(T(1:j-1)) - (j-1)*order;
         indXi =  (1:(T(j)-order-1)) + sum(T(1:j-1)) - (j-1)*(order+1);
-        for t = 1:length(indXi)
-            for k = 1:K
-                g = [Gamma(indG(t),k) (1-Gamma(indG(t),k))];
-                xi = g' * g; xi = xi / sum(xi(:));
+        for k = 1:K
+            g = [Gamma(indG,k) (1-Gamma(indG,k))];
+            for t = 1:length(indXi)
+                xi = g(t,:)' * g(t+1,:);
+                xi = xi / sum(xi(:));
                 Xi(indXi(t),k,:,:) = xi;
             end
         end

@@ -3,7 +3,7 @@ function hmm = updateAlpha(hmm,rangeK)
 K = hmm.K; ndim = hmm.train.ndim;
 if nargin < 2 || isempty(rangeK), rangeK = 1:K; end
 if isfield(hmm.train,'B'), Q = size(hmm.train.B,2);
-else Q = ndim; end
+else, Q = ndim; end
 setstateoptions;
 
 for k = rangeK
@@ -24,9 +24,9 @@ for k = rangeK
         hmm.state(k).alpha.Gam_shape = hmm.state(k).alpha.Gam_shape + 0.5;
    
     elseif strcmp(train.covtype,'full') || strcmp(train.covtype,'uniquefull')
-        for n=1:Q,
+        for n = 1:Q
             indr = S(n,:)==1;
-            for i=1:length(orders),
+            for i=1:length(orders)
                 index = (i-1)*Q + n + ~train.zeromean;
                 hmm.state(k).alpha.Gam_rate(i) = hmm.state(k).alpha.Gam_rate(i) + ...
                     0.5 * ( hmm.state(k).W.Mu_W(index,indr) .* ...
@@ -58,9 +58,9 @@ for k = rangeK
         end
         hmm.state(k).alpha.Gam_shape = hmm.state(k).prior.alpha.Gam_shape + 0.5;
     else
-        for n=1:Q,
+        for n = 1:Q
             indr = S(n,:)==1;
-            for i=1:length(orders),
+            for i=1:length(orders)
                 index = (i-1)*Q + n + ~train.zeromean;
                 hmm.state(k).alpha.Gam_rate(i) = hmm.state(k).alpha.Gam_rate(i) + ...
                     0.5 * ( (hmm.state(k).W.Mu_W(index,indr) .* ...
@@ -68,7 +68,7 @@ for k = rangeK
                     hmm.state(k).W.Mu_W(index,indr)' + sum( ...
                     (hmm.state(k).sigma.Gam_shape(n,indr) ./ hmm.state(k).sigma.Gam_rate(n,indr)) .* ...
                     hmm.state(k).W.S_W(indr,index,index)'));
-            end;
+            end
             hmm.state(k).alpha.Gam_shape = hmm.state(k).alpha.Gam_shape + 0.5 * sum(indr);
         end
     end

@@ -1,4 +1,4 @@
-function [hmm,XW] = updateW(hmm,Gamma,residuals,XX,XXGXX,Tfactor,rangeK) 
+ function [hmm,XW] = updateW(hmm,Gamma,residuals,XX,XXGXX,Tfactor,rangeK) 
 
 K = hmm.K; ndim = hmm.train.ndim;
 if nargin < 6, Tfactor = 1; end
@@ -8,7 +8,7 @@ if ~isempty(hmm.state(1).W.Mu_W)
 else
     XW = [];
 end
-reweight = 0; % compensate for classes that have fewer instances?  
+% reweight = 0; % compensate for classes that have fewer instances?  
 if isfield(hmm.train,'B'), Q = size(hmm.train.B,2);
 else, Q = ndim; 
 end
@@ -17,11 +17,11 @@ if pcapred, M = hmm.train.pcapred; end
 p = hmm.train.lowrank; do_HMM_pca = (p > 0);
 setstateoptions;
 
-if reweight % assumes there are two classes, encoded by -1 and 1   
-    count = zeros(2,1); 
-    count(1) = mean(residuals(:,end)<0);
-    count(2) = mean(residuals(:,end)>0);
-end
+% if reweight % assumes there are two classes, encoded by -1 and 1   
+%     count = zeros(2,1); 
+%     count(1) = mean(residuals(:,end)<0);
+%     count(2) = mean(residuals(:,end)>0);
+% end
 
 for k = rangeK
     
@@ -31,14 +31,14 @@ for k = rangeK
     elseif ~isfield(train,'distribution') || ~strcmp(train.distribution,'logistic'), omega = hmm.Omega;
     end
     
-    if reweight
-        count_k = zeros(2,1);
-        count_k(1) = sum( Gamma(:,k) .* (residuals(:,end)<0) ) / sum(Gamma(:,k));
-        count_k(2) = sum( Gamma(:,k) .* (residuals(:,end)>0) ) / sum(Gamma(:,k));
-        ratio = count ./ count_k;
-        Gamma(residuals(:,end)<0,k) = Gamma(residuals(:,end)<0,k) * ratio(1);
-        Gamma(residuals(:,end)>0,k) = Gamma(residuals(:,end)>0,k) * ratio(2);
-    end
+%     if reweight
+%         count_k = zeros(2,1);
+%         count_k(1) = sum( Gamma(:,k) .* (residuals(:,end)<0) ) / sum(Gamma(:,k));
+%         count_k(2) = sum( Gamma(:,k) .* (residuals(:,end)>0) ) / sum(Gamma(:,k));
+%         ratio = count ./ count_k;
+%         Gamma(residuals(:,end)<0,k) = Gamma(residuals(:,end)<0,k) * ratio(1);
+%         Gamma(residuals(:,end)>0,k) = Gamma(residuals(:,end)>0,k) * ratio(2);
+%     end
   
     if train.uniqueAR || ndim==1 % it is assumed that order>0 and cov matrix is diagonal
         if hmm.train.pcapred > 0, npred = hmm.train.pcapred;
@@ -87,7 +87,8 @@ for k = rangeK
                 if pcapred
                     regterm = [regterm; hmm.state(k).beta.Gam_shape ./ hmm.state(k).beta.Gam_rate(:,n)];
                 else
-                    alphaterm = repmat( (hmm.state(k).alpha.Gam_shape ./  hmm.state(k).alpha.Gam_rate), ndim_n, 1);
+                    alphaterm = ...
+                        repmat( (hmm.state(k).alpha.Gam_shape ./  hmm.state(k).alpha.Gam_rate), ndim_n, 1);
                     if ndim>1
                         regterm = [regterm; repmat(hmm.state(k).sigma.Gam_shape(S(:,n),n) ./ ...
                             hmm.state(k).sigma.Gam_rate(S(:,n),n), length(orders), 1).*alphaterm(:) ];
@@ -98,15 +99,17 @@ for k = rangeK
             end
             if isempty(regterm), regterm = 0; end
             regterm = diag(regterm);
+            c = omega.Gam_shape / omega.Gam_rate(n);
             hmm.state(k).W.iS_W(n,Sind(:,n),Sind(:,n)) = ...
-                regterm + Tfactor * (omega.Gam_shape / omega.Gam_rate(n)) * XXGXX{k}(Sind(:,n),Sind(:,n));
-            hmm.state(k).W.iS_W(n,Sind(:,n),Sind(:,n)) = (permute(hmm.state(k).W.iS_W(n,Sind(:,n),Sind(:,n)),[2 3 1]) + ...
+                regterm + Tfactor * c * XXGXX{k}(Sind(:,n),Sind(:,n));
+            hmm.state(k).W.iS_W(n,Sind(:,n),Sind(:,n)) = ...
+                (permute(hmm.state(k).W.iS_W(n,Sind(:,n),Sind(:,n)),[2 3 1]) + ...
                 permute(hmm.state(k).W.iS_W(n,Sind(:,n),Sind(:,n)),[2 3 1])' ) / 2; % ensuring symmetry
             hmm.state(k).W.S_W(n,Sind(:,n),Sind(:,n)) = ...
                 inv(permute(hmm.state(k).W.iS_W(n,Sind(:,n),Sind(:,n)),[2 3 1]));
             sx = permute(hmm.state(k).W.S_W(n,Sind(:,n),Sind(:,n)),[2 3 1]) * ...
-                Tfactor * (omega.Gam_shape / omega.Gam_rate(n)) * XX(:,Sind(:,n))';
-            hmm.state(k).W.Mu_W(Sind(:,n),n) = bsxfun(@times, sx, Gamma(:,k)') * residuals(:,n);
+                Tfactor * c * XX(:,Sind(:,n))'; 
+            hmm.state(k).W.Mu_W(Sind(:,n),n) = (sx .* Gamma(:,k)') * residuals(:,n);
         end
         XW(:,:,k) = XX * hmm.state(k).W.Mu_W;
         
@@ -118,8 +121,10 @@ for k = rangeK
         Y = residuals;
         vp = Y~=0; % for multinomial logistic regression, only include valid points
         if hmm.train.balancedata
-            w=(1/(hmm.train.origlogisticYdim))*sum(Gamma(:,k))./(sum([Y==1] .* Gamma(:,k)));%(1+hmm.train.origlogisticYdim));
-            w_star=((hmm.train.origlogisticYdim-1)/hmm.train.origlogisticYdim)*sum(Gamma(:,k))./(sum([Y==-1] .* Gamma(:,k)));
+            w = (1/(hmm.train.origlogisticYdim))*sum(Gamma(:,k)) ./ ...
+                (sum([Y==1] .* Gamma(:,k)));%(1+hmm.train.origlogisticYdim));
+            w_star = ((hmm.train.origlogisticYdim-1) / ...
+                hmm.train.origlogisticYdim)*sum(Gamma(:,k))./(sum([Y==-1] .* Gamma(:,k)));
             weightvector = [Y==1].*w + [Y==-1].*w_star;
             Gammaweighted=Gamma(vp,k) .*weightvector;
         else
@@ -149,11 +154,14 @@ for k = rangeK
 %             for t=1:T
 %                 W_sigsum{k}(t,:,:)=2*lambdafunc(hmm.psi(t))*Gamma(t,k)*X(t,:)'*X(t,:);
 %             end
-            W_sigsum = (XX(vp,1:ndim_n)' .* repmat(2*lambdafunc(hmm.psi(vp))'.*Gammaweighted',ndim_n,1))* XX(vp,1:ndim_n);
+            W_sigsum = (XX(vp,1:ndim_n)' .* repmat(2*lambdafunc(hmm.psi(vp))' .* ...
+                Gammaweighted',ndim_n,1))* XX(vp,1:ndim_n);
             %update parameter entries:
             hmm.state(k).W.S_W(n,S(:,n),S(:,n)) = inv(squeeze(W_sigsum)+inv(W_sig0));
-            hmm.state(k).W.Mu_W(S(:,n),n) = squeeze(hmm.state(k).W.S_W(n,S(:,n),S(:,n))) * 0.5 * X(vp,:)' * (Y(vp).*Gammaweighted) ... %sum(W_musum{k},1)') ...
-                +(W_sig0\W_mu0);
+            hmm.state(k).W.Mu_W(S(:,n),n) = squeeze(hmm.state(k).W.S_W(n,S(:,n),S(:,n))) * 0.5 * ...
+                X(vp,:)' * (Y(vp).*Gammaweighted) ... 
+                +(W_sig0\W_mu0); %sum(W_musum{k},1)') ...
+                
             
             % Also increment optimal tuning parameters psi:
              WWupdate = hmm.state(k).W.Mu_W(Sind(:,n),n)*hmm.state(k).W.Mu_W(Sind(:,n),n)' + ...
@@ -213,8 +221,8 @@ for k = rangeK
             
             % Regularisation type:
             if strcmp(hmm.train.regularisation,'ARD')
-                sigmaterm = (hmm.state(k).sigma.Gam_shape(S) ./ hmm.state(k).sigma.Gam_rate(S))'; %ARD prior over M values
-                sigmaterm = sigmaterm(:);
+                sigmaterm = (hmm.state(k).sigma.Gam_shape(S) ./ hmm.state(k).sigma.Gam_rate(S))'; 
+                sigmaterm = sigmaterm(:); %ARD prior over M values
                 alphaterm = repmat( (hmm.state(k).alpha.Gam_shape ./ hmm.state(k).alpha.Gam_rate), ...
                     length(sigmaterm),1);
                 regterm = diag(alphaterm .* sigmaterm);

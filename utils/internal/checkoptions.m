@@ -81,7 +81,9 @@ if options.additiveHMM % additive HMM specific things
     if isfield(options,'Pistructure')
         error('You cannot constraint the chains with Pistructure when using the additiveHMM')
     end
-    if ~isfield(options,'priorOFFvsON'), options.priorOFFvsON = 10; end % 10times more likely to be OFF
+    if ~isfield(options,'priorOFFvsON')
+        options.priorOFFvsON = 10 * K; 
+    end % K*10times more likely to be OFF
 else
     options.priorOFFvsON = [];
 end
@@ -152,14 +154,32 @@ end
 if stochastic_learning
     if ~isfield(options,'cyc'), options.cyc = 15; end
     if ~isfield(options,'initcyc'), options.initcyc = 5; end
-    if ~isfield(options,'initrep'), options.initrep = 3; end
+%     if options.additiveHMM
+%         if isfield(options,'initrep') && options.initrep > 1
+%             % this is because we would just favour solutions with less of
+%             % the baseline state
+%             warning('initrep can only be 1 if options.additiveHMM is true ')
+%         end
+%         options.initrep = 1;
+%     else
+        if ~isfield(options,'initrep'), options.initrep = 3; end
+%     end
     if ~isfield(options,'initcriterion'), options.initcriterion = 'FreeEnergy'; end
     if ~isfield(options,'verbose'), options.verbose = 0; end
     if ~isfield(options,'useParallel'), options.useParallel = 1; end
 else
     if ~isfield(options,'cyc'), options.cyc = 500; end
     if ~isfield(options,'initcyc'), options.initcyc = 25; end
-    if ~isfield(options,'initrep'), options.initrep = 5; end
+%     if options.additiveHMM
+%         if isfield(options,'initrep') && options.initrep > 1
+%             % this is because we would just favour solutions with less of
+%             % the baseline state
+%             warning('initrep can only be 1 if options.additiveHMM is true ')
+%         end
+%         options.initrep = 1;
+%     else
+        if ~isfield(options,'initrep'), options.initrep = 5; end
+%     end
     if ~isfield(options,'initcriterion'), options.initcriterion = 'FreeEnergy'; end
     if ~isfield(options,'verbose'), options.verbose = 1; end
     % the rest of the stuff will get assigned in the recursive calls
@@ -458,6 +478,12 @@ end
 if length(options.embeddedlags)==1 && options.pca_spatial>0
    warning('pca_spatial only applies when using embedded lags; use pca instead')
    options.pca_spatial = 0;
+end
+if options.additiveHMM
+    if isfield(options,'covtype') && ~strcmp(options.covtype,'uniquediag')
+        error('When additiveHMM, covtype must be uniquediag (other options not yet implemented)')
+    end
+    options.covtype = 'uniquediag';
 end
 if ~isfield(options,'covtype') && options.leida 
     options.covtype = 'uniquediag'; 

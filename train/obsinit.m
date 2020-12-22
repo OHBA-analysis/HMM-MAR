@@ -176,27 +176,27 @@ additiveHMM = hmm.train.additiveHMM;
 % This is so that, on average, each chain contributes 1/K to the prediction
 % Note that's also true for the baseline state; therefore, the correct
 % interpretation is that there are K copies of the baseline state
-% contributing simultaneously ? each with probability (0,1)
-if additiveHMM, residuals = residuals / K; end
+% contributing simultaneously, each with probability (0,1)
+%if additiveHMM, residuals = residuals / K; end
 
 setxx; % build XX and get orders
-rangeK = 1:K;
-if additiveHMM % renormalize state time courses and readjust the baseline state
+if additiveHMM 
     % Note that obsinit is the only place where we will update the baseline
     % state parameters
     rangeK = 1:K+1;
-    Gamma = [Gamma sum(1 - Gamma,2) ];
-    % baseline is just the average across the entire data set, 
-    % BUT: each chain contribution of baseline accounts for at most 1/K
-    Gamma(:,K+1) = 1; 
+    Gamma = [Gamma K*ones(size(Gamma,1),1) ];
+    Gamma = rdiv(Gamma,sum(Gamma,2));
+    % baseline is just the average across the entire data set
+    % (each chain contribution of baseline accounts for at most 1/K)
     XXGXX = cell(K+1,1);
     if ~isfield(hmm.train,'distribution') || ~strcmp(hmm.train.distribution,'logistic') ...
             || ~isfield(hmm.state,'W')
-        for k = 1:K, XXGXX{k} = bsxfun(@times, XX, Gamma(:,k))' * XX; end
-        XXGXX{K+1} = XX' * XX;
+        for k = 1:K+1, XXGXX{k} = bsxfun(@times, XX, Gamma(:,k))' * XX; end
     else
         error('AdditiveHMM not yet implemented for logistic models')
     end
+else
+    rangeK = 1:K;
 end
 Gammasum = sum(Gamma); % if additiveHMM, Gammasum doesn't sum up to T
 
@@ -251,9 +251,10 @@ for k = rangeK
                 hmm.state(k).W.S_W(n,Sind(:,n),Sind(:,n)) = ...
                     inv(permute(hmm.state(k).W.iS_W(n,Sind(:,n),Sind(:,n)),[2 3 1]));
                 hmm.state(k).W.Mu_W(Sind(:,n),n) = ...
-                    (( permute(hmm.state(k).W.S_W(n,Sind(:,n),Sind(:,n)),[2 3 1])...
+                    (( permute(hmm.state(k).W.S_W(n,Sind(:,n),Sind(:,n)),[2 3 1]) ...
                     * XX(:,Sind(:,n))') .* repmat(Gamma(:,k)',sum(Sind(:,n)),1)) * residuals(:,n);
             end
+            
         else
             if all(S(:))==1
                 gram = kron(XXGXX{k},eye(ndim));
@@ -279,9 +280,29 @@ for k = rangeK
         end
     end
 end
+if additiveHMM % readjust the baseline state, because there are K copies of it
+    hmm.state(K+1).W.iS_W = hmm.state(K+1).W.iS_W * K;
+    hmm.state(K+1).W.S_W = hmm.state(K+1).W.S_W / K;
+    hmm.state(K+1).W.Mu_W = hmm.state(K+1).W.Mu_W / K;
+    Gamma = Gamma(:,1:end-1);
+end
 
 % Omega
-if strcmp(hmm.train.covtype,'uniquediag') && hmm.train.uniqueAR
+if strcmp(hmm.train.covtype,'uniquediag') && additiveHMM
+    if hmm.train.uniqueAR, error('Not yet implemented'); end
+    hmm.Omega.Gam_shape = hmm.prior.Omega.Gam_shape + Tres / 2;
+    e = residuals(:,regressed) - computeStateResponses(XX,hmm,Gamma,1:K,true);
+    hmm.Omega.Gam_rate = zeros(1,ndim);
+    hmm.Omega.Gam_rate(regressed) = hmm.prior.Omega.Gam_rate(regressed) + 0.5 * sum(e.^2);
+
+elseif strcmp(hmm.train.covtype,'uniquefull') && additiveHMM
+    hmm.Omega.Gam_shape = hmm.prior.Omega.Gam_shape + Tres;
+    e = residuals(:,regressed) - computeStateResponses(XX,hmm,Gamma,1:K,true);
+    hmm.Omega.Gam_rate = zeros(ndim,ndim); hmm.Omega.Gam_irate = zeros(ndim,ndim);
+    hmm.Omega.Gam_rate(regressed,regressed) = hmm.prior.Omega.Gam_rate(regressed,regressed) + e' * e;
+    hmm.Omega.Gam_irate(regressed,regressed) = inv(hmm.Omega.Gam_rate(regressed,regressed));
+    
+elseif strcmp(hmm.train.covtype,'uniquediag') && hmm.train.uniqueAR
     hmm.Omega.Gam_rate = hmm.prior.Omega.Gam_rate;
     for k = rangeK
         XW = zeros(size(XX,1),ndim);
@@ -410,22 +431,20 @@ elseif pcapred
     end
 end
 
-% final pass, including baseline for additiveHMM, which won't be touched again. 
-%   we don't call obsupdate here because for additiveHMM the Gamma
-%   normalisation was already done at the beginning of the function. 
-% Note that for the additiveHMM, this is assuming that the contribution of
-% each chain is exactly 1/K, which is only an approximation
-if do_HMM_pca
-    hmm = updatePCAparam (hmm,Gammasum,XXGXX,1,rangeK);
-else
-    %%% W
-    [hmm,XW] = updateW(hmm,Gamma,residuals,XX,XXGXX,1,rangeK);
-    %%% Omega
-    hmm = updateOmega(hmm,Gamma,Gammasum,residuals,T,XX,XXGXX,XW,1,rangeK);
+% Reorganise
+if additiveHMM
+    for n = 1:ndim
+        np = size(XX,2);
+        hmm.state_shared(n).iS_W = zeros(np*(K+1));
+        hmm.state_shared(n).S_W = zeros(np*(K+1));
+        hmm.state_shared(n).Mu_W = zeros(np*(K+1),1);
+        for k = 1:K+1
+            ind = (1:np) + (k-1)*np;
+            hmm.state_shared(n).Mu_W(ind) = hmm.state(k).W.Mu_W(:,n);
+            hmm.state_shared(n).iS_W(ind,ind) = hmm.state(k).W.iS_W(n,:,:);
+            hmm.state_shared(n).S_W(ind,ind) = hmm.state(k).W.S_W(n,:,:);
+        end
+    end
 end
 
-
 end
-
-
-
