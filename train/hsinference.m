@@ -159,7 +159,7 @@ if hmm.train.useParallel==1 && N>1
     Gamma0_copy = cell(N,1); C_copy = cell(N,1);
     for j = 1:N
         t0 = sum(T(1:j-1)); s0 = t0 - order*(j-1); 
-        XX_copy{j} = XX(s0+1:s0+T(j),:);
+        XX_copy{j} = XX(s0+1:s0+T(j)-order,:);
         if ~do_HMM_pca
             residuals_copy{j} = residuals(s0+1:s0+T(j)-order,:);
         end
