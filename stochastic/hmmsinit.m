@@ -144,9 +144,12 @@ for rep = 1:options.BIGinitrep
             options.onpower = 0; 
             options.downsample = 0; % done in loadfile.m
             options.grouping = [];
+            options.cyc = options.BIGinitcyc;
+            options.initrep = 1; 
             if isfield(options,'A')
                 options = rmfield(options,'A');
             end
+            options.verbose = 0; 
             %options.initcriterion = 'FreeEnergy';
             if length(Ti)==1, options.useParallel = 0; end
             [hmm_i,Gamma,Xi] = hmmmar(X,Ti,options);

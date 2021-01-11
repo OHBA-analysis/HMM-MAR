@@ -204,8 +204,8 @@ if stochastic_learn
     else
         fehist = []; feterms = []; rho = [];
     end
-    Gamma = []; Xi = []; vpath = []; residuals = [];
-    if options.BIGcomputeGamma && nargout >= 2
+    Gamma = []; Xi = []; residuals = [];
+    if options.BIGcomputeGamma && nargout >= 2 
        Gamma = hmmdecode(data,T,hmm,0); 
        if nargout > 2 
            warning(['When stochastic inference is run, Xi will be returned ' ...
@@ -213,7 +213,8 @@ if stochastic_learn
                'If required, it can be obtained by calling to hmmdecode directly'])
        end
     end
-    if options.BIGdecodeGamma && nargout >= 4
+    vpath = []; 
+    if options.BIGdecodeGamma && nargout >= 4 && ~options.additiveHMM && ~options.id_mixture
        vpath = hmmdecode(data,T,hmm,1); 
     end
     
@@ -435,7 +436,7 @@ else
     end
     
     vpath = [];
-    if options.decodeGamma && nargout >= 4 && ~options.additiveHMM
+    if options.decodeGamma && nargout >= 4 && ~options.additiveHMM && ~options.id_mixture
         vpath = hmmdecode(data.X,T,hmm,1,residuals,0);
         if ~options.keepS_W
             for k = 1:hmm.K

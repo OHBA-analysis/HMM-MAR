@@ -122,6 +122,7 @@ if stochastic_learning
     if ~isfield(options,'BIGcycnobetter_tostop'), options.BIGcycnobetter_tostop = 20; end
     if ~isfield(options,'BIGtol'), options.BIGtol = 1e-5; end
     if ~isfield(options,'BIGinitrep'), options.BIGinitrep = 1; end
+    if ~isfield(options,'BIGinitcyc'), options.BIGinitcyc = 50; end
     if ~isfield(options,'BIGforgetrate'), options.BIGforgetrate = 0.9; end
     if ~isfield(options,'BIGdelay'), options.BIGdelay = 1; end
     if ~isfield(options,'BIGbase_weights'), options.BIGbase_weights = 0.95; end % < 1 will promote democracy
@@ -365,8 +366,10 @@ if ~isfield(options,'DirichletDiag')
         end
         %options.DirichletDiag = sumT/5;
         options.DirichletDiag = 100;
-        warning(['With options.order > 0, you might want to specify options.DirichletDiag ' ...
-            'to a larger value if your state time courses are too volatile'])
+        if options.K > 1 
+            warning(['With options.order > 0, you might want to specify options.DirichletDiag ' ...
+                'to a larger value if your state time courses are too volatile'])
+        end
     else
         options.DirichletDiag = 10;
     end
