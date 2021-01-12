@@ -15,18 +15,19 @@ N = length(T); K = options.K;
 subjfe_init = zeros(N,3);
 loglik_init = zeros(N,1);
 pcaprec = options.pcapred>0;
-do_HMM_pca = (options.lowrank > 0);
 tp_less = max(options.embeddedlags) + max(-options.embeddedlags);
 if options.downsample > 0, downs_ratio = (options.downsample/options.Fs);
 else, downs_ratio = 1; 
 end
 
-if do_HMM_pca
+if options.BIGinitStrategy == 2 % run through a subset of the subjects only
     I = randperm(N,options.BIGNinit);
     options_copy = options;
     removesoptions;
     options = rmfield(options,'orders');
     options.verbose = 0;
+    options.cyc = options.BIGinitcyc;
+    options.initrep = 1; options.initcyc = 1;
     hmm = hmmmar(Xin(I),T(I),options);
     hmm.train.Sind = formindexes(hmm.train.orders,hmm.train.S)==1;
     options = options_copy;
@@ -138,6 +139,7 @@ for rep = 1:options.BIGinitrep
             options = rmfield(options,'orders');
             options.pca = 0; % done in loadfile.m
             options.pca_spatial = 0;
+            if isfield(options,'A'), options = rmfield(options,'A'); end
             options.embeddedlags = 0; % done in loadfile.m
             options.filter = [];
             options.detrend = 0; 
@@ -145,11 +147,8 @@ for rep = 1:options.BIGinitrep
             options.downsample = 0; % done in loadfile.m
             options.grouping = [];
             options.cyc = options.BIGinitcyc;
-            options.initrep = 1; 
-            if isfield(options,'A')
-                options = rmfield(options,'A');
-            end
-            options.verbose = 0; 
+            options.initrep = 1; options.initcyc = 1;  
+            options.verbose = 0;
             %options.initcriterion = 'FreeEnergy';
             if length(Ti)==1, options.useParallel = 0; end
             [hmm_i,Gamma,Xi] = hmmmar(X,Ti,options);

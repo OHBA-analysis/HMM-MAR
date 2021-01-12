@@ -128,6 +128,13 @@ if stochastic_learning
     if ~isfield(options,'BIGbase_weights'), options.BIGbase_weights = 0.95; end % < 1 will promote democracy
     if ~isfield(options,'BIGcomputeGamma'), options.BIGcomputeGamma = 1; end
     if ~isfield(options,'BIGdecodeGamma'), options.BIGdecodeGamma = 1; end
+    if ~isfield(options,'BIGinitStrategy')
+        if options.lowrank == 0
+            options.BIGinitStrategy = 1; % run through all subjects
+        else
+            options.BIGinitStrategy = 2; % run through a subset
+        end
+    end
     if ~isfield(options,'BIGverbose')
         if isfield(options,'verbose'), options.BIGverbose = options.verbose; 
         else, options.BIGverbose = 1; 
