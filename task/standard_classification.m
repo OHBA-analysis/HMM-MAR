@@ -133,6 +133,7 @@ X = reshape(X,[ttrial N p]);
 Y = reshape(Y,[ttrial N Q_star]);
 Ycopy = reshape(Ycopy,[ttrial N q]);
 
+
 % Fit classifier to each fold:
 cv_acc = zeros(ttrial,NCV);
 LL = zeros(ttrial,N);
@@ -143,11 +144,25 @@ for icv = 1:NCV
     Xtrain = reshape(X(:,c.training{icv},:),[Ntr*ttrial p] ) ;
     Ytrain = reshape(Y(:,c.training{icv},:),[Ntr*ttrial Q_star] ) ;
     Ttr = T(c.training{icv});
+    if isfield(options,'pls')
+        B = [];
+        for t=1:ttrial
+            %B = [B,plsregress(Xtrain(t:ttrial:end,:),Ytrain(t:ttrial:end,:),q)];
+            [XL,~,XS] = plsregress(Xtrain(t:ttrial:end,:),Ytrain(t:ttrial:end,:),q);
+            B = [B,pinv(Xtrain(t:ttrial:end,:))*XS];
+        end
+        [~,B_pls] = pca(B,'Centered',false);
+        LM = B_pls(:,1:options.pls);
+        Xtrain = normalise(Xtrain*LM);
+    end
     model = standard_classifier_train(Xtrain,Ytrain,Ttr,options);
     
     % and test on test set:
     Nte = length(c.test{icv});
     Xtest = reshape(X(:,c.test{icv},:),[ttrial*Nte p]);
+    if isfield(options,'pls')
+        Xtest = normalise(Xtest*LM);
+    end
     Ytest = reshape(Ycopy(:,c.test{icv},:),[ttrial*Nte q]);
     Ttest = T(c.test{icv});
     [cv_acc(:,icv),~,softpreds,genplot{icv}] = standard_classifier_test(model,Xtest,Ytest,Ttest,options);

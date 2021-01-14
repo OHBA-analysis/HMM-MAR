@@ -69,6 +69,13 @@ Ycopy = Y;
 if size(Ycopy,1) == N 
     Ycopy = repmat(reshape(Ycopy,[1 N q]),[ttrial 1 1]);
 end
+if isfield(options,'pls')
+    do_pls = true;
+    plsdims = options.pls;
+    options = rmfield(options,'pls');
+else
+    do_pls = false;
+end
 [X,Y,T,options] = preproc4hmm(X,Y,T,options); % this demeans Y if necessary
 ttrial = T(1); p = size(X,2); q_star = size(Y,2);
 classifier = options.classifier;
@@ -177,6 +184,9 @@ for icv = 1:NCV
     Xtrain = reshape(X(:,c.training{icv},:),[Ntr*ttrial p] ) ;
     Ytrain = reshape(Y(:,c.training{icv},:),[Ntr*ttrial q_star] ) ;
     Ttr = T(c.training{icv});
+    if do_pls
+        [Xtrain,A{icv}] = PLSdimreduce(Xtrain,Ytrain,Ttr,plsdims);
+    end
     [tuda,Gammatrain] = tudatrain(Xtrain,Ytrain,Ttr,options);
     if strcmp(classifier,'LDA')
         LDAmodel{icv} = tuda;
@@ -248,6 +258,9 @@ for iFitMethod = 1:nCVm
     for icv = 1:NCV
         Nte = length(c.test{icv});
         Xtest = reshape(X(:,c.test{icv},:),[ttrial*Nte p]);
+        if do_pls
+            Xtest = Xtest * A{icv};
+        end
         Gammatest = reshape(Gammapred(:,c.test{icv},:,iFitMethod),[ttrial*Nte K]);
         if strcmp(classifier,'LDA')
             [predictions,predictions_soft] = LDApredict(LDAmodel{icv},Gammatest,Xtest,classification,var(Ytrain(:,1))==0);

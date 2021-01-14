@@ -94,7 +94,7 @@ if T==T2
             for testcond = 1:numconds
                 mu = sum(squeeze(betamu_givenY(testcond,:,:)) .*repmat(Gamma(t,:)',1,nDimX));
                 mu_rec(testcond,t,:) = mu;
-                S = CovMat_t + squeeze(sum(squeeze(betasig_givenY(testcond,:,:,:)).*repmat(Gamma(t,:)',1,nDimX,nDimX),1));
+                S = CovMat_t + squeeze(sum(betasig_givenY(testcond,:,:,:).*repmat(permute(Gamma(t,:)',[3,1,2]),1,1,nDimX,nDimX),2));
                 loglikelihoodX(t,testcond) = -0.5*log(det(S)) -0.5 * (X(t,:) - mu) * inv(S) * (X(t,:) - mu)';
             end
             m = max(loglikelihoodX(t,:),[],2);

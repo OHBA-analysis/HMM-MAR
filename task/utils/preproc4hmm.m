@@ -267,6 +267,7 @@ if ~isfield(options,'DirichletDiag'), options.DirichletDiag = 100; end
 
 do_embedding = length(embeddedlags)>1;
 do_pca = ~isempty(A) || length(pca_opt)>1 || (pca_opt>0 && pca_opt<(p*length(embeddedlags)));
+do_pls = isfield(options,'pls');
 
 if ~do_embedding && econ_embed
     econ_embed = 0;
@@ -437,7 +438,10 @@ else
     else
         R2_pca = 1;
     end
-    
+    if do_pls
+        [X,A] = PLSdimreduce(X,Y,T,options.pls);
+        options = rmfield(options,'pls');
+    end
 end
 
 end
