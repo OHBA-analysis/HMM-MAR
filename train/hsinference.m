@@ -87,14 +87,12 @@ regressed = sum(S,1)>0;
 setstateoptions;
 % Cache shared results for use in obslike
 for k = rangeK
-    
     %hmm.cache = struct();
     hmm.cache.train{k} = train;
     hmm.cache.order{k} = order;
     hmm.cache.orders{k} = orders;
     hmm.cache.Sind{k} = Sind;
     hmm.cache.S{k} = S;
-   
     if do_HMM_pca
         W = hmm.state(k).W.Mu_W;
         v = hmm.Omega.Gam_rate / hmm.Omega.Gam_shape;
@@ -141,7 +139,7 @@ for k = rangeK
         [hmm.cache.WishTrace{k},hmm.cache.codevals] = computeWishTrace(hmm,regressed,XX,C,k);
     end
     % Set up cache
-    if  (~isfield(train,'distribution') || ~strcmp(train.distribution,'logistic'))
+    if ~isfield(train,'distribution') || ~strcmp(train.distribution,'logistic')
         hmm.cache.ldetWishB{k} = ldetWishB;
         hmm.cache.PsiWish_alphasum{k} = PsiWish_alphasum;
         hmm.cache.C{k} = C;
@@ -161,7 +159,7 @@ if hmm.train.useParallel==1 && N>1
     Gamma0_copy = cell(N,1); C_copy = cell(N,1);
     for j = 1:N
         t0 = sum(T(1:j-1)); s0 = t0 - order*(j-1); 
-        XX_copy{j} = XX(s0+1:s0+T(j),:);
+        XX_copy{j} = XX(s0+1:s0+T(j)-order,:);
         if ~do_HMM_pca
             residuals_copy{j} = residuals(s0+1:s0+T(j)-order,:);
         end
@@ -197,7 +195,9 @@ if hmm.train.useParallel==1 && N>1
         end
         % we jump over the fixed parts of the chain
         t = order+1;
-        xi = []; gamma = []; gammasum = zeros(1,K); ll = 0;
+        nsegments = computeNoSegments(T(j),t,C);
+        xi = cell(nsegments,1); gamma = cell(nsegments,1);
+        ll = 0; ns = 1;
         while t <= T(j)
             if isnan(C(t,1)), no_c = find(~isnan(C(t:T(j),1)));
             else, no_c = find(isnan(C(t:T(j),1)));
@@ -249,11 +249,11 @@ if hmm.train.useParallel==1 && N>1
             if t>order+1
                 gammat = gammat(2:end,:);
             end
-            if ~mixture_model 
-                xi = cat(1,xi,xit);
+            if ~mixture_model
+                xi{ns} = xit;
             end
-            gamma = cat(1,gamma,gammat);
-            gammasum = gammasum + sum(gamma);
+            gamma{ns} = gammat;
+            ns = ns + 1;
             if return_likelihood 
                 ll = ll + add_loglik(Bt(order+1:end,:),gammat,additiveHMM);
             end
@@ -262,14 +262,14 @@ if hmm.train.useParallel==1 && N>1
             else, t = no_c(1)+t-1;
             end
         end
-        Gamma{j} = gamma;
-        Gammasum(j,:) = gammasum;
+        Gamma{j} = cell2mat(gamma);
+        Gammasum(j,:) = sum(Gamma{j});
         if return_likelihood, LL(j) = ll; end
         if ~mixture_model
             if additiveHMM
-                Xi{j} = reshape(xi,T(j)-order-1,K,2,2);
+                Xi{j} = reshape(cell2mat(xi),T(j)-order-1,K,2,2);
             else
-                Xi{j} = reshape(xi,T(j)-order-1,K,K);
+                Xi{j} = reshape(cell2mat(xi),T(j)-order-1,K,K);
             end
         end
     end
@@ -303,7 +303,9 @@ else
         end
         % we jump over the fixed parts of the chain
         t = order+1;
-        xi = []; gamma = []; gammasum = zeros(1,K); ll = 0;
+        nsegments = computeNoSegments(T(j),t,C);
+        xi = cell(nsegments,1); gamma = cell(nsegments,1);
+        ll = 0; ns = 1; 
         while t <= T(j)
             if isnan(C(t,1)), no_c = find(~isnan(C(t:T(j),1)));
             else, no_c = find(isnan(C(t:T(j),1)));
@@ -360,26 +362,26 @@ else
                 gammat = gammat(2:end,:);
             end
             if ~mixture_model
-                xi = cat(1,xi,xit);
+                xi{ns} = xit; 
             end
-            gamma = cat(1,gamma,gammat);
-            gammasum = gammasum + sum(gamma);
+            gamma{ns} = gammat;
+            ns = ns + 1; 
             if nargout>=4 
                 ll = ll + add_loglik(Bt(order+1:end,:),gammat,additiveHMM);  
             end
             if nargout>=5, B{j} = [B{j}; Bt(order+1:end,:) ]; end
             if isempty(no_c), break;
-            else t = no_c(1)+t-1;
+            else, t = no_c(1)+t-1;
             end
         end
-        Gamma{j} = gamma;
-        Gammasum(j,:) = gammasum;
+        Gamma{j} = cell2mat(gamma);
+        Gammasum(j,:) = sum(Gamma{j});
         if nargout>=4, LL(j) = ll; end
         if ~mixture_model
             if additiveHMM
-                Xi{j} = reshape(xi,T(j)-order-1,K,2,2);
+                Xi{j} = reshape(cell2mat(xi),T(j)-order-1,K,2,2);
             else
-                Xi{j} = reshape(xi,T(j)-order-1,K,K);
+                Xi{j} = reshape(cell2mat(xi),T(j)-order-1,K,K);
             end
         end
     end
@@ -429,5 +431,18 @@ if any(hmm.train.S(:)~=1) && length(unique(X))<5
 else
     WishTrace =[];
     X_coded_vals=[];
+end
+end
+
+function nsegments = computeNoSegments(Tj,t0,C)
+t = t0; nsegments = 0;
+while t <= Tj
+    if isnan(C(t,1)), no_c = find(~isnan(C(t:Tj,1)));
+    else, no_c = find(isnan(C(t:Tj,1)));
+    end
+    nsegments = nsegments + 1;
+    if isempty(no_c), break;
+    else, t = no_c(1)+t-1;
+    end
 end
 end

@@ -43,7 +43,7 @@ end
 for cycle = 1:hmm.train.cyc
     
     if hmm.train.updateGamma
-        
+                
         %%%% E step
         if hmm.K>1 || cycle==1
             % state inference
@@ -53,7 +53,7 @@ for cycle = 1:hmm.train.cyc
                 [Gamma,~,Xi] = hsinference(data,T,hmm,residuals,[],XX);
             end
             status = checkGamma(Gamma,T,hmm.train);
-
+            
             % check local minima
             epsilon = 1;
             while status == 1
@@ -77,9 +77,9 @@ for cycle = 1:hmm.train.cyc
                     if isfield(hmm.train,'distribution') && strcmp(hmm.train.distribution,'logistic')
                         fehist(end+1) = sum(evalfreeenergylogistic(T,Gamma,Xi,hmm,residuals,XX));
                     elseif additiveHMM
-                        fehist(end+1) = sum(evalfreeenergy(data.X,T,Gamma,Xi,hmm,residuals,XX));
-                    else
                         fehist(end+1) = sum(evalfreeenergy_addHMM(data.X,T,Gamma,Xi,hmm,residuals,XX));
+                    else
+                        fehist(end+1) = sum(evalfreeenergy(data.X,T,Gamma,Xi,hmm,residuals,XX));
                     end
                     if hmm.train.verbose
                         fprintf('cycle %i: All the points collapsed in one state, free energy = %g \n',...
@@ -107,12 +107,7 @@ for cycle = 1:hmm.train.cyc
             end
             
         end
-        
-%         figure(5);clf(5)
-%         area(Gamma(1:1000,:));
-%         drawnow
-%         pause(0.5)
-        
+       
         %%%% Free energy computation
         if isfield(hmm.train,'distribution') && strcmp(hmm.train.distribution,'logistic')
             fehist(end+1) = sum(evalfreeenergylogistic(T,Gamma,Xi,hmm,residuals,XX));
@@ -150,14 +145,14 @@ for cycle = 1:hmm.train.cyc
     %%%% M STEP
     
     % Observation model
-        if hmm.train.updateObs
-            setxx
-            if additiveHMM
-                hmm = obsupdate_addHMM(T,Gamma,hmm,residuals,XX,XXGXX);
-            else
-                hmm = obsupdate(T,Gamma,hmm,residuals,XX,XXGXX);
-            end
+    if hmm.train.updateObs
+        setxx
+        if additiveHMM
+            hmm = obsupdate_addHMM(T,Gamma,hmm,residuals,XX);
+        else
+            hmm = obsupdate(T,Gamma,hmm,residuals,XX,XXGXX);
         end
+    end
     
     % Transition matrices and initial state
     if hmm.train.updateP
@@ -167,10 +162,7 @@ for cycle = 1:hmm.train.cyc
             hmm = hsupdate(Xi,Gamma,T,hmm);
         end
     end
-    
-    %FE = sum(evalfreeenergy_addHMM(data.X,T,Gamma,Xi,hmm,residuals,XX));
-    %fprintf('cycle %i free energy = %.10g \n',cycle,FE); %&& cycle>1
-    
+
     if ~hmm.train.updateGamma
         break % one iteration is enough
     end
@@ -213,33 +205,7 @@ for cycle = 1:hmm.train.cyc
             hmm.P = eye(K);
         end
     end
-    
-    %     figure(500);clf(500)
-    %     subplot(211)
-    %     area(Gamma(1:sum(T(1:5)),:)); ylim([0 1]); xlim([1 sum(T(1:5))])
-    %     hold on; for jjj = 1:4, plot([sum(T(1:jjj)) sum(T(1:jjj))],[0 1],'k','LineWidth',3); end
-    %     %area(Gamma); ylim([0 1])
-    %     title([num2str(cycle) ' ' num2str(hmm.P(1,2))])
-    %     subplot(212)
-    %     plot(getFractionalOccupancy(Gamma,T,hmm.train,1),'LineWidth',3); ylim([0 1])
-    %
-    %     drawnow
-    %     pause(0.1)
-    %
-    %     CC = zeros(hmm.train.K);
-    %     for k1 = 1:hmm.train.K
-    %         for k2 = 1:hmm.train.K
-    %             if k1==k2, continue; end
-    %             CC(k1,k2) = wishart_kl(hmm.state(k1).Omega.Gam_rate,...
-    %                 hmm.state(k2).Omega.Gam_rate, ...
-    %                 hmm.state(k1).Omega.Gam_shape,hmm.state(k2).Omega.Gam_shape);
-    %         end
-    %     end
-    %     m = getFractionalOccupancy(Gamma,T,hmm.train,2);
-    %     m =(max(m,[],2));
-    %     sum(CC(:))
-    %     [median(m) mean(m)]
-    
+ 
 end
 
 for k = 1:K

@@ -3,7 +3,7 @@ function hmm = updateSigma(hmm,rangeK)
 K = hmm.K; ndim = hmm.train.ndim;
 if nargin < 2 || isempty(rangeK), rangeK = 1:K; end
 if isfield(hmm.train,'B'), Q = size(hmm.train.B,2);
-else Q = ndim; end
+else, Q = ndim; end
 if Q==1, return; end
 
 setstateoptions;

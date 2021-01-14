@@ -14,7 +14,7 @@ function hmm = obsupdate(T,Gamma,hmm,residuals,XX,XXGXX,Tfactor)
 %
 % Author: Diego Vidaurre, OHBA, University of Oxford
 
-K = hmm.K; rangeK = 1:K; % we don't update the baseline state (if additiveHMM)
+K = hmm.K; 
 
 obs_tol = 0.00005;
 obs_maxit = 1; %20;
@@ -28,23 +28,23 @@ if ~isfield(hmm.train,'distribution') || ~strcmp(hmm.train.distribution,'logisti
     while mean_change>obs_tol && obs_it<=obs_maxit
         last_state = hmm.state;
         if do_HMM_pca
-            hmm = updatePCAparam (hmm,Gammasum,XXGXX,Tfactor,rangeK);
+            hmm = updatePCAparam (hmm,Gammasum,XXGXX,Tfactor);
         else
             %%% W
-            [hmm,XW] = updateW(hmm,Gamma,residuals,XX,XXGXX,Tfactor,rangeK);  
+            [hmm,XW] = updateW(hmm,Gamma,residuals,XX,XXGXX,Tfactor);  
             %%% Omega
-            hmm = updateOmega(hmm,Gamma,Gammasum,residuals,T,XX,XXGXX,XW,Tfactor,rangeK);
+            hmm = updateOmega(hmm,Gamma,Gammasum,residuals,T,XX,XXGXX,XW,Tfactor);
             %disp(num2str(hmm.Omega.Gam_rate / hmm.Omega.Gam_shape))
             
             %%% autoregression coefficient priors
             if (isfield(hmm.train,'V') && ~isempty(hmm.train.V))
                 %%% beta - one per regression coefficient
-                hmm = updateBeta(hmm,rangeK);
+                hmm = updateBeta(hmm);
             else
                 %%% sigma - channel x channel coefficients
-                hmm = updateSigma(hmm,rangeK);
+                hmm = updateSigma(hmm);
                 %%% alpha - one per order
-                hmm = updateAlpha(hmm,rangeK);
+                hmm = updateAlpha(hmm);
             end
         end
 
@@ -67,11 +67,11 @@ else
             hmm_marginalised = logisticMarginaliseHMM(hmm,iY);
             xdim = hmm_marginalised.train.ndim-1;
             %%% W
-            [hmm_temp,~] = updateW(hmm_marginalised,Gamma,residuals(:,iY),XX(:,[1:xdim,xdim+iY]),XXGXX,...
-                Tfactor,rangeK);
+            [hmm_temp,~] = ...
+                updateW(hmm_marginalised,Gamma,residuals(:,iY),XX(:,[1:xdim,xdim+iY]),XXGXX,Tfactor);
         
             %%% and hyperparameters alpha
-            hmm_temp = updateAlpha(hmm_temp,rangeK);
+            hmm_temp = updateAlpha(hmm_temp);
             
             hmm = logisticMergeHMM(hmm_temp,hmm,iY);
         end

@@ -204,8 +204,8 @@ if stochastic_learn
     else
         fehist = []; feterms = []; rho = [];
     end
-    Gamma = []; Xi = []; vpath = []; residuals = [];
-    if options.BIGcomputeGamma && nargout >= 2
+    Gamma = []; Xi = []; residuals = [];
+    if options.BIGcomputeGamma && nargout >= 2 
        Gamma = hmmdecode(data,T,hmm,0); 
        if nargout > 2 
            warning(['When stochastic inference is run, Xi will be returned ' ...
@@ -213,7 +213,8 @@ if stochastic_learn
                'If required, it can be obtained by calling to hmmdecode directly'])
        end
     end
-    if options.BIGdecodeGamma && nargout >= 4
+    vpath = []; 
+    if options.BIGdecodeGamma && nargout >= 4 && ~options.additiveHMM && ~options.id_mixture
        vpath = hmmdecode(data,T,hmm,1); 
     end
     
@@ -308,7 +309,9 @@ else
     if isempty(options.Gamma) && isempty(options.hmm) % both unspecified
         if options.K > 1
             Sind = options.Sind;
-            if options.initrep>0 && options.initcyc>0 && ...
+            if options.initrep>0 && options.initcyc>0 && options.additiveHMM
+                GammaInit = hmmmar_init_addHMM(data,T,options,Sind);
+            elseif options.initrep>0 && options.initcyc>0 && ...
                     (strcmpi(options.inittype,'HMM-MAR') || strcmpi(options.inittype,'HMMMAR'))
                 [GammaInit,fehistInit] = hmmmar_init(data,T,options,Sind);
             elseif strcmpi(options.inittype,'sequential')
@@ -349,7 +352,7 @@ else
 
     % If initialization Gamma has fewer states than options.K, put those states back in
     % and renormalize
-    if ~isempty(GammaInit) && (size(GammaInit,2) < options.K) && options.additiveHMM
+    if ~isempty(GammaInit) && (size(GammaInit,2) < options.K) && ~options.additiveHMM
         % States were knocked out, but semisupervised in use, so put them back
         GammaInit = [GammaInit 0.0001*rand(size(GammaInit,1),options.K-size(GammaInit,2))];
         GammaInit = bsxfun(@rdivide,GammaInit,sum(GammaInit,2));
@@ -432,16 +435,14 @@ else
         residuals = []; 
     end
     
-    if options.decodeGamma && nargout >= 4
-        
+    vpath = [];
+    if options.decodeGamma && nargout >= 4 && ~options.additiveHMM && ~options.id_mixture
         vpath = hmmdecode(data.X,T,hmm,1,residuals,0);
         if ~options.keepS_W
             for k = 1:hmm.K
                 hmm.state(k).W.S_W = [];
             end
-        end
-    else
-        vpath = ones(size(Gamma,1),1);
+        end   
     end
     hmm.train = rmfield(hmm.train,'Sind');
     

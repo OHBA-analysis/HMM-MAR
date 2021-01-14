@@ -159,18 +159,19 @@ if stochastic_learn
     % Gamma entropy&LL
     fe = fe + sum(evalfreeenergy([],Tmat,Gamma,Xi,hmm,[],[],[1 0 1 0 1]));
     tacc = 0; tacc2 = 0; fell = 0; ll = [];
-    for i = 1:1:length(T)
+    for i = 1:length(T)
         [X,XX,residuals,Ti] = loadfile(data{i},T{i},options);
+        if hmm.train.lowrank > 0,  XX = X; end
         t = (1:(sum(Ti)-length(Ti)*maxorder)) + tacc;
         t2 = (1:(sum(Ti)-length(Ti)*(maxorder+1))) + tacc2;
         tacc = tacc + length(t); tacc2 = tacc2 + length(t2);
         if ~isempty(Xi)
             [f,l] = evalfreeenergy(X,Ti,Gamma(t,:),Xi(t2,:,:),hmm,residuals,XX,[0 1 0 0 0]);
-            fell = fell + sum(f); % state KL
+            fell = fell + sum(f); %  data likelihood
             ll = [l; ll];
         else
             [f,l] = evalfreeenergy(X,Ti,Gamma(t,:),[],hmm,residuals,XX,[0 1 0 0 0]);
-            fell = fell + sum(f); % state KL
+            fell = fell + sum(f); %  data likelihood
             ll = [l; ll];
         end
     end

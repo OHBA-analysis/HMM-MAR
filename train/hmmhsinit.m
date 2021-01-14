@@ -29,24 +29,25 @@ if hmm.train.additiveHMM
     end
     % assigning default priors for hidden state
     if nargin > 1 && ~isempty(GammaInit) && hmm.train.updateP
-        hmm = hsupdate([],GammaInit,T,hmm);
+        hmm = hsupdate_addHMM([],GammaInit,T,hmm);
     else
-        % Initial state
-        for k = 1:hmm.K
-            hmm.state(k).Dir_alpha = [0 1];
-            hmm.state(k).Pi = [0 1];
-            % State transitions
-            hmm.state(k).Dir2d_alpha = defhmmprior.Dir2d_alpha;
-            hmm.state(k).P = zeros(2);
-            hmm.state(k).Dir2d_alpha(eye(2)==1) = hmm.train.DirichletDiag;
-            for k2 = 1:2
-                hmm.state(k).P(k2,:) = hmm.state(k).Dir2d_alpha(k2,:) ./ sum(hmm.state(k).Dir2d_alpha(k2,:));
-            end
+        % State transitions
+        hmm.state(k).Dir2d_alpha = defhmmprior.Dir2d_alpha;
+        hmm.state(k).P = zeros(2);
+        hmm.state(k).Dir2d_alpha(eye(2)==1) = hmm.train.DirichletDiag;
+        for k2 = 1:2
+            hmm.state(k).P(k2,:) = hmm.state(k).Dir2d_alpha(k2,:) ./ sum(hmm.state(k).Dir2d_alpha(k2,:));
         end
-        hmm.state(hmm.K+1).Dir_alpha = []; hmm.state(hmm.K+1).Dir2d_alpha = [];
-        hmm.state(hmm.K+1).P = []; hmm.state(hmm.K+1).Pi = [];
     end
-    
+    % Initial state
+    for k = 1:hmm.K
+        hmm.state(k).Dir_alpha = [0 1];
+        hmm.state(k).Pi = [0 1];
+    end
+    % baseline
+    hmm.state(hmm.K+1).Dir_alpha = []; hmm.state(hmm.K+1).Dir2d_alpha = [];
+    hmm.state(hmm.K+1).P = []; hmm.state(hmm.K+1).Pi = [];
+
 else
     
     % define P-priors
