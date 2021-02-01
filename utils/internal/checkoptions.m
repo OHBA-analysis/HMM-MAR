@@ -470,6 +470,10 @@ if isfield(options,'AR') && options.AR == 1
     if options.order == 0, error('Option AR cannot be 1 if order==0'); end
     options.S = -1*ones(ndim) + 2*eye(ndim);
 end
+if (ndim^2 * options.order) > 250
+   warning('There is a risk of overparametrisation in the MAR model, perhaps too many channels?')
+   disp('The time-delay embedded model is recommended in this case (use options.embeddedlags)')
+end
 
 if isfield(options,'pcamar') && options.pcamar>0 
     if options.order==0, error('Option pcamar>0 must be used with some order>0'); end
