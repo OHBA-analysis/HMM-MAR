@@ -53,8 +53,8 @@ options_original = options;
 classifier = options.classifier;
 sequential = options.sequential;
 parallel_trials = options.parallel_trials; 
-plotAverageGamma = options.plotAverageGamma;
-options.plotAverageGamma = 0; 
+plotGamma = options.plotGamma;
+options.plotGamma = 0; 
 options = rmfield(options,'parallel_trials');
 options = rmfield(options,'classifier');
 if ~options.encodemodel, options = rmfield(options,'encodemodel'); end
@@ -133,7 +133,7 @@ if isempty(GammaInit) && ~parallel_trials
     options.updateObs = 1;
     options.updateGamma = 1;
     options.updateP = 1;
-    options.plotAverageGamma = plotAverageGamma;
+    options.plotGamma = plotGamma;
     [tuda,Gamma,~,vpath] = hmmmar(Z,T,options);
     
 else
@@ -163,7 +163,7 @@ else
     options.updateP = 1;
     options.hmm = tuda;
     options = rmfield(options,'Gamma');
-    options.plotAverageGamma = plotAverageGamma; %plotAverageGamma;
+    options.plotGamma = plotGamma; %plotGamma;
     options.tuda = 1;
     [tuda,Gamma,~,vpath,~,~, stats.fe] = hmmmar(Z,T,options);
     
@@ -172,11 +172,11 @@ else
 %     options.updateObs = 0;
 %     options.updateGamma = 1;
 %     options.updateP = 1;
-%     options.plotAverageGamma = plotAverageGamma;
+%     options.plotGamma = plotGamma;
 %     options = rmfield(options,'Gamma');
 %     options.hmm = tuda;
 %     [~,Gamma,~,vpath] = hmmmar(Z,T,options);
-%     options.plotAverageGamma = 0;
+%     options.plotGamma = 0;
 %     % 3. Final update of state distributions, leaving fixed the state time courses
 %     options.updateObs = 1;
 %     options.updateGamma = 0;

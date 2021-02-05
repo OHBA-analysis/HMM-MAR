@@ -223,7 +223,7 @@ end
 
 options.parallel_trials = parallel_trials;
 if ~isfield(options,'tudamonitoring'), options.tudamonitoring = 0; end
-if ~isfield(options,'plotAverageGamma'), options.plotAverageGamma = 0; end
+if ~isfield(options,'plotGamma'), options.plotGamma = 0; end
 
 if parallel_trials && ~all(T==T(1))
     error('parallel_trials can be used only when all trials have equal length');

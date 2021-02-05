@@ -1,4 +1,4 @@
-function [hmm,Gamma,Xi,fehist] = hmmtrain(data,T,hmm,Gamma,residuals,fehist)
+function [hmm,Gamma,Xi,fehist,maxchhist] = hmmtrain(data,T,hmm,Gamma,residuals,fehist)
 %
 % Train Hidden Markov Model using using Variational Framework
 %
@@ -22,10 +22,13 @@ function [hmm,Gamma,Xi,fehist] = hmmtrain(data,T,hmm,Gamma,residuals,fehist)
 %
 % Author: Diego Vidaurre, OHBA, University of Oxford (2018)
 
-if nargin<6, fehist=[]; end
+if nargin<6, fehist = []; end
+if nargin<7, maxchhist = []; end
+
 cyc_to_go = 0;
 setxx;
 additiveHMM = hmm.train.additiveHMM;
+useChGamma = isfield(hmm.train,'stopcriterion') && strcmpi(hmm.train.stopcriterion,'ChGamma');
 
 do_clustering = isfield(hmm.train,'cluster') && hmm.train.cluster;
 if do_clustering
@@ -34,12 +37,6 @@ if do_clustering
     hmm.P(eye(hmm.K)==1) = 1;
 end
 
-% figure(5);clf(5)
-% area(Gamma(1:1000,:));
-% drawnow
-% pause(0.5)
-% % G0= Gamma;
-
 for cycle = 1:hmm.train.cyc
     
     if hmm.train.updateGamma
@@ -47,8 +44,11 @@ for cycle = 1:hmm.train.cyc
         %%%% E step
         if hmm.K>1 || cycle==1
             % state inference
+            if cycle > 1 && ~hmm.train.dropstates,  Gamma0 = Gamma; end
             if additiveHMM
+                %if cycle > 1,  Gamma0 = Gamma; Xi0 = Xi; end %
                 [Gamma,~,Xi] = hsinference(data,T,hmm,residuals,[],XX,Gamma);
+                %if cycle == 2,  keyboard; end  %
             else
                 [Gamma,~,Xi] = hsinference(data,T,hmm,residuals,[],XX);
             end
@@ -65,7 +65,9 @@ for cycle = 1:hmm.train.cyc
             end
             
             % any state to remove?
-            [as,hmm,Gamma,Xi] = getactivestates(hmm,Gamma,Xi);
+            if ~additiveHMM
+                [as,hmm,Gamma,Xi] = getactivestates(hmm,Gamma,Xi);
+            end
             if hmm.train.dropstates
                 if any(as==0)
                     cyc_to_go = hmm.train.cycstogoafterevent;
@@ -77,7 +79,7 @@ for cycle = 1:hmm.train.cyc
                     if isfield(hmm.train,'distribution') && strcmp(hmm.train.distribution,'logistic')
                         fehist(end+1) = sum(evalfreeenergylogistic(T,Gamma,Xi,hmm,residuals,XX));
                     elseif additiveHMM
-                        fehist(end+1) = sum(evalfreeenergy_addHMM(data.X,T,Gamma,Xi,hmm,residuals,XX));
+                        fehist(end+1) = sum(evalfreeenergy_addHMM(T,Gamma,Xi,hmm,residuals,XX));
                     else
                         fehist(end+1) = sum(evalfreeenergy(data.X,T,Gamma,Xi,hmm,residuals,XX));
                     end
@@ -87,21 +89,24 @@ for cycle = 1:hmm.train.cyc
                     end
                     K = 1; break
                 end
+            else
+                if cycle == 1, maxchhist(end+1) = 0;
+                else
+                    if additiveHMM
+                        maxchhist(end+1) = mean(sum(abs(Gamma0 - Gamma),2)/K );
+                    else
+                        maxchhist(end+1) = mean(sum(abs(Gamma0 - Gamma),2)/2 );
+                    end
+                end
             end
             
-            if hmm.train.plotAverageGamma
+            % plot state time courses if requested
+            if hmm.train.plotGamma > 0
                 figure(100);clf(100);
-                if isfield(hmm.train,'tuda') && hmm.train.tuda
-                    plot_Gamma(Gamma,T);
-                else
-                    if hmm.train.order > 0, dg = hmm.train.order; end
-                    if length(hmm.train.embeddedlags) > 1
-                        dg = -hmm.train.embeddedlags(1) + hmm.train.embeddedlags(end);
-                    end
-                    plot(double((1:(T(1)-dg)))/hmm.train.Fs,...
-                        squeeze(mean(reshape(Gamma,[(T(1)-dg) length(T) size(Gamma,2)]),2)),...
-                        'LineWidth',3)
-                    ylim([0 1]); xlim(double([1 (T(1)-dg)])/hmm.train.Fs)
+                if hmm.train.plotGamma == 1 % continuous data
+                    plot_Gamma (Gamma,T,1);
+                elseif hmm.train.plotGamma == 2 % full plot
+                    plot_Gamma (Gamma,T,0);
                 end
                 drawnow
             end
@@ -112,7 +117,7 @@ for cycle = 1:hmm.train.cyc
         if isfield(hmm.train,'distribution') && strcmp(hmm.train.distribution,'logistic')
             fehist(end+1) = sum(evalfreeenergylogistic(T,Gamma,Xi,hmm,residuals,XX));
         elseif additiveHMM
-            fehist(end+1) = sum(evalfreeenergy_addHMM(data.X,T,Gamma,Xi,hmm,residuals,XX));
+            fehist(end+1) = sum(evalfreeenergy_addHMM(T,Gamma,Xi,hmm,residuals,XX));
         else
             fehist(end+1) = sum(evalfreeenergy(data.X,T,Gamma,Xi,hmm,residuals,XX));
         end
@@ -122,20 +127,45 @@ for cycle = 1:hmm.train.cyc
                 fehist(end-1:-1:(end-hmm.train.meancycstop)) )  ...
                 / abs(fehist(1) - fehist(end));
             if hmm.train.verbose
-                fprintf('cycle %i free energy = %.10g,%s relative change = %g \n',...
-                    cycle,fehist(end),strwin,chgFrEn);
+                if ~isempty(maxchhist)
+                    fprintf(['cycle %i free energy = %.10g,%s relative change = %g; ' ...
+                        'mean Gamma change: %.3g \n'],...
+                        cycle,fehist(end),strwin,chgFrEn,maxchhist(end));
+                else
+                    fprintf('cycle %i free energy = %.10g,%s relative change = %g \n',...
+                        cycle,fehist(end),strwin,chgFrEn);
+                end
             end
-            if (abs(chgFrEn) < hmm.train.tol) && cyc_to_go==0
-                break;
+            if useChGamma % Gamma
+                if (maxchhist(end) < hmm.train.tol) && cyc_to_go==0
+                    break;
+                end
+            else
+                if (abs(chgFrEn) < hmm.train.tol) && cyc_to_go==0
+                    break;
+                end
             end
         elseif hmm.train.verbose && (length(fehist) == (hmm.train.meancycstop+1))
             chgFrEn = mean( fehist(end:-1:(end-hmm.train.meancycstop+1)) - ...
                 fehist(end-1:-1:(end-hmm.train.meancycstop)) ) ;
-            fprintf('cycle %i free energy = %.10g,%s absolute change = %g \n',...
-                cycle,fehist(end),strwin,chgFrEn);
+            if ~isempty(maxchhist)
+                fprintf(['cycle %i free energy = %.10g,%s absolute change = %g; ' ...
+                        'mean Gamma change: %.3g \n'],...
+                    cycle,fehist(end),strwin,chgFrEn,maxchhist(end));
+            else
+                fprintf('cycle %i free energy = %.10g,%s absolute change = %g \n',...
+                    cycle,fehist(end),strwin,chgFrEn);
+            end
         elseif hmm.train.verbose
             fprintf('cycle %i free energy = %g \n',cycle,fehist(end)); %&& cycle>1
         end
+        
+%         if cycle>1 %
+%         fprintf('+ cycle %i free energy = %.10g, %.10g \n',cycle,fehist(end),ee0(end)-fehist(end));
+%         else %
+%         fprintf('+ cycle %i free energy = %.10g \n',cycle,fehist(end));
+%         end  %
+        
         if cyc_to_go>0, cyc_to_go = cyc_to_go - 1; end
         
     else
@@ -154,6 +184,9 @@ for cycle = 1:hmm.train.cyc
         end
     end
     
+%     ee = sum(evalfreeenergy_addHMM(T,Gamma,Xi,hmm,residuals,XX)); % 
+%     fprintf('++ cycle %i free energy = %.10g, %.10g \n',cycle,ee(end),fehist(end)-ee(end));ee0=ee; %
+    
     % Transition matrices and initial state
     if hmm.train.updateP
         if additiveHMM
@@ -162,6 +195,9 @@ for cycle = 1:hmm.train.cyc
             hmm = hsupdate(Xi,Gamma,T,hmm);
         end
     end
+        
+%     ee = sum(evalfreeenergy_addHMM(T,Gamma,Xi,hmm,residuals,XX)); %
+%     fprintf('+++ cycle %i free energy = %.10g, %.10g \n',cycle,ee(end),ee0(end)-ee(end));ee0=ee; %
 
     if ~hmm.train.updateGamma
         break % one iteration is enough
