@@ -7,7 +7,7 @@ else, Q = ndim; end
 setstateoptions;
 
 for k = rangeK
-    if ~hmm.train.active(k), continue; end
+    if k <= K && ~hmm.train.active(k), continue; end
     if isempty(orders) || ~isempty(train.prior), continue; end
     hmm.state(k).alpha.Gam_shape = hmm.state(k).prior.alpha.Gam_shape;
     hmm.state(k).alpha.Gam_rate = hmm.state(k).prior.alpha.Gam_rate;

@@ -21,6 +21,7 @@ for tr = 1:length(T)
         end
         Psi(Psi==0) = realmin;
         if any(isinf(log(Psi(:)))), Psi(Psi==0) = eps; end
+        %Entr = Entr - sum(Psi(:).*log(Psi(:)));
         Entr = Entr - sum(Xi_nz(:).*log(Psi(:)));    % entropy of hidden states
     end
 end

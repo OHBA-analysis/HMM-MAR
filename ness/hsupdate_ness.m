@@ -1,4 +1,4 @@
-function hmm = hsupdate_addHMM(Xi,Gamma,T,hmm)
+function ness = hsupdate_ness(Xi,Gamma,T,ness)
 %
 % updates hidden state parameters of an HMM
 %
@@ -14,10 +14,10 @@ function hmm = hsupdate_addHMM(Xi,Gamma,T,hmm)
 %
 % Author: Diego Vidaurre, OHBA, University of Oxford
 
-K = hmm.K;
+K = ness.K;
 
 if isempty(Xi)  % non-exact estimation
-    Xi = approximateXi(Gamma,T,hmm);
+    Xi = approximateXi(Gamma,T,ness);
 end
 if length(size(Xi))==4
     Xi = permute(sum(Xi),[2 3 4 1]);
@@ -25,16 +25,16 @@ end
 
 % transitions
 for k = 1:K
-    hmm.state(k).Dir2d_alpha = permute(Xi(k,:,:),[2 3 1]) ...
-        + hmm.state(k).prior.Dir2d_alpha;
-    hmm.state(k).P = zeros(2);
+    ness.state(k).Dir2d_alpha = permute(Xi(k,:,:),[2 3 1]) ...
+        + ness.state(k).prior.Dir2d_alpha;
+    ness.state(k).P = zeros(2);
     for j = 1:2
-        PsiSum = psi(sum(hmm.state(k).Dir2d_alpha(j,:)));
+        PsiSum = psi(sum(ness.state(k).Dir2d_alpha(j,:)));
         for j2 = 1:2
-            hmm.state(k).P(j,j2) = ...
-                exp(psi(hmm.state(k).Dir2d_alpha(j,j2))-PsiSum);
+            ness.state(k).P(j,j2) = ...
+                exp(psi(ness.state(k).Dir2d_alpha(j,j2))-PsiSum);
         end
-        hmm.state(k).P(j,:) = hmm.state(k).P(j,:) ./ sum(hmm.state(k).P(j,:));
+        ness.state(k).P(j,:) = ness.state(k).P(j,:) ./ sum(ness.state(k).P(j,:));
     end
 end
 

@@ -284,9 +284,7 @@ savLL = [];
 if todo(2)==1
     
     avLL = zeros(Tres,1);
-    if do_HMM_pca
-        avLL = avLL -ltpi;
-    elseif strcmp(hmm.train.covtype,'uniquediag')
+    if strcmp(hmm.train.covtype,'uniquediag')
         ldetWishB = 0;
         PsiWish_alphasum = 0;
         for n = 1:ndim
@@ -335,7 +333,7 @@ if todo(2)==1
             v = hmm.Omega.Gam_rate / hmm.Omega.Gam_shape;
             C = W * W' + v * eye(ndim);
             ldetWishB = 0.5*logdet(C); PsiWish_alphasum = 0;
-            avLL = avLL + Gamma(:,k) * (-ldetWishB+PsiWish_alphasum);
+            avLL = avLL + Gamma(:,k) * (-ltpi-ldetWishB+PsiWish_alphasum+0.5*sum(regressed)*log(2));
             dist = - 0.5 * sum((XX / C) .* XX,2);
         else
             meand = zeros(size(XX,1),sum(regressed)); % mean distance

@@ -37,7 +37,7 @@ if options.useParallel && length(init_k) > 1 % not very elegant
         felast(it) = fehist{it}(end);
         maxfo(it) = mean(getMaxFractionalOccupancy(Gamma{it},T,options));
         if options.verbose
-            if options.additiveHMM
+            if options.nessmodel
                 fprintf('Init run %2d, Free Energy = %f \n',it,felast(it));
             else
                 fprintf('Init run %2d, %2d->%2d states, Free Energy = %f \n',...
@@ -51,7 +51,7 @@ else
         felast(it) = fehist{it}(end);
         maxfo(it) = mean(getMaxFractionalOccupancy(Gamma{it},T,options));
         if options.verbose
-            if options.additiveHMM
+            if options.nessmodel
                 fprintf('Init run %2d, Free Energy = %f \n',it,felast(it));
             else
                 fprintf('Init run %2d, %2d->%2d states, Free Energy = %f \n',...
@@ -84,7 +84,7 @@ function [Gamma,fehist] = run_initialization(data,T,options,Sind,init_k)
 % - init_k is the number of states to use for this initialization
 
 % Need to adjust the worker dirichletdiags if testing smaller K values
-%if ~options.additiveHMM && init_k < options.K
+%if ~options.nessmodel && init_k < options.K
 if init_k < options.K
     for jj = 1:length(options.DirichletDiag)
         p = options.DirichletDiag(j)/(options.DirichletDiag(j) + options.K - 1); % Probability of remaining in same state
@@ -107,7 +107,7 @@ while keep_trying
     Gamma = initGamma_random(T-options.maxorder,options.K,...
         min(median(double(T))/10,500),...
         options.Pstructure,options.Pistructure,...
-        options.additiveHMM,options.priorOFFvsON);
+        options.nessmodel,options.priorOFFvsON);
     hmm = struct('train',struct());
     hmm.K = options.K;
     hmm.train = options;

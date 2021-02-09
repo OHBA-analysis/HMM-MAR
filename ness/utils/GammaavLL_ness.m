@@ -1,11 +1,5 @@
-function avLL = GammaavLL_addHMM(hmm,Xi)
+function avLL = GammaavLL_ness(hmm,Xi)
 % average loglikelihood for state time course
-
-% if isfield(hmm.train,'grouping') % DEPRECATED
-%     Q = length(unique(hmm.train.grouping));
-% else
-%     Q = 1;
-% end
 
 K = hmm.K;
 avLL = 0; 

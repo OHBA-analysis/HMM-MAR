@@ -1,4 +1,4 @@
-function [Gamma,Xi,L] = fb_Gamma_inference(XX,hmm,residuals,slicepoints,constraint)
+function [Gamma,Xi,L] = fb_Gamma_inference(XX,hmm,residuals,slicepoints,constraint,cv)
 % inference using normal forward backward propagation
 
 %p = hmm.train.lowrank; do_HMM_pca = (p > 0);
@@ -23,12 +23,9 @@ T = size(residuals,1) + order;
 Xi = [];
 K = length(hmm.state);
 
-if nargin<4
-    slicepoints = [];
-end
-if nargin<5
-    constraint = [];
-end
+if nargin<4, slicepoints = []; end
+if nargin<5, constraint = []; end
+if nargin<6, cv = 0; end
 
 % if isfield(hmm.train,'grouping') && length(unique(hmm.train.grouping))>1
 %     i = hmm.train.grouping(n); 
@@ -119,4 +116,5 @@ else
         Xi(i-order,:) = t(:)'/sum(t(:));
     end
 end
+
 end

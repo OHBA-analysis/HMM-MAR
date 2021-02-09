@@ -41,7 +41,7 @@ pcapred = hmm.train.pcapred>0;
 if pcapred, M = hmm.train.pcapred; end
 p = hmm.train.lowrank; do_HMM_pca = (p > 0);
 
-if hmm.train.additiveHMM
+if hmm.train.nessmodel
     rangeK = 1:hmm.K+1;
 else
     rangeK = 1:hmm.K;
@@ -66,7 +66,7 @@ for k = rangeK
     else
         st = struct('sigma',[],'alpha',[],'Mean',[]);
     end
-    if hmm.train.additiveHMM
+    if hmm.train.nessmodel
         st.P = []; st.Pi = []; st.Dir_alpha = []; st.Dir2d_alpha = [];
     end
     defstateprior(k) = st; 
@@ -114,7 +114,7 @@ for k = rangeK
         defstateprior(k).Omega.Gam_rate = 0.5 * priorcov_rate;
         defstateprior(k).Omega.Gam_shape = 0.5 * (ndim+0.1-1);
     end
-    if hmm.train.additiveHMM && k < hmm.K+1
+    if hmm.train.nessmodel && k < hmm.K+1
         defstateprior(k).Dir_alpha = hmm.state(k).prior.Dir_alpha;
         defstateprior(k).Dir2d_alpha = hmm.state(k).prior.Dir2d_alpha;
     end
@@ -171,16 +171,16 @@ else Q = ndim;
 end
 pcapred = hmm.train.pcapred>0;
 p = hmm.train.lowrank; do_HMM_pca = (p > 0);
-additiveHMM = hmm.train.additiveHMM;
+nessmodel = hmm.train.nessmodel;
 
 % This is so that, on average, each chain contributes 1/K to the prediction
 % Note that's also true for the baseline state; therefore, the correct
 % interpretation is that there are K copies of the baseline state
 % contributing simultaneously, each with probability (0,1)
-%if additiveHMM, residuals = residuals / K; end
+%if nessmodel, residuals = residuals / K; end
 
 setxx; % build XX and get orders
-if additiveHMM 
+if nessmodel 
     % Note that obsinit is the only place where we will update the baseline
     % state parameters
     rangeK = 1:K+1;
@@ -193,12 +193,12 @@ if additiveHMM
             || ~isfield(hmm.state,'W')
         for k = 1:K+1, XXGXX{k} = bsxfun(@times, XX, Gamma(:,k))' * XX; end
     else
-        error('AdditiveHMM not yet implemented for logistic models')
+        error('NESS not yet implemented for logistic models')
     end
 else
     rangeK = 1:K;
 end
-Gammasum = sum(Gamma); % if additiveHMM, Gammasum doesn't sum up to T
+Gammasum = sum(Gamma); % if nessmodel, Gammasum doesn't sum up to T
 
 % W
 for k = rangeK
@@ -280,24 +280,36 @@ for k = rangeK
         end
     end
 end
-if additiveHMM % readjust the baseline state, because there are K copies of it
+if nessmodel % readjust the baseline state, because there are K copies of it
     hmm.state(K+1).W.iS_W = hmm.state(K+1).W.iS_W * K;
     hmm.state(K+1).W.S_W = hmm.state(K+1).W.S_W / K;
     hmm.state(K+1).W.Mu_W = hmm.state(K+1).W.Mu_W / K;
     Gamma = Gamma(:,1:end-1);
+    for n = 1:ndim
+        hmm.state_shared(n).iS_W = zeros(size(XX,2)*(K+1));
+        hmm.state_shared(n).S_W = zeros(size(XX,2)*(K+1));
+        hmm.state_shared(n).Mu_W = zeros(size(XX,2)*(K+1),1);
+        for k = 1:K+1
+            ind = (1:size(XX,2)) + (k-1)*size(XX,2);       
+            hmm.state_shared(n).Mu_W(ind) = hmm.state(k).W.Mu_W(:,n);
+            hmm.state_shared(n).iS_W(ind,ind) = hmm.state(k).W.iS_W(n,:,:);
+            hmm.state_shared(n).S_W(ind,ind) = hmm.state(k).W.S_W(n,:,:);
+        end
+    end
+    
 end
 
 % Omega
-if strcmp(hmm.train.covtype,'uniquediag') && additiveHMM
+if strcmp(hmm.train.covtype,'uniquediag') && nessmodel
     if hmm.train.uniqueAR, error('Not yet implemented'); end
     hmm.Omega.Gam_shape = hmm.prior.Omega.Gam_shape + Tres / 2;
-    e = residuals(:,regressed) - computeStateResponses(XX,hmm,Gamma,1:K,true);
+    e = residuals(:,regressed) - computeStateResponses(XX,hmm,Gamma);
     hmm.Omega.Gam_rate = zeros(1,ndim);
     hmm.Omega.Gam_rate(regressed) = hmm.prior.Omega.Gam_rate(regressed) + 0.5 * sum(e.^2);
 
-elseif strcmp(hmm.train.covtype,'uniquefull') && additiveHMM
+elseif strcmp(hmm.train.covtype,'uniquefull') && nessmodel
     hmm.Omega.Gam_shape = hmm.prior.Omega.Gam_shape + Tres;
-    e = residuals(:,regressed) - computeStateResponses(XX,hmm,Gamma,1:K,true);
+    e = residuals(:,regressed) - computeStateResponses(XX,hmm,Gamma);
     hmm.Omega.Gam_rate = zeros(ndim,ndim); hmm.Omega.Gam_irate = zeros(ndim,ndim);
     hmm.Omega.Gam_rate(regressed,regressed) = hmm.prior.Omega.Gam_rate(regressed,regressed) + e' * e;
     hmm.Omega.Gam_irate(regressed,regressed) = inv(hmm.Omega.Gam_rate(regressed,regressed));
@@ -411,10 +423,17 @@ if ~pcapred && ~do_HMM_pca
             hmm.state(k).alpha.Gam_rate = hmm.state(k).prior.alpha.Gam_rate;
         end
     end
-    %%% sigma - channel x channel coefficients
-    hmm = updateSigma(hmm);
-    %%% alpha - one per order
-    hmm = updateAlpha(hmm);
+    if nessmodel
+        %%% sigma - channel x channel coefficients
+        hmm = updateSigma_ness(hmm);
+        %%% alpha - one per order
+        hmm = updateAlpha_ness(hmm);
+    else
+        %%% sigma - channel x channel coefficients
+        hmm = updateSigma(hmm);
+        %%% alpha - one per order
+        hmm = updateAlpha(hmm);
+    end
     if isfield(train,'distribution') && strcmp(train.distribution,'logistic')
         if train.logisticYdim>1
             for k = rangeK
@@ -432,7 +451,7 @@ elseif pcapred
 end
 
 % Reorganise
-if additiveHMM
+if nessmodel
     for n = 1:ndim
         np = size(XX,2);
         hmm.state_shared(n).iS_W = zeros(np*(K+1));

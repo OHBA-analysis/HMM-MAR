@@ -15,6 +15,7 @@ function [hmm,Gamma,Xi,fehist,maxchhist] = hmmtrain(data,T,hmm,Gamma,residuals,f
 % Gamma         estimated p(state | data)
 % Xi            joint probability of past and future states conditioned on data
 % fehist        historic of the free energies across iterations
+% maxchhist     historic of Gamma amount of change across iterations
 %
 % hmm.Pi          - intial state probability
 % hmm.P           - state transition matrix
@@ -23,11 +24,10 @@ function [hmm,Gamma,Xi,fehist,maxchhist] = hmmtrain(data,T,hmm,Gamma,residuals,f
 % Author: Diego Vidaurre, OHBA, University of Oxford (2018)
 
 if nargin<6, fehist = []; end
-if nargin<7, maxchhist = []; end
+maxchhist = [];
 
 cyc_to_go = 0;
 setxx;
-additiveHMM = hmm.train.additiveHMM;
 useChGamma = isfield(hmm.train,'stopcriterion') && strcmpi(hmm.train.stopcriterion,'ChGamma');
 
 do_clustering = isfield(hmm.train,'cluster') && hmm.train.cluster;
@@ -44,14 +44,8 @@ for cycle = 1:hmm.train.cyc
         %%%% E step
         if hmm.K>1 || cycle==1
             % state inference
-            if cycle > 1 && ~hmm.train.dropstates,  Gamma0 = Gamma; end
-            if additiveHMM
-                %if cycle > 1,  Gamma0 = Gamma; Xi0 = Xi; end %
-                [Gamma,~,Xi] = hsinference(data,T,hmm,residuals,[],XX,Gamma);
-                %if cycle == 2,  keyboard; end  %
-            else
-                [Gamma,~,Xi] = hsinference(data,T,hmm,residuals,[],XX);
-            end
+            if cycle > 1 && useChGamma,  Gamma0 = Gamma; end
+            [Gamma,~,Xi] = hsinference(data,T,hmm,residuals,[],XX);
             status = checkGamma(Gamma,T,hmm.train);
             
             % check local minima
@@ -65,9 +59,7 @@ for cycle = 1:hmm.train.cyc
             end
             
             % any state to remove?
-            if ~additiveHMM
-                [as,hmm,Gamma,Xi] = getactivestates(hmm,Gamma,Xi);
-            end
+            [as,hmm,Gamma,Xi] = getactivestates(hmm,Gamma,Xi);
             if hmm.train.dropstates
                 if any(as==0)
                     cyc_to_go = hmm.train.cycstogoafterevent;
@@ -78,8 +70,6 @@ for cycle = 1:hmm.train.cyc
                 if sum(hmm.train.active)==1
                     if isfield(hmm.train,'distribution') && strcmp(hmm.train.distribution,'logistic')
                         fehist(end+1) = sum(evalfreeenergylogistic(T,Gamma,Xi,hmm,residuals,XX));
-                    elseif additiveHMM
-                        fehist(end+1) = sum(evalfreeenergy_addHMM(T,Gamma,Xi,hmm,residuals,XX));
                     else
                         fehist(end+1) = sum(evalfreeenergy(data.X,T,Gamma,Xi,hmm,residuals,XX));
                     end
@@ -89,14 +79,10 @@ for cycle = 1:hmm.train.cyc
                     end
                     K = 1; break
                 end
-            else
+            elseif useChGamma
                 if cycle == 1, maxchhist(end+1) = 0;
                 else
-                    if additiveHMM
-                        maxchhist(end+1) = mean(sum(abs(Gamma0 - Gamma),2)/K );
-                    else
-                        maxchhist(end+1) = mean(sum(abs(Gamma0 - Gamma),2)/2 );
-                    end
+                    maxchhist(end+1) = mean(sum(abs(Gamma0 - Gamma),2)/2 );
                 end
             end
             
@@ -116,8 +102,6 @@ for cycle = 1:hmm.train.cyc
         %%%% Free energy computation
         if isfield(hmm.train,'distribution') && strcmp(hmm.train.distribution,'logistic')
             fehist(end+1) = sum(evalfreeenergylogistic(T,Gamma,Xi,hmm,residuals,XX));
-        elseif additiveHMM
-            fehist(end+1) = sum(evalfreeenergy_addHMM(T,Gamma,Xi,hmm,residuals,XX));
         else
             fehist(end+1) = sum(evalfreeenergy(data.X,T,Gamma,Xi,hmm,residuals,XX));
         end
@@ -160,12 +144,6 @@ for cycle = 1:hmm.train.cyc
             fprintf('cycle %i free energy = %g \n',cycle,fehist(end)); %&& cycle>1
         end
         
-%         if cycle>1 %
-%         fprintf('+ cycle %i free energy = %.10g, %.10g \n',cycle,fehist(end),ee0(end)-fehist(end));
-%         else %
-%         fprintf('+ cycle %i free energy = %.10g \n',cycle,fehist(end));
-%         end  %
-        
         if cyc_to_go>0, cyc_to_go = cyc_to_go - 1; end
         
     else
@@ -177,42 +155,26 @@ for cycle = 1:hmm.train.cyc
     % Observation model
     if hmm.train.updateObs
         setxx
-        if additiveHMM
-            hmm = obsupdate_addHMM(T,Gamma,hmm,residuals,XX);
-        else
-            hmm = obsupdate(T,Gamma,hmm,residuals,XX,XXGXX);
-        end
+        hmm = obsupdate(T,Gamma,hmm,residuals,XX,XXGXX);
     end
-    
-%     ee = sum(evalfreeenergy_addHMM(T,Gamma,Xi,hmm,residuals,XX)); % 
-%     fprintf('++ cycle %i free energy = %.10g, %.10g \n',cycle,ee(end),fehist(end)-ee(end));ee0=ee; %
     
     % Transition matrices and initial state
     if hmm.train.updateP
-        if additiveHMM
-            hmm = hsupdate_addHMM(Xi,Gamma,T,hmm);
-        else
-            hmm = hsupdate(Xi,Gamma,T,hmm);
-        end
+        hmm = hsupdate(Xi,Gamma,T,hmm);
     end
-        
-%     ee = sum(evalfreeenergy_addHMM(T,Gamma,Xi,hmm,residuals,XX)); %
-%     fprintf('+++ cycle %i free energy = %.10g, %.10g \n',cycle,ee(end),ee0(end)-ee(end));ee0=ee; %
 
     if ~hmm.train.updateGamma
         break % one iteration is enough
     end
     
     % some breaking conditions
-    if ~additiveHMM
-        if  (sum(hmm.train.updateObs + hmm.train.updateGamma + hmm.train.updateP) < 2)
-            break % one iteration is enough
-        end
-        if (hmm.train.maxFOth < Inf)
-            if max(getMaxFractionalOccupancy(Gamma,T,hmm.train)) > hmm.train.maxFOth
-                disp('Training has been stopped for reaching the threshold of maximum FO')
-                break
-            end
+    if  (sum(hmm.train.updateObs + hmm.train.updateGamma + hmm.train.updateP) < 2)
+        break % one iteration is enough
+    end
+    if (hmm.train.maxFOth < Inf)
+        if max(getMaxFractionalOccupancy(Gamma,T,hmm.train)) > hmm.train.maxFOth
+            disp('Training has been stopped for reaching the threshold of maximum FO')
+            break
         end
     end
     
@@ -267,9 +229,7 @@ if hmm.train.tudamonitoring
 end
 
 if hmm.train.verbose
-    if hmm.train.additiveHMM, str = 'Additive HMM '; str2 = 'chains';
-    else, str = 'HMM '; str2 = 'states';
-    end
+    str = 'HMM '; str2 = 'states';
     if ~isfield(hmm.train,'distribution') || strcmp(hmm.train.distribution,'Gaussian')
         fprintf('%s Model: %d %s, %d data samples, covariance: %s, order %d \n', ...
             str,K,str2,sum(T),hmm.train.covtype,hmm.train.order);

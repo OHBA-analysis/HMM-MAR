@@ -1,4 +1,10 @@
-train = hmm.train;
+if exist('hmm','var') 
+    train = hmm.train;
+elseif exist('ness','var') 
+    train = ness.train;
+else
+    error('Incorrect use of setstateoptions')
+end
 orders = train.orders;
 order = max(orders); if isempty(order), order = 0; end
 if ~isfield(train,'Sind') 

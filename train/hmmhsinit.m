@@ -15,7 +15,7 @@ function hmm = hmmhsinit(hmm,GammaInit,T)
 % end
 Q = 1;
 
-if hmm.train.additiveHMM
+if hmm.train.nessmodel
     
     % define P-priors
     defhmmprior = struct('Dir2d_alpha',[],'Dir_alpha',[]);
@@ -29,7 +29,7 @@ if hmm.train.additiveHMM
     end
     % assigning default priors for hidden state
     if nargin > 1 && ~isempty(GammaInit) && hmm.train.updateP
-        hmm = hsupdate_addHMM([],GammaInit,T,hmm);
+        hmm = hsupdate_ness([],GammaInit,T,hmm);
     else
         % State transitions
         hmm.state(k).Dir2d_alpha = defhmmprior.Dir2d_alpha;

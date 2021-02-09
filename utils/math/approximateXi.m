@@ -2,8 +2,8 @@ function Xi = approximateXi(Gamma,T,hmm)
 [~,order] = formorders(hmm.train.order,hmm.train.orderoffset,...
     hmm.train.timelag,hmm.train.exptimelag);
 K = size(Gamma,2);
-additiveHMM = hmm.train.additiveHMM;
-if additiveHMM
+nessmodel = hmm.train.nessmodel;
+if nessmodel
     Xi = zeros(sum(T-1-order),K,2,2);
     for j = 1:length(T)
         indG = (1:(T(j)-order)) + sum(T(1:j-1)) - (j-1)*order;

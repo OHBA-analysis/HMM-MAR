@@ -44,7 +44,7 @@ else
     for i = 1:Q
         for j = 1:K
             PsiSum = psi(sum(hmm.Dir2d_alpha(j,:,i)));
-            for k=1:K
+            for k = 1:K
                 if ~hmm.train.Pstructure(j,k), continue; end
                 hmm.P(j,k,i) = exp(psi(hmm.Dir2d_alpha(j,k,i))-PsiSum);
             end

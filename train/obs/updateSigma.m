@@ -8,7 +8,7 @@ if Q==1, return; end
 
 setstateoptions;
 for k = rangeK
-    if ~hmm.train.active(k), continue; end
+    if k <= K && ~hmm.train.active(k), continue; end
     if isempty(orders) || train.uniqueAR || ~isempty(train.prior), continue; end
     %shape
     if train.symmetricprior
