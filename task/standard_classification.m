@@ -61,6 +61,19 @@ if ~isfield(options,'verbose'),options.verbose=0;verbose_CV=1;
 else,verbose_CV=options.verbose;
 end
 
+if isfield(options,'pls')
+    do_pls = true;
+    plsdims = options.pls;
+    options = rmfield(options,'pls');
+else
+    do_pls = false;
+end
+if isfield(options,'slidingwindow');
+    doslidingwindow = true;
+    winsize = options.slidingwindow;
+else
+    doslidingwindow = false;
+end
 % Preproc data and put in the right format 
 if do_preproc
     if isfield(options,'embeddedlags'), el = options.embeddedlags;else;el=0;end
@@ -144,7 +157,7 @@ for icv = 1:NCV
     Xtrain = reshape(X(:,c.training{icv},:),[Ntr*ttrial p] ) ;
     Ytrain = reshape(Y(:,c.training{icv},:),[Ntr*ttrial Q_star] ) ;
     Ttr = T(c.training{icv});
-    if isfield(options,'pls')
+    if do_pls
         B = [];
         for t=1:ttrial
             %B = [B,plsregress(Xtrain(t:ttrial:end,:),Ytrain(t:ttrial:end,:),q)];
@@ -152,15 +165,40 @@ for icv = 1:NCV
             B = [B,pinv(Xtrain(t:ttrial:end,:))*XS];
         end
         [~,B_pls] = pca(B,'Centered',false);
-        LM = B_pls(:,1:options.pls);
+        LM = B_pls(:,1:plsdims);
         Xtrain = normalise(Xtrain*LM);
+    end
+    if doslidingwindow
+        % this method applies a sliding window only to the training data
+        % (thus ensuring better model estimation but still temporal
+         % accuracy in test set)
+%         Xtrain2 = [];Xtrain3 = [];
+%         Ytrain2 = [];Ytrain3 = [];
+        for itr=1:length(c.training{icv})
+           t_select = (itr-1)*ttrial + [1:ttrial];
+            for ich=1:size(Xtrain,2)
+                Xtrain(t_select,ich) = conv(Xtrain(t_select,ich),ones(winsize,1)./winsize,'same');
+            end
+%             for iw = 2:winsize
+%                 t_select = (itr-1)*ttrial + [1:ttrial-iw+1];
+%                 Xtrain2 = [Xtrain2;zeros((iw-1),size(Xtrain,2));Xtrain(t_select,:)];
+%                 t_select = (itr-1)*ttrial + [iw:ttrial];
+%                 Xtrain3 = [Xtrain3;Xtrain(t_select,:);[zeros((iw-1),size(Xtrain,2))]];
+%                 t_select = (itr-1)*ttrial + [1:ttrial];
+%                 Ytrain2 = [Ytrain2;Ytrain(t_select,:)];
+%                 Ytrain3 = [Ytrain3;Ytrain(t_select,:)];
+%             end
+        end
+%         Xtrain = [Xtrain;Xtrain2;Xtrain3];
+%         Ytrain = [Ytrain;Ytrain2;Ytrain3];
+%         Ttr = repmat(Ttr(1),size(Ytrain,1)./Ttr(1),1);
     end
     model = standard_classifier_train(Xtrain,Ytrain,Ttr,options);
     
     % and test on test set:
     Nte = length(c.test{icv});
     Xtest = reshape(X(:,c.test{icv},:),[ttrial*Nte p]);
-    if isfield(options,'pls')
+    if do_pls
         Xtest = normalise(Xtest*LM);
     end
     Ytest = reshape(Ycopy(:,c.test{icv},:),[ttrial*Nte q]);

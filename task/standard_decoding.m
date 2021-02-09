@@ -65,7 +65,13 @@ if classification
     % no demeaning by default if this is a classification problem
     if ~isfield(options,'demeanstim'), options.demeanstim = 0; end
 end
-
+if isfield(options,'pls')
+    do_pls = true;
+    plsdims = options.pls;
+    options = rmfield(options,'pls');
+else
+    do_pls = false;
+end
 options.Nfeatures = 0; 
 options.K = 1; 
 [X,Y,T] = preproc4hmm(X,Y,T,options); % this demeans Y
@@ -151,23 +157,58 @@ if ~options.encodemodel
     Ypred = NaN(ttrial,N,qstar);
 else
     Ypred = NaN(ttrial,N,q);
-    model.beta_encode = zeros(qstar,p,ttrial);
-    model.noise_encode = zeros(p,p,ttrial);
+    if do_pls
+        model.beta_encode = zeros(qstar,plsdims,ttrial);
+        model.noise_encode = zeros(plsdims,plsdims,ttrial);
+    else
+        model.beta_encode = zeros(qstar,p,ttrial);
+        model.noise_encode = zeros(p,p,ttrial);
+    end
 end
-model.beta_decode = zeros(q,p,ttrial);
+if do_pls
+    model.beta_decode = zeros(q,plsdims,ttrial);
+else
+    model.beta_decode = zeros(q,p,ttrial);
+end
 beta = cell(length(halfbin+1 : ttrial-halfbin),NCV);
 for icv = 1:NCV
     Ntr = sum(c.training{icv}); Nte = sum(c.test{icv});
+    if do_pls
+        Xtrain = reshape(X(:,c.training{icv},:),ttrial*Ntr,p);
+        Ytrain = reshape(Y(:,c.training{icv},:),ttrial*Ntr,qstar);
+        %Xtest = reshape(X(:,c.test{icv},:),ttrial*Nte,p);
+        B = [];
+        for t=1:ttrial
+            %B = [B,plsregress(Xtrain(t:ttrial:end,:),Ytrain(t:ttrial:end,:),q)];
+            [XL,~,XS] = plsregress(Xtrain(t:ttrial:end,:),Ytrain(t:ttrial:end,:),q);
+            B = [B,pinv(Xtrain(t:ttrial:end,:))*XS];
+        end
+        [~,B_pls] = pca(B,'Centered',false);
+        LM = B_pls(:,1:plsdims);
+        Xtrain = normalise(Xtrain*LM);
+        %put back into shape of original structure:
+        
+        Xtrain = reshape(Xtrain,ttrial,Ntr,plsdims);
+        Ytrain = reshape(Ytrain,ttrial,Ntr,qstar);
+        p_train = plsdims;
+    else
+        Xtrain = X(:,c.training{icv},:);
+        Ytrain = Y(:,c.training{icv},:);
+        p_train = p;
+    end
     for t = halfbin+1 : ttrial-halfbin
         r = t-halfbin:t+halfbin;
         %r = (1:binsize) + (t-1)*binsize;
-        Xtr = reshape(X(r,c.training{icv},:),binsize*Ntr,p);
-        Ytr = reshape(Y(r,c.training{icv},:),binsize*Ntr,qstar);
+        Xtr = reshape(Xtrain(r,:,:),binsize*Ntr,p_train);
+        Ytr = reshape(Ytrain(r,:,:),binsize*Ntr,qstar);
         Xte = reshape(X(t,c.test{icv},:),Nte,p);
+        if do_pls
+            Xte = Xte*LM;
+        end
         if options.encodemodel
             % fit encoding model, then convert to equivalent decode weights
             beta_encode = (Ytr' * Ytr + RidgePen) \ (Ytr' * Xtr);
-            noise_X_t = cov(Xtr - Ytr*beta_encode) + 1e-5*eye(p);
+            noise_X_t = cov(Xtr - Ytr*beta_encode) + 1e-5*eye(p_train);
             if qstar>q
                 % regress out the (fixed) intercept value:
                 Xte = Xte - ones(Nte,1) * beta_encode(1,:);

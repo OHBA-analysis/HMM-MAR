@@ -14,12 +14,13 @@ function [Y_orth,Y_partialled] = decorrelateDesignMatrix(Y)
 % should be interpreted appropriately.
 Y = normalise(Y,1);
 temp = ROInets.remove_source_leakage(Y', 'symmetric');
-Y_orth = temp';
+Y_orth = normalise(temp');
 
 if nargout>1
     [T,N] = size(Y);
     for i=1:N
         [~,~,Y_partialled(:,i)] = regress(Y(:,i),Y(:,setdiff(1:N,i)));
     end
+    Y_partialled = normalise(Y_partialled);
 end
 end
