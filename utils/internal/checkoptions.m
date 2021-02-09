@@ -60,26 +60,26 @@ if ~isfield(options,'plotGamma'), options.plotGamma = 0; end
 
 % classic HMM or mixture?
 if ~isfield(options,'id_mixture'), options.id_mixture = 0; end
-% standard HMM or additive (Factorial) HMM
-if ~isfield(options,'additiveHMM'), options.additiveHMM = 0; end
+% standard HMM or NESS
+if ~isfield(options,'nessmodel'), options.nessmodel = 0; end
 % clustering of time series? 
 if ~isfield(options,'cluster'), options.cluster = 0; end
 
-if options.additiveHMM % additive HMM specific things
+if options.nessmodel % NESS specific things
     if options.lowrank > 0
         error('Additive probabilistic PCA is not yet inplemented')
     end
     if options.K == 1
-        error('An additive HMM must have more than options.K=1 chain')
+        error('A NESS model must have more than options.K=1 chain')
     end
     if options.sequential
-        error('options.additiveHMM and options.sequential are not compatible')
+        error('options.nessmodel and options.sequential are not compatible')
     end
     if isfield(options,'Pstructure')
-        error('You cannot constraint the chains with Pstructure when using the additiveHMM')
+        error('You cannot constraint the chains with Pstructure in the NESS model')
     end
     if isfield(options,'Pistructure')
-        error('You cannot constraint the chains with Pistructure when using the additiveHMM')
+        error('You cannot constraint the chains with Pistructure in the NESS model')
     end
     if ~isfield(options,'priorOFFvsON')
         options.priorOFFvsON = 10 * K; 
@@ -90,8 +90,8 @@ end
     
 % stochastic options
 if stochastic_learning
-    if options.additiveHMM  
-        error('Stochastic inference not yet implemented for the additiveHMM')
+    if options.nessmodel  
+        error('Stochastic inference not yet implemented for NESS')
     end
     if options.K==1
         error('There is no purpose on using stochastic inference with K=1. Please restart')
@@ -147,7 +147,7 @@ if stochastic_learning
     if ~isfield(options,'Gamma'), options.Gamma = []; end
     if ~isfield(options,'hmm'), options.hmm = []; end
     if options.BIGdelay > 1, warning('BIGdelay is recommended to be 1.'); end
-    if options.stopcriterionverageGamma 
+    if options.plotGamma 
         options.plotGamma = 0;
         warning('Plotting is not allowed for stochastic learning.'); 
     end
@@ -162,36 +162,29 @@ end
 if stochastic_learning
     if ~isfield(options,'cyc'), options.cyc = 15; end
     if ~isfield(options,'initcyc'), options.initcyc = 5; end
-%     if options.additiveHMM
+%     if options.nessmodel
 %         if isfield(options,'initrep') && options.initrep > 1
 %             % this is because we would just favour solutions with less of
 %             % the baseline state
-%             warning('initrep can only be 1 if options.additiveHMM is true ')
+%             warning('initrep can only be 1 if options.nessmodel is true ')
 %         end
 %         options.initrep = 1;
 %     else
         if ~isfield(options,'initrep'), options.initrep = 3; end
 %     end
     if ~isfield(options,'initcriterion'), options.initcriterion = 'FreeEnergy'; end
+    if ~isfield(options,'stopcriterion'), options.stopcriterion = 'FreeEnergy'; end
     if ~isfield(options,'verbose'), options.verbose = 0; end
     if ~isfield(options,'useParallel'), options.useParallel = 1; end
 else
     if ~isfield(options,'cyc'), options.cyc = 500; end
     if ~isfield(options,'initcyc'), options.initcyc = 25; end
-%     if options.additiveHMM
-%         if isfield(options,'initrep') && options.initrep > 1
-%             % this is because we would just favour solutions with less of
-%             % the baseline state
-%             warning('initrep can only be 1 if options.additiveHMM is true ')
-%         end
-%         options.initrep = 1;
-%     else
-        if ~isfield(options,'initrep'), options.initrep = 5; end
-%     end
-    if ~isfield(options,'initcriterion'), options.initcriterion = 'FreeEnergy'; end
+    if ~isfield(options,'initrep'), options.initrep = 5; end
+    if ~options.nessmodel
+        if ~isfield(options,'initcriterion'), options.initcriterion = 'FreeEnergy'; end
+    end
     if ~isfield(options,'verbose'), options.verbose = 1; end
     % the rest of the stuff will get assigned in the recursive calls
-    if ~isfield(options,'stopcriterion'), options.stopcriterion = 'FreeEnergy'; end
     if ~isfield(options,'tol'), options.tol = 1e-4; end
     if ~isfield(options,'meancycstop'), options.meancycstop = 1; end
     if ~isfield(options,'cycstogoafterevent'), options.cycstogoafterevent = 20; end
@@ -208,12 +201,22 @@ else
     if ~isfield(options,'useParallel')
         options.useParallel = (length(T)>1);
     end
-    if options.additiveHMM && options.initTestSmallerK
-        error('options.additiveHMM and options.initTestSmallerK are not compatible')
+    if options.nessmodel && options.initTestSmallerK
+        error('options.nessmodel and options.initTestSmallerK are not compatible')
     end
-    if ~strcmpi(options.stopcriterion,'FreeEnergy') && ...
-            ~strcmpi(options.stopcriterion,'ChGamma')
-        error('options.stopcriterion must be ''FreeEnergy'' or ''ChGamma'' ')
+    if options.nessmodel
+        if ~isfield(options,'stopcriterion'), options.stopcriterion = 'LogLik'; end
+        if ~strcmpi(options.stopcriterion,'FreeEnergy') && ...
+                ~strcmpi(options.stopcriterion,'ChGamma') && ...
+                ~strcmpi(options.stopcriterion,'LogLik') 
+            error('options.stopcriterion must be ''LogLik'', ''FreeEnergy'' or ''ChGamma'' ')
+        end
+    else
+        if ~isfield(options,'stopcriterion'), options.stopcriterion = 'FreeEnergy'; end
+        if ~strcmpi(options.stopcriterion,'FreeEnergy') && ...
+                ~strcmpi(options.stopcriterion,'ChGamma')
+            error('options.stopcriterion must be ''FreeEnergy'' or ''ChGamma'' ')
+        end
     end
 end
 
@@ -240,7 +243,7 @@ elseif ~all(options.grouping==1)
 end  
 if size(options.grouping,1)==1,  options.grouping = options.grouping'; end
 
-if options.additiveHMM
+if options.nessmodel
     options.Pstructure = []; options.Pistructure = [];
 elseif options.sequential
     if isfield(options,'Pstructure'), Pstructure = options.Pstructure;
@@ -271,9 +274,9 @@ else
     for k = 1:options.K, options.Pstructure(k,k) = 1; end
     options.Pstructure = (options.Pstructure~=0);
 end
-if ~isfield(options,'Pistructure') && ~options.additiveHMM
+if ~isfield(options,'Pistructure') && ~options.nessmodel
     options.Pistructure = true(1,options.K);
-elseif ~options.additiveHMM
+elseif ~options.nessmodel
     if length(options.Pistructure) ~= options.K 
         error('The dimensions of options.Pistructure are incorrect')
     end
@@ -286,8 +289,8 @@ if ~isfield(options,'dropstates')
     %if any(~options.Pstructure), options.dropstates = 0;
     %else, options.dropstates = ~stochastic_learning; end
 else
-    if options.dropstates && options.additiveHMM
-        warning('additiveHMM and dropstates are incompatible options')
+    if options.dropstates && options.nessmodel
+        warning('nessmodel and dropstates are incompatible options')
         options.dropstates = 0;
     elseif options.dropstates && any(~options.Pstructure(:))
         warning('If Pstructure  has zeros, dropstates must be zero')
@@ -499,9 +502,9 @@ if length(options.embeddedlags)==1 && options.pca_spatial>0
    warning('pca_spatial only applies when using embedded lags; use pca instead')
    options.pca_spatial = 0;
 end
-if options.additiveHMM
+if options.nessmodel
     if isfield(options,'covtype') && ~strcmp(options.covtype,'uniquediag')
-        error('When additiveHMM, covtype must be uniquediag (other options not yet implemented)')
+        error('For NESS, covtype must be uniquediag (other options not yet implemented)')
     end
     options.covtype = 'uniquediag';
 end
