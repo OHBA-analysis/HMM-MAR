@@ -67,7 +67,7 @@ end
 options.Nfeatures = 0;
 Ycopy = Y;
 if size(Ycopy,1) == N 
-    Ycopy = repmat(reshape(Ycopy,[1 N q]),[ttrial 1 1]);
+    Ycopy = repelem(Ycopy,[ttrial]);
 end
 if isfield(options,'pls')
     do_pls = true;
