@@ -21,14 +21,12 @@ for k = 1:K
             for n = 1:size(hmm.state(k).W.S_W,1)
                 if ~regressed(n), continue; end
                 Cov = permute(hmm.state(k).W.S_W(n,Sind(:,n),Sind(:,n)),[2 3 1]);
-                Cov = Cov + 0.001 * eye(length(Cov));
-                hmm.state(k).W.Mu_W(Sind(:,n),n) = hmm.state(k).W.Mu_W(Sind(:,n),n) + ...
-                    epsilon * mvnrnd(hmm.state(k).W.Mu_W(Sind(:,n),n),Cov)';
+                Cov = Cov + 0.001 * eye(length(Cov)); Cov = (Cov+Cov')/2;
             end
         else % full covmat
             mu = hmm.state(k).W.Mu_W(:);
             Cov = hmm.state(k).W.S_W;
-            Cov = Cov + 0.001 * eye(length(Cov));
+            Cov = Cov + 0.001 * eye(length(Cov)); Cov = (Cov+Cov')/2;
             W = mvnrnd(mu,Cov)';
             hmm.state(k).W.Mu_W =  hmm.state(k).W.Mu_W + ...
                 epsilon * reshape(W,size(hmm.state(k).W.Mu_W));
