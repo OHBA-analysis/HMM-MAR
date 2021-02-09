@@ -80,8 +80,8 @@ if stochastic_learn % data is a cell, either with strings or with matrices
     end
 else % data can be a cell or a matrix
     if isstruct(data) && isfield(data,'C') && ...
-            isfield(options,'additiveHMM') && options.additiveHMM
-        warning('data.C and options.additiveHMM are not compatible')
+            isfield(options,'nessmodel') && options.nessmodel
+        warning('data.C and options.nessmodel are not compatible')
         data = data.X;
     end
     if iscell(T)
@@ -214,7 +214,7 @@ if stochastic_learn
        end
     end
     vpath = []; 
-    if options.BIGdecodeGamma && nargout >= 4 && ~options.additiveHMM && ~options.id_mixture
+    if options.BIGdecodeGamma && nargout >= 4 && ~options.nessmodel && ~options.id_mixture
        vpath = hmmdecode(data,T,hmm,1); 
     end
     
@@ -309,8 +309,8 @@ else
     if isempty(options.Gamma) && isempty(options.hmm) % both unspecified
         if options.K > 1
             Sind = options.Sind;
-            if options.initrep>0 && options.initcyc>0 && options.additiveHMM
-                GammaInit = hmmmar_init_addHMM(data,T,options,Sind);
+            if options.initrep>0 && options.initcyc>0 && options.nessmodel
+                GammaInit = hmmmar_init_ness(data,T,options,Sind);
             elseif options.initrep>0 && options.initcyc>0 && ...
                     (strcmpi(options.inittype,'HMM-MAR') || strcmpi(options.inittype,'HMMMAR'))
                 [GammaInit,fehistInit] = hmmmar_init(data,T,options,Sind);
@@ -335,7 +335,7 @@ else
             GammaInit = options.Gamma;
         end
     elseif isempty(options.Gamma) && ~isempty(options.hmm) % Gamma unspecified, hmm specified
-        if options.additiveHMM
+        if options.nessmodel
             GammaInit = zeros(sum(T)-length(T)*options.maxorder,options.K);
         else
             GammaInit = [];
@@ -352,7 +352,7 @@ else
 
     % If initialization Gamma has fewer states than options.K, put those states back in
     % and renormalize
-    if ~isempty(GammaInit) && (size(GammaInit,2) < options.K) && ~options.additiveHMM
+    if ~isempty(GammaInit) && (size(GammaInit,2) < options.K) && ~options.nessmodel
         % States were knocked out, but semisupervised in use, so put them back
         GammaInit = [GammaInit 0.0001*rand(size(GammaInit,1),options.K-size(GammaInit,2))];
         GammaInit = bsxfun(@rdivide,GammaInit,sum(GammaInit,2));
@@ -413,30 +413,38 @@ else
         end        
     end
     
-    fehist = Inf; 
+    fehist = Inf;
     if isfield(hmm_wr.train,'Gamma'), hmm_wr.train = rmfield(hmm_wr.train,'Gamma'); end
-    for it = 1:options.repetitions
-        hmm0 = hmm_wr;
-        [hmm0,Gamma0,Xi0,fehist0] = hmmtrain(data,T,hmm0,GammaInit,residuals_wr,fehistInit);
-        if options.updateGamma && (fehist0(end)<fehist(end))
-            fehist = fehist0; hmm = hmm0;
-            residuals = residuals_wr; Gamma = Gamma0; Xi = Xi0;
-        elseif ~options.updateGamma
-            fehist = []; hmm = hmm0;
-            residuals = []; Gamma = GammaInit; Xi = [];
+    if ~options.nessmodel
+        for it = 1:options.repetitions
+            hmm0 = hmm_wr;
+            [hmm0,Gamma0,Xi0,fehist0] = hmmtrain(data,T,hmm0,GammaInit,residuals_wr,fehistInit);
+            if options.updateGamma && (fehist0(end)<fehist(end))
+                fehist = fehist0; hmm = hmm0;
+                residuals = residuals_wr; Gamma = Gamma0; Xi = Xi0;
+            elseif ~options.updateGamma
+                fehist = []; hmm = hmm0;
+                residuals = []; Gamma = GammaInit; Xi = [];
+            end
         end
+    else
+        Xi = []; 
+        [hmm,Gamma,fehist] = nesstrain(data,T,hmm_wr,GammaInit,residuals_wr);
     end
     
     if options.repetitions == 0
         hmm0 = hmm_wr;
         hmm0.train.updateObs = 0;
-        [~,Gamma,Xi] = hmmtrain(data,T,hmm0,GammaInit,residuals_wr,fehistInit);
-        fehist = []; hmm = hmm0;
-        residuals = []; 
+        if options.nessmodel
+            [~,Gamma] = nesstrain(data,T,hmm0,GammaInit,residuals_wr,fehistInit); Xi = []; 
+        else
+            [~,Gamma,Xi] = hmmtrain(data,T,hmm0,GammaInit,residuals_wr,fehistInit);
+        end
+        fehist = []; hmm = hmm0; residuals = []; 
     end
     
     vpath = [];
-    if options.decodeGamma && nargout >= 4 && ~options.additiveHMM && ~options.id_mixture
+    if options.decodeGamma && nargout >= 4 && ~options.nessmodel && ~options.id_mixture
         vpath = hmmdecode(data.X,T,hmm,1,residuals,0);
         if ~options.keepS_W
             for k = 1:hmm.K
