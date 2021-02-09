@@ -56,7 +56,7 @@ if length(options.embeddedlags)>1 && isfield(options,'covtype') && ...
 end
      
 % display options
-if ~isfield(options,'plotAverageGamma'), options.plotAverageGamma = 0; end
+if ~isfield(options,'plotGamma'), options.plotGamma = 0; end
 
 % classic HMM or mixture?
 if ~isfield(options,'id_mixture'), options.id_mixture = 0; end
@@ -147,15 +147,15 @@ if stochastic_learning
     if ~isfield(options,'Gamma'), options.Gamma = []; end
     if ~isfield(options,'hmm'), options.hmm = []; end
     if options.BIGdelay > 1, warning('BIGdelay is recommended to be 1.'); end
-    if options.plotAverageGamma 
-        options.plotAverageGamma = 0;
-        warning('Using stochastic learning, plotAverageGamma will be made 0.'); 
+    if options.stopcriterionverageGamma 
+        options.plotGamma = 0;
+        warning('Plotting is not allowed for stochastic learning.'); 
     end
 else
-    if options.plotAverageGamma && any(~(T(1)==T))
-        options.plotAverageGamma = 0;
-        warning('plotAverageGamma is designed to average across trials, but trials have not the same length')
-    end
+%     if options.plotGamma && any(~(T(1)==T))
+%         options.plotGamma = 0;
+%         warning('plotGamma is designed to average across trials, but trials have not the same length')
+%     end
 end
 
 % non-stochastic training options
@@ -191,15 +191,14 @@ else
     if ~isfield(options,'initcriterion'), options.initcriterion = 'FreeEnergy'; end
     if ~isfield(options,'verbose'), options.verbose = 1; end
     % the rest of the stuff will get assigned in the recursive calls
-    if ~isfield(options,'tol'), options.tol = 1e-5; end
+    if ~isfield(options,'stopcriterion'), options.stopcriterion = 'FreeEnergy'; end
+    if ~isfield(options,'tol'), options.tol = 1e-4; end
     if ~isfield(options,'meancycstop'), options.meancycstop = 1; end
     if ~isfield(options,'cycstogoafterevent'), options.cycstogoafterevent = 20; end
     if ~isfield(options,'initTestSmallerK'), options.initTestSmallerK = false; end
     if ~isfield(options,'inittype')
-        if options.initcyc>0 && options.initrep>0
-            options.inittype = 'hmmmar';
-        else
-            options.inittype = 'random';
+        if options.initcyc>0 && options.initrep>0, options.inittype = 'hmmmar';
+        else, options.inittype = 'random';
         end
     end
     if ~strcmp(options.inittype,'random') && options.initrep == 0
@@ -211,6 +210,10 @@ else
     end
     if options.additiveHMM && options.initTestSmallerK
         error('options.additiveHMM and options.initTestSmallerK are not compatible')
+    end
+    if ~strcmpi(options.stopcriterion,'FreeEnergy') && ...
+            ~strcmpi(options.stopcriterion,'ChGamma')
+        error('options.stopcriterion must be ''FreeEnergy'' or ''ChGamma'' ')
     end
 end
 
@@ -291,6 +294,9 @@ else
         options.dropstates = 0;
     elseif options.dropstates && stochastic_learning 
         warning('With stochastic learning, dropstates is set to 0')
+        options.dropstates = 0;
+    elseif options.dropstates && strcmpi(options.stopcriterion,'ChGamma')
+        warning('With options.stopcriterion=''ChGamma'', dropstates is set to 0 ')
         options.dropstates = 0;
     end
 end
@@ -469,6 +475,10 @@ end
 if isfield(options,'AR') && options.AR == 1
     if options.order == 0, error('Option AR cannot be 1 if order==0'); end
     options.S = -1*ones(ndim) + 2*eye(ndim);
+end
+if (ndim^2 * options.order) > 250
+   warning('There is a risk of overparametrisation in the MAR model, perhaps too many channels?')
+   disp('The time-delay embedded model is recommended in this case (use options.embeddedlags)')
 end
 
 if isfield(options,'pcamar') && options.pcamar>0 

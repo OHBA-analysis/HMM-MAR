@@ -13,15 +13,21 @@ T = T - d;
 if continuous
     
     ord = [];
-    area(Gamma); ylim([0 1]); xlim([0 size(Gamma,1)])
+    t1 = min(size(Gamma,1),1000);
+    area(Gamma(1:t1,:)); ylim([0 1]); xlim([0 t1])
     
 else
     
     if any(T(1)~=T)
-        error('All trials need to have the same number of time points when order_trials==1'); 
+        ind = [];
+        for n = 1:length(T)
+            ind = [ind ((1:min(T))+sum(T(1:n-1))) ];
+        end
+        Gamma = Gamma(ind,:);
+        T(:) = min(T);
     end
 
-    colors = cm(round(linspace(1,64,K)),:);
+    colors = cm(round(linspace(1,size(cm,1),K)),:);
     
     keep = true(N,1);
     % Set the ordering
@@ -29,7 +35,7 @@ else
     if length(order_trials) > 1
         ord = order_trials;
     elseif order_trials && ~isempty(behaviour)
-        keep = ~isnan(behaviour); % which trials the subject pressed the button?
+        keep = ~isnan(behaviour); % for which trials do we have behaviour?
         [~,ord] = sort(behaviour(keep),'ascend'); % order by behaviour
     elseif order_trials
         A = pca(reshape(permute(reshape(Gamma,[T(1) N K]),[2 1 3]),[N T(1)*K])',...

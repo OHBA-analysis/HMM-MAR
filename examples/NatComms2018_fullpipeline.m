@@ -273,7 +273,7 @@ options_signflip.maxlag = 7;
 options_signflip.verbose = 0;
 
 flips = findflip(mat_files,T_all,options_signflip);
-flipdata(mat_files,T,flips);
+flipdata(mat_files,T_all,flips);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%
 %% Run the HMM
