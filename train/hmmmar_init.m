@@ -1,4 +1,4 @@
-function [Gamma,fehist] = hmmmar_init(data,T,options,Sind)
+function [hmm,Gamma,fehist] = hmmmar_init(data,T,options,Sind)
 %
 % Initialise the hidden Markov chain using HMM-MAR
 %
@@ -30,10 +30,11 @@ felast = zeros(length(init_k),1);
 maxfo = zeros(length(init_k),1);
 fehist = cell(length(init_k),1);
 Gamma = cell(length(init_k),1);
+hmm = cell(length(init_k),1);
 
 if options.useParallel && length(init_k) > 1 % not very elegant
     parfor it = 1:length(init_k)
-        [Gamma{it},fehist{it}] = run_initialization(data,T,options,Sind,init_k(it));
+        [hmm{it},Gamma{it},fehist{it}] = run_initialization(data,T,options,Sind,init_k(it));
         felast(it) = fehist{it}(end);
         maxfo(it) = mean(getMaxFractionalOccupancy(Gamma{it},T,options));
         if options.verbose
@@ -47,7 +48,7 @@ if options.useParallel && length(init_k) > 1 % not very elegant
     end
 else
     for it = 1:length(init_k)
-        [Gamma{it},fehist{it}] = run_initialization(data,T,options,Sind,init_k(it));
+        [hmm{it},Gamma{it},fehist{it}] = run_initialization(data,T,options,Sind,init_k(it));
         felast(it) = fehist{it}(end);
         maxfo(it) = mean(getMaxFractionalOccupancy(Gamma{it},T,options));
         if options.verbose
@@ -74,11 +75,12 @@ else
 end
 
 Gamma = Gamma{s};
+hmm = hmm{s};
 fehist = fehist{s};
 
 end
 
-function [Gamma,fehist] = run_initialization(data,T,options,Sind,init_k)
+function [hmm,Gamma,fehist] = run_initialization(data,T,options,Sind,init_k)
 % INPUTS
 % - data,T,options,Sind <same as hmmmar_init>
 % - init_k is the number of states to use for this initialization
@@ -102,7 +104,7 @@ data.C = data.C(:,1:options.K);
 % Note - initGamma_random uses DD=1 so that there are lots of transition times, which
 % helps the inference not get stuck in a local minimum. options.DirichletDiag is
 % then used inside hmmtrain when computing the free energy
-keep_trying = true; notries = 0;
+keep_trying = true; notries = 0; 
 while keep_trying
     Gamma = initGamma_random(T-options.maxorder,options.K,...
         min(median(double(T))/10,500),...
@@ -125,6 +127,7 @@ while keep_trying
         if notries > 10, error('Initialisation went wrong'); end
         disp('Something strange happened in the initialisation - repeating')
     end
+    hmm.train.verbose = options.verbose;
 end
 %fe = fehist(end);
 end

@@ -86,6 +86,9 @@ if ~sim_state_tcs_only
             % Ensure distinct Gamma0 time courses
             [~, maxGamma0Ind] = max(Gamma0, [], 2);
             Gamma0 = maxGamma0Ind == 1:max(maxGamma0Ind);
+            if size(Gamma0,2) < K
+                Gamma0 = [Gamma0 false(size(Gamma0,1),K-size(Gamma0,2))];
+            end
             X0 = simgauss(d,hmm0,Gamma0); % no mean in the innovation signal
         else % sampling Gaussian
             X0 = []; Gamma0 = [];

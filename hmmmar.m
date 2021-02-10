@@ -306,6 +306,7 @@ else
     if isfield(options,'fehist'), fehistInit = options.fehist;
     else, fehistInit = [];
     end
+    is_there_hmm = false;
     if isempty(options.Gamma) && isempty(options.hmm) % both unspecified
         if options.K > 1
             Sind = options.Sind;
@@ -313,7 +314,8 @@ else
                 GammaInit = hmmmar_init_ness(data,T,options,Sind);
             elseif options.initrep>0 && options.initcyc>0 && ...
                     (strcmpi(options.inittype,'HMM-MAR') || strcmpi(options.inittype,'HMMMAR'))
-                [GammaInit,fehistInit] = hmmmar_init(data,T,options,Sind);
+                [hmm_wr,GammaInit,fehistInit] = hmmmar_init(data,T,options,Sind);
+                is_there_hmm = true;
             elseif strcmpi(options.inittype,'sequential')
                 GammaInit = initGamma_seq(T-options.maxorder,options.K);
             elseif options.initrep>0 &&  strcmpi(options.inittype,'EM')
@@ -358,7 +360,17 @@ else
         GammaInit = bsxfun(@rdivide,GammaInit,sum(GammaInit,2));
     end
 
-    if isempty(options.hmm) % Initialisation of the hmm 
+    if is_there_hmm
+        if do_HMM_pca
+            residuals_wr = [];
+        elseif isfield(options,'distribution') && strcmp(options.distribution,'logistic')
+            residuals_wr = getresidualslogistic(data.X,T,options.logisticYdim); 
+        else
+            residuals_wr =  getresiduals(data.X,T,hmm_wr.train.Sind,hmm_wr.train.maxorder,...
+                hmm_wr.train.order,hmm_wr.train.orderoffset,hmm_wr.train.timelag,...
+                hmm_wr.train.exptimelag,hmm_wr.train.zeromean);
+        end
+    elseif isempty(options.hmm) % Initialisation of the hmm
         % GammaInit is required for obsinit, or for hmmtrain when updateGamma==0
         hmm_wr = struct('train',struct());
         hmm_wr.K = options.K;
