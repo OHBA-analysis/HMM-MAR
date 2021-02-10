@@ -79,52 +79,69 @@ datasim = datasim2; clear datasim2
 spectramar_sim = hmmspectramar(datasim,T,hmmsim,Gammasim,options);
 
 
+%% Plot fractional occupancies 
+
+figure(1) % state time courses for the real data
+plot_Gamma (Gamma,T,0);
+figure(2) % state time courses for the simulated data
+plot_Gamma (Gammasim,T,0);
+
+%% Plot spectra
+
+figure(3) % spectra computed with the MAR
+plot_hmmspectra (spectramar)
+figure(4) % spectra computed with the multitaper
+plot_hmmspectra (spectramt)
+
+%% 
+
+
 %% Point process corresponding to the onset of the states 
 % This is specific to the HCP data, where the data was chopped in trials of
-% 221 time points each. It can be easily adapted to continuous data (of the
-% likes of the NeuroImage 2016 paper) 
-
-c = 0 ;
-Onsets = cell(N,1);
-for n = 1:N
-    Onsets{n} = cell(length(T{n}),hmm.train.K);
-    for j = 1:length(T{n})
-        t = (1:T{n}(j)-order) + c; c = c + length(t);
-        [~,g] = max(Gamma(t,:),[],2); % better use the Viterbi path 
-        onsets = getStateOnsets(g,T{n}(j),Hz,hmm.train.K);
-        for k = 1:K
-            Onsets{n}{j,k} = onsets{1,k};
-        end
-    end
-end
-
-ttrial = T{1}(1);
-PSTH = zeros(ttrial-order,N,K);
-for k = 1:4
-    for n = 1:N
-        PSTHn = zeros(ttrial-order,length(T{n}));
-        for j = 1:length(T{n})
-            PSTHn(round(Onsets{n}{j,k}*100),j) = 1;
-        end
-        PSTH(:,n,k) = mean(PSTHn,2);
-    end
-end
-
-t1 = (ttrial-order);
-Onset_pval = ones(t1,1); 
-Onset_st =  ones(t1,1);
-
-for t = 1:t1
-    [~,k] = max(mean(squeeze(PSTH(t,:,:))));
-    tmp = squeeze(PSTH(t,:,setdiff(1:K,k)));
-    [~,k2] = max(mean(tmp));
-    Onset_st(t) = k;
-    d1 = squeeze(PSTH(t,:,k))';
-    d2 = tmp(:,k2);
-    Onset_pval(t) = permtestdiff_aux(d1,d2,10000,[],1);
-    [t k k2]
-end
-
-figure
-plot((1:t1)/Hz,-log(Onset_pval),'Color','k','LineWidth',2) % - log(pval), the higher the better
-xlim([1/Hz t1/Hz]);  
+% 221 time points each. It can be easily adapted to continuous data 
+% (like the NeuroImage 2016 paper) 
+% 
+% c = 0 ;
+% Onsets = cell(N,1);
+% for n = 1:N
+%     Onsets{n} = cell(length(T{n}),hmm.train.K);
+%     for j = 1:length(T{n})
+%         t = (1:T{n}(j)-order) + c; c = c + length(t);
+%         [~,g] = max(Gamma(t,:),[],2); % better use the Viterbi path 
+%         onsets = getStateOnsets(g,T{n}(j),Hz,hmm.train.K);
+%         for k = 1:K
+%             Onsets{n}{j,k} = onsets{1,k};
+%         end
+%     end
+% end
+% 
+% ttrial = T{1}(1);
+% PSTH = zeros(ttrial-order,N,K);
+% for k = 1:K
+%     for n = 1:N
+%         PSTHn = zeros(ttrial-order,length(T{n}));
+%         for j = 1:length(T{n})
+%             PSTHn(round(Onsets{n}{j,k}*100),j) = 1;
+%         end
+%         PSTH(:,n,k) = mean(PSTHn,2);
+%     end
+% end
+% 
+% t1 = (ttrial-order);
+% Onset_pval = ones(t1,1); 
+% Onset_st =  ones(t1,1);
+% 
+% for t = 1:t1
+%     [~,k] = max(mean(squeeze(PSTH(t,:,:))));
+%     tmp = squeeze(PSTH(t,:,setdiff(1:K,k)));
+%     [~,k2] = max(mean(tmp));
+%     Onset_st(t) = k;
+%     d1 = squeeze(PSTH(t,:,k))';
+%     d2 = tmp(:,k2);
+%     Onset_pval(t) = permtestdiff_aux(d1,d2,10000,[],1);
+%     [t k k2]
+% end
+% 
+% figure
+% plot((1:t1)/Hz,-log(Onset_pval),'Color','k','LineWidth',2) % - log(pval), the higher the better
+% xlim([1/Hz t1/Hz]);  
