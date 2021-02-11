@@ -174,7 +174,7 @@ for icv = 1:NCV
          % accuracy in test set)
 %         Xtrain2 = [];Xtrain3 = [];
 %         Ytrain2 = [];Ytrain3 = [];
-        for itr=1:length(c.training{icv})
+        for itr=1:Ntr
            t_select = (itr-1)*ttrial + [1:ttrial];
             for ich=1:size(Xtrain,2)
                 Xtrain(t_select,ich) = conv(Xtrain(t_select,ich),ones(winsize,1)./winsize,'same');

@@ -72,6 +72,12 @@ if isfield(options,'pls')
 else
     do_pls = false;
 end
+if isfield(options,'slidingwindow');
+    doslidingwindow = true;
+    winsize = options.slidingwindow;
+else
+    doslidingwindow = false;
+end
 options.Nfeatures = 0; 
 options.K = 1; 
 [X,Y,T] = preproc4hmm(X,Y,T,options); % this demeans Y
@@ -196,6 +202,18 @@ for icv = 1:NCV
         Ytrain = Y(:,c.training{icv},:);
         p_train = p;
     end
+    
+    if doslidingwindow
+        % this method applies a sliding window only to the training data
+        % (thus ensuring better model estimation but still temporal
+        % accuracy in test set)
+        for itr=1:Ntr
+            for ich=1:size(Xtrain,3)
+                Xtrain(:,itr,ich) = conv(Xtrain(:,itr,ich),ones(winsize,1)./winsize,'same');
+            end
+        end
+    end
+            
     for t = halfbin+1 : ttrial-halfbin
         r = t-halfbin:t+halfbin;
         %r = (1:binsize) + (t-1)*binsize;
@@ -222,7 +240,7 @@ for icv = 1:NCV
             model.noise_encode(:,:,t) = model.noise_encode(:,:,t) + noise_X_t./NCV;
         elseif options.SVMreg
             for i=1:q
-                beta{t,icv,i} = fitrsvm(Xtr,Ytr(:,i),'KernelFunction',options.SVMkernel);
+                beta{t,icv,i} = fitrsvm(Xtr,Ytr(:,i),'KernelFunction',options.SVMkernel,'Standardize',true,'KernelScale','auto');
             end
         else
             beta{t,icv} = (Xtr' * Xtr + RidgePen) \ (Xtr' * Ytr);

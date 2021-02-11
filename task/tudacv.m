@@ -67,7 +67,7 @@ end
 options.Nfeatures = 0;
 Ycopy = Y;
 if size(Ycopy,1) == N 
-    Ycopy = repelem(Ycopy,[ttrial]);
+    Ycopy = kron(Ycopy,ones(ttrial,1));
 end
 if isfield(options,'pls')
     do_pls = true;
@@ -187,7 +187,7 @@ for icv = 1:NCV
     if do_pls
         [Xtrain,A{icv}] = PLSdimreduce(Xtrain,Ytrain,Ttr,plsdims);
     end
-    [tuda,Gammatrain] = tudatrain(Xtrain,Ytrain,Ttr,options);
+    [tuda,Gammatrain] = tudatrain(Xtrain,Ytrain,Ttr,options,options.K==1);
     if strcmp(classifier,'LDA')
         LDAmodel{icv} = tuda;
     else
