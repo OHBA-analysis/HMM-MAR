@@ -2,6 +2,10 @@ function [options,data,ndim] = checkoptions_spectra (options,data,T,parametric)
 
 if nargin>=3
     if iscell(T)
+        if size(T,1)==1, T = T'; end
+        for i = 1:length(T)
+            if size(T{i},1)==1, T{i} = T{i}'; end
+        end
         T = cell2mat(T); T = T(:);
     end
 end
