@@ -82,9 +82,9 @@ spectramar_sim = hmmspectramar(datasim,T,hmmsim,Gammasim,options);
 %% Plot fractional occupancies 
 
 figure(1) % state time courses for the real data
-plot_Gamma (Gamma,T,0);
-figure(2) % state time courses for the simulated data
-plot_Gamma (Gammasim,T,0);
+plot_Gamma (Gamma,T,0);›
+% figure(2) % state time courses for the simulated data
+% plot_Gamma (Gammasim,T,0);
 
 %% Plot spectra
 

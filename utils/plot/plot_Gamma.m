@@ -6,6 +6,14 @@ if nargin < 4, order_trials = false; end % order the trials?
 if nargin < 5, behaviour = []; end % behaviour with respect to which order the trials 
 if nargin < 6, cm = colormap; end % colormap
 
+if iscell(T)
+    if size(T,1)==1, T = T'; end
+    for i = 1:length(T)
+        if size(T{i},1)==1, T{i} = T{i}'; end
+    end
+    T = cell2mat(T); T = T(:);
+end
+
 N = length(T); K = size(Gamma,2); 
 d = (sum(T) - size(Gamma,1)) / N;
 T = T - d; 

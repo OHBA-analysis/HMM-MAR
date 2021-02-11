@@ -553,7 +553,7 @@ end
 S = (options.S==1); npar = sum(S(:)) * options.order;
 if npar > 250
    warning(['There is a risk of overparametrisation in the MAR model, with ' num2str(npar) ...
-       'parameters per state'])
+       ' parameters per state'])
    disp('The time-delay embedded model is recommended in this case (use options.embeddedlags)')
 end
 
@@ -567,7 +567,6 @@ if (strcmp(options.covtype,'full') || strcmp(options.covtype,'uniquefull')) && a
     if any(options.S(:)==0)
         error('Global modelling of MAR coefficients not supported with full or uniquefull covariance matrix');
     end
-    S = options.S==1;
     regressed = sum(S,2)>=1;
     regressors = sum(S,1)>=1;
     tmp = double(regressed)*double(regressors) ~= S; 
