@@ -479,10 +479,6 @@ if isfield(options,'AR') && options.AR == 1
     if options.order == 0, error('Option AR cannot be 1 if order==0'); end
     options.S = -1*ones(ndim) + 2*eye(ndim);
 end
-if (ndim^2 * options.order) > 250
-   warning('There is a risk of overparametrisation in the MAR model, perhaps too many channels?')
-   disp('The time-delay embedded model is recommended in this case (use options.embeddedlags)')
-end
 
 if isfield(options,'pcamar') && options.pcamar>0 
     if options.order==0, error('Option pcamar>0 must be used with some order>0'); end
@@ -553,6 +549,14 @@ elseif any(options.S(:)~=1) && ...
     warning('S cannot have elements different from 1 if PCA is going to be used')
     options.S = ones(size(options.S));
 end
+
+S = (options.S==1); npar = sum(S(:)) * options.order;
+if npar > 250
+   warning(['There is a risk of overparametrisation in the MAR model, with ' num2str(npar) ...
+       'parameters per state'])
+   disp('The time-delay embedded model is recommended in this case (use options.embeddedlags)')
+end
+
 if options.zeromean==0 && any(sum(options.S)==0)
     warning('Ignoring mean for channels for which all columns of S are zero')
 end

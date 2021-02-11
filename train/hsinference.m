@@ -171,7 +171,7 @@ if hmm.train.useParallel==1 && N>1
     end; clear data; clear Gamma0; clear XX; clear  residuals
     
     parfor j = 1:N
-        xit = [];
+        xit = []; llt = [];
         if order>0
             R = [zeros(order,size(residuals_copy{j},2));  residuals_copy{j}];
             if ~isempty(C_copy)
@@ -326,6 +326,7 @@ else
                 end
             else
                 gammat = zeros(length(slicer),K);
+                llt = NaN(length(slicer),1);
                 if t==order+1, gammat(1,:) = C(slicer(1),:); end
                 if ~mixture_model
                     if nessmodel, xit = zeros(length(slicer)-1, K, 4);
