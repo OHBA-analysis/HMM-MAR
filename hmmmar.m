@@ -90,6 +90,7 @@ else % data can be a cell or a matrix
     checkdatacell;
 end
 [options,data] = checkoptions(options,data,T,0);
+checkData(data,T,options);
 do_HMM_pca = (options.lowrank > 0);
 
 ver = version('-release');
