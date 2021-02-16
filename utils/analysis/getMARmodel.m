@@ -9,7 +9,7 @@ if hmm.train.order == 0
 end
 model_mean = ~hmm.train.zeromean;
 
-W = hmm.state(k).W.Mu_W(model_mean+1,:);
+W = hmm.state(k).W.Mu_W(model_mean+1:end,:);
 
 if isfield(hmm.train,'A')
     A = hmm.train.A;

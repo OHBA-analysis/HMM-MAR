@@ -69,7 +69,7 @@ for k = rangeK
     if hmm.train.nessmodel
         st.P = []; st.Pi = []; st.Dir_alpha = []; st.Dir2d_alpha = [];
     end
-    defstateprior(k) = st; 
+    defstateprior(k) = st;
     
     if do_HMM_pca
         %defstateprior(k).beta = struct('Gam_shape',[],'Gam_rate',[]);
@@ -141,13 +141,13 @@ else
         % prior not specified are set to default
         statepriorlist = fieldnames(defstateprior(k));
         fldname = fieldnames(hmm.state(k).prior);
-%         try fldname = fieldnames(hmm.state(k).prior);
-%         catch, keyboard; %hmm.state(k).prior = defstateprior(k); 
-%         end
+        %         try fldname = fieldnames(hmm.state(k).prior);
+        %         catch, keyboard; %hmm.state(k).prior = defstateprior(k);
+        %         end
         misfldname = find(~ismember(statepriorlist,fldname));
         for i = 1:length(misfldname)
             if k==hmm.K+1 && (strcmp(statepriorlist{i},'Dir2d_alpha') || strcmp(statepriorlist{i},'Dir_alpha'))
-                continue; 
+                continue;
             end
             priorval = getfield(defstateprior(k),statepriorlist{i});
             hmm.state(k).prior = setfield(hmm.state(k).prior,statepriorlist{i},priorval);
@@ -166,9 +166,6 @@ ndim = size(X,2);
 K = hmm.K;
 S = hmm.train.S==1; regressed = sum(S)>0;
 hmm.train.active = ones(1,K);
-if isfield(hmm.train,'B'), B = hmm.train.B; Q = size(B,2);
-else Q = ndim; 
-end
 pcapred = hmm.train.pcapred>0;
 p = hmm.train.lowrank; do_HMM_pca = (p > 0);
 nessmodel = hmm.train.nessmodel;
@@ -180,28 +177,273 @@ nessmodel = hmm.train.nessmodel;
 %if nessmodel, residuals = residuals / K; end
 
 setxx; % build XX and get orders
-if nessmodel 
-    % Note that obsinit is the only place where we will update the baseline
-    % state parameters
-    rangeK = 1:K+1;
-    Gamma = [Gamma K*ones(size(Gamma,1),1) ];
-    Gamma = rdiv(Gamma,sum(Gamma,2));
-    % baseline is just the average across the entire data set
-    % (each chain contribution of baseline accounts for at most 1/K)
-    XXGXX = cell(K+1,1);
-    if ~isfield(hmm.train,'distribution') || ~strcmp(hmm.train.distribution,'logistic') ...
-            || ~isfield(hmm.state,'W')
-        for k = 1:K+1, XXGXX{k} = bsxfun(@times, XX, Gamma(:,k))' * XX; end
-    else
-        error('NESS not yet implemented for logistic models')
-    end
-else
-    rangeK = 1:K;
-end
+setstateoptions;
 Gammasum = sum(Gamma); % if nessmodel, Gammasum doesn't sum up to T
 
 % W
-for k = rangeK
+if nessmodel
+    hmm = initW_ness(hmm,XX,residuals,Gamma,Sind);
+else
+    hmm = initW_hmm(hmm,XX,XXGXX,residuals,Gamma,Sind);
+end
+
+% Omega
+if strcmp(hmm.train.covtype,'uniquediag') && nessmodel
+    if hmm.train.uniqueAR, error('Not yet implemented'); end
+    hmm.Omega.Gam_shape = hmm.prior.Omega.Gam_shape + Tres / 2;
+    e = residuals(:,regressed) - computeStateResponses(XX,hmm,Gamma(:,1:end-1));
+    hmm.Omega.Gam_rate = zeros(1,ndim);
+    hmm.Omega.Gam_rate(regressed) = hmm.prior.Omega.Gam_rate(regressed) + 0.5 * sum(e.^2);
+    
+elseif strcmp(hmm.train.covtype,'uniquefull') && nessmodel
+    hmm.Omega.Gam_shape = hmm.prior.Omega.Gam_shape + Tres;
+    e = residuals(:,regressed) - computeStateResponses(XX,hmm,Gamma);
+    hmm.Omega.Gam_rate = zeros(ndim,ndim); hmm.Omega.Gam_irate = zeros(ndim,ndim);
+    hmm.Omega.Gam_rate(regressed,regressed) = hmm.prior.Omega.Gam_rate(regressed,regressed) + e' * e;
+    hmm.Omega.Gam_irate(regressed,regressed) = inv(hmm.Omega.Gam_rate(regressed,regressed));
+    
+elseif strcmp(hmm.train.covtype,'uniquediag') && hmm.train.uniqueAR
+    hmm.Omega.Gam_rate = hmm.prior.Omega.Gam_rate;
+    for k = 1:K
+        XW = zeros(size(XX,1),ndim);
+        for n = 1:ndim
+            ind = n:ndim:size(XX,2);
+            XW(:,n) = XX(:,ind) * hmm.state(k).W.Mu_W;
+        end
+        e = (residuals - XW).^2;
+        hmm.Omega.Gam_rate = hmm.Omega.Gam_rate + ...
+            0.5 * sum( repmat(Gamma(:,k),1,ndim) .* e );
+    end
+    hmm.Omega.Gam_shape = hmm.prior.Omega.Gam_shape + Tres / 2;
+    
+elseif do_HMM_pca
+    hmm.Omega.Gam_rate = hmm.prior.Omega.Gam_rate;
+    hmm.Omega.Gam_shape = hmm.prior.Omega.Gam_shape;
+    v = hmm.Omega.Gam_rate / hmm.Omega.Gam_shape;
+    for k = 1:K
+        W = hmm.state(k).W.Mu_W;
+        M = W' * W + v * eye(p); % posterior dist of the precision matrix
+        omega_i = mean(diag(XXGXX{k} - XXGXX{k} * W * (M \ W')));
+        %e = sum(repmat(Gamma(:,k),1,ndim) .* (XX - XX * W * W').^2,2);
+        hmm.Omega.Gam_rate_state(k) = 0.5 * omega_i; %sum(e);
+        hmm.Omega.Gam_rate = hmm.Omega.Gam_rate + hmm.Omega.Gam_rate_state(k);
+        hmm.Omega.Gam_shape_state(k) = 0.5 * Gammasum(k);% * ndim;
+        hmm.Omega.Gam_shape = hmm.Omega.Gam_shape + hmm.Omega.Gam_shape_state(k);
+    end
+    
+elseif strcmp(hmm.train.covtype,'uniquediag')
+    hmm.Omega.Gam_shape = hmm.prior.Omega.Gam_shape + Tres / 2;
+    hmm.Omega.Gam_rate = zeros(1,ndim);
+    hmm.Omega.Gam_rate(regressed) = hmm.prior.Omega.Gam_rate(regressed);
+    for k = 1:K
+        if ~isempty(hmm.state(k).W.Mu_W(:,regressed))
+            e = residuals(:,regressed) - XX * hmm.state(k).W.Mu_W(:,regressed);
+        else
+            e = residuals(:,regressed);
+        end
+        hmm.Omega.Gam_rate(regressed) = hmm.Omega.Gam_rate(regressed) +  ...
+            0.5 * sum( repmat(Gamma(:,k),1,sum(regressed)) .* e.^2 );
+    end
+    
+elseif strcmp(hmm.train.covtype,'uniquefull')
+    hmm.Omega.Gam_shape = hmm.prior.Omega.Gam_shape + Tres;
+    hmm.Omega.Gam_rate = zeros(ndim,ndim); hmm.Omega.Gam_irate = zeros(ndim,ndim);
+    hmm.Omega.Gam_rate(regressed,regressed) = hmm.prior.Omega.Gam_rate(regressed,regressed);
+    for k = 1:K
+        if ~isempty(hmm.state(k).W.Mu_W(:,regressed))
+            e = residuals(:,regressed) - XX * hmm.state(k).W.Mu_W(:,regressed);
+        else
+            e = residuals(:,regressed);
+        end
+        hmm.Omega.Gam_rate(regressed,regressed) = hmm.Omega.Gam_rate(regressed,regressed) +  ...
+            (e' .* repmat(Gamma(:,k)',sum(regressed),1)) * e;
+    end
+    hmm.Omega.Gam_irate(regressed,regressed) = inv(hmm.Omega.Gam_rate(regressed,regressed));
+    
+elseif ~isfield(hmm.train,'distribution') || ~strcmp(hmm.train.distribution,'logistic') % state dependent
+    for k = 1:K
+        setstateoptions;
+        if train.uniqueAR
+            XW = zeros(size(XX,1),ndim);
+            for n=1:ndim
+                ind = n:ndim:size(XX,2);
+                XW(:,n) = XX(:,ind) * hmm.state(k).W.Mu_W;
+            end
+            e = (residuals - XW).^2;
+            hmm.state(k).Omega.Gam_rate = hmm.state(k).prior.Omega.Gam_rate + ...
+                0.5* sum( repmat(Gamma(:,k),1,ndim) .* e );
+            hmm.state(k).Omega.Gam_shape = hmm.state(k).prior.Omega.Gam_shape + Gammasum(k) / 2;
+            
+        elseif strcmp(train.covtype,'diag')
+            if ~isempty(hmm.state(k).W.Mu_W)
+                e = (residuals(:,regressed) - XX * hmm.state(k).W.Mu_W(:,regressed)).^2;
+            else
+                e = residuals(:,regressed).^2;
+            end
+            hmm.state(k).Omega.Gam_rate = zeros(1,ndim);
+            hmm.state(k).Omega.Gam_rate(regressed) = hmm.state(k).prior.Omega.Gam_rate(regressed) + ...
+                sum( repmat(Gamma(:,k),1,sum(regressed)) .* e ) / 2;
+            hmm.state(k).Omega.Gam_shape = hmm.state(k).prior.Omega.Gam_shape + Gammasum(k) / 2;
+            
+        else % full
+            if ~isempty(hmm.state(k).W.Mu_W)
+                e = residuals(:,regressed) - XX * hmm.state(k).W.Mu_W(:,regressed);
+            else
+                e = residuals(:,regressed);
+            end
+            hmm.state(k).Omega.Gam_shape = hmm.state(k).prior.Omega.Gam_shape + Gammasum(k);
+            hmm.state(k).Omega.Gam_rate = zeros(ndim,ndim); hmm.state(k).Omega.Gam_irate = zeros(ndim,ndim);
+            hmm.state(k).Omega.Gam_rate(regressed,regressed) =  ...
+                hmm.state(k).prior.Omega.Gam_rate(regressed,regressed) +  ...
+                (e' .* repmat(Gamma(:,k)',sum(regressed),1)) * e;
+            hmm.state(k).Omega.Gam_irate(regressed,regressed) = ...
+                inv(hmm.state(k).Omega.Gam_rate(regressed,regressed));
+        end
+    end
+    
+end
+
+% Priors over the parameters
+if ~pcapred && ~do_HMM_pca
+    for k = 1:K
+        if hmm.train.order>0 && isempty(hmm.train.prior)
+            hmm.state(k).alpha.Gam_shape = hmm.state(k).prior.alpha.Gam_shape;
+            hmm.state(k).alpha.Gam_rate = hmm.state(k).prior.alpha.Gam_rate;
+        end
+    end
+    if nessmodel
+        %%% sigma - channel x channel coefficients
+        hmm = updateSigma_ness(hmm);
+        %%% alpha - one per order
+        hmm = updateAlpha_ness(hmm);
+    else
+        %%% sigma - channel x channel coefficients
+        hmm = updateSigma(hmm);
+        %%% alpha - one per order
+        hmm = updateAlpha(hmm);
+    end
+    if isfield(train,'distribution') && strcmp(train.distribution,'logistic')
+        if train.logisticYdim>1
+            for k = 1:K
+                hmm.state(k).alpha.Gam_rate = ...
+                    repmat(hmm.state(k).alpha.Gam_rate(1:ndim_n,end),1,train.logisticYdim);
+            end
+        end
+    end
+elseif pcapred
+    for k = 1:K
+        hmm.state(k).beta.Gam_shape = hmm.state(k).prior.beta.Gam_shape + 0.5 * ndim;
+        hmm.state(k).beta.Gam_rate = hmm.state(k).prior.beta.Gam_rate + ...
+            sum(hmm.state(k).W.Mu_W.^2);
+    end
+end
+
+end
+
+%
+% function hmm = initW_ness(hmm,XX,residuals,Gamma,Sind)
+% % all at once
+%
+% K = size(Gamma,2);
+% np = size(XX,2); ndim = size(residuals,2);
+% Gamma = [Gamma (K-sum(Gamma,2)) ];
+% X = zeros(size(XX,1),np * (K+1));
+% Xs = zeros(size(XX,1),np * (K+1));
+%
+% for k = 1:K+1
+%     X(:,(1:np) + (k-1)*np) = bsxfun(@times, XX, Gamma(:,k));
+%     Xs(:,(1:np) + (k-1)*np) = bsxfun(@times, XX, sqrt(Gamma(:,k)));
+% end
+% gram = Xs' * Xs;
+% for n = 1:ndim
+%     Sind_all = [];
+%     for k = 1:K+1, Sind_all = [Sind_all; Sind(:,n)]; end
+%     Sind_all = Sind_all == 1;
+%     iS_W = gram(Sind_all,Sind_all);
+%     iS_W = (iS_W + iS_W') / 2 + 1e-6 * eye(size(iS_W,1));
+%     S_W = inv(iS_W);
+%     Mu_W = S_W * X(:,Sind_all)' * residuals(:,n);
+%     hmm.state_shared(n).iS_W = zeros(size(gram));
+%     hmm.state_shared(n).S_W = zeros(size(gram));
+%     hmm.state_shared(n).Mu_W = zeros(size(X,2),1);
+%     hmm.state_shared(n).iS_W(Sind_all,Sind_all) = iS_W;
+%     hmm.state_shared(n).S_W(Sind_all,Sind_all) = S_W;
+%     hmm.state_shared(n).Mu_W(Sind_all) = Mu_W;
+% end
+% for k = 1:K+1
+%     for n = 1:ndim
+%         ind = (1:np) + (k-1)*np;
+%         hmm.state(k).W.Mu_W(:,n) = hmm.state_shared(n).Mu_W(ind);
+%         hmm.state(k).W.iS_W(n,:,:) = hmm.state_shared(n).iS_W(ind,ind);
+%         hmm.state(k).W.S_W(n,:,:) = hmm.state_shared(n).S_W(ind,ind);
+%     end
+% end
+%
+% end
+
+
+function hmm = initW_ness(hmm,XX,residuals,Gamma,Sind)
+
+K = size(Gamma,2);
+np = size(XX,2); ndim = size(residuals,2);
+
+% baseline
+hmm.state(end).W.Mu_W = pinv(XX) * residuals;
+gram = XX' * XX;
+for n = 1:ndim
+    hmm.state(end).W.iS_W(n,:,:) = gram;
+    hmm.state(end).W.S_W(n,:,:) = inv(gram);
+end
+
+% rest
+X = zeros(size(XX,1),np * K);
+Xs = zeros(size(XX,1),np * K);
+for k = 1:K
+    X(:,(1:np) + (k-1)*np) = bsxfun(@times, XX, Gamma(:,k));
+    Xs(:,(1:np) + (k-1)*np) = bsxfun(@times, XX, sqrt(Gamma(:,k)));
+end
+gram = Xs' * Xs;
+
+for n = 1:ndim
+    Sind_all = [];
+    for k = 1:K, Sind_all = [Sind_all; Sind(:,n)]; end
+    Sind_all = Sind_all == 1;
+    iS_W = gram(Sind_all,Sind_all);
+    iS_W = (iS_W + iS_W') / 2 + 1e-6 * eye(size(iS_W,1));
+    S_W = inv(iS_W);
+    Mu_W = S_W * X(:,Sind_all)' * residuals(:,n);
+    hmm.state_shared(n).iS_W = zeros(size(gram));
+    hmm.state_shared(n).S_W = zeros(size(gram));
+    hmm.state_shared(n).Mu_W = zeros(size(X,2),1);
+    hmm.state_shared(n).iS_W(Sind_all,Sind_all) = iS_W;
+    hmm.state_shared(n).S_W(Sind_all,Sind_all) = S_W;
+    hmm.state_shared(n).Mu_W(Sind_all) = Mu_W;
+end
+for k = 1:K
+    for n = 1:ndim
+        ind = (1:np) + (k-1)*np;
+        hmm.state(k).W.Mu_W(:,n) = hmm.state_shared(n).Mu_W(ind);
+        hmm.state(k).W.iS_W(n,:,:) = hmm.state_shared(n).iS_W(ind,ind);
+        hmm.state(k).W.S_W(n,:,:) = hmm.state_shared(n).S_W(ind,ind);
+    end
+end
+
+end
+
+
+
+function hmm = initW_hmm(hmm,XX,XXGXX,residuals,Gamma,Sind)
+
+ndim = size(residuals,2);
+if isfield(hmm.train,'B'), B = hmm.train.B; Q = size(B,2);
+else Q = ndim;
+end
+setstateoptions
+pcapred = hmm.train.pcapred>0;
+p = hmm.train.lowrank; do_HMM_pca = (p > 0);
+
+K = size(Gamma,2);
+for k = 1:K
     setstateoptions;
     if pcapred, npred = hmm.train.pcapred;
     else npred = Q*length(orders);
@@ -280,190 +522,6 @@ for k = rangeK
         end
     end
 end
-if nessmodel % readjust the baseline state, because there are K copies of it
-    hmm.state(K+1).W.iS_W = hmm.state(K+1).W.iS_W * K;
-    hmm.state(K+1).W.S_W = hmm.state(K+1).W.S_W / K;
-    hmm.state(K+1).W.Mu_W = hmm.state(K+1).W.Mu_W / K;
-    Gamma = Gamma(:,1:end-1);
-    for n = 1:ndim
-        hmm.state_shared(n).iS_W = zeros(size(XX,2)*(K+1));
-        hmm.state_shared(n).S_W = zeros(size(XX,2)*(K+1));
-        hmm.state_shared(n).Mu_W = zeros(size(XX,2)*(K+1),1);
-        for k = 1:K+1
-            ind = (1:size(XX,2)) + (k-1)*size(XX,2);       
-            hmm.state_shared(n).Mu_W(ind) = hmm.state(k).W.Mu_W(:,n);
-            hmm.state_shared(n).iS_W(ind,ind) = hmm.state(k).W.iS_W(n,:,:);
-            hmm.state_shared(n).S_W(ind,ind) = hmm.state(k).W.S_W(n,:,:);
-        end
-    end
-    
-end
-
-% Omega
-if strcmp(hmm.train.covtype,'uniquediag') && nessmodel
-    if hmm.train.uniqueAR, error('Not yet implemented'); end
-    hmm.Omega.Gam_shape = hmm.prior.Omega.Gam_shape + Tres / 2;
-    e = residuals(:,regressed) - computeStateResponses(XX,hmm,Gamma);
-    hmm.Omega.Gam_rate = zeros(1,ndim);
-    hmm.Omega.Gam_rate(regressed) = hmm.prior.Omega.Gam_rate(regressed) + 0.5 * sum(e.^2);
-
-elseif strcmp(hmm.train.covtype,'uniquefull') && nessmodel
-    hmm.Omega.Gam_shape = hmm.prior.Omega.Gam_shape + Tres;
-    e = residuals(:,regressed) - computeStateResponses(XX,hmm,Gamma);
-    hmm.Omega.Gam_rate = zeros(ndim,ndim); hmm.Omega.Gam_irate = zeros(ndim,ndim);
-    hmm.Omega.Gam_rate(regressed,regressed) = hmm.prior.Omega.Gam_rate(regressed,regressed) + e' * e;
-    hmm.Omega.Gam_irate(regressed,regressed) = inv(hmm.Omega.Gam_rate(regressed,regressed));
-    
-elseif strcmp(hmm.train.covtype,'uniquediag') && hmm.train.uniqueAR
-    hmm.Omega.Gam_rate = hmm.prior.Omega.Gam_rate;
-    for k = rangeK
-        XW = zeros(size(XX,1),ndim);
-        for n = 1:ndim
-            ind = n:ndim:size(XX,2);
-            XW(:,n) = XX(:,ind) * hmm.state(k).W.Mu_W;
-        end
-        e = (residuals - XW).^2;
-        hmm.Omega.Gam_rate = hmm.Omega.Gam_rate + ...
-            0.5 * sum( repmat(Gamma(:,k),1,ndim) .* e );
-    end
-    hmm.Omega.Gam_shape = hmm.prior.Omega.Gam_shape + Tres / 2;
-    
-elseif do_HMM_pca
-    hmm.Omega.Gam_rate = hmm.prior.Omega.Gam_rate;
-    hmm.Omega.Gam_shape = hmm.prior.Omega.Gam_shape;
-    v = hmm.Omega.Gam_rate / hmm.Omega.Gam_shape;
-    for k = rangeK
-        W = hmm.state(k).W.Mu_W;
-        M = W' * W + v * eye(p); % posterior dist of the precision matrix
-        omega_i = mean(diag(XXGXX{k} - XXGXX{k} * W * (M \ W')));
-        %e = sum(repmat(Gamma(:,k),1,ndim) .* (XX - XX * W * W').^2,2);
-        hmm.Omega.Gam_rate_state(k) = 0.5 * omega_i; %sum(e);
-        hmm.Omega.Gam_rate = hmm.Omega.Gam_rate + hmm.Omega.Gam_rate_state(k);
-        hmm.Omega.Gam_shape_state(k) = 0.5 * Gammasum(k);% * ndim;
-        hmm.Omega.Gam_shape = hmm.Omega.Gam_shape + hmm.Omega.Gam_shape_state(k);
-    end
-    
-elseif strcmp(hmm.train.covtype,'uniquediag')
-    hmm.Omega.Gam_shape = hmm.prior.Omega.Gam_shape + Tres / 2;
-    hmm.Omega.Gam_rate = zeros(1,ndim);
-    hmm.Omega.Gam_rate(regressed) = hmm.prior.Omega.Gam_rate(regressed);
-    for k = rangeK
-        if ~isempty(hmm.state(k).W.Mu_W(:,regressed))
-            e = residuals(:,regressed) - XX * hmm.state(k).W.Mu_W(:,regressed);
-        else
-            e = residuals(:,regressed);
-        end
-        hmm.Omega.Gam_rate(regressed) = hmm.Omega.Gam_rate(regressed) +  ...
-            0.5 * sum( repmat(Gamma(:,k),1,sum(regressed)) .* e.^2 );
-    end
-    
-elseif strcmp(hmm.train.covtype,'uniquefull')
-    hmm.Omega.Gam_shape = hmm.prior.Omega.Gam_shape + Tres;
-    hmm.Omega.Gam_rate = zeros(ndim,ndim); hmm.Omega.Gam_irate = zeros(ndim,ndim);
-    hmm.Omega.Gam_rate(regressed,regressed) = hmm.prior.Omega.Gam_rate(regressed,regressed);
-    for k = rangeK
-        if ~isempty(hmm.state(k).W.Mu_W(:,regressed))
-            e = residuals(:,regressed) - XX * hmm.state(k).W.Mu_W(:,regressed);
-        else
-            e = residuals(:,regressed);
-        end
-        hmm.Omega.Gam_rate(regressed,regressed) = hmm.Omega.Gam_rate(regressed,regressed) +  ...
-            (e' .* repmat(Gamma(:,k)',sum(regressed),1)) * e;
-    end
-    hmm.Omega.Gam_irate(regressed,regressed) = inv(hmm.Omega.Gam_rate(regressed,regressed));
-    
-elseif ~isfield(hmm.train,'distribution') || ~strcmp(hmm.train.distribution,'logistic') % state dependent
-    for k = rangeK
-        setstateoptions;
-        if train.uniqueAR
-            XW = zeros(size(XX,1),ndim);
-            for n=1:ndim
-                ind = n:ndim:size(XX,2);
-                XW(:,n) = XX(:,ind) * hmm.state(k).W.Mu_W;
-            end
-            e = (residuals - XW).^2;
-            hmm.state(k).Omega.Gam_rate = hmm.state(k).prior.Omega.Gam_rate + ...
-                0.5* sum( repmat(Gamma(:,k),1,ndim) .* e );
-            hmm.state(k).Omega.Gam_shape = hmm.state(k).prior.Omega.Gam_shape + Gammasum(k) / 2;
-            
-        elseif strcmp(train.covtype,'diag')
-            if ~isempty(hmm.state(k).W.Mu_W)
-                e = (residuals(:,regressed) - XX * hmm.state(k).W.Mu_W(:,regressed)).^2;
-            else
-                e = residuals(:,regressed).^2;
-            end
-            hmm.state(k).Omega.Gam_rate = zeros(1,ndim);
-            hmm.state(k).Omega.Gam_rate(regressed) = hmm.state(k).prior.Omega.Gam_rate(regressed) + ...
-                sum( repmat(Gamma(:,k),1,sum(regressed)) .* e ) / 2;
-            hmm.state(k).Omega.Gam_shape = hmm.state(k).prior.Omega.Gam_shape + Gammasum(k) / 2;
-            
-        else % full
-            if ~isempty(hmm.state(k).W.Mu_W)
-                e = residuals(:,regressed) - XX * hmm.state(k).W.Mu_W(:,regressed);
-            else
-                e = residuals(:,regressed);
-            end
-            hmm.state(k).Omega.Gam_shape = hmm.state(k).prior.Omega.Gam_shape + Gammasum(k);
-            hmm.state(k).Omega.Gam_rate = zeros(ndim,ndim); hmm.state(k).Omega.Gam_irate = zeros(ndim,ndim);
-            hmm.state(k).Omega.Gam_rate(regressed,regressed) =  ...
-                hmm.state(k).prior.Omega.Gam_rate(regressed,regressed) +  ...
-                (e' .* repmat(Gamma(:,k)',sum(regressed),1)) * e;
-            hmm.state(k).Omega.Gam_irate(regressed,regressed) = ...
-                inv(hmm.state(k).Omega.Gam_rate(regressed,regressed));
-        end
-    end
-    
-end
-
-% Priors over the parameters
-if ~pcapred && ~do_HMM_pca
-    for k = rangeK
-        if hmm.train.order>0 && isempty(hmm.train.prior)
-            hmm.state(k).alpha.Gam_shape = hmm.state(k).prior.alpha.Gam_shape;
-            hmm.state(k).alpha.Gam_rate = hmm.state(k).prior.alpha.Gam_rate;
-        end
-    end
-    if nessmodel
-        %%% sigma - channel x channel coefficients
-        hmm = updateSigma_ness(hmm);
-        %%% alpha - one per order
-        hmm = updateAlpha_ness(hmm);
-    else
-        %%% sigma - channel x channel coefficients
-        hmm = updateSigma(hmm);
-        %%% alpha - one per order
-        hmm = updateAlpha(hmm);
-    end
-    if isfield(train,'distribution') && strcmp(train.distribution,'logistic')
-        if train.logisticYdim>1
-            for k = rangeK
-                hmm.state(k).alpha.Gam_rate = ...
-                    repmat(hmm.state(k).alpha.Gam_rate(1:ndim_n,end),1,train.logisticYdim);
-            end
-        end
-    end
-elseif pcapred
-    for k = 1:K
-        hmm.state(k).beta.Gam_shape = hmm.state(k).prior.beta.Gam_shape + 0.5 * ndim;
-        hmm.state(k).beta.Gam_rate = hmm.state(k).prior.beta.Gam_rate + ...
-            sum(hmm.state(k).W.Mu_W.^2);
-    end
-end
-
-% Reorganise
-if nessmodel
-    for n = 1:ndim
-        np = size(XX,2);
-        hmm.state_shared(n).iS_W = zeros(np*(K+1));
-        hmm.state_shared(n).S_W = zeros(np*(K+1));
-        hmm.state_shared(n).Mu_W = zeros(np*(K+1),1);
-        for k = 1:K+1
-            ind = (1:np) + (k-1)*np;
-            hmm.state_shared(n).Mu_W(ind) = hmm.state(k).W.Mu_W(:,n);
-            hmm.state_shared(n).iS_W(ind,ind) = hmm.state(k).W.iS_W(n,:,:);
-            hmm.state_shared(n).S_W(ind,ind) = hmm.state(k).W.S_W(n,:,:);
-        end
-    end
-end
 
 end
+

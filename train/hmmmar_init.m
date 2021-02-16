@@ -88,7 +88,7 @@ function [hmm,Gamma,fehist] = run_initialization(data,T,options,Sind,init_k)
 % Need to adjust the worker dirichletdiags if testing smaller K values
 %if ~options.nessmodel && init_k < options.K
 if init_k < options.K
-    for jj = 1:length(options.DirichletDiag)
+    for j = 1:length(options.DirichletDiag)
         p = options.DirichletDiag(j)/(options.DirichletDiag(j) + options.K - 1); % Probability of remaining in same state
         f_prob = dirichletdiags.mean_lifetime(); % Function that returns the lifetime in steps given the probability
         expected_lifetime =  f_prob(p)/options.Fs; % Expected number of steps given the probability
@@ -116,11 +116,12 @@ while keep_trying
     hmm.train.Sind = Sind;
     hmm.train.cyc = hmm.train.initcyc;
     hmm.train.verbose = 0;
+    hmm.train.plotGamma = 0;
     hmm = hmmhsinit(hmm);
     if isfield(hmm.train,'Gamma'), hmm.train = rmfield(hmm.train,'Gamma'); end
     [hmm,residuals] = obsinit(data,T,hmm,Gamma);
     try
-        [~,Gamma,~,fehist] = hmmtrain(data,T,hmm,Gamma,residuals);
+        [hmm,Gamma,~,fehist] = hmmtrain(data,T,hmm,Gamma,residuals);
         keep_trying = false;
     catch
         notries = notries + 1; 
@@ -128,6 +129,7 @@ while keep_trying
         disp('Something strange happened in the initialisation - repeating')
     end
     hmm.train.verbose = options.verbose;
+    hmm.train.plotGamma = options.plotGamma;
 end
 %fe = fehist(end);
 end
