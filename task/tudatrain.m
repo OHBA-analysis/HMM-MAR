@@ -148,6 +148,7 @@ else
     
     if noGamma
         vpath = [];
+        Gamma = ones(sum(Ttmp),1);
         return
     end
     
