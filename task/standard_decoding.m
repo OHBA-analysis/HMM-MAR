@@ -335,13 +335,14 @@ for t = halfbin+1 : ttrial-halfbin
         noise_X_t = cov(Xt - Yt*beta_encode) + 1e-5*eye(p);
         if qstar>q
             % regress out the (fixed) intercept value:
-            Xt = Xt - ones(N,1) * beta_encode(1,:);
+            Xt = Xt - ones(binsize*N,1) * beta_encode(1,:);
             sig_Y_t = inv(inv(Ysig(2:end,2:end)) + beta_encode(2:end,:) * inv(noise_X_t) * beta_encode(2:end,:)');
             beta_t = inv(noise_X_t) * beta_encode(2:end,:)' * sig_Y_t;
         else
             sig_Y_t = inv(inv(Ysig) + beta_encode * inv(noise_X_t) * beta_encode');
             beta_t = inv(noise_X_t) * beta_encode' * sig_Y_t;
         end
+        Xt = reshape(X(t,:,:),N,p);
         Ypred(t,:,:) = reshape(Xt * beta_t,N,q);
     else
         beta_t = (Xt' * Xt + RidgePen) \ (Xt' * Yt);
