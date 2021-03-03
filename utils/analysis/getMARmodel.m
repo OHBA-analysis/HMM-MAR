@@ -4,6 +4,14 @@ function W = getMARmodel(hmm,k)
 %
 % Diego Vidaurre, OHBA, University of Oxford (2016)
 
+if nargin < 2
+   W = []; 
+   for ik = 1:length(hmm.state)
+      W = [W  getMARmodel(hmm,ik)];
+   end
+   return 
+end
+
 if hmm.train.order == 0
     error('The states are not modelled to be MAR distributions (order=0)')
 end

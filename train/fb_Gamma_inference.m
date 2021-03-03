@@ -38,7 +38,7 @@ if ~isfield(hmm,'cache'), hmm.cache = []; end
 
 try
     if ~isfield(hmm.train,'distribution') || ~strcmp(hmm.train.distribution,'logistic')
-        L = obslike([],hmm,residuals,XX,hmm.cache);
+        L = obslike([],hmm,residuals,XX,hmm.cache,cv);
     else
         L = obslikelogistic([],hmm,residuals,XX,slicepoints);
     end
@@ -116,5 +116,7 @@ else
         Xi(i-order,:) = t(:)'/sum(t(:));
     end
 end
+
+L = scale;
 
 end

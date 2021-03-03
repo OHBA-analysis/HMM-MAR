@@ -1,4 +1,4 @@
-function L = obslike(X,hmm,residuals,XX,cache,rangeK,cv)
+function L = obslike(X,hmm,residuals,XX,cache,cv)
 %
 % Evaluate likelihood of data given observation model, for one continuous trial
 %
@@ -20,9 +20,8 @@ else
 end
 
 p = hmm.train.lowrank; do_HMM_pca = (p > 0);
-K = hmm.K;
-if nargin < 6, rangeK = 1:K; end
-if nargin < 7, cv = 0; end
+K = hmm.K; rangeK = 1:K;
+if nargin < 6, cv = 0; end
 
 if nargin<4 || size(XX,1)==0
     [T,ndim] = size(X);
