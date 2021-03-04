@@ -114,7 +114,7 @@ while keep_trying
     hmm.K = options.K;
     hmm.train = options;
     hmm.train.Sind = Sind;
-    hmm.train.cyc = hmm.train.initcyc;
+    hmm.train.cyc = max(hmm.train.initcyc,2);
     hmm.train.verbose = 0;
     hmm.train.plotGamma = 0;
     hmm = hmmhsinit(hmm);

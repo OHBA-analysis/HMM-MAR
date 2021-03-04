@@ -1,5 +1,8 @@
-function [Gamma,Xi,L] = fb_Gamma_inference(XX,hmm,residuals,slicepoints,constraint,cv)
+function [Gamma,Xi,scale] = fb_Gamma_inference(XX,hmm,residuals,slicepoints,constraint,cv)
 % inference using normal forward backward propagation
+% Gamma: state time courses
+% Xi: joint probability for t and t+1
+% scale: likelihood
 
 %p = hmm.train.lowrank; do_HMM_pca = (p > 0);
 %
@@ -47,7 +50,7 @@ catch
 end
 
 if isfield(hmm.train,'id_mixture') && hmm.train.id_mixture
-    Gamma = id_Gamma_inference(L,Pi,order);
+    [Gamma,scale] = id_Gamma_inference(L,Pi,order);
     return
 end
 
@@ -117,6 +120,6 @@ else
     end
 end
 
-L = scale;
+scale = scale(1+order:end);
 
 end
