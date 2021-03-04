@@ -10,7 +10,7 @@ function [Gamma,Gammasum,Xi,LL] = hsinference(data,T,hmm,residuals,options,XX,Ga
 % residuals in case we train on residuals, the value of those.
 % XX        optionally, XX, as computed by setxx.m, can be supplied
 % Gamma0    initial Gamma (only used for NESS model)
-% cv        is this 
+% cv        is this called from a CV routine? 
 %
 % OUTPUT
 %
@@ -31,7 +31,6 @@ if isfield(hmm.train,'nessmodel'), nessmodel = hmm.train.nessmodel;
 else, nessmodel = 0; 
 end
 if nessmodel, rangeK = 1:K+1; else, rangeK = 1:K; end
-n_argout = nargout;
 
 if ~isfield(hmm,'train')
     if nargin<5 || isempty(options)
@@ -174,7 +173,7 @@ if hmm.train.useParallel==1 && N>1
         xit = []; llt = [];
         if order>0
             R = [zeros(order,size(residuals_copy{j},2));  residuals_copy{j}];
-            if ~isempty(C_copy)
+            if ~isempty(C_copy{j})
                 C = [zeros(order,K); C_copy{j}];
             else
                 C = NaN(size(R,1),K);
@@ -185,7 +184,7 @@ if hmm.train.useParallel==1 && N>1
             else
                 R = residuals_copy{j};
             end
-            if ~isempty(C_copy)
+            if ~isempty(C_copy{j})
                 C = C_copy{j};
             else
                 C = NaN(size(R,1),K);
@@ -373,10 +372,14 @@ else
             end
         end
     end
+    
 end
 
 % join
 Gamma = cell2mat(Gamma);
+%                         sum(Gamma)
+%                         [sum(abs(hmm.state_shared(1).Mu_W(1:10)))  ...
+%                             sum(abs(hmm.state_shared(2).Mu_W(1:10))) ]
 LL = cell2mat(LL);
 if ~mixture_model, Xi = cell2mat(Xi); end
 
