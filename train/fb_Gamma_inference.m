@@ -1,5 +1,8 @@
-function [Gamma,Xi,L] = fb_Gamma_inference(XX,hmm,residuals,slicepoints,constraint,cv)
+function [Gamma,Xi,scale] = fb_Gamma_inference(XX,hmm,residuals,slicepoints,constraint,cv)
 % inference using normal forward backward propagation
+% Gamma: state time courses
+% Xi: joint probability for t and t+1
+% scale: likelihood
 
 %p = hmm.train.lowrank; do_HMM_pca = (p > 0);
 %
@@ -38,7 +41,7 @@ if ~isfield(hmm,'cache'), hmm.cache = []; end
 
 try
     if ~isfield(hmm.train,'distribution') || ~strcmp(hmm.train.distribution,'logistic')
-        L = obslike([],hmm,residuals,XX,hmm.cache);
+        L = obslike([],hmm,residuals,XX,hmm.cache,cv);
     else
         L = obslikelogistic([],hmm,residuals,XX,slicepoints);
     end
@@ -47,7 +50,7 @@ catch
 end
 
 if isfield(hmm.train,'id_mixture') && hmm.train.id_mixture
-    Gamma = id_Gamma_inference(L,Pi,order);
+    [Gamma,scale] = id_Gamma_inference(L,Pi,order);
     return
 end
 
@@ -116,5 +119,7 @@ else
         Xi(i-order,:) = t(:)'/sum(t(:));
     end
 end
+
+scale = scale(1+order:end);
 
 end

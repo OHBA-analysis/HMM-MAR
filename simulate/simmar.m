@@ -1,4 +1,4 @@
-function [X,options] = simmar(data,T,Tnew,options)
+function [X,W,options] = simmar(data,T,Tnew,options)
 %
 % Simulate data from one single MAR state, which parameters will be
 % estimated from the data
@@ -14,6 +14,7 @@ function [X,options] = simmar(data,T,Tnew,options)
 %
 % OUTPUTS
 % X                     simulated observations
+% W                     autoregressive parameters
 %
 % Author: Diego Vidaurre, OHBA, University of Oxford (2017)
 
@@ -96,9 +97,9 @@ if options.order > 0 % a MAR is generating the data
     X = zeros(sum(Tnew),ndim);
     for n = 1:Nnew
         Xin = mvnrnd(repmat(mu,d+Tnew(n),1),C);
-        for t=maxorder+1:Tnew(n)+d
+        for t = maxorder+1:Tnew(n)+d
             XX = ones(1,length(orders)*ndim+nz);
-            for i=1:length(orders)
+            for i = 1:length(orders)
                 o = orders(i);
                 XX(1,(1:ndim) + (i-1)*ndim + nz) = Xin(t-o,:);
             end

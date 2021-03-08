@@ -9,11 +9,10 @@ for k = 1:K
     setstateoptions
     if p > 0 % pcaHMM
         for n = 1:size(hmm.state(k).W.S_W,2)
-            Cov = permute(hmm.state(k).W.S_W(n,:,:),[2 3 1]);
-            Cov = Cov + 0.001 * eye(length(Cov));
-            Cov = (Cov' + Cov)/2; 
-            hmm.state(k).W.Mu_W(n,:) = hmm.state(k).W.Mu_W(n,:) + ...
-                epsilon * mvnrnd(hmm.state(k).W.Mu_W(n,:),Cov);
+            Cov = 0.001 * var(hmm.state(k).W.Mu_W(:,n)) * ...
+                eye(size(hmm.state(1).W.Mu_W,1));
+            hmm.state(k).W.Mu_W(:,n) = hmm.state(k).W.Mu_W(:,n) + ...
+                epsilon * mvnrnd(hmm.state(k).W.Mu_W(:,n),Cov)';
         end
     elseif isfield(hmm.state(k),'W') && ~isempty(hmm.state(k).W.Mu_W)
         if length(size(hmm.state(k).W.S_W)) == 3 || ...
