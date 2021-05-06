@@ -153,7 +153,11 @@ else
     end
     
     % 2. Run the rest of the inference
-    options.updateObs = 0;
+    if options.cyc==1
+        options.updateObs = 0;
+    else % STRM model inference requires multiple cycles with updates to converge:
+        options.updateObs = 1;
+    end
     options.updateGamma = 1;
     options.updateP = 1;
     options.hmm = tuda;
