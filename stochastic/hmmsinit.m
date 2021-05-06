@@ -338,7 +338,8 @@ for rep = 1:options.BIGinitrep
         [Gamma,~,Xi] = hsinference(data,Ti,hmm_init_i,Y,[],XX);
         checkGamma(Gamma,Ti,hmm_init_i.train,i);
         subjfe_init(i,1:2) = evalfreeenergy([],Ti,Gamma,Xi,hmm_init_i,[],[],[1 0 1 0 0]); % Gamma entropy&LL
-        loglik_init(i) = evalfreeenergy([],Ti,Gamma,Xi,hmm_init_i,Y,XX,[0 1 0 0 0]);
+        [~,ll] = evalfreeenergy([],Ti,Gamma,Xi,hmm_init_i,Y,XX,[0 1 0 0 0]);
+        loglik_init(i) = sum(ll);
         maxFO(i) = mean(getMaxFractionalOccupancy(Gamma,Ti,options));
     end
     subjfe_init(:,3) = evalfreeenergy([],[],[],[],hmm_init,[],[],[0 0 0 1 0]) / N; % "share" P and Pi KL
