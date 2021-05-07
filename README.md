@@ -1,3 +1,5 @@
+UPDATING TO THE LATEST VERSION IS STRONGLY RECOMMENDED, DUE TO AN ERROR THAT WAS INTRODUCED AT THE END OF JANUARY 2021, AND CLANED AT THE END OF MARCH 2021.
+
 ### HMM-MAR
 
 Please check the [Wiki](https://github.com/OHBA-analysis/HMM-MAR/wiki) for the latest documentation, including some basic introduction to the method. If you have issues of questions, it is possible to email us, but please better use the Issues tab on github, so that others can see the response as well. 
