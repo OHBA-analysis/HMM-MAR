@@ -1,7 +1,8 @@
 function [predictedY,predictedYD,YD,stats] = predictPhenotype (Yin,Din,options,varargin)
 %
 % Kernel ridge regression or nearest-neighbour estimation using
-% a distance matrix using (stratified) LOO 
+% a distance matrix using (stratified) LOO. 
+% Using this means that the HMM was run once, out of the cross-validation loop
 %
 % INPUT
 % Yin       (no. subjects by 1) vector of phenotypic values to predict,
