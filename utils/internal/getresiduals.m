@@ -18,13 +18,13 @@ if nargin<10, W = []; end
 
 N = length(T);
 
-if any(Sind(:)==0) 
+if isempty(Sind) || any(Sind(:)==0) 
     [~,order] = formorders(order,orderoffset,timelag,exptimelag);
     if isempty(W)
-        [W,~,~,residuals] = mlmar(X,T,Sind==0,maxorder,order,orderoffset,timelag,...
+        [W,~,~,residuals] = mlmar(X,maxorder,T,Sind==0,order,orderoffset,timelag,...
         exptimelag,zeromean);
     else
-        [~,~,~,residuals] = mlmar(X,T,Sind==0,maxorder,order,orderoffset,timelag,...
+        [~,~,~,residuals] = mlmar(X,maxorder,T,Sind==0,order,orderoffset,timelag,...
             exptimelag,zeromean,W);
     end
 else
