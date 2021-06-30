@@ -104,7 +104,7 @@ else, verbose = options.verbose; end
 
 % check correlation structure
 allcs = []; 
-if (nargin>4) && ~isempty(varargin{1})
+if (nargin>3) && ~isempty(varargin{1})
     cs = varargin{1};
     if ~isempty(cs)
         is_cs_matrix = (size(cs,2) == size(cs,1));
@@ -124,7 +124,7 @@ else, cs = [];
 end
 
 % get confounds
-if (nargin>5) && ~isempty(varargin{2})
+if (nargin>4) && ~isempty(varargin{2})
     confounds = varargin{2};
     confounds = confounds - repmat(mean(confounds),N,1);
     deconfounding = 1;
@@ -308,10 +308,10 @@ for ifold = 1:length(folds)
         YD(J,ii) = Yin(J,ii);
         YmeanD(J,ii) = Ymean(J,ii);
         if deconfounding % in order to later estimate prediction accuracy in deconfounded space
-            [~,~,YD(J,ii)] = deconfoundPhen(YD(J,ii),confounds(J,ii),betaY,interceptY);
+            [~,~,YD(J,ii)] = deconfoundPhen(YD(J,ii),confounds(J,:),betaY,interceptY);
             % original space
-            predictedY(J,ii) = confoundPhen(predictedY(J,ii),confounds(J,ii),betaY,interceptY);
-            Ymean(J,ii) = confoundPhen(YmeanD(J,ii),confounds(J,ii),betaY,interceptY);
+            predictedY(J,ii) = confoundPhen(predictedY(J,ii),confounds(J,:),betaY,interceptY);
+            Ymean(J,ii) = confoundPhen(YmeanD(J,ii),confounds(J,:),betaY,interceptY);
         end
     
 %     if biascorrect % we do this in the original space
