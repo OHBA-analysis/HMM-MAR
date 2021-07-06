@@ -182,7 +182,8 @@ Gammasum = sum(Gamma); % if nessmodel, Gammasum doesn't sum up to T
 
 % W
 if nessmodel
-    hmm = initW_ness(hmm,XX,residuals,Gamma,Sind);
+    hmm = initW_ness(hmm,XX,residuals,Gamma,Sind,...
+        hmm.train.ness_regularisation_baseline);
 else
     hmm = initW_hmm(hmm,XX,XXGXX,residuals,Gamma,Sind);
 end
@@ -191,7 +192,7 @@ end
 if strcmp(hmm.train.covtype,'uniquediag') && nessmodel
     if hmm.train.uniqueAR, error('Not yet implemented'); end
     hmm.Omega.Gam_shape = hmm.prior.Omega.Gam_shape + Tres / 2;
-    e = residuals(:,regressed) - computeStateResponses(XX,hmm,Gamma(:,1:end-1));
+    e = residuals(:,regressed) - computeStateResponses(XX,hmm,Gamma);
     hmm.Omega.Gam_rate = zeros(1,ndim);
     hmm.Omega.Gam_rate(regressed) = hmm.prior.Omega.Gam_rate(regressed) + 0.5 * sum(e.^2);
     
@@ -382,27 +383,28 @@ end
 % end
 
 
-function hmm = initW_ness(hmm,XX,residuals,Gamma,Sind)
+function hmm = initW_ness(hmm,XX,residuals,Gamma,Sind,lambda)
 
 K = size(Gamma,2);
 np = size(XX,2); ndim = size(residuals,2);
 
 % baseline
-hmm.state(end).W.Mu_W = pinv(XX) * residuals;
-gram = XX' * XX;
+gram = (XX' * XX); 
+gram = (gram + gram') / 2 ;
+gram = gram + trace(gram) * lambda * eye(np);
+igram = inv(gram);
+hmm.state(end).W.Mu_W = igram * (XX' * residuals);
 for n = 1:ndim
     hmm.state(end).W.iS_W(n,:,:) = gram;
-    hmm.state(end).W.S_W(n,:,:) = inv(gram);
+    hmm.state(end).W.S_W(n,:,:) = igram;
 end
 
 % rest
 X = zeros(size(XX,1),np * K);
-Xs = zeros(size(XX,1),np * K);
 for k = 1:K
     X(:,(1:np) + (k-1)*np) = bsxfun(@times, XX, Gamma(:,k));
-    Xs(:,(1:np) + (k-1)*np) = bsxfun(@times, XX, sqrt(Gamma(:,k)));
 end
-gram = Xs' * Xs;
+gram = X' * X;
 
 for n = 1:ndim
     Sind_all = [];
@@ -425,6 +427,14 @@ for k = 1:K
         hmm.state(k).W.Mu_W(:,n) = hmm.state_shared(n).Mu_W(ind);
         hmm.state(k).W.iS_W(n,:,:) = hmm.state_shared(n).iS_W(ind,ind);
         hmm.state(k).W.S_W(n,:,:) = hmm.state_shared(n).S_W(ind,ind);
+    end
+end
+
+if ndim == 1 
+    for k = 1:K+1
+        hmm.state(k).W.iS_W = squeeze(hmm.state(k).W.iS_W);
+        hmm.state(k).W.S_W = squeeze(hmm.state(k).W.S_W);
+        hmm.state(k).W.Mu_W = squeeze(hmm.state(k).W.Mu_W);
     end
 end
 
