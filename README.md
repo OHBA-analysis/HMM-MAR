@@ -2,7 +2,7 @@ UPDATING TO THE LATEST VERSION IS STRONGLY RECOMMENDED, DUE TO AN ERROR THAT WAS
 
 **HMM-MAR**
 
-Please check the [Wiki](https://github.com/OHBA-analysis/HMM-MAR/wiki) for the latest documentation, including some basic introduction to the method. If you have problems or questions, please use the [Issues](https://github.com/OHBA-analysis/HMM-MAR/issues) tab on github, so that others can see the response as well.
+Please check the [Wiki](https://github.com/OHBA-analysis/HMM-MAR/wiki) for the latest documentation, including some basic introduction to the method. If you have problems or questions, use the [Issues](https://github.com/OHBA-analysis/HMM-MAR/issues) tab on github, so that others can see the response as well; but please first check if the question has been responded already [here](https://github.com/OHBA-analysis/HMM-MAR/issues?q=is%3Aissue+is%3Aclosed).   
 
 Note: the name of the toolbox is mantained only for historical reasons, and currently contains other observation models other than the multivariate autoregressive model (MAR).
 
