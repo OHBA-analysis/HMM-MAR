@@ -19,7 +19,7 @@ for n = 1:length(T)
             break
         catch
             fo = fo - 1;
-            if fo<1, error('Filtering error, wrong dimensions?'); end
+            if fo<1, error('Filtering error, wrong dimensions? wrong data type? data must be double precision'); end
             [Bn, An] = buttfilter(fo,freqbands,Fn);
             continue;
         end
