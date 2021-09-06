@@ -1,7 +1,7 @@
 function [predictedY,predictedYD,YD,stats] = predictPhenotype (Yin,Din,options,varargin)
 %
-% Kernel ridge regression or nearest-neighbour estimation using
-% a distance matrix using (stratified) LOO 
+% Kernel ridge regression estimation using a distance matrix using (stratified) LOO. 
+% Using this means that the HMM was run once, out of the cross-validation loop
 %
 % INPUT
 % Yin       (no. subjects by 1) vector of phenotypic values to predict,
@@ -87,9 +87,9 @@ else
     sigmafact = options.sigmafact;
 end
 if ~isfield(options,'K')
-    K = 1:min(50,round(0.5*N));
+    KN = 1:min(50,round(0.5*N));
 else
-    K = options.K; 
+    KN = options.K; 
 end
 
 if ~isfield(options,'CVscheme'), CVscheme = [10 10];
@@ -98,12 +98,12 @@ if ~isfield(options,'CVfolds'), CVfolds = [];
 else, CVfolds = options.CVfolds; end
 % if ~isfield(options,'biascorrect'), biascorrect = 0;
 % else, biascorrect = options.biascorrect; end
-if ~isfield(options,'verbose'), verbose = 1;
+if ~isfield(options,'verbose'), verbose = 0;
 else, verbose = options.verbose; end
 
 % check correlation structure
 allcs = []; 
-if (nargin>4) && ~isempty(varargin{1})
+if (nargin>3) && ~isempty(varargin{1})
     cs = varargin{1};
     if ~isempty(cs)
         is_cs_matrix = (size(cs,2) == size(cs,1));
@@ -123,7 +123,7 @@ else, cs = [];
 end
 
 % get confounds
-if (nargin>5) && ~isempty(varargin{2})
+if (nargin>4) && ~isempty(varargin{2})
     confounds = varargin{2};
     confounds = confounds - repmat(mean(confounds),N,1);
     deconfounding = 1;
@@ -220,7 +220,7 @@ for ifold = 1:length(folds)
                 
                 QJ = Qfolds{Qifold}; Qji=setdiff(1:QN,QJ);
                 QD = QDin(Qji,Qji);
-                QY = QYin(Qji,:); Qmy = mean(QY); QY=QY-Qmy;
+                QY = QYin(Qji,:); Qmy = mean(QY); QY = QY-Qmy;
                 Nji = length(Qji);
                 QD2 = QDin(QJ,Qji);
                 
@@ -293,7 +293,7 @@ for ifold = 1:length(folds)
 %         end
 %             
 %         [~,ik] = min(Dev); % Pick the one with the lowest deviance
-%         k = K(ik);
+%         k = KN(ik);
 %         for j = 1:length(J)
 %             [~,order] = sort(D(:,j));
 %             Yordered = Y(order,:);
@@ -307,10 +307,10 @@ for ifold = 1:length(folds)
         YD(J,ii) = Yin(J,ii);
         YmeanD(J,ii) = Ymean(J,ii);
         if deconfounding % in order to later estimate prediction accuracy in deconfounded space
-            [~,~,YD(J,ii)] = deconfoundPhen(YD(J,ii),confounds(J,ii),betaY,interceptY);
+            [~,~,YD(J,ii)] = deconfoundPhen(YD(J,ii),confounds(J,:),betaY,interceptY);
             % original space
-            predictedY(J,ii) = confoundPhen(predictedY(J,ii),confounds(J,ii),betaY,interceptY);
-            Ymean(J,ii) = confoundPhen(YmeanD(J,ii),confounds(J,ii),betaY,interceptY);
+            predictedY(J,ii) = confoundPhen(predictedY(J,ii),confounds(J,:),betaY,interceptY);
+            Ymean(J,ii) = confoundPhen(YmeanD(J,ii),confounds(J,:),betaY,interceptY);
         end
     
 %     if biascorrect % we do this in the original space
@@ -328,7 +328,7 @@ for ifold = 1:length(folds)
     
     end
     
-    disp(['Fold ' num2str(ifold) ])
+    %disp(['Fold ' num2str(ifold) ])
     
 end
 

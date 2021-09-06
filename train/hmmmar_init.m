@@ -101,6 +101,9 @@ if init_k < options.K
 end
 
 data.C = data.C(:,1:options.K);
+if ~isfield(options,'ness_priorOFFvsON'), ness_priorOFFvsON = []; 
+else, ness_priorOFFvsON = options.ness_priorOFFvsON; 
+end
 % Note - initGamma_random uses DD=1 so that there are lots of transition times, which
 % helps the inference not get stuck in a local minimum. options.DirichletDiag is
 % then used inside hmmtrain when computing the free energy
@@ -109,7 +112,7 @@ while keep_trying
     Gamma = initGamma_random(T-options.maxorder,options.K,...
         min(median(double(T))/10,500),...
         options.Pstructure,options.Pistructure,...
-        options.nessmodel,options.priorOFFvsON);
+        options.nessmodel,ness_priorOFFvsON);
     hmm = struct('train',struct());
     hmm.K = options.K;
     hmm.train = options;

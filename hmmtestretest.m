@@ -145,12 +145,12 @@ end
 
 % re-order the states
 for irun = 2:nrep
-    [~,assig, Gamma{irun}] = getGammaSimilarity (Gamma(1:irun-1), Gamma{irun});
-    hmm{irun}.state(assig) = hmm{irun}.state;
-    hmm{irun}.Pi(assig) = hmm{irun}.Pi;
-    hmm{irun}.Dir_alpha(assig) = hmm{irun}.Dir_alpha; 
-    hmm{irun}.P(assig,assig) = hmm{irun}.P;
-    hmm{irun}.Dir2d_alpha(assig,assig) = hmm{irun}.Dir2d_alpha;     
+    [~,assig, Gamma{irun}] = getGammaSimilarity (Gamma{irun-1}, Gamma{irun});
+    hmm{irun}.state = hmm{irun}.state(assig);
+    hmm{irun}.Pi = hmm{irun}.Pi(assig);
+    hmm{irun}.Dir_alpha = hmm{irun}.Dir_alpha(assig); 
+    hmm{irun}.P = hmm{irun}.P(assig,assig);
+    hmm{irun}.Dir2d_alpha = hmm{irun}.Dir2d_alpha(assig,assig);     
 end
 
 % compute final statistic

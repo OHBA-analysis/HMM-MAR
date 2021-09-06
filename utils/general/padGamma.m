@@ -8,7 +8,8 @@ function Gamma = padGamma(Gamma,T,options)
 %
 % Author: Diego Vidaurre, OHBA, University of Oxford (2017)
 
-do_upsample = (isfield(options,'downsample') && options.downsample > 0); 
+% do_upsample = (isfield(options,'downsample') && options.downsample > 0); 
+do_upsample = false; % this doesn't work always so deactivate
 
 do_chop = 0;
 if isfield(options,'embeddedlags') && length(options.embeddedlags) > 1

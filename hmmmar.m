@@ -311,7 +311,11 @@ else
     if isempty(options.Gamma) && isempty(options.hmm) % both unspecified
         if options.K > 1
             Sind = options.Sind;
-            if options.initrep>0 && options.initcyc>0 && options.nessmodel
+            if options.nessmodel && isfield(options,'ness_Gamma_fromhmm')
+                GammaInit = options.ness_Gamma_fromhmm; 
+                options = rmfield(options,'ness_Gamma_fromhmm');
+                GammaInit = hmmmar_init_ness_fromhmm(GammaInit,T,options);
+            elseif options.initrep>0 && options.initcyc>0 && options.nessmodel
                 GammaInit = hmmmar_init_ness(data,T,options,Sind);
             elseif options.initrep>0 && options.initcyc>0 && ...
                     (strcmpi(options.inittype,'HMM-MAR') || strcmpi(options.inittype,'HMMMAR'))
@@ -327,9 +331,14 @@ else
                 error('GMM init is deprecated; use HMM-MAR initialisation instead')
                 %options.Gamma = gmm_init(data,T,options);
             elseif strcmpi(options.inittype,'random') || options.initrep==0 || options.initcyc==0
-                GammaInit = initGamma_random(T-options.maxorder,options.K,...
-                    options.DirichletDiag,options.Pstructure,options.Pistructure,...
-                    options.priorOFFvsON);
+                if options.nessmodel
+                    GammaInit = initGamma_random(T-options.maxorder,options.K,...
+                        options.DirichletDiag,options.Pstructure,options.Pistructure,...
+                        options.ness_priorOFFvsON);
+                else
+                    GammaInit = initGamma_random(T-options.maxorder,options.K,...
+                        options.DirichletDiag,options.Pstructure,options.Pistructure);
+                end
             else
                 error('Unknown init method')
             end

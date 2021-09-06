@@ -1,4 +1,6 @@
 function [assignment,cost] = munkres(costMat)
+% version 2.3 by Yi Cao at Cranfield University on 11th September 2011
+%
 % MUNKRES   Munkres (Hungarian) Algorithm for Linear Assignment Problem. 
 %
 % [ASSIGN,COST] = munkres(COSTMAT) returns the optimal column indices,

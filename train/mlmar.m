@@ -1,4 +1,5 @@
-function [W,covm,pred,residuals,fracerr] = mlmar (X,T,Sind,maxorder,order,orderoffset,timelag,exptimelag,zeromean,W,Gamma)
+function [W,covm,pred,residuals,fracerr] = mlmar (X,maxorder,T,...
+    Sind,order,orderoffset,timelag,exptimelag,zeromean,W,Gamma)
 %
 % Estimates maximum-likelihood (ML) MAR model 
 %
@@ -19,6 +20,10 @@ function [W,covm,pred,residuals,fracerr] = mlmar (X,T,Sind,maxorder,order,ordero
 % Author: Diego Vidaurre, OHBA, University of Oxford
 
 ndim = size(X,2);
+if nargin<2, maxorder = 1; end
+if nargin<3, T = size(X,1); end
+if nargin<4, Sind = []; end
+if nargin<5, order = maxorder; end
 if nargin<6, orderoffset=0; end
 if nargin<7, timelag=1; end
 if nargin<8, exptimelag=1; end

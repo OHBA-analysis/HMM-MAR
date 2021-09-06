@@ -18,78 +18,91 @@ function [X,W,options] = simmar(data,T,Tnew,options)
 %
 % Author: Diego Vidaurre, OHBA, University of Oxford (2017)
 
-N = length(T); Nnew = length(Tnew);
-if isstruct(data), data = data.X; end
-ndim = size(data,2);
-
-% Check data
-if iscell(T)
-    for i = 1:length(T)
-        if size(T{i},1)==1, T{i} = T{i}'; end
-    end
-    if size(T,1)==1, T = T'; end
-    T = cell2mat(T);
-end
-checkdatacell;
-
-% Check options
-if isfield(options,'AR'), options.AR = 0; end
-options = checkspelling(options);
-options.K = 1; options.updateGamma = 0; options.updateP = 0;
-if ~isfield(options,'order')
-    error('In order to sample data from a MAR model, options.order is needed')
-end
-options.DirichletDiag = 100; % this is not used, it's just to stop the warning message
-[options,data] = checkoptions(options,data,T,0);
-if length(options.embeddedlags) > 1
-    error('It is not currently possible to generate data with options.embeddedlags ~= 0');
-end
-
-% Standardise data and control for ackward trials
-data = standardisedata(data,T,options.standardise);
-% Filtering
-if ~isempty(options.filter)
-    data = filterdata(data,T,options.Fs,options.filter);
-end
-% Detrend data
-if options.detrend
-    data = detrenddata(data,T);
-end
-% Leakage correction
-if options.leakagecorr ~= 0
-    data = leakcorr(data,T,options.leakagecorr);
-end
-% Hilbert envelope
-if options.onpower
-    data = rawsignal2power(data,T);
-end
-% Downsampling
-if options.downsample > 0
-    [data,T] = downsampledata(data,T,options.downsample,options.Fs);
-end
-data = data.X;
-
-if options.order > 0
-    orders = formorders(options.order,options.orderoffset,...
-        options.timelag,options.exptimelag);
-    maxorder = max(orders);
-    XX = formautoregr(data,T,orders,maxorder,options.zeromean,0);
-    Y =  getresiduals(data,T,1,max(orders));
-    if isfield(options,'AR') && options.AR
-        for j = 1:ndim
-            ind = (0:options.order-1)*ndim + j;
-            W(ind,j) = pinv(XX(:,ind)) * Y(:,j);
-        end
+Nnew = length(Tnew); do_estimate_W = true;
+if isstruct(data)
+    if isfield(data,'W')
+        W = data.W;  C = data.C; do_estimate_W = false; 
+        ndim = size(W,2); mu = zeros(1,ndim); nz = 0;
+        maxorder = size(W,1)/size(W,2); orders = 1:maxorder; 
     else
-        W = pinv(XX) * Y;
+        data = data.X; 
     end
-    R = Y - XX * W;
-    mu = mean(R);
-    C = cov(R);
-    nz = (~options.zeromean);
-else
-    mu = mean(data);
-    C = cov(data);
+end
+
+if do_estimate_W
+    
+    ndim = size(data,2);
+    
+    % Check data
+    if iscell(T)
+        for i = 1:length(T)
+            if size(T{i},1)==1, T{i} = T{i}'; end
+        end
+        if size(T,1)==1, T = T'; end
+        T = cell2mat(T);
+    end
+    checkdatacell;
+    
+    % Check options
+    if isfield(options,'AR'), options.AR = 0; end
+    options = checkspelling(options);
+    options.K = 1; options.updateGamma = 0; options.updateP = 0;
+    if ~isfield(options,'order')
+        error('In order to sample data from a MAR model, options.order is needed')
+    end
+    options.DirichletDiag = 100; % this is not used, it's just to stop the warning message
+    [options,data] = checkoptions(options,data,T,0);
+    if length(options.embeddedlags) > 1
+        error('It is not currently possible to generate data with options.embeddedlags ~= 0');
+    end
+    
+    % Standardise data and control for ackward trials
+    data = standardisedata(data,T,options.standardise);
+    % Filtering
+    if ~isempty(options.filter)
+        data = filterdata(data,T,options.Fs,options.filter);
+    end
+    % Detrend data
+    if options.detrend
+        data = detrenddata(data,T);
+    end
+    % Leakage correction
+    if options.leakagecorr ~= 0
+        data = leakcorr(data,T,options.leakagecorr);
+    end
+    % Hilbert envelope
+    if options.onpower
+        data = rawsignal2power(data,T);
+    end
+    % Downsampling
+    if options.downsample > 0
+        [data,T] = downsampledata(data,T,options.downsample,options.Fs);
+    end
+    data = data.X;
+    
+    if options.order > 0
+        orders = formorders(options.order,options.orderoffset,...
+            options.timelag,options.exptimelag);
+        maxorder = max(orders);
+        XX = formautoregr(data,T,orders,maxorder,options.zeromean,0);
+        Y =  getresiduals(data,T,1,max(orders));
+        if isfield(options,'AR') && options.AR
+            for j = 1:ndim
+                ind = (0:options.order-1)*ndim + j;
+                W(ind,j) = pinv(XX(:,ind)) * Y(:,j);
+            end
+        else
+            W = pinv(XX) * Y;
+        end
+        R = Y - XX * W;
+        mu = mean(R);
+        C = cov(R);
+        nz = (~options.zeromean);
+    else
+        mu = mean(data);
+        C = cov(data);
+    end
+    
 end
 
 if options.order > 0 % a MAR is generating the data

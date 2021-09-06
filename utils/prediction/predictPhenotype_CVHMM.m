@@ -1,8 +1,15 @@
-function [predictedY,predictedYD,YD,stats] = predictPhenotype_CVall (Yin,Fin,T,...
+function [predictedY,predictedYD,YD,stats] = predictPhenotype_CVHMM (Yin,Fin,T,...
     options_HMM,options_prediction,varargin)
 %
 % Kernel ridge regression or nearest-neighbour estimation using
-% a distance matrix using (stratified) LOO 
+% a distance matrix using (stratified) LOO. 
+% The difference with predictPhenotype.m is that the HMM is run also within
+% the cross-validation scheme (run on training data, reapplied on test), so it's slower. 
+%
+% Since the HMM is purely unsupervised (does not use Yin), it is
+% safe to run it just once, and have only the prediction within the
+% cross-validation loop (whether this is actually OK depends on the specific application). 
+% For this, use computeDistMatrix() and predictPhenotype()
 %
 % INPUT
 % Yin       (no. subjects by no. phenotypes) matrix of phenotypic values to predict,
@@ -10,7 +17,7 @@ function [predictedY,predictedYD,YD,stats] = predictPhenotype_CVall (Yin,Fin,T,.
 %           is to be predicted, then Yin should be encoded by a
 %           (no. subjects by no. classes) matrix, with zeros or ones
 %           indicator entries.
-% Fin       (no. subjects by 1) cell with files of subject data, or data
+% Fin       (no. subjects by 1) cell with (i) files of subject data, or (ii) just the data
 % options   Struct with the prediction options, with fields:
 %   + alpha - for method='KRR', a vector of weights on the L2 penalty on the regression
 %           By default: [0.0001 0.001 0.01 0.1 0.4 0.7 1.0 10 100]

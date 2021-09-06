@@ -81,11 +81,12 @@ if options.nessmodel % NESS specific things
     if isfield(options,'Pistructure')
         error('You cannot constraint the chains with Pistructure in the NESS model')
     end
-    if ~isfield(options,'priorOFFvsON')
-        options.priorOFFvsON = 10 * K; 
+    if ~isfield(options,'ness_priorOFFvsON')
+        options.ness_priorOFFvsON = 10 * K; 
+    end % K*10 times more likely to be OFF
+    if ~isfield(options,'ness_regularisation_baseline')
+        options.ness_regularisation_baseline = 0.1; 
     end % K*10times more likely to be OFF
-else
-    options.priorOFFvsON = [];
 end
     
 % stochastic options
@@ -550,13 +551,7 @@ elseif any(options.S(:)~=1) && ...
     options.S = ones(size(options.S));
 end
 
-S = (options.S==1); npar = sum(S(:)) * options.order;
-if npar > 250
-   warning(['There is a risk of overparametrisation in the MAR model, with ' num2str(npar) ...
-       ' parameters per state'])
-   disp('The time-delay embedded model is recommended in this case (use options.embeddedlags)')
-end
-
+S = (options.S==1); 
 if options.zeromean==0 && any(sum(options.S)==0)
     warning('Ignoring mean for channels for which all columns of S are zero')
 end
@@ -576,6 +571,13 @@ if (strcmp(options.covtype,'full') || strcmp(options.covtype,'uniquefull')) && a
 end
 
 orders = formorders(options.order,options.orderoffset,options.timelag,options.exptimelag);
+npar = sum(S(:)) * length(orders);
+if npar > 250 && (options.K > 1)
+   warning(['There is a risk of overparametrisation in the MAR model, with ' num2str(npar) ...
+       ' parameters per state'])
+   disp('The time-delay embedded model if this is the case (use options.embeddedlags)')
+end
+
 if ~isfield(options,'prior') || isempty(options.prior)
     options.prior = [];
 elseif ~options.uniqueAR && ndim>1

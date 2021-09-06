@@ -33,23 +33,22 @@ else
 end
 
 if hmm.train.downsample > 0
-    downs_ratio = (hmm.train.downsample/hmm.train.Fs);
+    Path = []; Xi = [];
 else
-    downs_ratio = 1;
-end
-
-Xi = [];
-if type==0
-    Path = zeros(downs_ratio * (sum(TT)-length(TT)*L),K,'single');
-    if nargout>=2
-        Xi = zeros(downs_ratio * (sum(TT)-length(TT)*(L+1)),K,K,'single');
+    Xi = [];
+    if type==0
+        Path = zeros(sum(TT)-length(TT)*L,K,'single');
+        if nargout>=2
+            Xi = zeros(sum(TT)-length(TT)*(L+1),K,K,'single');
+        end
+    else
+        Path = zeros(sum(TT)-length(TT)*L,1,'single');
+        if nargout>=2, Xi = []; end
     end
-else
-    Path = zeros(downs_ratio * (sum(TT)-length(TT)*L),1,'single');
-    if nargout>=2, Xi = []; end
 end
 
 tacc = 0; tacc2 = 0;
+
 for i = 1:N
     [X,XX,Y,Ti] = loadfile(Xin{i},T{i},hmm.train);
     if hmm.train.lowrank > 0,  XX = X; end
@@ -67,10 +66,20 @@ for i = 1:N
         data = struct('X',X,'C',NaN(sum(Ti)-length(Ti)*maxorder,K));
         [gamma,~,xi] = hsinference(data,Ti,hmm_i,Y,[],XX);
         checkGamma(gamma,Ti,hmm_i.train,i);
-        Path(t,:) = single(gamma);
-        if nargout>=2 && ~mixture_model, Xi(t2,:,:) = xi; end
+        if hmm.train.downsample > 0
+            Path = cat(1,Path,single(gamma));
+            if nargout>=2 && ~mixture_model, Xi = cat(1,Xi,single(xi)); end
+        else
+            Path(t,:) = single(gamma);
+            if nargout>=2 && ~mixture_model, Xi(t2,:,:) = xi; end
+        end
     else
-        Path(t,:) = hmmdecode(X,Ti,hmm_i,type,Y,0);
+        vp = hmmdecode(X,Ti,hmm_i,type,Y,0);
+        if hmm.train.downsample > 0
+            Path = cat(1,Path,single(vp));
+        else
+            Path(t,:) = vp;
+        end
     end
     
 end

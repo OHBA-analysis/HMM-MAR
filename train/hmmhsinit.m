@@ -21,17 +21,19 @@ if hmm.train.nessmodel
     defhmmprior = struct('Dir2d_alpha',[],'Dir_alpha',[]);
     defhmmprior.Dir_alpha = [0 1];
     defhmmprior.Dir2d_alpha = ones(2);
-    defhmmprior.Dir2d_alpha(eye(2)==1) = hmm.train.DirichletDiag;
-    defhmmprior.Dir2d_alpha(:,2) = defhmmprior.Dir2d_alpha(:,2) * hmm.train.priorOFFvsON;
-    defhmmprior.Dir2d_alpha = defhmmprior.Dir2d_alpha * hmm.train.PriorWeightingP;
+    defhmmprior.Dir2d_alpha(eye(2)==1) = hmm.train.DirichletDiag; % effect on diagonal
+    defhmmprior.Dir2d_alpha(:,2) = defhmmprior.Dir2d_alpha(:,2) * hmm.train.ness_priorOFFvsON; % effect on ->OFF
+    defhmmprior.Dir2d_alpha = defhmmprior.Dir2d_alpha * hmm.train.PriorWeightingP; % importance of prior
+    %%%defhmmprior.Dir2d_alpha = [1000 10; 10 1000];
     for k = 1:hmm.K+1
         hmm.state(k).prior = defhmmprior;
     end
     % assigning default priors for hidden state
     if nargin > 1 && ~isempty(GammaInit) && hmm.train.updateP
         hmm = hsupdate_ness([],GammaInit,T,hmm);
-    else
+    else % this is reached basically if it's a warm restart
         % State transitions
+        k = hmm.K+1;
         hmm.state(k).Dir2d_alpha = defhmmprior.Dir2d_alpha;
         hmm.state(k).P = zeros(2);
         hmm.state(k).Dir2d_alpha(eye(2)==1) = hmm.train.DirichletDiag;

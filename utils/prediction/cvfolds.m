@@ -14,7 +14,7 @@ end
 if isempty(allcs)
     folds = cell(nfolds,1);
     if nfolds==N
-        for j = 1:n, folds{j} = j; end
+        for j = 1:N, folds{j} = j; end
         return
     else
         if q > 1

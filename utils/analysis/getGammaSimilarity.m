@@ -48,7 +48,7 @@ end
 S = K - cost;
 
 if nargout > 2
-    gamma2(:,assig) = gamma2;
+    gamma2 = gamma2(:,assig);
 end
 
 end
