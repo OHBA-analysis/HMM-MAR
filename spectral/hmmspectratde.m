@@ -25,6 +25,9 @@ options.K = length(hmm.state);
 options = checkoptions_spectra(options,[],[],1);
 
 C = getAutoCovMat(hmm,1,0);
+if isfield(options,'M')
+    C = options.M'*C*options.M;
+end
 ndim = size(C,1) / L;
 K = length(hmm.state); 
 
@@ -41,7 +44,7 @@ end
 % w = 2*pi*freqs/Fs;
 
 Nf = round(options.Nf * (Fs/2) / (options.fpass(2) - options.fpass(1)));
-
+% Nf = 2*L; % set to actual model freq resolution
 freqs = linspace(-Fs/2,Fs/2,2*Nf+1);
 freqs = freqs(Nf+2:end);
 indf = (freqs>=options.fpass(1) & freqs<=options.fpass(2));
@@ -59,13 +62,23 @@ for k = 1:K
     
     C = getAutoCovMat(hmm,k,0);
     %C = C(end:-1:1,:);
+    if isfield(options,'M')
+        C = options.M'*C*options.M;
+    end
     
     for j1 = 1:ndim
         for j2 = 1:ndim
             indj1 = (1:L) + (j1-1)*L;
             indj2 = (1:L) + (j2-1)*L;
             Cj = C(indj1,indj2);
-            c = diag(Cj(end:-1:1,:));
+            %c = diag(Cj(end:-1:1,:)); % this is wrong; takes double the timesteps
+            for i=1:(2*L)-1 % this currently only setup for linearly increasing symmetric lags
+                if i<=L
+                    c(i) = mean(diag(Cj(L+1-i:end,1:i)));
+                else
+                    c(i) = mean(diag(Cj(1:2*L-i,i-L+1:end)));
+                end
+            end
             psd = fftshift(fft(c,2*Nf+1));
             fit.state(k).psd(:,j1,j2) = psd(Nf+2:end);
         end
@@ -80,7 +93,7 @@ for k = 1:K
 %         end
 %         fit.state(k).psd(ff,:,:) = A;
 %     end
-    for ff = 1:options.Nf
+    for ff = 1:Nf
         fit.state(k).ipsd(ff,:,:) = inv(permute(fit.state(k).psd(ff,:,:),[3 2 1]));
     end
     for n1 = 1:ndim
