@@ -71,6 +71,7 @@ end
 if isfield(options,'slidingwindow');
     doslidingwindow = true;
     winsize = options.slidingwindow;
+    options = rmfield(options,'slidingwindow');
 else
     doslidingwindow = false;
 end
