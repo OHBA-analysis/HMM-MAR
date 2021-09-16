@@ -572,7 +572,7 @@ end
 
 orders = formorders(options.order,options.orderoffset,options.timelag,options.exptimelag);
 npar = sum(S(:)) * length(orders);
-if npar > 250 && (options.K > 1)
+if npar > 250 && (options.K > 1) && all(options.S(:)==1)
    warning(['There is a risk of overparametrisation in the MAR model, with ' num2str(npar) ...
        ' parameters per state'])
    disp('The time-delay embedded model if this is the case (use options.embeddedlags)')
