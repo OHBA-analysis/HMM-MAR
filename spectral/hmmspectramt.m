@@ -193,7 +193,10 @@ for k = 1:K
             ind_X = (1:TT(c)) + t0;
             t00 = t00 + TT(c); t0 = t0 + TT(c);
             try
-                if sum(Gamma(ind_gamma,k))<10, c = c + 1; continue; end
+                if sum(Gamma(ind_gamma,k))<10, 
+                    c = c + 1; 
+                    continue; 
+                end
                 Xki = X(ind_X,:) .* repmat(Gamma(ind_gamma,k),1,ndim);
             catch
                 error('Index exceeds matrix dimensions - Did you specify options correctly? ')

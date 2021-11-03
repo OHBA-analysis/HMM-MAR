@@ -255,7 +255,11 @@ function preds_hard = hardmax(Y_pred)
 if ndims(Y_pred)>2
     error('Wrong dimensions entered for computing predictions');
 end
-[~,a] = max(Y_pred,[],2);
+if size(Y_pred,2)>1
+    [~,a] = max(Y_pred,[],2);
+else
+    a = Y_pred>0;
+end
 preds_hard = zeros(size(Y_pred));
 for i=1:length(preds_hard)
     preds_hard(i,a(i))=1;

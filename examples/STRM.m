@@ -5,13 +5,16 @@
 % it begins by simulating data and fitting the model to demonstrate how the
 % model works in simple 2D examples (these simulations are those presented
 % in the SI of Higgins et al 2021); it then contains the analysis presented
-% in the paper for the two datasets indicated. These datasets will be made
-% publicly available upon acceptance and links to the data included below.
+% in the paper for the two datasets indicated. 
 %
 % Part 1: Simulations for STRM-Classification model
 % Part 2: Simulations for STRM-Regression model
 % Part 3: Analysis applied to categorical visual stimulus data
 % Part 4: Analysis pipeline for continuous value EEG data
+%
+% The data for parts 3 and 4 are publically available at Mendeley data:
+% Higgins, Cameron (2021), ?STRM_Datasets?, Mendeley Data, V1, 
+% doi: 10.17632/jwjkszg4dx.1
 
 
 %% PART ONE: Simulations for STRM-Classification model:
