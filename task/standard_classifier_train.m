@@ -188,6 +188,11 @@ elseif strcmp(classifier,'LDA')
     options_LDA.standardise = 0;
     options_LDA.K = ttrial;
     options_LDA.Gamma = repmat(eye(ttrial),length(T),1);
+    if isfield(options,'covtype');
+        options_LDA.covtype = options.covtype;
+    else
+        options_LDA.covtype = 'full';
+    end
     X_LDA = reshape(X,[ttrial*N p]);
     Y_LDA = reshape(Y,[ttrial*N Q_star]);
     if options.verbose

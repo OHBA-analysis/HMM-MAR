@@ -187,7 +187,11 @@ elseif strcmp(classifier,'SVM') || strcmp(classifier,'SVM_rbf')
      if options.generalisationplot    
         Y_pred_genplot = reshape(Y_pred_genplot,[ttrial, ttrial*N,q]);
         for t=1:ttrial
-            Y_pred_genplot(t,:,:) = hardmax(squeeze(Y_pred_genplot(t,:,:)));
+            if q>1
+                Y_pred_genplot(t,:,:) = hardmax(squeeze(Y_pred_genplot(t,:,:)));
+            else
+                Y_pred_genplot(t,:,:) = squeeze(Y_pred_genplot(t,:,:))>0;
+            end
         end
     end
 elseif strcmp(classifier,'LDA')
@@ -243,7 +247,11 @@ acc_t = mean(reshape(true_preds,[ttrial,N]),2);
 if options.generalisationplot
     Y_true_genplot = repmat(permute(Ycopy,[4,1,2,3]),[ttrial,1,1,1]);
     Y_pred_genplot = reshape(Y_pred_genplot,[ttrial, ttrial,N,q]);
-    accplot = sum(logical(Y_true_genplot) & logical(Y_pred_genplot),4);
+    if q>1
+        accplot = sum(logical(Y_true_genplot) & logical(Y_pred_genplot),4);
+    else
+        accplot = ~xor(logical(Y_true_genplot),logical(Y_pred_genplot));
+    end
     genplot = squeeze(mean(accplot,3));
 else
     genplot=[];
