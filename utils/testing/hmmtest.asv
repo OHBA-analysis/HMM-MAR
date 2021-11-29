@@ -21,7 +21,7 @@ function tests = hmmtest (Gamma,T,Tsubject,Y,options,hmm,Xi)
 % Tests can be paired (options.paired=1) or unpaired (options.paired=0, by default). 
 % If paired options.pairs is used to mark the pairs. For example, if there
 %  are 4 subjects, then options.pairs = [1 1 2 2 3 3 4 4] if the
-%  paired subjects are consecutive; ie the length of options.pairs
+%  paired subjects are consecutive; the length of options.pairs
 %  is that of the number of subjects.
 %
 % INPUTS:
@@ -40,9 +40,8 @@ function tests = hmmtest (Gamma,T,Tsubject,Y,options,hmm,Xi)
 %           (default 1, if there are at least 2 subjects)
 %   .confounds: (no. trials by q) matrix of confounds that are to be
 %           regressed out before doing the testing (default none)
-%   .paired: paired tests? default: false
+%   .paired: paired tests ?
 %   .pairs: if so, a vector indicating the pairs (eg [ 1 1 2 2 ... ])
-%   .testP: test on the transition probability matrices? 
 % hmm: hmm structure
 % Xi: joint probability of past and future states conditioned on data
 %      (optional and only used if options.testP==true)
@@ -131,7 +130,7 @@ if paired && subjectlevel
    error('paired tests only implemented at the group level') 
 end
 if isfield(options,'testP'), testP = options.testP;
-else, testP = false; 
+else, testP = isfield(options,'testP'); 
 end
 if ~isfield(options,'confounds'), confounds = [];
 else, confounds = options.confounds;
