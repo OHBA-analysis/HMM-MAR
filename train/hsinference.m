@@ -147,7 +147,36 @@ for k = rangeK
     end
 end
 
-if hmm.train.useParallel==1 && N>1
+if hmm.train.acrosstrial_constrained % state probabilities are shared across trials
+    
+    ttrial = T(1)-order; L = zeros(N*ttrial,K);
+    if ~nessmodel
+        for j = 1:N
+            t = (1:ttrial) + (j-1)*ttrial;
+            t2 = (1:ttrial+order) + (j-1)*(ttrial+order);
+            try
+                L(t2,:) = obslike([],hmm,residuals(t,:),XX(t,:),hmm.cache,cv);
+            catch
+                error('obslike function is giving trouble - Out of precision?')
+            end
+        end
+        L = squeeze(sum(reshape(L,ttrial+order,N,K),2));
+    end
+    if nessmodel
+        [Gammastar,Xistar,LL] = fb_Gamma_inference_ness(XX,hmm,residuals,Gamma0,T);
+    else
+        [Gammastar,Xistar,LL] = fb_Gamma_inference_sub(L,hmm.P,hmm.Pi,T(1),order,hmm.train.Gamma_constraint);
+    end
+    Gamma = zeros(ttrial,N,K); Xi = zeros(ttrial-1,N,K,K);
+    for t = 1:ttrial
+        Gamma(t,:,:) = repmat(Gammastar(t,:),N,1); 
+        if t==ttrial, break; end
+        Xi(t,:,:,:) = reshape(repmat(Xistar(t,:,:),N,1),[1,N,K,K]);
+    end
+    Gamma = reshape(Gamma,ttrial*N,K);
+    Xi = reshape(Xi,(ttrial-1)*N,K,K);
+
+elseif hmm.train.useParallel==1 && N>1
     
     % to duplicate this code is really ugly but there doesn't seem to be
     % any other way - more Matlab's fault than mine
@@ -213,7 +242,7 @@ if hmm.train.useParallel==1 && N>1
             if isnan(C(t,1))
                 if nessmodel
                     [gammat,xit,llt] = ...
-                        fb_Gamma_inference_ness(XXt,hmm,R(slicer,:),Gamma0_copy{j}(slicer,:),cv); 
+                        fb_Gamma_inference_ness(XXt,hmm,R(slicer,:),Gamma0_copy{j}(slicer,:)); 
                 else
                     [gammat,xit,llt] = ...
                         fb_Gamma_inference(XXt,hmm,R(slicer,:),slicepoints,hmm.train.Gamma_constraint,cv);
@@ -314,7 +343,7 @@ else
                 if nessmodel
                     Gamma0t = Gamma0(slicepoints,:);
                     [gammat,xit,llt] = ...
-                        fb_Gamma_inference_ness(XXt,hmm,R(slicer,:),Gamma0t,cv);
+                        fb_Gamma_inference_ness(XXt,hmm,R(slicer,:),Gamma0t);
                 else
                     [gammat,xit,llt] = ...
                         fb_Gamma_inference(XXt,hmm,R(slicer,:),slicepoints,hmm.train.Gamma_constraint,cv);
@@ -376,12 +405,11 @@ else
 end
 
 % join
-Gamma = cell2mat(Gamma);
-%                         sum(Gamma)
-%                         [sum(abs(hmm.state_shared(1).Mu_W(1:10)))  ...
-%                             sum(abs(hmm.state_shared(2).Mu_W(1:10))) ]
-LL = cell2mat(LL);
-if ~mixture_model, Xi = cell2mat(Xi); end
+if ~hmm.train.acrosstrial_constrained
+    Gamma = cell2mat(Gamma);
+    LL = cell2mat(LL);
+    if ~mixture_model, Xi = cell2mat(Xi); end
+end
 
 % orthogonalise = 1; 
 % Gamma0 = Gamma; 

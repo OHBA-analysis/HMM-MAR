@@ -17,7 +17,20 @@ function ness = hsupdate_ness(Xi,Gamma,T,ness)
 K = ness.K;
 
 if isempty(Xi)  % non-exact estimation
-    Xi = approximateXi(Gamma,T,ness);
+    order = (sum(T)-size(Gamma,1)) / length(T); 
+    Xi = zeros(sum(T-1-order),K,2,2);
+    for j = 1:length(T)
+        indG = (1:(T(j)-order)) + sum(T(1:j-1)) - (j-1)*order;
+        indXi =  (1:(T(j)-order-1)) + sum(T(1:j-1)) - (j-1)*(order+1);
+        for k = 1:K
+            g = [Gamma(indG,k) (1-Gamma(indG,k))];
+            for t = 1:length(indXi)
+                xi = g(t,:)' * g(t+1,:);
+                xi = xi / sum(xi(:));
+                Xi(indXi(t),k,:,:) = xi;
+            end
+        end
+    end
 end
 if length(size(Xi))==4
     Xi = permute(sum(Xi),[2 3 4 1]);

@@ -54,7 +54,14 @@ if length(options.embeddedlags)>1 && isfield(options,'covtype') && ...
     options.covtype = 'full';
     warning('options.covtype will be set to ''full'' because embeddedlags is used')
 end
-     
+if ~isfield(options,'acrosstrial_constrained'), options.acrosstrial_constrained = 0; end
+if options.acrosstrial_constrained && stochastic_learning
+    error('acrosstrial_constrained not implemented (or necessary) for stochastic learning')
+end
+if ~stochastic_learning && ~isempty(T) && any(T(1)~=T) && options.acrosstrial_constrained
+    error('If acrosstrial_constrained, all elements in T must have the same length')
+end
+
 % display options
 if ~isfield(options,'plotGamma'), options.plotGamma = 0; end
 
@@ -75,19 +82,23 @@ if options.nessmodel % NESS specific things
     if options.sequential
         error('options.nessmodel and options.sequential are not compatible')
     end
-    if isfield(options,'Pstructure')
-        error('You cannot constraint the chains with Pstructure in the NESS model')
+    if isfield(options,'Pstructure') && ~all(options.Pstructure(:)==1)
+        error('Chains cannot be constrained with Pstructure in the NESS model')
     end
-    if isfield(options,'Pistructure')
-        error('You cannot constraint the chains with Pistructure in the NESS model')
+    if isfield(options,'Pistructure') && ~all(options.Pistructure(:)==1)
+        error('Chains cannot be constrained with Pistructure in the NESS model')
     end
     if ~isfield(options,'ness_priorOFFvsON')
-        options.ness_priorOFFvsON = 10 * K; 
+        options.ness_priorOFFvsON = 10 * options.K; 
     end % K*10 times more likely to be OFF
     if ~isfield(options,'ness_regularisation_baseline')
         options.ness_regularisation_baseline = 0.1; 
     end % K*10times more likely to be OFF
 end
+if options.lowrank > 0 && options.acrosstrial_constrained
+    error('HMM_PCA not implemented for acrosstrial_constrained'); 
+end
+
     
 % stochastic options
 if stochastic_learning

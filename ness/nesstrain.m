@@ -20,16 +20,26 @@ function [ness,Gamma,crithist] = nesstrain(data,T,ness,Gamma,residuals)
 
 setxx_ness;
 crithist = []; 
+%e = Inf; 
+
+% for k = 1:3 
+%     ness.state(k).P(1,1) = ness.state(k).P(2,2);
+%     ness.state(k).P(1,2) = ness.state(k).P(2,1);
+% end
+    
 
 for cycle = 1:ness.train.cyc
-    
+        
     if ness.train.updateGamma
         %%% E step - state inference
-        if cycle==16, keyboard; end
         if cycle > 1 && strcmpi(ness.train.stopcriterion,'ChGamma')
             Gamma0 = Gamma;
         end
-        [Gamma,~,Xi] = hsinference(data,T,ness,residuals,[],XX,Gamma);        
+        [Gamma,~,Xi] = hsinference(data,T,ness,residuals,[],XX,Gamma); 
+%         e0 = e;
+%         e = sum(evalfreeenergy_ness(T,Gamma,Xi,ness,residuals,XX));
+%         fprintf('+ cycle %i free energy = %.10g, relative change = %g \n',cycle,e,e0-e);
+
     end
     
     %%% M STEP
@@ -44,28 +54,22 @@ for cycle = 1:ness.train.cyc
     % Transition matrices and initial state
     ness = hsupdate_ness(Xi,Gamma,T,ness);
     
-    %     e0 = e;
-    %     e = sum(evalfreeenergy_ness(T,Gamma,Xi,ness,residuals,XX));
-    % fprintf('+++ cycle %i free energy = %.10g, relative change = %g \n',cycle,e,e0-e);
+%     e0 = e;
+%     e = sum(evalfreeenergy_ness(T,Gamma,Xi,ness,residuals,XX));
+%     fprintf('+++ cycle %i free energy = %.10g, relative change = %g \n',cycle,e,e0-e);
     
     
     % Stopping conditions and reporting
     if strcmpi(ness.train.stopcriterion,'FreeEnergy')
         % computation of free energy is not exact
-        %             crithist(end+1) = sum(evalfreeenergy_ness(T,Gamma,Xi,ness,residuals,XX));
-        %             if cycle > 1
-        %                 chgFrEn = (crithist(end) - crithist(end-1)) ...
-        %                     / abs(crithist(1) - crithist(end));
-        %                 fprintf('cycle %i free energy = %.10g, relative change = %g \n',...
-        %                         cycle,crithist(end),chgFrEn);
-        %                 if (abs(chgFrEn) < ness.train.tol), break; end
-        %             else
-        %                 fprintf('cycle %i free energy = %.10g \n',cycle,crithist(end));
-        %             end
-        if cycle==1, e = Inf; end
-        e0 = e;
-        e = sum(evalfreeenergy_ness(T,Gamma,Xi,ness,residuals,XX));
-        fprintf('+ cycle %i free energy = %.10g, relative change = %g \n',cycle,e,e0-e);
+        crithist(end+1) = sum(evalfreeenergy_ness(T,Gamma,Xi,ness,residuals,XX));
+        fprintf('cycle %i Approx free energy = %.10g \n',cycle,crithist(end));
+        if cycle > 1
+            chgFrEn = (crithist(end) - crithist(end-1)) ...
+                / abs(crithist(1) - crithist(end));
+            if (abs(chgFrEn) < ness.train.tol), break; end
+        end
+        
     elseif strcmpi(ness.train.stopcriterion,'ChGamma')
         if cycle > 1
             crithist(end+1) = mean(sum(abs(Gamma0 - Gamma),2)/2 );
@@ -77,16 +81,14 @@ for cycle = 1:ness.train.cyc
             fprintf('cycle 1  \n')
         end
     else % log likelihood
-        crithist(end+1) = sum(loglik_ness(XX,residuals,T,ness));
+        crithist(end+1) = -sum(evalfreeenergy_ness(T,Gamma,Xi,ness,residuals,...
+            XX,[0 1 1 0 0]));
+        fprintf('cycle %i Approx log likelihood = %.10g \n',cycle,crithist(end));
         if cycle > 1
             chL = (crithist(end) - crithist(end-1)) ...
                 / abs(crithist(1) - crithist(end));
-            fprintf('cycle %i log likelihood = %.10g, relative change = %g \n',...
-                cycle,crithist(end),chL);
             if (abs(chL) < ness.train.tol), break; end
-        else
-            fprintf('cycle %i log likelihood = %.10g \n',cycle,crithist(end));
-        end
+         end
     end
     
     % plot state time courses if requested
@@ -103,7 +105,7 @@ for cycle = 1:ness.train.cyc
     if ~ness.train.updateGamma
         break % one iteration is enough
     end
-    
+
 end
 
 for k = 1:K

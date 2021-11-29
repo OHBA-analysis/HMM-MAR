@@ -1,31 +1,39 @@
-function [Gamma,Xi,L] = fb_Gamma_inference_ness(XX,ness,residuals,Gamma,cv)
+function [Gamma,Xi,L] = fb_Gamma_inference_ness(XX,ness,residuals,Gamma,T)
 % Inference using forward backward propagation for parallel NESS chains
 
 % Note that this is an approximation, so there can be small increments of
 % the free energy in this step. This is because in the free energy we
 % compute the weighted-average response and then get the squared error
-% (and same thing in the update of the state distributions), whereas here 
+% (and same thing in the update of the state distributions), whereas here
 % we do the squaring per chain first. One solution would be to compute the
 % free energy for each combination of states (2^K) and do likewise for the
 % estimation of the states but this is too slow and possibly less accurate
 % in terms of the state estimation. The other solution would be to devise
 % some way to do the forward-backward equations all at once, combining
-% likelihoods and then squaring, but that's not very easy to do. 
-
-if nargin<5, cv = 0; end
+% likelihoods and then squaring, but that's not very easy to do.
 
 order = ness.train.maxorder;
-T = size(residuals,1) + order;
-K = ness.K;
+if nargin<5, T = size(residuals,1) + order; ttrial = size(residuals,1); N = 1;
+else, ttrial = T(1) - order; N = length(T);
+end
+K = ness.K; show_warn = 1;
 
-Xi = zeros(T-1-order,K,4);
+Xi = zeros(ttrial-1,N,K,4);
 
 % bloh = load('/tmp/bloh.mat');
 % sum(evalfreeenergy_ness(bloh.T,Gamma,bloh.Xi,ness,residuals,XX));
+% LK = [];
+% for k = 1:K, LK = [LK obslike_ness(ness,Gamma,residuals,XX,k)]; end
+
 
 for k = 1:K % %randperm(K) % chain K+1 is implicit
-        
-    Lk = obslike_ness(ness,Gamma,residuals,XX,k);
+    
+    Lk = zeros(ttrial * N, 2);
+    
+    for j = 1:N
+        ind = (1:ttrial) + ttrial * (j-1);
+        Lk(ind,:) = obslike_ness(ness,Gamma(ind,:),residuals(ind,:),XX(ind,:),k);
+    end
     
     scale = zeros(T,1);
     alpha = zeros(T,2);
@@ -61,7 +69,7 @@ for k = 1:K % %randperm(K) % chain K+1 is implicit
     Gamma(:,k) = Gamma2(order+1:T,1);
     
     if out_precision
-        xi = approximateXi(Gamma,size(Gamma,1)+order,ness);
+        xi = approximateXi(Gamma2(order+1:T,:),size(Gamma2,1),ness);
         Xi(:,k,:) = reshape(xi,[size(xi,1) size(xi,2)*size(xi,3)]);
         if show_warn
             show_warn = false;

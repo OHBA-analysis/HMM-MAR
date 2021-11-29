@@ -1,7 +1,7 @@
-function avLL = GammaavLL_ness(hmm,Xi)
+function avLL = GammaavLL_ness(ness,Xi)
 % average loglikelihood for state time course
 
-K = hmm.K;
+K = ness.K;
 avLL = 0; 
 
 % ON states
@@ -9,11 +9,11 @@ for k = 1:K
     % first time point is always OFF so it doesn't add
     % avLL remaining time points
     PsiDir2d_alphasum = zeros(2,1);
-    for l = 1:2, PsiDir2d_alphasum(l) = psi(sum(hmm.state(k).Dir2d_alpha(l,:))); end
+    for l = 1:2, PsiDir2d_alphasum(l) = psi(sum(ness.state(k).Dir2d_alpha(l,:))); end
     for l1 = 1:2
         for l2 = 1:2
             avLL = avLL + sum(Xi(:,k,l2,l1)) * ...
-                (psi(hmm.state(k).Dir2d_alpha(l2,l1))-PsiDir2d_alphasum(l2));
+                (psi(ness.state(k).Dir2d_alpha(l2,l1))-PsiDir2d_alphasum(l2));
             if isnan(avLL)
                 error(['Error computing log likelihood of the state time courses  - ' ...
                     'Out of precision?'])

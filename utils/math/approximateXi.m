@@ -1,6 +1,14 @@
-function Xi = approximateXi(Gamma,T,hmm)
-[~,order] = formorders(hmm.train.order,hmm.train.orderoffset,...
-    hmm.train.timelag,hmm.train.exptimelag);
+function Xi = approximateXi(Gamma,T,par)
+if nargin==3
+    if ~isstruct(par)
+        order = par;
+    else
+        [~,order] = formorders(par.train.order,par.train.orderoffset,...
+            par.train.timelag,par.train.exptimelag);
+    end
+else
+    order = 0;
+end
 K = size(Gamma,2);
 % nessmodel = hmm.train.nessmodel;
 % if nessmodel

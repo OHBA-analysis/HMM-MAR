@@ -15,8 +15,8 @@ function [Path,Xi] = hmmdecode(data,T,hmm,type,residuals,preproc)
 %               which the hmm model was trained; 1 by default.
 %
 % OUTPUT
-% vpath         (T x 1) maximum likelihood state sequence (type=1) OR
-% vpath         (T x K) state time courses
+% Path         (T x 1) maximum likelihood state sequence (type=1) OR
+% Path         (T x K) state time courses
 % Xi            joint probability of past and future states conditioned on data
 %                   (empty if Viterbi path is computed) 
 %
