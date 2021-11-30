@@ -232,7 +232,7 @@ if grouplevel
     tests.grouplevel.p_switching_rate = permtest_aux(sr,Y,Nperm,confounds,pairs);
     if testP
         P1 = zeros(K,K,N); 
-        for j = 1:T
+        for j = 1:N
             if isempty(Xi)
                 t2_1 = (1:T(j)-1) + sum(T(1:j-1)); t2_2 = (2:T(j)) + sum(T(1:j-1));
                 xi = Gamma(t2_1,:)' * Gamma(t2_2,:); xi = xi / sum(xi(:)); % approximation
