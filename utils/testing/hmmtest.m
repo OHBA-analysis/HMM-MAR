@@ -34,10 +34,8 @@ function tests = hmmtest (Gamma,T,Tsubject,Y,options,hmm,Xi)
 %   or (no. trials by no. subjects) if testing is  done at the group level.
 % options: testing related options
 %   .Nperm: number of permutations (default 1000)
-%   .subjectlevel: run subject-level tests? 
-%           (default 1 if all subjects have at least 100 trials)
-%   .grouplevel: run group-level tests? 
-%           (default 1, if there are at least 2 subjects)
+%   .subjectlevel: run subject-level tests? if 0, group testing will be done
+%           (if unspecified it will be guessed based on Y)
 %   .confounds: (no. trials by q) matrix of confounds that are to be
 %           regressed out before doing the testing (default none)
 %   .paired: paired tests? default: false
@@ -108,15 +106,13 @@ if ~isfield(options,'Nperm'), Nperm = 1000;
 else, Nperm = options.Nperm;
 end
 if isfield(options,'subjectlevel'), subjectlevel = options.subjectlevel;
-else, subjectlevel = (min(Ntrials_per_subject) > 100);
+else, subjectlevel = ~(size(Y,1) == Nsubj);
 end
 if subjectlevel && min(Ntrials_per_subject)<10
     warning('Not enough trials per subject in order to get subject-specific p-values ')
     subjectlevel = 0;
 end
-if isfield(options,'grouplevel'), grouplevel = options.grouplevel;
-else, grouplevel = (Nsubj > 2); 
-end
+grouplevel = ~subjectlevel;
 if isfield(options,'paired'), paired = options.paired;
 else, paired = false; 
 end
@@ -287,7 +283,6 @@ end
 % options = struct();
 % options.Nperm = 1000;
 % options.subjectlevel = 1; 
-% options.grouplevel = 0; 
 % options.paired = 0; 
 % options.testP = 1;
 % tests = hmmtest (Gamma,T,Tsubject,D,options);
@@ -316,7 +311,6 @@ end
 % options = struct();
 % options.Nperm = 1000;
 % options.subjectlevel = 0; 
-% options.grouplevel = 1; 
 % options.paired = 0; 
 % options.testP = 1;
 % tests2 = hmmtest (Gamma,T,Tsubject,D,options);
