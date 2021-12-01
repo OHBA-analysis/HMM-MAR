@@ -24,7 +24,11 @@ if iscell(T)
     T = cell2mat(T);
 end
 
-K = size(Gamma,2); offset = sum(d); N = length(T); Tshifted = T - offset;
+K = size(Gamma,2); 
+%offset = sum(d); 
+N = length(T);
+%Tshifted = T - offset;
+Tshifted=T;
 
 if do_upsample
     r = options.downsample / options.Fs;
