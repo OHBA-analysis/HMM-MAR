@@ -14,7 +14,8 @@ if nargin < 6, nessmodel = false; end
 if nargin < 7, priorOFFvsON = 3; end 
 
 rng('default')
-rng('shuffle') % make this "truly" random
+%rng('shuffle') % make this "truly" random
+rng(1);
 
 % Form transition probability matrix
 if nessmodel
