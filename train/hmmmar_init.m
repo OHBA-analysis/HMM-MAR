@@ -133,6 +133,7 @@ while keep_trying
         disp('Something strange happened in the initialisation - repeating')
     end
     hmm.train.verbose = options.verbose;
+    hmm.train.cyc = options.cyc;
     hmm.train.plotGamma = options.plotGamma;
 end
 %fe = fehist(end);
