@@ -49,6 +49,8 @@ if ~isfield(options,'econ_embed'), econ_embed = 0;
 else, econ_embed = options.econ_embed; end
 if ~isfield(options,'parallel_trials'), parallel_trials = all(T==T(1)) & length(T)>1;
 else, parallel_trials = options.parallel_trials; end
+if ~isfield(options,'acrosstrial_constrained'), options.acrosstrial_constrained = 0; end
+
 if ~isfield(options,'pca'), pca_opt = 0;
 else, pca_opt = options.pca; end
 if ~isfield(options,'A'), A = [];

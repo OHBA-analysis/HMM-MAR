@@ -71,8 +71,10 @@ if nargin<6 || isempty(XX)
     setxx;
 end
 
-Gamma = cell(N,1);
-LL = cell(N,1);
+if ~hmm.train.acrosstrial_constrained
+    Gamma = cell(N,1);
+    LL = cell(N,1);
+end
 Gammasum = zeros(N,K);
 if ~mixture_model
     Xi = cell(N,1);
@@ -150,7 +152,9 @@ end
 if hmm.train.acrosstrial_constrained % state probabilities are shared across trials
     
     ttrial = T(1)-order; L = zeros(N*ttrial,K);
-    if ~nessmodel
+    if nessmodel
+        [Gammastar,Xistar,LL] = fb_Gamma_inference_ness(XX,hmm,residuals,Gamma0,T);
+    else
         for j = 1:N
             t = (1:ttrial) + (j-1)*ttrial;
             t2 = (1:ttrial+order) + (j-1)*(ttrial+order);
@@ -160,21 +164,30 @@ if hmm.train.acrosstrial_constrained % state probabilities are shared across tri
                 error('obslike function is giving trouble - Out of precision?')
             end
         end
-        L = squeeze(sum(reshape(L,ttrial+order,N,K),2));
-    end
-    if nessmodel
-        [Gammastar,Xistar,LL] = fb_Gamma_inference_ness(XX,hmm,residuals,Gamma0,T);
-    else
+        L = squeeze(sum(reshape(L,[ttrial+order,N,K]),2));
         [Gammastar,Xistar,LL] = fb_Gamma_inference_sub(L,hmm.P,hmm.Pi,T(1),order,hmm.train.Gamma_constraint);
     end
-    Gamma = zeros(ttrial,N,K); Xi = zeros(ttrial-1,N,K,K);
+    Gamma = zeros(ttrial,N,K); 
+    if nessmodel
+        Xi = zeros(ttrial-1,N,K,4);
+    else
+        Xi = zeros(ttrial-1,N,K,K);
+    end
     for t = 1:ttrial
         Gamma(t,:,:) = repmat(Gammastar(t,:),N,1); 
         if t==ttrial, break; end
-        Xi(t,:,:,:) = reshape(repmat(Xistar(t,:,:),N,1),[1,N,K,K]);
+        if nessmodel
+            Xi(t,:,:,:) = reshape(repmat(Xistar(t,:,:),N,1),[1,N,K,4]);
+        else
+            Xi(t,:,:,:) = reshape(repmat(Xistar(t,:,:),N,1),[1,N,K,K]);
+        end
     end
     Gamma = reshape(Gamma,ttrial*N,K);
-    Xi = reshape(Xi,(ttrial-1)*N,K,K);
+    if nessmodel
+        Xi = reshape(Xi,(ttrial-1)*N,K,2,2);
+    else
+        Xi = reshape(Xi,(ttrial-1)*N,K,K);
+    end
 
 elseif hmm.train.useParallel==1 && N>1
     

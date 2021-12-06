@@ -98,7 +98,7 @@ oldMatlab = ~isempty(strfind(ver,'2010')) || ~isempty(strfind(ver,'2010')) ...
     || ~isempty(strfind(ver,'2011')) || ~isempty(strfind(ver,'2012'));
 
 % set the matlab parallel computing environment
-if options.useParallel==1 && usejava('jvm')
+if options.useParallel==1 && usejava('jvm') && N > 1 && ~options.acrosstrial_constrained
     try
         if oldMatlab
             if matlabpool('size')==0
@@ -123,6 +123,9 @@ end
 
 if stochastic_learn
     
+    if options.nessmodel
+        error('Stochastic learning not yet implemented for NESS model')
+    end
     % get PCA pre-embedded loadings
     if length(options.pca_spatial) > 1 || (options.pca_spatial > 0 && options.pca_spatial ~= 1)
         if ~isfield(options,'As')
@@ -397,11 +400,27 @@ else
         hmm_wr.train = options;
         hmm_wr.train.active = train.active;  
         % set priors
-        Dir2d_alpha = hmm_wr.Dir2d_alpha; Dir_alpha = hmm_wr.Dir_alpha; P = hmm_wr.P; Pi = hmm_wr.Pi;
+        if options.nessmodel
+            Dir2d_alpha = cell(options.K,1); P = cell(options.K,1); priors = cell(options.K,1);
+            for k = 1:options.K
+                Dir2d_alpha{k} = hmm_wr.state(k).Dir2d_alpha; P{k} = hmm_wr.state(k).P;
+                priors{k} = hmm_wr.state(k).prior;
+            end
+        else
+            Dir2d_alpha = hmm_wr.Dir2d_alpha; Dir_alpha = hmm_wr.Dir_alpha; P = hmm_wr.P; Pi = hmm_wr.Pi;
+        end
         if isfield(hmm_wr,'prior') && isfield(hmm_wr.prior,'Omega'), Omega_prior = hmm_wr.prior.Omega; end
         if isfield(hmm_wr,'prior'), hmm_wr = rmfield(hmm_wr,'prior'); end
-        hmm_wr = hmmhsinit(hmm_wr); 
-        hmm_wr.Dir2d_alpha = Dir2d_alpha; hmm_wr.Dir_alpha = Dir_alpha; hmm_wr.P = P; hmm_wr.Pi = Pi; 
+        hmm_wr = hmmhsinit(hmm_wr);
+        if options.nessmodel
+            for k = 1:options.K
+                hmm_wr.state(k).Dir2d_alpha = Dir2d_alpha{k}; hmm_wr.state(k).P = P{k};
+                hmm_wr.state(k).prior = priors{k};
+            end
+        else
+            hmm_wr.Dir2d_alpha = Dir2d_alpha; hmm_wr.Dir_alpha = Dir_alpha; hmm_wr.P = P; hmm_wr.Pi = Pi;
+        end
+        
         if exist('Omega_prior','var'), hmm_wr.prior.Omega = Omega_prior; end
         % get residuals
         if ~isfield(options,'distribution') || ~strcmp(options.distribution,'logistic')
@@ -450,7 +469,7 @@ else
             end
         end
     else
-        Xi = []; 
+        Xi = []; residuals = [];
         [hmm,Gamma,fehist] = nesstrain(data,T,hmm_wr,GammaInit,residuals_wr);
     end
     

@@ -2,7 +2,7 @@ function [meand,X] = computeStateResponses(XX,ness,Gamma,baseline)
 
 if nargin < 4 || isempty(baseline), baseline = 1; end 
 
-S = hmm.train.S==1; regressed = sum(S,1)>0;
+S = ness.train.S==1; regressed = sum(S,1)>0;
 K = size(Gamma,2); np = size(XX,2); ndim = length(ness.state_shared); 
 if nargin < 5, regressed = true(1,ndim); end 
 
@@ -31,7 +31,7 @@ for n = find(regressed)
     end
     meand(:,n) = X * W;
 end
-meand = meand(regressed);
+meand = meand(:,regressed);
 
 end
 

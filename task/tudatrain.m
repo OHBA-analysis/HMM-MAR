@@ -129,7 +129,7 @@ end
 options.decodeGamma = 0;
 
 % 0. In case parallel_trials is false and no Gamma was provided
-if isempty(GammaInit) && ~parallel_trials
+if (isempty(GammaInit) && ~parallel_trials) || options.acrosstrial_constrained
     options.updateObs = 1;
     options.updateGamma = 1;
     options.updateP = 1;
@@ -217,12 +217,15 @@ tuda.train.sequential = sequential;
 
 % Explained variance per state, square error &
 % Square error for the standard time point by time point regression
-if parallel_trials
-    [stats.R2_states,stats.R2] = tudaR2(X,Y,T-1,tuda,Gamma);
-    stats.R2_stddec = R2_standard_dec(X,Y,T-1);
-else
-    [stats.R2_states,stats.R2] = tudaR2_continuous(X,Y,tuda,Gamma);
-    stats.R2_stddec = [];
+
+if ~tuda.train.nessmodel
+    if parallel_trials
+        [stats.R2_states,stats.R2] = tudaR2(X,Y,T-1,tuda,Gamma);
+        stats.R2_stddec = R2_standard_dec(X,Y,T-1);
+    else
+        [stats.R2_states,stats.R2] = tudaR2_continuous(X,Y,tuda,Gamma);
+        stats.R2_stddec = [];
+    end
 end
 
 tuda.train.pca = npca;
