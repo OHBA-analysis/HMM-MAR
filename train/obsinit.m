@@ -194,7 +194,7 @@ if strcmp(hmm.train.covtype,'uniquediag') && nessmodel
     hmm.Omega.Gam_shape = hmm.prior.Omega.Gam_shape + Tres / 2;
     e = residuals(:,regressed) - computeStateResponses(XX,hmm,Gamma);
     hmm.Omega.Gam_rate = zeros(1,ndim);
-    hmm.Omega.Gam_rate(regressed) = hmm.prior.Omega.Gam_rate(regressed) + 0.5 * sum(e(:,regressed).^2);
+    hmm.Omega.Gam_rate(regressed) = hmm.prior.Omega.Gam_rate(regressed) + 0.5 * sum(e.^2);
     
 elseif strcmp(hmm.train.covtype,'uniquefull') && nessmodel
     hmm.Omega.Gam_shape = hmm.prior.Omega.Gam_shape + Tres;

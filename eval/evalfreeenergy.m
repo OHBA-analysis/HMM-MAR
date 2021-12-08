@@ -42,7 +42,8 @@ else, Q = ndim; end
 pcapred = hmm.train.pcapred>0;
 if pcapred, M = hmm.train.pcapred; end
 
-Tres = sum(T) - length(T)*hmm.train.maxorder;
+N = length(T); 
+Tres = sum(T) - N*hmm.train.maxorder;
 setstateoptions;
 regressed = sum(S,1)>0;
 ltpi = sum(regressed)/2 * log(2*pi);
@@ -70,13 +71,24 @@ end
 % Entropy of Gamma
 Entr = [];
 if todo(1)==1
-    Entr = GammaEntropy(Gamma,Xi,T,hmm.train.maxorder);
+    if hmm.train.acrosstrial_constrained
+        Entr = GammaEntropy(Gamma(1:T(1)-order,:),Xi(1:T(1)-order-1,:,:),...
+            T(1),hmm.train.maxorder);
+    else
+        Entr = GammaEntropy(Gamma,Xi,T,hmm.train.maxorder);
+    end
 end
 
 % loglikelihood of Gamma
 avLLGamma = [];
 if todo(3)==1
-    avLLGamma = GammaavLL(hmm,Gamma,Xi,T);
+    if hmm.train.acrosstrial_constrained
+        avLLGamma = GammaavLL(hmm,Gamma(1:T(1)-order,:),...
+            Xi(1:T(1)-order-1,:,:),T(1));
+    else
+        avLLGamma = GammaavLL(hmm,Gamma,Xi,T);
+    end    
+    
 end
 
 % P and Pi KL
@@ -201,7 +213,8 @@ if todo(5)==1
                     if train.zeromean==0
                         prior_prec = hs.prior.Mean.iS;
                     end
-                    sigmaterm = (hs.sigma.Gam_shape(regressed,regressed) ./ hs.sigma.Gam_rate(regressed,regressed))';
+                    sigmaterm = (hs.sigma.Gam_shape(regressed,regressed) ./ ...
+                        hs.sigma.Gam_rate(regressed,regressed))';
                     sigmaterm = repmat(sigmaterm(:), length(orders), 1);
                     alphaterm = repmat( (hs.alpha.Gam_shape ./  hs.alpha.Gam_rate), length(sigmaterm), 1);
                     alphaterm = alphaterm(:);
@@ -436,10 +449,14 @@ if todo(2)==1
         end
         avLL = avLL + Gamma(:,k).*(dist - NormWishtrace);
     end
+    if hmm.train.acrosstrial_constrained, avLL = avLL / N; end
     savLL = sum(avLL);
 end
 
 FrEn=[-Entr -savLL -avLLGamma +KLdivTran +KLdiv];
+
+% fprintf(' %.10g + %.10g + %.10g + %.10g + %.10g =  %.10g \n',...
+%     sum(-Entr) ,sum(-savLL) ,sum(-avLLGamma) ,sum(+KLdivTran) ,sum(+KLdiv) ,sum(FrEn));
 
 end
 
