@@ -111,7 +111,7 @@ for k = rangeK
                 Tfactor * c * XX(:,Sind(:,n))'; 
             hmm.state(k).W.Mu_W(Sind(:,n),n) = (sx .* Gamma(:,k)') * residuals(:,n);
         end
-        XW(:,:,k) = XX * hmm.state(k).W.Mu_W;
+        XW(:,:,k) = XX(:,Sind(:,n)) * hmm.state(k).W.Mu_W(Sind(:,n),:);
         
     elseif isfield(train,'distribution') && strcmp(train.distribution,'logistic')
         

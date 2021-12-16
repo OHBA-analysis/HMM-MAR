@@ -1,10 +1,10 @@
 function maps = makeMap(hmm,k,parcellation_file,maskfile,...
-    onconectivity,centermaps,scalemaps,outputfile,wbdir)
+    onconnectivity,centermaps,scalemaps,outputfile,wbdir)
 % Project HMM maps into brain space for visualisation 
 %
 % hmm: hmm struct as comes out of hmmmar, 
-%   or (ndim x states) matrix of activation values (only if (onconectivity==0)
-%   or (ndim x ndim x states) FC matrices (only if (onconectivity>0)
+%   or (ndim x states) matrix of activation values (only if (onconnectivity==0)
+%   or (ndim x ndim x states) FC matrices (only if (onconnectivity>0)
 % k: which state or states to plot, e.g. 1:4. If left empty, then all of them
 % parcellation_file is either a nifti or a cifti file, containing either a
 %   parcellation or an ICA decomposition
@@ -14,18 +14,18 @@ function maps = makeMap(hmm,k,parcellation_file,maskfile,...
 %       (default: 0, unless there's no mean activity to show)
 % scalemaps: whether to scale the maps so that each voxel has variance
 %       equal 1 across maps; (default: 0)
-% onconectivity: whether or not to make the map using connectivity (>0) or mean activity (0). 
-%   If onconectivity==2, then the first eigenvector of the covariance matrix will be used
-%   If onconectivity==20, then the first eigenvector of the correlation matrix will be used. 
-%   If onconectivity==1, then the degree of the covariance matrix will be used. 
-%   If onconectivity==10, then the degree of the correlation matrix will be used. 
-%   If onconectivity==0 and there is no mean activity parameter, then the variance will be used.
+% onconnectivity: whether or not to make the map using connectivity (>0) or mean activity (0). 
+%   If onconnectivity==2, then the first eigenvector of the covariance matrix will be used
+%   If onconnectivity==20, then the first eigenvector of the correlation matrix will be used. 
+%   If onconnectivity==1, then the degree of the covariance matrix will be used. 
+%   If onconnectivity==10, then the degree of the correlation matrix will be used. 
+%   If onconnectivity==0 and there is no mean activity parameter, then the variance will be used.
 %   If there's no mean parameter, it's 1 by default; 
 %   if there's a mean parameter, then it's 0 by default. 
 %   NOTE: the sign of an eigendecomposition is arbitrary. That means that when 
-%       onconectivity==2 or 20, positive areas of the map cannot be
+%       onconnectivity==2 or 20, positive areas of the map cannot be
 %       interpreted as "more" or negative as "less"
-%   NOTE2: when computing the degree (onconectivity==1 or 10), the negative values of the 
+%   NOTE2: when computing the degree (onconnectivity==1 or 10), the negative values of the 
 %       covariance matrix are not considered (i.e. they are put to zero) 
 % outputfile: where to put things (do not indicate extension)
 %   e.g. 'my_directory/maps'
@@ -82,20 +82,20 @@ if isstruct(hmm)
 else
     is_there_mean = (length(size(hmm))==2);
 end
-if nargin < 5 || isempty(onconectivity)
+if nargin < 5 || isempty(onconnectivity)
     if ~do_HMM_pca && is_there_mean
-        disp('onconnectivity option not specified, setting onconectivity = 0..') 
-        onconectivity = 0;
+        disp('onconnectivity option not specified, setting onconnectivity = 0..') 
+        onconnectivity = 0;
     else
-        disp('onconnectivity option not specified, setting onconectivity = 1..') 
-        onconectivity = 1;
+        disp('onconnectivity option not specified, setting onconnectivity = 1..') 
+        onconnectivity = 1;
     end
-elseif ~isstruct(hmm) % onconectivity was specified
-    if length(size(hmm))==3 && ~onconectivity
-        error('Incorrect format for hmm given onconectivity==0')
+elseif ~isstruct(hmm) % onconnectivity was specified
+    if length(size(hmm))==3 && ~onconnectivity
+        error('Incorrect format for hmm given onconnectivity==0')
     end
-    if length(size(hmm))==2 && onconectivity
-        error('Incorrect format for hmm given onconectivity==1')
+    if length(size(hmm))==2 && onconnectivity
+        error('Incorrect format for hmm given onconnectivity==1')
     end
 end
     
@@ -105,12 +105,12 @@ try
             % hmm is not an array or matrix
             C = getFuncConn(hmm,k,1);
             if k==1, mapsParc = zeros(size(C,1),K); end
-            if onconectivity>0
-                mapsParc(:,k) = connmap(C,onconectivity);
+            if onconnectivity>0
+                mapsParc(:,k) = connmap(C,onconnectivity);
             else
                 mapsParc(:,k) = diag(C);
             end
-        elseif ~onconectivity % always is_there_mean
+        elseif ~onconnectivity % always is_there_mean
             if isstruct(hmm)
                 m = getMean(hmm,k,1);
             else
@@ -118,18 +118,18 @@ try
             end
             if k==1, mapsParc = zeros(length(m),K); end
             mapsParc(:,k) = m;
-        else % onconectivity, 
+        else % onconnectivity, 
             if isstruct(hmm)
                 C = getFuncConn(hmm,k,1);
             else
                 C = hmm(:,:,k);            
             end
             if k==1, mapsParc = zeros(size(C,1),K); end
-            mapsParc(:,k) = connmap(C,onconectivity);
+            mapsParc(:,k) = connmap(C,onconnectivity);
         end
     end
 catch
-    error('Incorrect HMM structure for that option of onconectivity')
+    error('Incorrect HMM structure for that option of onconnectivity')
 end
 
 if q < size(mapsParc,1)

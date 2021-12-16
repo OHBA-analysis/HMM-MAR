@@ -1,4 +1,4 @@
-function Gamma = cluster_decoding(X,Y,T,K,cluster_method,... 
+function [Gamma,beta] = cluster_decoding(X,Y,T,K,cluster_method,... 
     cluster_measure,Pstructure,Pistructure,GammaInit,repetitions,nwin)
 % clustering of the time-point-by-time-point regressions, which is
 % temporally constrained unlike TUDA
@@ -18,12 +18,13 @@ function Gamma = cluster_decoding(X,Y,T,K,cluster_method,...
 N = length(T); p = size(X,2); q = size(Y,2); ttrial = T(1);
 
 if nargin<5, cluster_method = 'regression'; end
-if nargin>=6 && ~isempty(cluster_measure) && strcmp(cluster_method,'regression')
-    warning('cluster_measure is not used when cluster_method is regression')
+if nargin>=6 && ~isempty(cluster_measure) && ...
+        (strcmp(cluster_method,'regression') || strcmp(cluster_method,'hmm'))
+    warning('cluster_measure is not used when cluster_method is regression pr hmm')
 end
 if nargin<6 || isempty(cluster_measure), cluster_measure = 'error'; end
-if nargin<7 || isempty(Pstructure), Pstructure = true(K,1); end
-if nargin<8 || isempty(Pistructure), Pistructure = true(K); end
+if nargin<7 || isempty(Pstructure), Pstructure = true(K); end
+if nargin<8 || isempty(Pistructure), Pistructure = true(K,1); end
 if nargin<9 || isempty(GammaInit), GammaInit = []; end
 if nargin<10 || isempty(repetitions), repetitions = 100; end
 if nargin<11 || isempty(nwin), swin = 1; 
@@ -51,7 +52,86 @@ if swin > 1
    ttrial = nwin; N = N*swin; T = nwin * ones(N,1);
 end
 
-if strcmp(cluster_method,'regression')
+beta = zeros(p,q,K);
+
+if strcmp(cluster_method,'hmm')
+    if swin>1, error('nwin not implemented'); end
+    
+    max_cyc = 100; tol = 1e-3; reg_parameter = 1e-5;
+    if isempty(GammaInit)
+        Gamma = cluster_decoding(reshape(X,[ttrial*N p]),reshape(Y,[ttrial*N q]),...
+            T,K,'sequential',[],[],[],[],10,1);
+    else
+        Gamma = GammaInit;
+    end
+    assig = zeros(ttrial,1);
+    for t=1:ttrial, assig(t) = find(Gamma(t,:)==1); end
+    j1 = assig(1);
+    if ~Pistructure(j1) % is it consistent with constraint?
+        j = find(Pistructure,1);
+        Gamma_j = Gamma(:,j);
+        Gamma(:,j) = Gamma(:,j1);
+        Gamma(:,j1) = Gamma_j;
+        for t=1:ttrial, assig(t) = find(Gamma(t,:)==1); end
+    end
+    L = zeros(ttrial,K);
+    Xstar = reshape(X,[ttrial*N p]);
+    Ystar = reshape(Y,[ttrial*N q]);
+    %Gamma(:) = 0; 
+    %for k = 1:10, Gamma((1:10)+(k-1)*10,k) = 1; end
+    Gamma_last = Gamma; 
+    for cyc = 1:max_cyc
+        if 1
+            area(Gamma)
+            drawnow
+            pause(1)
+            cyc
+        end
+        % M - beta and sigma
+        Gammastar = zeros(ttrial,N,K);
+        for t = 1:ttrial, Gammastar(t,:,:) = repmat(Gamma(t,:),N,1); end
+        Gammastar = reshape(Gammastar,ttrial*N,K);
+        rate_sigma = zeros(1, q); shape_sigma = 0.5 * ttrial*N;
+        e = zeros(ttrial*N, q, K);
+        for k = 1:K
+            iC = (bsxfun(@times, Xstar, Gammastar(:,k))' * Xstar) + reg_parameter * eye(p);
+            beta(:,:,k) = ((iC \ Xstar') .* Gammastar(:,k)') * Ystar;
+            e(:,:,k) = (Ystar - Xstar * beta(:,:,k));
+            rate_sigma = rate_sigma + 0.5 * sum( bsxfun(@times, e(:,:,k).^2 , Gammastar(:,k)));
+        end
+        sigma = shape_sigma ./ rate_sigma;
+        % M - trans prob mat
+        if cyc == 1
+            Xi = approximateXi(Gamma,ttrial); 
+        end
+        Xi = permute(sum(Xi),[2 3 1]);
+        P = zeros(K); Pi = ones(1,K) / K; % don't update initial state prob
+        for j = 1:K
+            Dir2d_alpha = Xi + ones(K) + eye(K);
+            PsiSum = psi(sum(Dir2d_alpha(j,:)));
+            for k = 1:K
+                if ~Pstructure(j,k), continue; end
+                P(j,k) = exp(psi(Dir2d_alpha(j,k))-PsiSum);
+            end
+            P(j,:) = P(j,:) ./ sum(P(j,:));
+        end
+        % E
+        for k = 1:K % compute likelihood
+            dist = zeros(ttrial*N,1);
+            Cd = bsxfun(@times,sigma,e(:,:,k))';
+            for n = 1:q
+                dist = dist - 0.5 * (e(:,n,k).*Cd(n,:)');
+            end
+            L(:,k) = sum(reshape(dist,ttrial,N),2) + N*q/2 * log(2*pi);
+        end
+        [Gamma,Xi] = fb_Gamma_inference_sub(exp(L),P,Pi);
+        Xi = reshape(Xi,ttrial-1,K,K);
+        % terminate?
+        if sum(abs(Gamma(:)-Gamma_last(:))) < tol, break; end
+        Gamma_last = Gamma;
+    end
+  
+elseif strcmp(cluster_method,'regression')
     max_cyc = 100; reg_parameter = 1e-5; smooth_parameter = 1;
     % start with no constraints
     if isempty(GammaInit)
@@ -71,7 +151,6 @@ if strcmp(cluster_method,'regression')
         for t=1:ttrial, assig(t) = find(Gamma(t,:)==1); end
     end
     assig_pr = assig;
-    beta = zeros(p,q,K);
     err = zeros(ttrial,K);
     for cyc = 1:max_cyc
         if 0
@@ -84,7 +163,7 @@ if strcmp(cluster_method,'regression')
             ind = assig==k;
             Xstar = reshape(X(ind,:,:),[sum(ind)*N p]);
             Ystar = reshape(Y(ind,:,:),[sum(ind)*N q]);
-            beta(:,:,k) = (Xstar' * Xstar + reg_parameter * eye(size(Xstar,2))) \ (Xstar' * Ystar);
+            beta(:,:,k) = (Xstar' * Xstar + reg_parameter * eye(p)) \ (Xstar' * Ystar);
         end
         % E
         Y = reshape(Y,[ttrial*N q]);
@@ -113,11 +192,11 @@ if strcmp(cluster_method,'regression')
     end
     
 elseif strcmp(cluster_method,'hierarchical')
-    beta = zeros(p,q,ttrial);
+    beta_all = zeros(p,q,ttrial);
     for t = 1:ttrial
         Xt = permute(X(t,:,:),[2 3 1]);
         Yt = permute(Y(t,:,:),[2 3 1]);
-        beta(:,:,t) = (Xt' * Xt) \ (Xt' * Yt);
+        beta_all(:,:,t) = (Xt' * Xt) \ (Xt' * Yt);
     end
     if strcmp(cluster_measure,'response')
         dist = zeros(ttrial*(ttrial-1)/2,1);
@@ -125,9 +204,9 @@ elseif strcmp(cluster_method,'hierarchical')
         Xstar = reshape(X,[ttrial*N p]);
         c = 1;
         for t2 = 1:ttrial-1
-            d2 = Xstar * beta(:,:,t2);
+            d2 = Xstar * beta_all(:,:,t2);
             for t1 = t2+1:ttrial
-                d1 = Xstar * beta(:,:,t1);
+                d1 = Xstar * beta_all(:,:,t1);
                 dist(c) = sqrt(sum(sum((d1 - d2).^2)));
                 dist2(t1,t2) = dist(c);
                 dist2(t2,t1) = dist(c);
@@ -144,17 +223,17 @@ elseif strcmp(cluster_method,'hierarchical')
             for t1 = t2+1:ttrial
                 Xt1 = permute(X(t1,:,:),[2 3 1]);
                 Yt1 = permute(Y(t1,:,:),[2 3 1]);
-                error1 = sqrt(sum(sum((Xt1 * beta(:,:,t2) - Yt1).^2)));
-                error2 = sqrt(sum(sum((Xt2 * beta(:,:,t1) - Yt2).^2)));
+                error1 = sqrt(sum(sum((Xt1 * beta_all(:,:,t2) - Yt1).^2)));
+                error2 = sqrt(sum(sum((Xt2 * beta_all(:,:,t1) - Yt2).^2)));
                 dist(c) = error1 + error2; c = c + 1;
                 dist2(t1,t2) = error1 + error2;
                 dist2(t2,t1) = error1 + error2;
             end
         end
     elseif strcmp(cluster_measure,'beta')
-        beta = permute(beta,[3 1 2]);
-        beta = reshape(beta,[ttrial p*q]);
-        dist = pdist(beta);
+        beta_all = permute(beta,[3 1 2]);
+        beta_all = reshape(beta,[ttrial p*q]);
+        dist = pdist(beta_all);
     end
     if iseuclidean(dist')
         link = linkage(dist','ward');
@@ -204,13 +283,27 @@ elseif strcmp(cluster_method,'sequential')
     
 else % 'fixedsequential'
     assig = ceil(K*(1:ttrial)./ttrial);
-
+    
 end
 
-Gamma = zeros(ttrial, K);
-for k = 1:K
-    Gamma(assig==k,k) = 1;
+if ~strcmp(cluster_method,'hmm')
+    Gamma = zeros(ttrial, K);
+    for k = 1:K
+        Gamma(assig==k,k) = 1;
+    end
 end
+
+if ~strcmp(cluster_method,'hmm') && ~strcmp(cluster_method,'regression')
+    reg_parameter = 1e-5;
+    Xstar = reshape(X,[ttrial*N p]);
+    Ystar = reshape(Y,[ttrial*N q]);
+    Gammastar = reshape(permute(repmat(Gamma,[1 1 N]),[3 1 2]),ttrial*N,K);
+    for k = 1:K
+        iC = (bsxfun(@times, Xstar, Gammastar(:,k))' * Xstar) + reg_parameter * eye(p);
+        beta(:,:,k) = ((iC \ Xstar') .* Gammastar(:,k)') * Ystar;
+    end
+end
+
 
 if swin > 1
    Gamma1 = Gamma;

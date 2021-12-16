@@ -1,4 +1,4 @@
-function pval = permtest_aux_NPC(X,D,Nperm,confounds)
+function pval = permtest_aux_NPC(X,D,Nperm,confounds,pairs)
 % permutation testing routine, integrating tests through the NPC algorithm
 % X: data
 % D: design matrix
@@ -14,14 +14,14 @@ function pval = permtest_aux_NPC(X,D,Nperm,confounds)
 
 
 [N,p] = size(X); q = size(D,2);  
-%if nargin<4, grouping = []; end
-if (nargin>4) && ~isempty(confounds)
+if (nargin>3) && ~isempty(confounds)
     confounds = confounds - repmat(mean(confounds),N,1);
     X = bsxfun(@minus,X,mean(X));   
     X = X - confounds * pinv(confounds) * X;
     %D = bsxfun(@minus,D,mean(D));   
     %D = D - confounds * pinv(confounds) * D;    
 end
+paired = (nargin>4) && ~isempty(pairs);
 
 %D = bsxfun(@minus,D,mean(D));   
 X = zscore(X);
@@ -32,6 +32,16 @@ T = zeros(Nperm,1);
 for perm=1:Nperm
     if perm==1
         Xin = X;
+    elseif paired
+        r = 1:N;
+        for j = 1:max(pairs)
+            jj = find(pairs==j);
+            if length(jj) < 2, continue; end
+            if rand<0.5
+                r(jj) = r(jj([2 1]));
+            end
+        end
+        Xin = X(r,:);
     else
         Xin = X(randperm(N),:);
     end

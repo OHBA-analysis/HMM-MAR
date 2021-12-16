@@ -71,7 +71,7 @@ for j = 1:N
         end
         
         % compute the mean response
-        [meand,X] = computeStateResponses(XX,ness,Gamma_c);
+        [meand,X] = computeStateResponses(XXj,ness,Gamma_c);
         d = residualsj(:,regressed) - meand;
         Cd = bsxfun(@times, C(regressed), d)';
         dist = zeros(T(j)-order,1);
@@ -83,7 +83,7 @@ for j = 1:N
         for n = 1:ndim
             if ~regressed(n), continue; end
             Sind_all = [];
-            for k = 1:K+1
+            for k = 1:K
                 Sind_all = [Sind_all; Sind(:,n)];
             end
             Sind_all = Sind_all == 1;

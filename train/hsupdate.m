@@ -19,79 +19,101 @@ function hmm = hsupdate(Xi,Gamma,T,hmm)
 % else
 %     Q = 1;
 % end
-Q = 1; 
+Q = 1;
 N = length(T); K = hmm.K;
+mixture_model = isfield(hmm.train,'id_mixture') && hmm.train.id_mixture;
 [~,order] = formorders(hmm.train.order,hmm.train.orderoffset,...
     hmm.train.timelag,hmm.train.exptimelag);
-embeddedlags = abs(hmm.train.embeddedlags); 
+embeddedlags = abs(hmm.train.embeddedlags);
 L = order + embeddedlags(1) + embeddedlags(end);
 do_clustering = isfield(hmm.train,'cluster') && hmm.train.cluster;
+% if hmm.train.acrosstrial_constrained
+%     Gamma = Gamma(1:T(1)-order,:); T = T(1); N = 1;
+% end
 
-if isempty(Xi) && ~do_clustering % non-exact estimation
-    Xi = approximateXi(Gamma,T,hmm);
-end
-if length(size(Xi))==3
-    Xi = permute(sum(Xi),[2 3 1]);
-end
-
-% transitions
-if do_clustering
-    hmm.Dir2d_alpha = eye(K);
-    hmm.P = eye(K);
-else
-    hmm.Dir2d_alpha = Xi + hmm.prior.Dir2d_alpha;
-    hmm.P = zeros(K);
-    for i = 1:Q
-        for j = 1:K
-            PsiSum = psi(sum(hmm.Dir2d_alpha(j,:,i)));
-            for k = 1:K
-                if ~hmm.train.Pstructure(j,k), continue; end
-                hmm.P(j,k,i) = exp(psi(hmm.Dir2d_alpha(j,k,i))-PsiSum);
-            end
-            hmm.P(j,:,i) = hmm.P(j,:,i) ./ sum(hmm.P(j,:,i));
-        end
-    end
-end
-
-% initial state
-if Q==1, hmm.Dir_alpha = hmm.prior.Dir_alpha;
-else, hmm.Dir_alpha = repmat(hmm.prior.Dir_alpha',[1 Q]);
-end
-i = 1;
-for n = 1:N
-    if Q > 1, i = hmm.train.grouping(n); end
-    %t = sum(T(1:n-1)) - order*(n-1) + 1;
-    if order > 0
-        t = sum(T(1:n-1)) - order*(n-1) + 1;
-    elseif length(embeddedlags) > 1
-        t = sum(T(1:n-1)) - L*(n-1) + 1;
-    else
-        t = sum(T(1:n-1)) + 1;
-    end
-    if Q==1
-        hmm.Dir_alpha = hmm.Dir_alpha + Gamma(t,:);
-    else
-        hmm.Dir_alpha(:,i) = hmm.Dir_alpha(:,i) + Gamma(t,:)';
-    end
-end
-if Q==1
+if mixture_model
+    
+    hmm.Dir_alpha = hmm.prior.Dir_alpha + sum(Gamma);
     hmm.Pi = zeros(1,K);
     PsiSum = psi(sum(hmm.Dir_alpha));
     for k = 1:K
-        if ~hmm.train.Pistructure(k), continue; end
         hmm.Pi(k) = exp(psi(hmm.Dir_alpha(k))-PsiSum);
     end
     hmm.Pi = hmm.Pi ./ sum(hmm.Pi);
+    
 else
-    hmm.Pi = zeros(K,Q);
-    for i = 1:Q
-        PsiSum = psi(sum(hmm.Dir_alpha(:,i)));
+    
+    % Fix Xi
+    if isempty(Xi) && ~do_clustering % non-exact estimation
+        Xi = approximateXi(Gamma,T,hmm);
+    elseif hmm.train.acrosstrial_constrained
+        Xi = Xi(1:T(1)-order-1,:,:);
+    end
+    if length(size(Xi))==3
+        Xi = permute(sum(Xi),[2 3 1]);
+    end
+    
+    % transitions
+    if do_clustering
+        hmm.Dir2d_alpha = eye(K);
+        hmm.P = eye(K);
+    else
+        hmm.Dir2d_alpha = Xi + hmm.prior.Dir2d_alpha;
+        hmm.P = zeros(K);
+        for i = 1:Q
+            for j = 1:K
+                PsiSum = psi(sum(hmm.Dir2d_alpha(j,:,i)));
+                for k = 1:K
+                    if ~hmm.train.Pstructure(j,k), continue; end
+                    hmm.P(j,k,i) = exp(psi(hmm.Dir2d_alpha(j,k,i))-PsiSum);
+                end
+                hmm.P(j,:,i) = hmm.P(j,:,i) ./ sum(hmm.P(j,:,i));
+            end
+        end
+    end
+    
+    
+    % initial state
+    if Q==1, hmm.Dir_alpha = hmm.prior.Dir_alpha;
+    else, hmm.Dir_alpha = repmat(hmm.prior.Dir_alpha',[1 Q]);
+    end
+    i = 1;
+    for n = 1:N
+        if Q > 1, i = hmm.train.grouping(n); end
+        %t = sum(T(1:n-1)) - order*(n-1) + 1;
+        if order > 0
+            t = sum(T(1:n-1)) - order*(n-1) + 1;
+        elseif length(embeddedlags) > 1
+            t = sum(T(1:n-1)) - L*(n-1) + 1;
+        else
+            t = sum(T(1:n-1)) + 1;
+        end
+        if Q==1
+            hmm.Dir_alpha = hmm.Dir_alpha + Gamma(t,:);
+        else
+            hmm.Dir_alpha(:,i) = hmm.Dir_alpha(:,i) + Gamma(t,:)';
+        end
+    end
+    if Q==1
+        hmm.Pi = zeros(1,K);
+        PsiSum = psi(sum(hmm.Dir_alpha));
         for k = 1:K
             if ~hmm.train.Pistructure(k), continue; end
-            hmm.Pi(k,i) = exp(psi(hmm.Dir_alpha(k,i))-PsiSum);
+            hmm.Pi(k) = exp(psi(hmm.Dir_alpha(k))-PsiSum);
         end
-        hmm.Pi(:,i) = hmm.Pi(:,i) ./ sum(hmm.Pi(:,i));
+        hmm.Pi = hmm.Pi ./ sum(hmm.Pi);
+    else
+        hmm.Pi = zeros(K,Q);
+        for i = 1:Q
+            PsiSum = psi(sum(hmm.Dir_alpha(:,i)));
+            for k = 1:K
+                if ~hmm.train.Pistructure(k), continue; end
+                hmm.Pi(k,i) = exp(psi(hmm.Dir_alpha(k,i))-PsiSum);
+            end
+            hmm.Pi(:,i) = hmm.Pi(:,i) ./ sum(hmm.Pi(:,i));
+        end
     end
+    
 end
 
 end

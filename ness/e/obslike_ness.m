@@ -36,11 +36,11 @@ setstateoptions;
 
 for l = 1:2
         
-    if l == 1, Gamma(:,k) = 1;
-    else, Gamma(:,k) = 0;
+    if l == 1, Gamma(:,k) = 1; 
+    else, Gamma(:,k) = 0; 
     end
 
-    [meand,X] = computeStateResponses(XX,ness,Gamma);
+    [meand,X] = computeStateResponses(XX,ness,Gamma,1);
     d = residuals(:,regressed) - meand;
     Cd = bsxfun(@times,C(regressed),d)';
     dist = zeros(T,1);
@@ -52,7 +52,7 @@ for l = 1:2
     for n = 1:ndim
         if ~regressed(n), continue; end
         Sind_all = [];
-        for k2 = 1:K+1
+        for k2 = 1:K
             Sind_all = [Sind_all; Sind(:,n)];
         end
         Sind_all = Sind_all == 1;

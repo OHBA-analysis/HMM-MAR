@@ -1,4 +1,4 @@
-function [gamma, Xi] = hidden_state_inference_mx(B, Pi_0, P, order)
+function [gamma, Xi, scale] = hidden_state_inference_mx(B, Pi_0, P, order)
 %HIDDEN_STATE_INFERENCE using foward-backward propagation
 % [GAMMA,XI,SCALE] = HIDDEN_STATE_INFERENCE_MX(B, PI_0, P, order)
 %    returns the updated object SELF, together with probabilities 

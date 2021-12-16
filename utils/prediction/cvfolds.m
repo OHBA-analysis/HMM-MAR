@@ -2,7 +2,7 @@ function folds = cvfolds(Y,CVscheme,allcs)
 % allcs can be a N x 1 vector with family memberships, an (N x N) matrix
 % with family relationships, or empty.
 
-if nargin<4, allcs = []; end
+if nargin<3, allcs = []; end
 is_cs_matrix = (size(allcs,2) == 2);
 
 [N,q] = size(Y); 

@@ -5,7 +5,7 @@ function Gamma = hmmmar_init_ness(data,T,options,Sind)
 % INPUT
 % data      observations, a struct with X (time series) and C (classes, optional)
 % T         length of observation sequence
-% options,  structure with the training options  
+% options   structure with the training options  
 % Sind
 %
 % OUTPUT
@@ -39,11 +39,11 @@ while r <= options.initrep
     options0.verbose = 0;
     options0.Pstructure = true;
     options0.Pistructure = true;
-    options0.DirichletDiag = 10; 
+    %options0.DirichletDiag = 10; 
     % get the baseline state
     data.C = NaN(Tall,1);
     hmm = run_short_hmm(data,T,options0,Sind);
-    w_bas = hmm.state(1).W.Mu_W(:);
+    w_bas = hmm.state(1).W.Mu_W(:); % the only one state
     data.C = NaN(Tall,2);
     for k = 1:K
         options0.K = k + 1;

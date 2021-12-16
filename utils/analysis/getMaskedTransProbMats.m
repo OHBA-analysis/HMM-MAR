@@ -9,6 +9,8 @@ function [P,Pi] = getMaskedTransProbMats (data,T,hmm,Masks,Gamma,Xi)
 % data          observations; either a struct with X (time series) and C (classes, optional),
 %                             or a matrix containing the time series,
 %                             or a list of file names
+%                   NOTE that this is not used if {hmm,Gamma,Xi} are provided
+%                   as input arguments; in this case it can be left empty
 % T             Number of time points for each time series
 % hmm           An hmm structure 
 % Masks         A cell where each element is a vector containing the indexes

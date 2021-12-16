@@ -19,7 +19,7 @@ function [FrEn,avLL] = evalfreeenergy_ness(T,Gamma,Xi,hmm,residuals,XX,todo)
 %
 % Author: Diego Vidaurre, OHBA, University of Oxford
 
-if nargin<8, todo = ones(1,5); end
+if nargin<7, todo = ones(1,5); end
 
 K = hmm.K;
 
@@ -64,7 +64,7 @@ if todo(5)==1
     WKL = 0;
     for n = 1:ndim
         prior_prec = [];
-        for k = 1:K+1
+        for k = 1:K
             hs = hmm.state(k);
             pr = hmm.state(k).prior;
             if ~regressed(n), continue; end
@@ -80,7 +80,7 @@ if todo(5)==1
             end
         end
         prior_var = diag(1 ./ prior_prec);
-        WKL = WKL + gauss_kl(hmm.state_shared(n).Mu_W,zeros(np*(K+1),1), ...
+        WKL = WKL + gauss_kl(hmm.state_shared(n).Mu_W,zeros(np*K,1), ...
             hmm.state_shared(n).S_W, prior_var);
     end
     KLdiv = [KLdiv WKL];
@@ -153,7 +153,7 @@ if todo(2)==1
             for n = 1:ndim
                 if ~regressed(n), continue; end
                 Sind_all = [];
-                for k = 1:K+1
+                for k = 1:K
                     Sind_all = [Sind_all; Sind(:,n)];
                 end
                 Sind_all = Sind_all == 1;
@@ -162,10 +162,12 @@ if todo(2)==1
                         sum( (X(:,Sind_all) * hmm.state_shared(n).S_W(Sind_all,Sind_all)) ...
                         .* X(:,Sind_all), 2);
                 else
+                    try
                     NormWishtrace = NormWishtrace + 0.5 * C(n) * ...
                         sum( (X(:,Sind_all) * ...
                         hmm.state_shared(n).S_W(Sind_all,Sind_all)) ...
                         .* X(:,Sind_all), 2);
+                    catch,keyboard; end
                 end
             end
             avLL = avLL + Gamma_prod .* (dist - NormWishtrace);
@@ -174,7 +176,7 @@ if todo(2)==1
     else
         
         % compute the mean response
-        [meand,X] = computeStateResponses(XX,hmm,Gamma);
+        [meand,X] = computeStateResponses(XX,hmm,Gamma,1);
         d = residuals(:,regressed) - meand;
         Cd = bsxfun(@times, C(regressed), d)';
         dist = zeros(Tres,1);
@@ -187,7 +189,7 @@ if todo(2)==1
         for n = 1:ndim
             if ~regressed(n), continue; end
             Sind_all = [];
-            for k = 1:K+1
+            for k = 1:K
                 Sind_all = [Sind_all; Sind(:,n)];
             end
             Sind_all = Sind_all == 1;
@@ -212,7 +214,7 @@ if todo(2)==1
     
     FrEn=[-Entr -savLL -avLLGamma +KLdivTran +KLdiv];
     
-    fprintf(' %.10g + %.10g + %.10g + %.10g + %.10g =  %.10g \n',...
-        sum(-Entr) ,sum(-savLL) ,sum(-avLLGamma) ,sum(+KLdivTran) ,sum(+KLdiv) ,sum(FrEn));
+%     fprintf(' %.10g + %.10g + %.10g + %.10g + %.10g =  %.10g \n',...
+%         sum(-Entr) ,sum(-savLL) ,sum(-avLLGamma) ,sum(+KLdivTran) ,sum(+KLdiv) ,sum(FrEn));
     
 end

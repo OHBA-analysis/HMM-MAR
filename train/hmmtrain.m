@@ -160,7 +160,7 @@ for cycle = 1:hmm.train.cyc
         setxx
         hmm = obsupdate(T,Gamma,hmm,residuals,XX,XXGXX);
     end
-    
+  
     % Transition matrices and initial state
     if hmm.train.updateP
         hmm = hsupdate(Xi,Gamma,T,hmm);

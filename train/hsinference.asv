@@ -26,17 +26,18 @@ K = hmm.K;
 p = hmm.train.lowrank; do_HMM_pca = (p > 0);
 if nargin < 7, Gamma0 = []; end
 if nargin < 8, cv = 0; end
+mixture_model = isfield(hmm.train,'id_mixture') && hmm.train.id_mixture;
+if isfield(hmm.train,'nessmodel'), nessmodel = hmm.train.nessmodel; 
+else, nessmodel = 0; 
+end
+if nessmodel, rangeK = 1:K+1; else, rangeK = 1:K; end
+
 if ~isfield(hmm,'train')
     if nargin<5 || isempty(options)
         error('You must specify the field options if hmm.train is missing');
     end
     hmm.train = checkoptions(options,data.X,T,0);
 end
-mixture_model = isfield(hmm.train,'id_mixture') && hmm.train.id_mixture;
-if isfield(hmm.train,'nessmodel'), nessmodel = hmm.train.nessmodel; 
-else, nessmodel = 0; 
-end
-if nessmodel, rangeK = 1:K+1; else, rangeK = 1:K; end
 order = hmm.train.maxorder;
 
 if iscell(data)
@@ -164,17 +165,18 @@ if hmm.train.acrosstrial_constrained % state probabilities are shared across tri
             end
         end
         L = squeeze(sum(reshape(L,[ttrial+order,N,K]),2));
-        if mixture_model
+        if isfield(hmm.train,'id_mixture') && hmm.train.id_mixture
             Gammastar = id_Gamma_inference(L,hmm.Pi,order); Xistar = [];
         else
             [Gammastar,Xistar,LL] = fb_Gamma_inference_sub(L,hmm.P,hmm.Pi,T(1),...
                 order,hmm.train.Gamma_constraint);
         end
+        figure(10); area(Gammastar); pause(1); keyboard
     end
     Gamma = zeros(ttrial,N,K); 
     if nessmodel
         Xi = zeros(ttrial-1,N,K,4);
-    elseif mixture_model
+    elseif ~(isfield(hmm.train,'id_mixture') && hmm.train.id_mixture)
         Xi = zeros(ttrial-1,N,K,K);
     end
     for t = 1:ttrial
@@ -182,14 +184,14 @@ if hmm.train.acrosstrial_constrained % state probabilities are shared across tri
         if t==ttrial, break; end
         if nessmodel
             Xi(t,:,:,:) = reshape(repmat(Xistar(t,:,:),N,1),[1,N,K,4]);
-        elseif mixture_model
+        elseif ~(isfield(hmm.train,'id_mixture') && hmm.train.id_mixture)
             Xi(t,:,:,:) = reshape(repmat(Xistar(t,:,:),N,1),[1,N,K,K]);
         end
     end
     Gamma = reshape(Gamma,ttrial*N,K);
     if nessmodel
         Xi = reshape(Xi,(ttrial-1)*N,K,2,2);
-    elseif mixture_model
+    elseif ~(isfield(hmm.train,'id_mixture') && hmm.train.id_mixture)
         Xi = reshape(Xi,(ttrial-1)*N,K,K);
     end
 

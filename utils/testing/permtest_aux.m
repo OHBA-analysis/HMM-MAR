@@ -1,12 +1,11 @@
-function pval = permtest_aux(X,D,Nperm,confounds)
+function pval = permtest_aux(X,D,Nperm,confounds,pairs)
 % permutation testing routine (through regression)
 % X: data
 % D: design matrix
 % Nperm: no. of permutations
-% confounds
-% grouping: the first grouping(1) rows belong to one group, 
-%    the next grouping(2) rows belong to the second group, 
-%    and so on and so on - DEPRECATED
+% confounds: to be regressed out
+% 
+%
 % Diego Vidaurre
 
 [N,p] = size(X);
@@ -18,27 +17,27 @@ if (nargin>3) && ~isempty(confounds)
     %D = bsxfun(@minus,D,mean(D));   
     %D = D - confounds * pinv(confounds) * D;    
 end
+paired = (nargin>4) && ~isempty(pairs);
 
 %D = bsxfun(@minus,D,mean(D));   
 X = bsxfun(@minus,X,mean(X));  
 grotperms = zeros(Nperm,p);
 proj = (D' * D + 0.001 * eye(size(D,2))) \ D';  
 
-for perm=1:Nperm
+for perm = 1:Nperm
     if perm==1
         Xin = X;
+    elseif paired
+        r = 1:N;
+        for j = 1:max(pairs)
+            jj = find(pairs==j);
+            if length(jj) < 2, continue; end
+            if rand<0.5
+                r(jj) = r(jj([2 1]));
+            end
+        end
+        Xin = X(r,:);
     else
-        %if ~isempty(grouping)
-        %    Xin = zeros(size(X));
-        %    for gr = 1:length(grouping)
-        %        jj = (1:grouping(gr)) + sum(grouping(1:gr-1));
-        %        r = randperm(grouping(gr));
-        %        Xin(jj,:) = X(jj(r),:);
-        %    end
-        %else
-        %    r = randperm(N);
-        %    Xin = X(r,:);
-        %end
         Xin = X(randperm(N),:);
     end
     beta = proj * Xin;

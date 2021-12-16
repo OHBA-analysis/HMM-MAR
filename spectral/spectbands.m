@@ -31,7 +31,7 @@ for k=1:K
     av_fit.state(k).psd = zeros(Nbands,ndim,ndim);
     for j=1:Nbands
         ind = (f>=bands(j,1)) & (f<=bands(j,2));
-        av_fit.state(k).psd(j,:,:) = sum(sp_fit.state(k).psd(ind,:,:));
+        av_fit.state(k).psd(j,:,:) = sum(sp_fit.state(k).psd(ind,:,:),1);
     end
     
     if isfield(sp_fit.state(1),'coh') && ~isempty(sp_fit.state(1).coh)

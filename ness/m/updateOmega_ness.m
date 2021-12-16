@@ -5,7 +5,6 @@ K = hmm.K; ndim = hmm.train.ndim;
 if nargin < 6, Tfactor = 1; end
 S = hmm.train.S==1; regressed = sum(S,1)>0;
 Tres = sum(T) - length(T)*hmm.train.maxorder;
-np = size(XX,2);
 
 setstateoptions;
 
@@ -15,7 +14,7 @@ swx2 = zeros(Tres,ndim);
 for n = 1:ndim
     if ~regressed(n), continue; end
     Sind_all = [];
-    for k = 1:K+1
+    for k = 1:K
         Sind_all = [Sind_all; Sind(:,n)];
     end
     Sind_all = Sind_all == 1;

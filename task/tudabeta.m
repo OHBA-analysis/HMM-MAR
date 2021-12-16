@@ -16,18 +16,23 @@ function [beta,beta_t] = tudabeta(tuda,Gamma_mean)
 %
 % Author: Diego Vidaurre, OHBA, University of Oxford (2018)
 
+if isfield(tuda.train,'nessmodel') && tuda.train.nessmodel 
+    K = tuda.K+1;
+else
+    K = tuda.K;
+end
 q = size(tuda.train.S,1) - find(tuda.train.S(1,:)>0,1) + 1;
 p = find(tuda.train.S(1,:)>0,1) - 1; 
 if ~(isempty(p) && isempty(q)) %standard tuda setup
-    beta = zeros(p,q,tuda.K);
-    for k = 1:tuda.K
+    beta = zeros(p,q,K);
+    for k = 1:K
         beta(:,:,k) = tuda.state(k).W.Mu_W(1:p,p+1:end);
     end
 else % LDA or LGS setup
     p = size(tuda.train.S',1) - find(tuda.train.S(:,1)>0,1) + 1;
     q = find(tuda.train.S(:,1)>0,1) - 1; 
-    beta = zeros(p,q,tuda.K);
-    for k = 1:tuda.K
+    beta = zeros(p,q,K);
+    for k = 1:K
         beta(:,:,k) = tuda.state(k).W.Mu_W(q+1:end,1:q);
     end
 end
