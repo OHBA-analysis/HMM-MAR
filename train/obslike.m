@@ -110,6 +110,7 @@ for ik = 1:length(rangeK)
         end
         
     else
+        WishTrace =[];
         if do_HMM_pca
             W = hmm.state(k).W.Mu_W;
             v = hmm.Omega.Gam_rate / hmm.Omega.Gam_shape;
