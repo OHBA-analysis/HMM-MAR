@@ -206,6 +206,15 @@ end
 
 print([figdir,'STRMClassification_Fig3B'],'-dpng')
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 
 %% PART 2: Fit STRM-Regression model to simulated data
 
@@ -437,6 +446,16 @@ end
 
 print([figdir,'STRMReg_Fig3B'],'-dpng')
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
 %% PART THREE: Visual MEG stimuli
 
 fulldir = '/Users/chiggins/data/STRMData/MEGData/'; % project directory where data is stored
@@ -446,7 +465,7 @@ datafile = @(sjnum) [fulldir,'FLISj',int2str(sjnum),'.mat'];
 %% Step 1: Full CV analysis estimating accuracies:
 
 K_options = [4:2:22]; % Range of parameter values for K to test
-Sjs_to_do = [1];
+Sjs_to_do = [1:22];
 % note that for accuracy tests, we crossvalidate; we do not save model
 % parameters, only the accuracies; for interrogation of model accuracies we
 % refit the models later
@@ -647,9 +666,453 @@ for iSj = Sjs_to_do
     save(fnameout,'model_LDA_HMM','Gamma_LDA');
 end
 
+%% Figure 1: Cross-validated Accuracy plots:
+
+figdir = [fulldir,'Figure1/'];
+if ~isdir(figdir)
+    mkdir(figdir);
+end
+
+accfile = @(sjnum) [fulldir,'AccSj',int2str(sjnum),'.mat'];
+accsynchfile = @(sjnum) [fulldir,'Acc_synch_Sj',int2str(sjnum),'.mat'];
+
+
+% iterate through subjects, loading all accuracy data:
+acc_hmm_all = zeros(50,2,length(K_options),length(Sjs_to_do));
+acc_synch_all = nan(50,length(Sjs_to_do));
+for iSj = Sjs_to_do
+    fname = accfile(iSj);
+    load(fname)
+    acc_hmm_all(:,:,:,iSj) = acc_LDA_HMM;
+    acc_synch_all(:,iSj) = acc_LDA_synchronous;
+end
+acc_hmm_all = acc_hmm_all(:,:,:,Sjs_to_do);
+acc_synch_all = acc_synch_all(:,Sjs_to_do);
+
+
+% set global parameters:
+ifitmethod = 2; % this for the regression fit CV estimates outlined in HBM paper
+acc_hmm = squeeze(acc_hmm_all(:,ifitmethod,:,:));
+
+% cross validate timepoint by timepoint to determine K:
+for iSj=Sjs_to_do
+    SJ_in = setdiff(Sjs_to_do,iSj);
+    for it=1:50
+        [~,K_best_t_CV(iSj,it)] = max(mean(mean(acc_hmm(it,:,SJ_in),1),3));
+        acc_hmm_CV_t(it,iSj) = squeeze(acc_hmm(it,K_best_t_CV(iSj,it),iSj));
+    end
+end
+
+figure('Position',[440 378 936 420]);
+m = mean(acc_hmm_CV_t,2);
+s = std(acc_hmm_CV_t,[],2);
+t = 0.01:0.01:0.5;
+shadedErrorBar(t,m,s./sqrt(nSj),{'Color','Blue','LineWidth',2},1); hold on;
+m = mean(acc_synch_all,2);
+s = std(acc_synch_all,[],2);
+shadedErrorBar(t,m,s./sqrt(nSj),{'Color','Red','LineWidth',2},1); hold on;
+plot4paper('Time (sec)','Accuracy');
+line(t,0.125*ones(length(t),1),'Color','Black','LineWidth',1,'LineStyle','--');
+
+
+% and find significance:
+thresh = 1;
+[corrp,tstats] = osl_clustertf(permute(acc_hmm_CV_t-acc_synch_all,[2,3,1]),thresh);
+corrp(corrp<0.95) = NaN;
+corrp(corrp>0.95) = 1;
+plot(t,0.1*corrp,'LineWidth',2,'Color',[0.5,0.5,0.5]);
+YL = ylim;
+ylim([0.08,YL(2)]);
+h(1) = plot([NaN,NaN],[1 1],'Color','Blue','LineWidth',2);
+h(2) = plot([NaN,NaN],[1 1],'Color','Red','LineWidth',2);
+legend(h,{'STRM-Classifier','Timepoint-by-timepoint LDA'},'Location','EastOutside')
+
+print([figdir,'Acc_HMM_CV_t'],'-dpng');
+
+% and compare with sliding window:
+for iSj = Sjs_to_do
+    fnameout = accfile(iSj);
+    load(fnameout,'acc_LDA_slidingwindow','AUC_LDA_slidingwindow');
+    acc_SW(:,:,iSj) = acc_LDA_slidingwindow;
+    AUC_SW(:,:,iSj) = AUC_LDA_slidingwindow;
+end
+
+% cross validate to optimise window size:
+for iSj=Sjs_to_do
+    SJ_in = setdiff(Sjs_to_do,iSj);
+    for it=1:50
+        [~,W_best_t_CV(iSj,it)] = max(mean(acc_SW(it,:,SJ_in),3),[],2);
+        acc_SW_CV(it,iSj) = acc_SW(it,W_best_t_CV(iSj,it),iSj);
+    end
+end
+
+figure('Position',[440 378 936 420]);
+m = mean(acc_hmm_CV_t,2);
+s = std(acc_hmm_CV_t,[],2);
+t = 0.01:0.01:0.5;
+shadedErrorBar(t,m,s./sqrt(nSj),{'Color','Blue','LineWidth',2},1); hold on;
+m = mean(acc_synch_all,2);
+s = std(acc_synch_all,[],2);
+shadedErrorBar(t,m,s./sqrt(nSj),{'Color','Red','LineWidth',2},1); hold on;
+plot4paper('Time (sec)','Accuracy');
+line(t,0.125*ones(length(t),1),'Color','Black','LineWidth',1,'LineStyle','--');
+m = mean(acc_SW_CV,2);
+s = std(acc_SW_CV,[],2);
+t = 0.01:0.01:0.5;
+shadedErrorBar(t,m,s./sqrt(nSj),{'Color','Green','LineWidth',2},1); hold on;
+
+legend('STRM-Classifier','Timepoint-by-timepoint LDA','Sliding Window LDA');
+
+print([figdir,'Acc_HMM_vsSW_CV_t'],'-dpng');
+
+% and plot accuracy vs other ML classifiers
+
+clear acc AUC;
+for iSj=Sjs_to_do
+    
+    filenamein = accsynchfile(iSj);
+    load(filenamein);
+    acc(:,:,iSj) = squeeze(acc_class_synchronous);
+    AUC(:,:,iSj) = squeeze(AUC_class_synchronous);
+end
+acc_synch = acc(:,1:5,:);
+auc_synch = AUC(:,1:5,:);
+
+% cross validate to choose best value of K for KNN:
+clear acc_KNN
+for iSjHO=1:nSj
+    SjIn = setdiff(1:nSj,iSjHO);
+    m = mean(acc(:,6:end,SjIn),3);
+    for t=1:50
+        [~,KNN_KCV(iSjHO,t)] = max(m(t,:));
+        acc_KNN(t,1,iSjHO) = acc(t,5+KNN_KCV(iSjHO,t),iSjHO);
+        auc_KNN(t,1,iSjHO) = AUC(t,5+KNN_KCV(iSjHO,t),iSjHO);
+    end
+end
+acc_synch = cat(2,acc_synch,acc_KNN);
+auc_synch = cat(2,auc_synch,auc_KNN);
+
+acc_synch = cat(2,permute(acc_synch_all,[1,3,2]),acc_synch);
+acc_synch = cat(2,permute(acc_hmm_CV_t,[1,3,2]),acc_synch);
+acc_all_t = squeeze(mean(acc_synch,1));
+
+figure();
+errorbar([1:8],mean(acc_all_t'),std(acc_all_t')./sqrt(nSj),'*','LineWidth',2)
+
+xlim([0.5,8.5]);
+set(gca,'XTick',[1:8]);
+synch_class_labels{4} = 'LR: binomial';
+synch_class_labels{5} = 'LR: multinomial';
+set(gca,'XTickLabel',{'STRM-Classifier','Timepoint-by-timepoint LDA',synch_class_labels{1:5},'KNN'});
+set(gca,'XTickLabelRotation',45);
+plot4paper('Classifier','Accuracy');
+yl = ylim();
+clear paireddiff;
+for i=1:7
+    [~,pvals_HMM(i)] = ttest(acc_all_t(1,:)-acc_all_t(1+i,:));hold on;
+    if pvals_HMM(i)<1e-5
+        plot(i+1,yl(2)-0.05*(diff(yl)),'k*','LineWidth',2);
+    end
+    paireddiff(:,i) = acc_all_t(1,:)-acc_all_t(1+i,:);
+end
+
+line([1.5,1.5],[0,0.5],'Color', 'black');
+print([figdir,'Acc_HMM_vs_MLClassifiers'],'-dpng');
+
+%% Figure 2: Activity maps:
+
+figdir = [fulldir,'Figure2/'];
+mkdir(figdir);
+
+% timecourse plots:
+K = 8;
+iK=1; % we only have one value of K to select
+Gamma_all = [];RTs = [];T_Sj_all = [];
+for iSj = Sjs_to_do
+    fnamein = modelfile(iSj);
+    load(fnamein)
+    fnamein = datafile(iSj);
+    load(fnamein)
+    Gamma_all = [Gamma_all;Gamma_LDA{iK}];
+    T_Sj_all = [T_Sj_all,length(Gamma_LDA{iK})];
+    RTs = [RTs;normalise(data.reactionTimes_train)];
+    %subplot(5,5,iSj);
+    figure( 'Position', [440 56 248 749]);
+    gamtemp = reshape(Gamma_LDA{iK},50,size(Gamma_LDA{iK},1)/50,K);
+    
+    gammean(:,:,iSj) = mean(gamtemp,2);
+    [~,inds] = sort(data.reactionTimes_train);
+    gamtemp = gamtemp(:,inds,:);
+    gamtemp = reshape(gamtemp,length(inds)*50,K);
+    gammaRasterPlot(gamtemp,50);
+    print([figdir,'SJ',int2str(iSj),'RasterPlots_RTsorted'],'-depsc');
+end
+close all;
+
+figure( 'Position', [440 56 248 749]);
+gamtemp = reshape(Gamma_all,50,size(Gamma_all,1)/50,K);
+[RTs,inds] = sort(RTs);
+gamtemp = gamtemp(:,inds,:);
+gamtemp = reshape(gamtemp,length(inds)*50,K);
+gammaRasterPlot(Gamma_all,50);
+print([figdir,'AllSJRasterPlot'],'-depsc');
+
+figure('Position', [187 600 1212 205]);
+cols = parula(8);
+t=0.01:0.01:0.5;
+clear h;
+for k=1:8
+    shadedErrorBar(t,mean(gammean(:,k,:),3),std(gammean(:,k,:),[],3),{'Color',cols(k,:),'LineWidth',2},0.5);
+    hold on;
+    leglabels{k} = ['State ',int2str(k)];
+    h(k) = plot(NaN,NaN,'Color',cols(k,:),'LineWidth',2);
+end
+legend(h,leglabels,'Location','EastOutside');
+ylim([0,1]);
+plot4paper('Time','State Probability');
+print([figdir,'AllSJ_meanGamma'],'-depsc');
+
+% and maps themselves:
+
+globalthresh = true;
+sourcedatafile = @(sjnum) [fulldir 'souredataSj',int2str(sjnum),'.mat'];
+
+clear Betas Sigmas M;
+for iSj = Sjs_to_do
+    fnamein = modelfile(iSj);
+    load(fnamein)
+    fname = datafile(iSj);
+    load(fname,'data');
+    fnamesource = sourcedatafile(iSj);
+    load(fnamesource,'X_source');
+    Y = [ones(length(data.Y_train),1),data.Y_train];
+    Y2=[];
+    for ik=1:K_options(iK)
+        Y2 = [Y2,Y.*repmat(Gamma_LDA{iK}(:,ik),[1,size(Y,2)])];
+    end
+    
+    temp = pinv(Y2)*X_source;
+    resid = X_source - Y2*temp;
+    for ik=1:K
+        K_set = [1:size(Y,2)] + (ik-1)*(size(Y,2));
+        Betas(:,:,ik,iSj) = temp(K_set,:);
+        Sigmas(:,ik,iSj) = var(resid,Gamma_LDA{iK}(:,ik));
+    end
+end
+
+parc_file = ['fmri_d100_parcellation_with_PCC_reduced_2mm_ss5mm_ds8mm'];
+parc = parcellation(parc_file);
+% compute f statistic per subject:
+for ik=1:K
+    for iSj=Sjs_to_do
+        for ich = 1:size(Betas,2)
+            % sompute variance between group means:
+            numerator = var(Betas(2:end,ich,ik,iSj),[],1);
+            denom = Sigmas(ich,ik,iSj);
+            f_stat(ich,ik,iSj) = numerator./denom;
+        end
+    end
+end
+
+f_stat_group = mean(f_stat,3);
+if globalthresh
+    thresh = prctile(f_stat_group(:),75);
+end
+CA = [0, max(f_stat_group(:))];
+for ik = 1:K
+    if ~globalthresh
+        thresh = prctile(f_stat_group(:,ik),75);
+    end
+    dat = f_stat_group(:,ik);dat(dat<thresh)=NaN;
+    plot_surf_summary_neuron(parc,dat,1,[],[],[],[],CA);
+    print([figdir,'activitymap_K',int2str(K),'_Fstat_St',int2str(ik)],'-depsc');
+    close(gcf);
+end
+
+%% figure 3: Timecourse modulation
+
+figdir = [fulldir,'Figure3/'];
+mkdir(figdir);
+
+prestimdatafile = @(sjnum) [fulldir,'prestimdata/PSDSj',int2str(sjnum),'.mat'];
+
+RunOnTransitionTimes = true;
+
+
+catspecificnorm = false;
+removeoutliers = true;
+
+n_modes = 2;
+do_nnmf = true; % as opposed to GMM
+do_nnmf_spacefreq = true; 
+
+% fit nnmf to prestimulus power to find 2 main modes of variation:
+nnmf_file = [fulldir,'nnmf_file',int2str(n_modes),'.mat']
+if ~isfile(nnmf_file)
+    PX = [];SjInds=[];
+    for iSj=Sjs_to_do
+        load(prestimdatafile(iSj),'pxx','f');
+        
+        % remove outliers:
+        s = sum(sum(pxx,1),3);
+        badtrls{iSj} = find(abs(s-mean(s))>2*std(s));
+        pxx(:,badtrls{iSj},:) = [];
+        
+        PX = cat(2,PX,pxx);
+        
+        Sjindstemp = zeros(size(pxx,2),length(Sjs_to_do));
+        Sjindstemp(:,iSj) = 1;
+        SjInds = [SjInds;Sjindstemp];
+    end
+    nch = size(PX,3);
+    lowestresid = -1;
+    PX = permute(PX,[2,1,3]);
+    f_in = find(f>1.5);% take power in bands from 1.5Hz up
+    PX = PX(:,f_in,:); 
+    f = f(f_in);
+    for isamp=1:10 % run ten times and take best fit
+        [A_temp,B_temp] = nnmf(PX(:,:),n_modes);
+        PX_est = A_temp*B_temp;
+        resid = mean((PX_est(:)-PX(:)).^2);
+        if resid<lowestresid || lowestresid==-1
+            lowestresid = resid;
+            A_all = A_temp;
+            B_all = B_temp;
+            B_toplot = pinv(A_temp)*PX(:,:);
+        end
+    end
+    B_all = reshape(B_all,[n_modes,size(f),nch]);
+    save(nnmf_file,'A_all','B_all','n_modes','SjInds');
+else
+    load(nnmf_file);
+    load(psdfile(1),'f');
+end
+%%
+clear B_gmm;
+C = zeros(2+n_modes);
+
+for iSj=Sjs_to_do
+    fnamein = modelfile(iSj);
+    load(fnamein)
+
+    gamtemp = reshape(Gamma_LDA{iK},[50,size(Gamma_LDA{iK},1)/50,size(Gamma_LDA{iK},2)]);
+    gamtemp = permute(gamtemp,[2,1,3]);
+    
+    % compute transition times T:
+    [~,vpath] = max(Gamma_LDA{iK},[],2);
+    vpath = reshape(vpath,[50,size(Gamma_LDA{iK},1)/50]);
+    % remove outliers:
+    gamtemp(badtrls{iSj},:,:) = [];
+    vpath(:,badtrls{iSj}) = [];
+    
+    clear Ttrans
+    for i=1:K_options(iK)-1
+        for itr = 1:size(vpath,2)
+            Ttrans(itr,i) = find([vpath(:,itr);K+1]>i,1);
+        end
+    end
+    fname = datafile(iSj);
+    load(fname,'data');
+    
+    Ttrans = demean(Ttrans,1) ./ 100;
+    Ttrans(isnan(Ttrans)) = 0; % where state timecourses don't vary
+    % remove outliers:
+    TTtemp = normalise(Ttrans);
+    TTtemp(isnan(TTtemp))=0;
+    badtrls_tt{iSj} = find(any(abs(TTtemp)>3,2));
+
+    % setup subject specific design matrix
+    DM = zeros(size(Ttrans,1),2+n_modes);
+    DM1 = data.reactionTimes_train;
+    DM2 = data.ISI_train;
+    if removeoutliers
+     DM1(badtrls{iSj}) = [];
+     DM2(badtrls{iSj}) = [];
+    end
+    DM(:,1) = DM1;
+    DM(:,2) = DM2;
+    DM(:,3:end) = (A_all(SjInds(:,iSj)==1,:));
+    DM(badtrls_tt{iSj},:) = [];
+    Ttrans(badtrls_tt{iSj},:) = [];
+    DM = normalise(DM);
+    DM = decorrelateDesignMatrix(DM);
+    DM(:,end+1) = ones(length(DM),1);
+    
+    % fit GLM:
+    B_gmm(:,:,iSj) = pinv(DM)*Ttrans;
+    
+end
+
+% t-tests with bonferroni correction:
+DMlabels = {'Reaction Times','ISI times'};
+for n=1:n_modes
+    DMlabels{2+n} = ['Mode ',int2str(n)];
+end
+for k=1:7
+    xlabels{k} = [int2str(k), ' to ',int2str(k+1)];
+end
+for i1=1:2
+figure('Position',[138 227 498 565]);
+for k=1:size(B_gmm,1)-1
+    subplot(ceil(0.5*(size(B_gmm,1)-1)),2,k);
+    B_mean = mean(B_gmm(k,:,:),3);
+    bar(B_mean);hold on;
+    m = max(abs(squash(mean(B_gmm,3))));
+    for i=1:size(B_gmm,2)
+        [~,pvals(k,i)] = ttest(B_gmm(k,i,:));
+        if pvals(k,i) < 0.05/((size(B_gmm,1)-1)*(size(B_gmm,2)))
+            plot(i-0.2,1.1*m,'k*','MarkerSize',15,'LineWidth',2);
+            plot(i+0.2,1.1*m,'k*','MarkerSize',15,'LineWidth',2);
+        elseif pvals(k,i)<0.05 && i1==1
+            plot(i,1.1*m,'k*','MarkerSize',15,'LineWidth',1);
+        end
+    end
+
+    ylim([-1.2,1.2]*m);
+    plot4paper('State Transition','Timing modulation (sec)');
+    title(DMlabels{k});
+    set(gca,'XTick',[1:size(B_gmm,2)]);
+    set(gca,'XTickLabel',xlabels);
+    set(gca,'XTickLabelRotation',45);
+    set(gca,'YTickLabel',get(gca,'YTick'))
+
+end
+if i1==1
+    print([figdir 'TransitionTimePredictiveModelling'],'-depsc')
+else
+    print([figdir 'TransitionTimePredictiveModelling_bonfonly'],'-depsc')
+end
+end
+
+% and plot the modes over frequency:
+figure('Position', [1 559 778 239]);
+B_toplot = reshape(B_toplot,size(B_all));
+for i=1:n_modes
+    subplot(1,n_modes,i);
+    plot(f,squeeze(B_toplot(i,:,:)),'LineWidth',1.5);
+    plot4paper('Frequency','Power');
+    YT = get(gca,'YTick');
+    YT = [YT(1),YT(end)/2,YT(end)];
+    set(gca,'YTick',YT);
+end
+print([figdir 'TransitionTimePredictiveModelling_',int2str(n_modes),'modes_spectra'],'-depsc')
+
+% and space:
+for i=1:n_modes
+    toplot = squeeze(sum(B_all(i,:,:),2));
+    plot_surf_summary_neuron(parc,toplot,1,[],[],[],[],[]);
+    print([figdir 'NNMF_',int2str(n_modes),'modes_M',int2str(i)],'-depsc')
+end
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% PART 4: EEG Data analysis
-
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 data_dir_foraging = '/Users/chiggins/data/STRMData/EEGData/';
 
 %% Evaluate STRM-Regression Cross-validated Accuracy
@@ -681,7 +1144,7 @@ for iSj = Sjs_to_do
     
     fname = datafile(iSj);
     clear data DM T varexpl
-    load(fname,'data','DM','T','varexpl');
+    load(fname,'data','DM','T');
     
     Y = DM(:,1); % this is the stimulus value
     
@@ -721,7 +1184,7 @@ synch_class_labels = {'Linear Regression','Linear Regression w intercept','Linea
 
 for iSj = Sjs_to_do
     fprintf(['Decoding Subject ',int2str(iSj),'\n']);
-    acc_LGS_synchronous = zeros(100,1,3,2);
+    acc_LGS_synchronous = zeros(100,3,1);
     
     fname = datafile(iSj);
     clear data DM T
@@ -732,16 +1195,15 @@ for iSj = Sjs_to_do
     rng(1); %ensure cross validation consistent
     
     options_reg.intercept = 1;
-    acc_LGS_synchronous(:,1,1,:) = standard_decoding(data,Y,T,options_reg);
+    acc_LGS_synchronous(:,1) = standard_decoding(data,Y,T,options_reg);
 
     options_regSVM = options_reg;
     options_regSVM.SVMreg = true;
     options_regSVM.SVMkernel = 'linear';
-    acc_LGS_synchronous(:,1,2,:) =  standard_decoding(data,Y,T,options_regSVM);
+    acc_LGS_synchronous(:,2) =  standard_decoding(data,Y,T,options_regSVM);
     
     options_regSVM.SVMkernel = 'rbf';
-    acc_LGS_synchronous(:,1,3,:) = standard_decoding(data,Y,T,options_regSVM);
-    
+    acc_LGS_synchronous(:,3) = standard_decoding(data,Y,T,options_regSVM);
     
     fnameout = accsynchfile(iSj);
     save(fnameout,'acc_LGS_synchronous','synch_class_labels');
@@ -754,20 +1216,20 @@ options_LGS.NCV = 10;
 options_LGS.intercept = 1;   
 options_LGS.encodemodel = true;
 options_LGS.covtype = 'full';
-options_LGS.accuracyType = 'all';
+options_LGS.accuracyType = 'Pearson';
 
 
 windows = 1:10;
 accfile_SW = @(sjnum) [data_dir_foraging,'Acc_SW_Sj',int2str(sjnum),'.mat'];
 
 for iSj = Sjs_to_do
-    acc_LGS_slidingwindow = zeros(100,length(windows),2);
+    acc_LGS_slidingwindow = zeros(100,length(windows));
     
     fprintf(['Decoding Subject ',int2str(iSj),'\n']);
     
     fname = datafile(iSj);
     clear data DM T varexpl
-    load(fname,'data','DM','T','varexpl');
+    load(fname,'data','DM','T');
     
     Y = DM(:,1);
     
@@ -820,3 +1282,376 @@ for iSj = Sjs_to_do
     fnameout = modelfile(iSj);
     save(fnameout,'model_LGS_HMM','Gamma_LGS','K_options','options_LGS');
 end
+
+%% Figure 1: Cross validated accuracy plots:
+
+figdir = [data_dir_foraging,'Figure1/'];
+if ~isdir(figdir)
+    mkdir(figdir);
+end
+
+accfile = @(sjnum) [data_dir_foraging,'AccSj',int2str(sjnum),'.mat'];
+accsynchfile = @(sjnum) [data_dir_foraging,'Acc_synch_Sj',int2str(sjnum),'.mat'];
+
+% iterate through subjects, loading all accuracy data:
+load(accfile(1));
+acc_hmm_all = zeros(100,2,length(K_options),length(Sjs_to_do));
+acc_synch_all = nan(100,length(Sjs_to_do));
+for iSj = Sjs_to_do
+    fname = accfile(iSj);
+    load(fname)
+    acc_hmm_all(:,:,:,iSj) = acc_LGS_HMM;
+    acc_synch_all(:,iSj) = acc_LGS_synchronous;
+end
+acc_hmm_all = acc_hmm_all(:,:,:,Sjs_to_do);
+acc_synch_all = acc_synch_all(:,Sjs_to_do);
+
+% average over each subject's two sessions:
+sz = size(acc_hmm_all);
+acc_hmm_all = squeeze(mean(reshape(acc_hmm_all,sz(1),sz(2),sz(3),2,sz(4)/2),4));
+acc_synch_all = squeeze(mean(reshape(acc_synch_all,100,2,sz(4)/2),2));
+nSj = sz(4)/2;
+
+% set global parameters:
+ifitmethod = 2; % this for the regression fit CV estimates outlined in HBM paper
+acc_hmm = squeeze(acc_hmm_all(:,ifitmethod,:,:));
+
+% cross validate timepoint by timepoint to determine K:
+acc_hmm_CV_t = zeros(100,nSj);
+for iSj=nSj
+    SJ_in = setdiff(1:nSj,iSj);
+    for it=1:100
+        [~,K_best_t_CV(iSj,it)] = max(mean(mean(acc_hmm(it,:,SJ_in),1),3));
+        acc_hmm_CV_t(it,iSj) = squeeze(acc_hmm(it,K_best_t_CV(iSj,it),iSj));
+    end
+end
+
+figure('Position',[440 378 936 420]);
+m = mean(acc_hmm_CV_t,2);
+s = std(acc_hmm_CV_t,[],2);
+t = 0.01:0.01:1;
+shadedErrorBar(t,m,s./sqrt(nSj),{'Color','Blue','LineWidth',2},1); hold on;
+m = mean(acc_synch_all,2);
+s = std(acc_synch_all,[],2);
+shadedErrorBar(t,m,s./sqrt(nSj),{'Color','Red','LineWidth',2},1); hold on;
+plot4paper('Time (sec)','Accuracy');
+line(t,zeros(length(t),1),'Color','Black','LineWidth',1,'LineStyle','--');
+
+
+% and find significance:
+thresh = 1;
+[corrp,tstats] = osl_clustertf(permute(acc_hmm_CV_t-acc_synch_all,[2,3,1]),thresh);
+corrp(corrp<0.95) = NaN;
+corrp(corrp>0.95) = 1;
+plot(t,0.1*corrp,'LineWidth',2,'Color',[0.5,0.5,0.5]);
+
+h(1) = plot([NaN,NaN],[1 1],'Color','Blue','LineWidth',2);
+h(2) = plot([NaN,NaN],[1 1],'Color','Red','LineWidth',2);
+legend(h,{'STRM-Classifier','Timepoint-by-timepoint LDA'},'Location','EastOutside')
+
+print([figdir,'Acc_HMM_CV_t'],'-dpng');
+%%
+% and compare with sliding window:
+clear acc_SW acc_SW_CV W_best_t_CV
+for iSj = Sjs_to_do
+    fnameout = accfile_SW(iSj);
+    load(fnameout,'acc_LGS_slidingwindow');
+    acc_SW(:,:,iSj) = acc_LGS_slidingwindow;
+end
+
+% cross validate to optimise window size:
+for iSj=Sjs_to_do
+    SJ_in = setdiff(Sjs_to_do,iSj);
+    for it=1:100
+        [~,W_best_t_CV(iSj,it)] = max(mean(acc_SW(it,:,SJ_in),3),[],2);
+        acc_SW_CV(it,iSj) = acc_SW(it,W_best_t_CV(iSj,it),iSj);
+    end
+end
+
+figure('Position',[440 378 936 420]);
+m = mean(acc_hmm_CV_t,2);
+s = std(acc_hmm_CV_t,[],2);
+t = 0.01:0.01:1;
+shadedErrorBar(t,m,s./sqrt(nSj),{'Color','Blue','LineWidth',2},1); hold on;
+m = mean(acc_synch_all,2);
+s = std(acc_synch_all,[],2);
+shadedErrorBar(t,m,s./sqrt(nSj),{'Color','Red','LineWidth',2},1); hold on;
+plot4paper('Time (sec)','Accuracy');
+line(t,zeros(length(t),1),'Color','Black','LineWidth',1,'LineStyle','--');
+m = mean(acc_SW_CV,2);
+s = std(acc_SW_CV,[],2);
+t = 0.01:0.01:1;
+shadedErrorBar(t,m,s./sqrt(nSj),{'Color','Green','LineWidth',2},1); hold on;
+legend('STRM-Regression','Timepoint-by-timepoint regression','Sliding Window regression');
+print([figdir,'Acc_HMM_vsSW_CV_t'],'-dpng');
+
+%%
+% and plot accuracy vs other ML classifiers
+
+clear acc ;
+for iSj=Sjs_to_do
+    filenamein = accsynchfile(iSj);
+    load(filenamein);
+    acc(:,:,iSj) = squeeze(acc_LGS_synchronous);
+end
+acc_synch = acc(:,1:3,:);
+acc_synch = squeeze(mean(reshape(acc_synch,100,3,2,nSj),3));
+
+acc_synch = cat(2,permute(acc_synch_all,[1,3,2]),acc_synch);
+acc_synch = cat(2,permute(acc_hmm_CV_t,[1,3,2]),acc_synch);
+acc_all_t = squeeze(mean(acc_synch,1));
+
+figure();
+errorbar([1:5],mean(acc_all_t'),std(acc_all_t')./sqrt(nSj),'*','LineWidth',2)
+
+xlim([0.5,5.5]);
+set(gca,'XTick',[1:5]);
+labels = {'STRM-Regression','Time-Aligned LGS','Sliding Window LGS','LinearRegression','Linear SVM regression','RBF SVM Regression'};
+set(gca,'XTickLabel',labels);
+set(gca,'XTickLabelRotation',45);
+plot4paper('Classifier','Accuracy');
+yl = ylim();
+clear paireddiff;
+for i=1:4
+    [~,pvals_HMM(i)] = ttest(acc_all_t(1,:)-acc_all_t(1+i,:));hold on;
+    if pvals_HMM(i)<1e-5
+        plot(i+1,yl(2)-0.05*(diff(yl)),'k*','LineWidth',2);
+    end
+    paireddiff(:,i) = acc_all_t(1,:)-acc_all_t(1+i,:);
+end
+
+line([1.5,1.5],yl,'Color', 'black');
+print([figdir,'Acc_HMM_vs_MLClassifiers'],'-dpng');
+
+%% Figure 2: Spatial activity maps:
+
+figdir = [data_dir_foraging,'Figure2/'];
+if ~isdir(figdir)
+    mkdir(figdir);
+end
+
+load([data_dir_foraging,'UnloadingMatrices.mat']);
+for iSj=Sjs_to_do
+    load(modelfile(iSj));
+    load(datafile(iSj));
+    mod = model_LGS_HMM{iK};
+    figure('Position',[10 63 1431 735]);
+    K = size(mod.beta,3);
+    % note in beta: first row is intercept!
+    for ik=1:K
+        subplot(ceil(K/2),K,ik);
+        beta_intercept = mod.beta(1,:,ik)*UM{iSj};
+        beta_intercept(1,60:62) = zeros(1,3);
+        
+        EEG_foraging_plot(beta_intercept',GLMinfo);
+        subplot(ceil(K/2),K,ik+K);
+        beta = mod.beta(2,:,ik)*UM;
+        if EOGregressed
+            beta(1,60:62) = zeros(1,3);
+        end
+        EEG_foraging_plot(beta',GLMinfo);
+        beta_all(:,:,ik,iSj) = [beta_intercept;beta];
+    end
+    print([figdir,'Topoplot_Sj',int2str(iSj)],'-depsc');
+    close all;
+end
+
+beta_all_m = mean(beta_all,4);
+figure('Position',[10 63 1431 735]);
+K = size(mod.beta,3);
+% note in beta: first row is intercept!
+for ik=1:K
+    subplot(ceil(K/2),K,ik);
+    beta_intercept = beta_all_m(1,:,ik);
+    EEG_foraging_plot(beta_intercept',GLMinfo);
+    subplot(ceil(K/2),K,ik+K);
+    beta = beta_all_m(2,:,ik);
+    EEG_foraging_plot(beta',GLMinfo);
+end
+print([figdir,'Topoplot_allsjmean'],'-depsc');
+
+beta_all_m = mean(beta_all,4);
+figure('Position',[10 63 1431 735]);
+K = size(mod.beta,3);
+% note in beta: first row is intercept!
+clim1 = [min(squash(beta_all_m(1,1:59,:))),max(squash(beta_all_m(1,1:59,:)))];
+clim2 = [min(squash(beta_all_m(2,1:59,:))),max(squash(beta_all_m(2,1:59,:)))];
+for ik=1:K
+    subplot(ceil(K/2),K,ik);
+    beta_intercept = beta_all_m(1,:,ik);
+    EEG_foraging_plot(beta_intercept',GLMinfo,clim1);
+    subplot(ceil(K/2),K,ik+K);
+    beta = beta_all_m(2,:,ik);
+    EEG_foraging_plot(beta',GLMinfo,clim2);
+end
+print([figdir,'Topoplot_allsjmean_scaled'],'-depsc');
+
+
+%% Figure 3: State timecourse modulation:
+figdir = [data_dir_foraging,'Figure3/']
+mkdir(figdir);
+
+Gam_all = [];
+for iSj=Sjs_to_do
+    
+    load(modelfile(iSj));
+    figure('Position', [440 96 253 702]);
+    GM = gammaRasterPlot(Gamma_LGS{iK},100);
+    print([figdir,'Rasterplot_Sj',int2str(iSj)],'-depsc');
+    nregressors = 1;
+    Gam_all = [Gam_all;Gamma_LGS{iK}];
+    Gammean_sj(:,:,iSj) = mean(reshape(Gamma_LGS{iK},100,size(Gamma_LGS{iK},1)/100,K),2);
+end
+figure('Position', [440 96 253 702]);
+GM = gammaRasterPlot(Gam_all,100);
+set(gca,'XTick',[20:20:100]);
+set(gca,'XTickLabel',[0.2:0.2:1]);
+xlabel('Time (sec)');
+print([figdir,'Rasterplot_allsjs'],'-depsc');
+
+%%
+P = 25; %prctile variation to show in shading
+GamAll = reshape(Gam_all,[100,size(Gam_all,1)/100,K]);
+M = squeeze(mean(GamAll,2));
+M_upper = prctile(GamAll,100-P,2);
+M_lower = prctile(GamAll,P,2);
+figure('Position',[64 591 1377 207]);
+t = 0.01:0.01:1;
+colors = parula(K);
+%plot(t,M,'LineWidth',2)
+for ist=1:K
+    patch([t';flipud(t')],[M_upper(:,:,ist);flipud(M_lower(:,:,ist))],colors(ist,:));
+    hold on;
+    alpha(0.3)  
+end
+for ist=1:K
+    plot(t,M(:,ist),'Color',colors(ist,:),'LineWidth',2)
+end
+plot4paper('Time (sec)','Mean State Probability')
+print([figdir,'MeanStateTimeCourse_prctile'],'-depsc');
+
+% and plot as mean +/- ste:
+Gammean_sj2 = squeeze(mean(reshape(Gammean_sj,100,K_CVSelect,2,23),3));
+figure('Position',[64 591 1377 207]);
+for ist=1:K_CVSelect
+    %plot(t,M(:,ist),'Color',colors(ist,:),'LineWidth',2)
+    shadedErrorBar(t',mean(Gammean_sj2(:,ist,:),3),std(Gammean_sj2(:,ist,:),[],3),{'Color',colors(ist,:),'LineWidth',2},0.5)
+    hold on;
+end
+plot4paper('Time (sec)','Mean State Probability')
+ylim([0,1]);
+print([figdir,'MeanStateTimeCourse_std'],'-depsc');
+
+
+%% plot at behavioral correlations:
+
+good_subs = Sjs_to_do;
+
+clear B_gmm pvals_sj p_ftest;
+for iSj=Sjs_to_do
+    fnamein = modelfile(iSj);
+    load(fnamein)
+
+    gamtemp = reshape(Gamma_LGS{iK},[100,size(Gamma_LGS{iK},1)/100,size(Gamma_LGS{iK},2)]);
+    gamtemp = permute(gamtemp,[2,1,3]);
+    
+    % optionally filter out trials with highly deviant STCs:
+    m = mean(gamtemp);
+    resid = gamtemp - repmat(m,[size(gamtemp,1),1,1]);
+    resid = sum(sum(resid.^2,3),2);
+    outliers = resid > mean(resid)+2*std(resid);
+    
+    % compute transition times T:
+    [~,vpath] = max(Gamma_LGS{iK},[],2);
+    vpath = reshape(vpath,[100,size(Gamma_LGS{iK},1)/100]);
+    clear Ttrans
+    for i=1:K_options(iK)-1
+        for itr = 1:size(vpath,2)
+            Ttrans(itr,i) = find([vpath(:,itr);K+1]>i,1);
+        end
+    end
+    Ttrans = demean(Ttrans,1) ./ 100;
+    Ttrans(isnan(Ttrans))=0; % where state timecourses don't vary
+    
+    % setup subject specific design matrix:
+    load(datafile(iSj));
+    DM = DM(1:T(1):end,:);
+    
+    
+    
+    DM = normalise(DM);
+    % partial out value effect from all regressors:
+    DM_full = zeros(size(DM,1),size(DM,2));
+    DM_full = decorrelateDesignMatrix(DM);
+    DM_full = normalise(DM_full);
+
+    % fit GLM:
+    B_gmm(:,:,iSj) = pinv(DM_full)*Ttrans;
+    
+    % collect individual statistics on single subject correlations:
+    % remove intercept:
+    DM_full(:,end) = [];
+    for i=1:K_options(iK)-1
+        mdl = fitlm(DM_full,Ttrans(:,i));
+        pvals_sj(:,i,iSj) = mdl.Coefficients.pValue(2:end);
+        output = anova(mdl,'summary');
+        p_ftest(i,iSj) = output.pValue(2);
+    end
+end
+B_gmm = B_gmm(:,:,good_subs);
+%
+sz = size(B_gmm);
+B_gmm = reshape(B_gmm,sz(1),sz(2),2,nSj);
+B_gmm = reshape(mean(B_gmm,3),sz(1),sz(2),nSj);
+
+DMlabels = {'Value','Leaving Time','AvgRRHist'};
+for k=1:K-1
+    xlabels{k} = [int2str(k), ' to ',int2str(k+1)];
+end
+
+
+figure('Position',[138 227 498 565]);
+for k=1:size(B_gmm,1)
+    subplot(ceil(0.5*(size(B_gmm,1))),2,k);
+    B_mean = mean(B_gmm(k,:,:),3);
+    bar(B_mean);hold on;
+    m = max(abs(squash(mean(B_gmm,3))));
+    for i=1:size(B_gmm,2)
+        [~,pvals(k,i)] = ttest(B_gmm(k,i,:));
+        if pvals(k,i) < 0.05/((size(B_gmm,1)-1)*(size(B_gmm,2)))
+            plot(i-0.2,1.1*m,'k*','MarkerSize',15,'LineWidth',2);
+            plot(i+0.2,1.1*m,'k*','MarkerSize',15,'LineWidth',2);
+        elseif pvals(k,i)<0.05
+            %plot(i,1.1*m,'k*','MarkerSize',15,'LineWidth',1);
+        end
+    end
+    
+    ylim([-1.2,1.2]*m);
+    plot4paper('State Transition','Timing modulation (sec)');
+    title(DMlabels{k});
+    set(gca,'XTick',[1:size(B_gmm,2)]);
+    set(gca,'XTickLabel',xlabels);
+    set(gca,'XTickLabelRotation',45);
+    
+end
+print([figdir 'TransitionTimePredictiveModelling'],'-depsc')
+
+
+figure('Position', [699 54 560 737]);
+clear pvals
+for i=1:size(B_gmm,1)
+    subplot(ceil(0.5*(size(B_gmm,1))),2,i);
+    for k=1:size(B_gmm,2)
+        [~,pvals(i,k)] = ttest(B_gmm(i,k,:));
+    end
+    plot(log(pvals(i,:)),'*','MarkerSize',20);
+    hold on;
+    plot(log(repmat(0.05,[1,size(B_gmm,2)])),'k--');
+    plot(log(repmat(0.05/((size(B_gmm,1)-1)*(size(B_gmm,2))),[1,size(B_gmm,2)])),'r--');
+    plot4paper('State Transition','p value');
+    title(DMlabels{i});
+    set(gca,'XTick',[1:size(B_gmm,2)]);
+    set(gca,'XTickLabel',xlabels);
+    set(gca,'XTickLabelRotation',45);
+end
+print([figdir 'TransitionTimePredictiveModelling_pvals'],'-depsc')

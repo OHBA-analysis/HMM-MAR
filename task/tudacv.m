@@ -382,7 +382,7 @@ for iFitMethod = 1:nCVm
         acc(:,iFitMethod) = acc_temp(:,2);
         acc_star(:,:,iFitMethod) = acc_star_temp;
         if nargout==6
-            acc_Gamma(:,:,iFitmethod) = acc_Gamma_Pearson;
+            acc_Gamma(:,:,iFitMethod) = acc_Gamma_Pearson;
         end
     elseif strcmp(accuracyType,'all')
         acc(:,iFitMethod,:) = acc_temp(2);
