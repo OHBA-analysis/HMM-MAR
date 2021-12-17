@@ -13,7 +13,7 @@
 % Part 4: Analysis pipeline for continuous value EEG data
 %
 % The data for parts 3 and 4 are publically available at Mendeley data:
-% Higgins, Cameron (2021), ?STRM_Datasets?, Mendeley Data, V1, 
+% Higgins, Cameron (2021), STRM_Datasets, Mendeley Data, V1, 
 % doi: 10.17632/jwjkszg4dx.1
 
 
@@ -936,15 +936,7 @@ mkdir(figdir);
 
 prestimdatafile = @(sjnum) [fulldir,'prestimdata/PSDSj',int2str(sjnum),'.mat'];
 
-RunOnTransitionTimes = true;
-
-
-catspecificnorm = false;
-removeoutliers = true;
-
 n_modes = 2;
-do_nnmf = true; % as opposed to GMM
-do_nnmf_spacefreq = true; 
 
 % fit nnmf to prestimulus power to find 2 main modes of variation:
 nnmf_file = [fulldir,'nnmf_file',int2str(n_modes),'.mat']
@@ -1025,10 +1017,9 @@ for iSj=Sjs_to_do
     DM = zeros(size(Ttrans,1),2+n_modes);
     DM1 = data.reactionTimes_train;
     DM2 = data.ISI_train;
-    if removeoutliers
-     DM1(badtrls{iSj}) = [];
-     DM2(badtrls{iSj}) = [];
-    end
+    DM1(badtrls{iSj}) = [];
+    DM2(badtrls{iSj}) = [];
+    
     DM(:,1) = DM1;
     DM(:,2) = DM2;
     DM(:,3:end) = (A_all(SjInds(:,iSj)==1,:));
@@ -1388,7 +1379,7 @@ print([figdir,'Acc_HMM_vsSW_CV_t'],'-dpng');
 %%
 % and plot accuracy vs other ML classifiers
 
-clear acc ;
+clear acc;
 for iSj=Sjs_to_do
     filenamein = accsynchfile(iSj);
     load(filenamein);
@@ -1487,7 +1478,7 @@ end
 print([figdir,'Topoplot_allsjmean_scaled'],'-depsc');
 
 
-%% Figure 3: State timecourse modulation:
+%% Figure 3: State timecourse modulation
 figdir = [data_dir_foraging,'Figure3/']
 mkdir(figdir);
 
@@ -1543,9 +1534,7 @@ ylim([0,1]);
 print([figdir,'MeanStateTimeCourse_std'],'-depsc');
 
 
-%% plot at behavioral correlations:
-
-good_subs = Sjs_to_do;
+%% plot behavioral correlations:
 
 clear B_gmm pvals_sj p_ftest;
 for iSj=Sjs_to_do
@@ -1577,10 +1566,8 @@ for iSj=Sjs_to_do
     load(datafile(iSj));
     DM = DM(1:T(1):end,:);
     
-    
-    
     DM = normalise(DM);
-    % partial out value effect from all regressors:
+    % decorrelate all regressors:
     DM_full = zeros(size(DM,1),size(DM,2));
     DM_full = decorrelateDesignMatrix(DM);
     DM_full = normalise(DM_full);
@@ -1588,18 +1575,8 @@ for iSj=Sjs_to_do
     % fit GLM:
     B_gmm(:,:,iSj) = pinv(DM_full)*Ttrans;
     
-    % collect individual statistics on single subject correlations:
-    % remove intercept:
-    DM_full(:,end) = [];
-    for i=1:K_options(iK)-1
-        mdl = fitlm(DM_full,Ttrans(:,i));
-        pvals_sj(:,i,iSj) = mdl.Coefficients.pValue(2:end);
-        output = anova(mdl,'summary');
-        p_ftest(i,iSj) = output.pValue(2);
-    end
 end
-B_gmm = B_gmm(:,:,good_subs);
-%
+
 sz = size(B_gmm);
 B_gmm = reshape(B_gmm,sz(1),sz(2),2,nSj);
 B_gmm = reshape(mean(B_gmm,3),sz(1),sz(2),nSj);
@@ -1621,7 +1598,7 @@ for k=1:size(B_gmm,1)
         if pvals(k,i) < 0.05/((size(B_gmm,1)-1)*(size(B_gmm,2)))
             plot(i-0.2,1.1*m,'k*','MarkerSize',15,'LineWidth',2);
             plot(i+0.2,1.1*m,'k*','MarkerSize',15,'LineWidth',2);
-        elseif pvals(k,i)<0.05
+        elseif pvals(k,i)<0.05 % NO - only plot bonferroni corrected above
             %plot(i,1.1*m,'k*','MarkerSize',15,'LineWidth',1);
         end
     end
@@ -1635,23 +1612,3 @@ for k=1:size(B_gmm,1)
     
 end
 print([figdir 'TransitionTimePredictiveModelling'],'-depsc')
-
-
-figure('Position', [699 54 560 737]);
-clear pvals
-for i=1:size(B_gmm,1)
-    subplot(ceil(0.5*(size(B_gmm,1))),2,i);
-    for k=1:size(B_gmm,2)
-        [~,pvals(i,k)] = ttest(B_gmm(i,k,:));
-    end
-    plot(log(pvals(i,:)),'*','MarkerSize',20);
-    hold on;
-    plot(log(repmat(0.05,[1,size(B_gmm,2)])),'k--');
-    plot(log(repmat(0.05/((size(B_gmm,1)-1)*(size(B_gmm,2))),[1,size(B_gmm,2)])),'r--');
-    plot4paper('State Transition','p value');
-    title(DMlabels{i});
-    set(gca,'XTick',[1:size(B_gmm,2)]);
-    set(gca,'XTickLabel',xlabels);
-    set(gca,'XTickLabelRotation',45);
-end
-print([figdir 'TransitionTimePredictiveModelling_pvals'],'-depsc')
