@@ -13,11 +13,10 @@ function loglik = loglik_ness(XX,residuals,T,ness)
 %
 % Author: Diego Vidaurre, OHBA, University of Oxford
 
-K = ness.K; setstateoptions;
+K = ness.K; 
 N = length(T);
+setstateoptions;
 ndim = size(residuals,2);
-S = ness.train.S==1;
-regressed = sum(S,1)>0;
 ltpi = sum(regressed)/2 * log(2*pi);
 
 ldetWishB = 0;

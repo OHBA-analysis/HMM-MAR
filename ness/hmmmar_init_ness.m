@@ -1,11 +1,11 @@
-function Gamma = hmmmar_init_ness(data,T,options,Sind)
+function Gamma = hmmmar_init_ness(data,T,options)
 %
 % Initialise the NESS chain using iterative vanilla K=2 HMMs
 %
 % INPUT
 % data      observations, a struct with X (time series) and C (classes, optional)
 % T         length of observation sequence
-% options   structure with the training options  
+% options   structure with the training options
 % Sind
 %
 % OUTPUT
@@ -18,121 +18,88 @@ if ~isfield(options,'maxorder')
         options.timelag,options.exptimelag);
     options.maxorder = order;
 end
-L = options.maxorder; K = options.K; 
-Tall = size(data.X,1)-L*length(T);
-if isfield(data,'C'), data = rmfield(data,'C'); end
-
+K = options.K;
 % Run two initializations for each K less than requested K, plus options.initrep K
-if options.initTestSmallerK
+if isfield(options,'initTestSmallerK') && options.initTestSmallerK
     warning('Option initTestSmallerK ignored')
 end
 
-cbest = -Inf;
+Gamma = []; 
+r = 1; 
 
-r = 1; badinits = 0; maxbadinits = options.initrep * 5; 
-
-while r <= options.initrep
-        
-    options0 = options;
-    options0.K = 1;
-    options0.nessmodel = 0;
-    options0.verbose = 0;
-    options0.Pstructure = true;
-    options0.Pistructure = true;
-    %options0.DirichletDiag = 10; 
-    % get the baseline state
-    data.C = NaN(Tall,1);
-    hmm = run_short_hmm(data,T,options0,Sind);
-    w_bas = hmm.state(1).W.Mu_W(:); % the only one state
-    data.C = NaN(Tall,2);
-    for k = 1:K
-        options0.K = k + 1;
-        options0.Pistructure = true(1,k+1);
-        options0.Pstructure = true(k+1); 
-        if k > 1 
-            options0.Pstructure(k:k+1,1:k-1) = false; 
-            options0.Pstructure(1:k-1,1:k-1) = eye(k-1);
-        end
-        % run with 2 free-moving states
-        [hmm,G] = run_short_hmm(data,T,options0,Sind);
-        d = zeros(1,k+1);
-        for l = k:k+1 % which state is farthest from baseline?
-            w_k = hmm.state(l).W.Mu_W(:);
-            d(l) = sum( (w_k - w_bas).^2 );
-        end
-        [~,kk] = max(d);
-        % fix that state for the next states
-        data.C = [data.C zeros(Tall,1)];
-        ind = isnan(sum(data.C,2));
-        data.C(ind,end) = NaN;
-        ind = G(:,kk) > 0.75;
-        data.C(ind,:) = 0; data.C(ind,k) = 1;
-    end
-    Gamma = data.C(:,1:K);
-    Gamma(isnan(Gamma)) = 0;
-    
-    if any(sum(Gamma)==0)
-        disp('Bad initialisation')
-        badinits = badinits + 1;
-        if badinits > maxbadinits 
-            error(['Was not able to initialize ' num2str(K) ...
-                ' chains. Rerun or decrease K'])
-        end
-        continue
-    end
-    
-    c = 0;
-    for k = 1:K % which state is farthest from baseline?
-        w_k = hmm.state(k).W.Mu_W(:);
-        c = c + sum( (w_k - w_bas).^2 );
-    end
-    if c > cbest, Gammabest = Gamma; cbest = c; end    
-    fprintf('Init run %2d, score = %f \n',r,c);
-    r = r + 1;
-    %figure(10+r);area(Gamma);title(num2str(c))
-    
-end
-
-Gamma = Gammabest;
-if any(sum(Gamma)==0)
-    error(['Was not able to initialize ' num2str(K) ' chains. Rerun or decrease K'])
-end
-
-end
-
-function [hmm,Gamma,fehist] = run_short_hmm(data,T,options,Sind)
-
-options.nessmodel = 0; 
-keep_trying = true; notries = 0;
-while keep_trying
-    if options.K > 1
-        Gamma = initGamma_random(T-options.maxorder,options.K,...
-            min(median(double(T))/10,500));
-        if any(~isnan(data.C(:)))
-            ind = ~isnan(sum(data.C,2));
-            Gamma(ind,:) = data.C(ind,:);
-        end
+while true
+    [hmm,Gammar] = run_short_hmm(data,T,options);
+    I = selectStates(Gammar,hmm,K);
+    Gammar = Gammar(:,I);
+    if length(I) < K
+        disp(['Rep : ' num2str(r) '. Unable to initialize ' num2str(K) ...
+            ' chains; only got ' num2str(length(I)) ])
+        if size(Gammar,2) > size(Gamma,2), Gamma = Gammar; end
+        r = r + 1; 
     else
-        Gamma = ones(sum(T-options.maxorder),1);
+        Gamma = Gammar;
+        break
     end
-    hmm = struct('train',struct());
-    hmm.K = options.K;
-    hmm.train = options;
-    hmm.train.Sind = Sind;
-    hmm.train.cyc = hmm.train.initcyc;
-    hmm.train.verbose = 0; %%%%
-    %hmm.train.Pstructure = true(options.K);
-    %hmm.train.Pistructure = true(1,options.K);
-    hmm = hmmhsinit(hmm);
-    [hmm,residuals] = obsinit(data,T,hmm,Gamma);
-    try
-        [hmm,Gamma,~,fehist] = hmmtrain(data,T,hmm,Gamma,residuals);
-        keep_trying = false;
-    catch
-        notries = notries + 1; 
-        if notries > 10, error('Initialisation went wrong'); end
-        disp('Something strange happened in the initialisation - repeating')
-    end
+end
+ 
 end
 
+function [hmm,Gamma] = run_short_hmm(data,T,options)
+hmm = struct('train',struct());
+hmm.K = options.K * 2;
+hmm.train = options;
+hmm.train.ndim = size(data.X,2);
+hmm.train.cyc = hmm.train.cyc;
+hmm.train.verbose = 0; %%%%
+hmm.train.nessmodel = 0;
+hmm.train.Pstructure = true(options.K*2);
+hmm.train.Pistructure = true(1,options.K*2);
+hmm = hmmhsinit(hmm);
+Gamma = initGamma_random(T-options.maxorder,options.K*2,...
+    min(median(double(T))/10,500));
+[hmm,residuals] = obsinit(data,T,hmm,Gamma);
+[hmm,Gamma] = hmmtrain(data,T,hmm,Gamma,residuals);
 end
+
+
+function I = selectStates(G,hmm,K)
+Khmm = size(G,2); 
+if Khmm <= K, I = 1:Khmm; return; end
+bn = dec2bin(1:2^(Khmm-1)); bn = bn(1:end-1,2:end)';
+D = zeros(size(bn)); % K x ncomb
+for ik = 1:size(bn,2)
+    D(:,ik) = str2num(bn(:,ik));
+end
+B = abs(squeeze(tudabeta(hmm))); % p x K
+err = zeros(Khmm,size(bn,2));
+for ik = 1:Khmm
+    Bhat = B(:,setdiff(1:Khmm,ik)) * D;
+    err(ik,:) = mean( abs(Bhat - repmat(B(:,ik),1,size(D,2))) );
+end
+err = min(err'); % how well is predicted by a sum of others  
+fo = mean(G); l1 = mean(B);
+kept = Khmm; % no. of kept states
+% remove the one with the lowest betas
+[v,ik] = min(l1);
+if v < 0.1 * median(l1(setdiff(1:Khmm,ik)))
+    err(ik) = -Inf; fo(ik) = Inf; 
+    kept = kept-1; 
+end
+% remove the ones with too low FO
+while true
+    if kept < K, break; end
+    if ~any(fo<1e-3), break; end
+    [v,ik] = min(fo); 
+    if v < 1e-3, err(ik) = -Inf; fo(ik) = Inf; kept = kept - 1; end
+end
+% choose the ones with the largest error (less well predicted by others)    
+[~,I] = sort(err,'descend'); 
+I = I(1:K);
+end
+
+
+% figure(1)
+% subplot(221); bar(err);
+% subplot(222); bar(l1);
+% subplot(2,2,[3 4])
+% imagesc(G(1:500,:)')

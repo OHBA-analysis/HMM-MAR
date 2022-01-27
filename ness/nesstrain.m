@@ -1,6 +1,6 @@
 function [ness,Gamma,crithist] = nesstrain(data,T,ness,Gamma,residuals)
 %
-% Train Hidden Markov Model using using Variational Framework
+% Train NESS Model using using Variational Framework
 %
 % INPUTS:
 %
@@ -39,7 +39,8 @@ for cycle = 1:ness.train.cyc
 %         e0 = e;
 %         e = sum(evalfreeenergy_ness(T,Gamma,Xi,ness,residuals,XX));
 %         fprintf('+ cycle %i free energy = %.10g, relative change = %g \n',cycle,e,e0-e);
-
+    else
+        Xi = approximateXi_ness(Gamma,size(Gamma,1)+ness.train.order,ness.train.order);
     end
     
     %%% M STEP

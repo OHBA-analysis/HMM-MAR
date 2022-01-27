@@ -54,31 +54,66 @@ classifier = options.classifier;
 sequential = options.sequential;
 parallel_trials = options.parallel_trials; 
 plotGamma = options.plotGamma;
+Y_is_continuous = options.Y_is_continuous;
+nessmodel = isfield(options,'nessmodel') && options.nessmodel;
 options.plotGamma = 0; 
 options = rmfield(options,'parallel_trials');
 options = rmfield(options,'classifier');
+options = rmfield(options,'Y_is_continuous');
 if ~options.encodemodel, options = rmfield(options,'encodemodel'); end
 if isfield(options,'add_noise'), options = rmfield(options,'add_noise'); end
 p = size(X,2); q = size(Y,2);
-if isfield(options,'accuracyType')
-    accuracyType = options.accuracyType;
-    options = rmfield(options,'accuracyType');
-else
-    accuracyType = [];
-end 
+% if isfield(options,'accuracyType')
+%     accuracyType = options.accuracyType;
+%     options = rmfield(options,'accuracyType');
+% else
+%     accuracyType = [];
+% end 
 if nargin < 5, noGamma = 0; end
+
+% Put X and Y together
+T0 = T;
+T = T + 1;
+Z = zeros(sum(T),q+p,'single');
+for j = 1:N
+    t1 = (1:T(j)) + sum(T(1:j-1));
+    t2 = (1:T0(j)) + sum(T0(1:j-1));
+    if strcmp(classifier,'LDA') || (isfield(options,'encodemodel') && options.encodemodel)
+        Z(t1(2:end),1:p) = X(t2,:);
+        Z(t1(1:end-1),(p+1):end) = Y(t2,:);
+    else
+        Z(t1(1:end-1),1:p) = X(t2,:);
+        Z(t1(2:end),(p+1):end) = Y(t2,:);        
+    end
+end 
+
+options.S = -ones(p+q);
+if strcmp(classifier,'LDA') || (isfield(options,'encodemodel') && options.encodemodel)
+    options.S(p+1:end,1:p) = 1;
+else
+    options.S(1:p,p+1:end) = 1;
+end
 
 % init HMM, only if trials are temporally related
 if ~isfield(options,'Gamma')
-    if parallel_trials
+    if nessmodel
+        options2 = checkoptions(options,Z,T,0); 
+        GammaInit = hmmmar_init_ness(struct('X',Z),T,options2);
+        if size(GammaInit,2) < options.K
+            options.K = size(GammaInit,2);
+            options.Pstructure = true(options.K);
+            options.Pistructure = true(1,options.K);
+            warning(['Number of states has been reduced to ' num2str(options.K) ])
+        end
+    elseif parallel_trials
         if sequential
-            GammaInit = cluster_decoding(X,Y,T,options.K,'fixedsequential');
+            GammaInit = cluster_decoding(X,Y,T0,options.K,'fixedsequential');
         else
-            GammaInit = cluster_decoding(X,Y,T,options.K,'regression','',...
+            GammaInit = cluster_decoding(X,Y,T0,options.K,'regression','',...
                 options.Pstructure,options.Pistructure);
         end
         options.Gamma = permute(repmat(GammaInit,[1 1 N]),[1 3 2]);
-        options.Gamma = reshape(options.Gamma,[length(T)*size(GammaInit,1) options.K]);
+        options.Gamma = reshape(options.Gamma,[length(T0)*size(GammaInit,1) options.K]);
     else
         GammaInit = [];
     end
@@ -98,42 +133,23 @@ if isfield(options,'cyc') && options.cyc == 0
    return
 end
 
-% Put X and Y together
-Ttmp = T;
-T = T + 1;
-Z = zeros(sum(T),q+p,'single');
-for j = 1:N
-    t1 = (1:T(j)) + sum(T(1:j-1));
-    t2 = (1:Ttmp(j)) + sum(Ttmp(1:j-1));
-    if strcmp(classifier,'LDA') || (isfield(options,'encodemodel') && options.encodemodel)
-        Z(t1(2:end),1:p) = X(t2,:);
-        Z(t1(1:end-1),(p+1):end) = Y(t2,:);
-    else
-        Z(t1(1:end-1),1:p) = X(t2,:);
-        Z(t1(2:end),(p+1):end) = Y(t2,:);        
-    end
-end 
-
-% Run TUDA inference
-options.S = -ones(p+q);
-if strcmp(classifier,'LDA') || (isfield(options,'encodemodel') && options.encodemodel)
-    options.S(p+1:end,1:p) = 1;
-else
-    options.S(1:p,p+1:end) = 1;
-end
-
 %switch off parallel as not implemented for some models
 if strcmp(classifier,'logistic') || strcmp(classifier,'LDA')
     options.useParallel = 0;
 end
 options.decodeGamma = 0;
 
+% Run TUDA inference
 % 0. In case parallel_trials is false and no Gamma was provided
-if (isempty(GammaInit) && ~parallel_trials) || options.acrosstrial_constrained
+if (isempty(GammaInit) && ~parallel_trials) || options.acrosstrial_constrained || ...
+        Y_is_continuous
     options.updateObs = 1;
     options.updateGamma = 1;
     options.updateP = 1;
     options.plotGamma = plotGamma;
+    if ~isempty(GammaInit) && ~isfield(options,'Gamma')
+        options.Gamma = GammaInit; 
+    end
     [tuda,Gamma,~,vpath] = hmmmar(Z,T,options);
     
 else
@@ -148,7 +164,7 @@ else
     
     if noGamma
         vpath = [];
-        Gamma = ones(sum(Ttmp),1);
+        Gamma = ones(sum(T0),1);
         return
     end
     
@@ -214,18 +230,14 @@ if isfield(options_original,'filter'), tuda.train.filter = options_original.filt
 if isfield(options_original,'downsample'), tuda.train.downsample = options_original.downsample; end 
 tuda.train.classifier = classifier;  
 tuda.train.sequential = sequential;
+tuda.train.Y_is_continuous = Y_is_continuous; 
 
 % Explained variance per state, square error &
 % Square error for the standard time point by time point regression
 
-if ~tuda.train.nessmodel
-    if parallel_trials
-        [stats.R2_states,stats.R2] = tudaR2(X,Y,T-1,tuda,Gamma);
-        stats.R2_stddec = R2_standard_dec(X,Y,T-1);
-    else
-        [stats.R2_states,stats.R2] = tudaR2_continuous(X,Y,tuda,Gamma);
-        stats.R2_stddec = [];
-    end
+if parallel_trials
+    [stats.R2_states,stats.R2] = tudaR2(X,Y,T-1,tuda,Gamma);
+    stats.R2_stddec = R2_standard_dec(X,Y,T-1);
 end
 
 tuda.train.pca = npca;
@@ -234,46 +246,23 @@ tuda.train.A = A;
 end
 
 
-function [R2_states,R2_tuda] = tudaR2(X,Y,T,tuda,Gamma)
-% training explained variance per time point per each state, for TUDA.
-% R2_states is per state, R2_tuda is for the entire model 
-N = length(T); ttrial = sum(T)/N; p = size(X,2);
-K = length(tuda.state); q = size(Y,2);
-R2_states = zeros(ttrial,q,K);
-R2_tuda = zeros(ttrial,q);
-mY = repmat(mean(Y),size(Y,1),1);
-mY = reshape(mY,[ttrial N q]);
-Y = reshape(Y,[ttrial N q]);
-e0 = permute(sum((mY - Y).^2,2),[1 3 2]);
-mat1 = ones(ttrial,q);
-mGamma = getFractionalOccupancy (Gamma,T,[],1);
-for k = 1:K
-    Yhat = X * tuda.state(k).W.Mu_W(1:p,p+1:end);
-    Yhat = reshape(Yhat,[ttrial N q]);
-    e = permute(sum((Yhat - Y).^2,2),[1 3 2]);
-    R2_states(:,:,k) = mat1 - e ./ e0 ;
-    R2_tuda = R2_tuda + R2_states(:,:,k) .* repmat(mGamma(:,k),1,q); 
-end
-end
-
-
-function [R2_states,R2_tuda] = tudaR2_continuous(X,Y,tuda,Gamma)
-K = length(tuda.state); q = size(Y,2); p = size(X,2);
-R2_states = zeros(q,K);
-e0 = (mean(Y) - Y).^2;
-v1 = ones(1,q);
-Yhat = zeros(size(Y));
-for k = 1:K
-    Yhatk = X * tuda.state(k).W.Mu_W(1:p,p+1:end);
-    Yhat = Yhat + Yhatk .* repmat(Gamma(:,k),1,q);
-    ek = sum(((Yhatk - Y).^2) .* repmat(Gamma(:,k),1,q));
-    e0k = sum(e0 .* repmat(Gamma(:,k),1,q));
-    R2_states(:,k) = (v1 - ek ./ e0k)';
-end
-e = sum((Yhat - Y).^2);
-e0 = sum(e0);
-R2_tuda = (v1 - e ./ e0)';
-end
+% function [R2_states,R2_tuda] = tudaR2_continuous(X,Y,tuda,Gamma)
+% K = length(tuda.state); q = size(Y,2); p = size(X,2);
+% R2_states = zeros(q,K);
+% e0 = (mean(Y) - Y).^2;
+% v1 = ones(1,q);
+% Yhat = zeros(size(Y));
+% for k = 1:K
+%     Yhatk = X * tuda.state(k).W.Mu_W(1:p,p+1:end);
+%     Yhat = Yhat + Yhatk .* repmat(Gamma(:,k),1,q);
+%     ek = sum(((Yhatk - Y).^2) .* repmat(Gamma(:,k),1,q));
+%     e0k = sum(e0 .* repmat(Gamma(:,k),1,q));
+%     R2_states(:,k) = (v1 - ek ./ e0k)';
+% end
+% e = sum((Yhat - Y).^2);
+% e0 = sum(e0);
+% R2_tuda = (v1 - e ./ e0)';
+% end
 
 function R2 = R2_standard_dec(X,Y,T)
 % squared error for time point by time point decoding (time by q)

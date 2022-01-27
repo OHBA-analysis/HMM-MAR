@@ -18,8 +18,7 @@ function L = obslike_ness(ness,Gamma,residuals,XX,k)
 K = ness.K;
 
 [T,ndim] = size(residuals);
-S = ness.train.S==1;
-regressed = sum(S,1)>0;
+setstateoptions;
 ltpi = sum(regressed)/2 * log(2*pi);
 L = zeros(T+ness.train.maxorder,2);
 
@@ -31,8 +30,6 @@ for n = 1:ndim % only diagonal?
     PsiWish_alphasum = PsiWish_alphasum+0.5*psi(ness.Omega.Gam_shape);
 end
 C = ness.Omega.Gam_shape ./ ness.Omega.Gam_rate;
-
-setstateoptions;
 
 for l = 1:2
         

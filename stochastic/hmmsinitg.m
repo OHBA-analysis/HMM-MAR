@@ -18,7 +18,7 @@ X = loadfile(Xin{1},T{1},options); ndim = size(X,2);
 subjfe_init = zeros(N,3);
 loglik_init = zeros(N,1);
 pcaprec = options.pcapred>0;
-S = options.S==1; regressed = sum(S,1)>0;
+Sind = options.Sind==1; regressed = sum(Sind,1)>0;
 if pcaprec
     npred = options.pcapred + (~options.zeromean);
 else

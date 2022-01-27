@@ -164,7 +164,6 @@ function hmm = initpost(X,T,hmm,residuals,Gamma)
 Tres = sum(T) - length(T)*hmm.train.maxorder;
 ndim = size(X,2);
 K = hmm.K;
-S = hmm.train.S==1; regressed = sum(S)>0;
 hmm.train.active = ones(1,K);
 pcapred = hmm.train.pcapred>0;
 p = hmm.train.lowrank; do_HMM_pca = (p > 0);
@@ -185,7 +184,7 @@ if nessmodel
     hmm = initW_ness(hmm,XX,residuals,Gamma,Sind,...
         hmm.train.ness_regularisation_baseline);
 else
-    hmm = initW_hmm(hmm,XX,XXGXX,residuals,Gamma,Sind);
+    hmm = initW_hmm(hmm,XX,XXGXX,residuals,Gamma);
 end
 
 % Omega
@@ -389,14 +388,22 @@ K = size(Gamma,2);
 np = size(XX,2); ndim = size(residuals,2);
 
 % baseline
-gram = (XX' * XX); 
-gram = (gram + gram') / 2 ;
-gram = gram + trace(gram) * lambda * eye(np);
-igram = inv(gram);
-hmm.state(end).W.Mu_W = igram * (XX' * residuals);
-for n = 1:ndim
-    hmm.state(end).W.iS_W(n,:,:) = gram;
-    hmm.state(end).W.S_W(n,:,:) = igram;
+if 0
+    gram = (XX' * XX);
+    gram = (gram + gram') / 2 ;
+    gram = gram + trace(gram) * lambda * eye(np);
+    igram = inv(gram);
+    hmm.state(end).W.Mu_W = igram * (XX' * residuals);
+    hmm.state(end).W.iS_W = zeros(ndim,np,np);
+    hmm.state(end).W.S_W = zeros(ndim,np,np);
+    for n = 1:ndim
+        hmm.state(end).W.iS_W(n,:,:) = gram;
+        hmm.state(end).W.S_W(n,:,:) = igram;
+    end
+else
+    hmm.state(end).W.Mu_W = zeros(np,ndim);
+    hmm.state(end).W.iS_W = zeros(ndim,np,np);
+    hmm.state(end).W.S_W = zeros(ndim,np,np);
 end
 
 % rest
@@ -442,19 +449,19 @@ end
 
 
 
-function hmm = initW_hmm(hmm,XX,XXGXX,residuals,Gamma,Sind)
+function hmm = initW_hmm(hmm,XX,XXGXX,residuals,Gamma)
 
 ndim = size(residuals,2);
 if isfield(hmm.train,'B'), B = hmm.train.B; Q = size(B,2);
 else Q = ndim;
 end
-setstateoptions
 pcapred = hmm.train.pcapred>0;
 p = hmm.train.lowrank; do_HMM_pca = (p > 0);
-
+setstateoptions;
 K = size(Gamma,2);
+
 for k = 1:K
-    setstateoptions;
+    
     if pcapred, npred = hmm.train.pcapred;
     else npred = Q*length(orders);
     end
@@ -496,7 +503,7 @@ for k = 1:K
             hmm.state(k).W.iS_W = zeros(ndim,(~train.zeromean)+npred,(~train.zeromean)+npred);
             hmm.state(k).W.S_W = zeros(ndim,(~train.zeromean)+npred,(~train.zeromean)+npred);
             for n = 1:ndim
-                ndim_n = sum(S(:,n)>0);
+                ndim_n = sum(Sind(:,n)>0);
                 if ndim_n==0, continue; end
                 hmm.state(k).W.iS_W(n,Sind(:,n),Sind(:,n)) = ...
                     XXGXX{k}(Sind(:,n),Sind(:,n)) + 0.01*eye(sum(Sind(:,n))) ;

@@ -3,13 +3,12 @@ function hmm = updateOmega_ness(hmm,Gamma,residuals,T,XX,Tfactor)
 
 K = hmm.K; ndim = hmm.train.ndim;
 if nargin < 6, Tfactor = 1; end
-S = hmm.train.S==1; regressed = sum(S,1)>0;
 Tres = sum(T) - length(T)*hmm.train.maxorder;
 
 setstateoptions;
 
 [meand,X] = computeStateResponses(XX,hmm,Gamma);
-e = (residuals - meand).^2;
+e = (residuals(:,regressed) - meand).^2;
 swx2 = zeros(Tres,ndim);
 for n = 1:ndim
     if ~regressed(n), continue; end

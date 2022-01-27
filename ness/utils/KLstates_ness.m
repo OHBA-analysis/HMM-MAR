@@ -3,7 +3,6 @@ function KLdiv = KLstates_ness(ness)
 ndim = length(ness.Omega.Gam_rate);
 K = ness.K; 
 setstateoptions;
-regressed = sum(S,1)>0;
 np = length(ness.state_shared(1).Mu_W);
 
 OmegaKL = 0;

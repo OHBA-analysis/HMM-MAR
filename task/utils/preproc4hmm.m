@@ -13,6 +13,9 @@ N = length(T);
 p = size(X,2);
 
 if any(isnan(Y(:))), error('NaN found in Y'); end
+if ~isfield(options,'Y_is_continuous') %ie not discrete
+    options.Y_is_continuous = length(unique(Y(:))) > 50;
+end
 
 if size(X,1) ~= sum(T), error('Dimension of X not correct'); end
 if size(Y,1) < size(Y,2); Y = Y'; end
@@ -166,7 +169,7 @@ if ~isempty(options.classifier) || options.encodemodel
                 error('Format of Y incorrect for classification tasks');
             end
         end      
-        add_noise = 1;
+        add_noise = ~options.Y_is_continuous;
         if ~isfield(options,'sequential')
             options.sequential = true;
         end
@@ -202,7 +205,7 @@ else % Standard regression problem
     end
     options = rmfield(options,'intercept');
 end
-if ~isfield(options,'cyc'), options.cyc = 4; end
+if ~isfield(options,'cyc'), options.cyc = 25; end
 
 if ~isfield(options,'logisticYdim'), options.logisticYdim = 0; end
 
@@ -264,7 +267,7 @@ if isfield(options,'demeanstim'), options = rmfield(options,'demeanstim'); end
 % Set a high prior for the initial probabilities because otherwise the
 % model is biased to have the first time point of each trial to be assigned
 % to just one state.
-if ~isfield(options,'PriorWeightingPi'), options.PriorWeightingPi = length(T); end
+if ~isfield(options,'PriorWeightingPi'), options.PriorWeightingPi = length(T)/20; end
 if ~isfield(options,'DirichletDiag'), options.DirichletDiag = 100; end
 
 do_embedding = length(embeddedlags)>1;

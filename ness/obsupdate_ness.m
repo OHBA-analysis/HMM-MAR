@@ -43,10 +43,9 @@ ness = updateW_ness(ness,Gamma,residuals,XX,Tfactor); %_nobaseline
 % mean(Gamma)
 
 % Omega
+ness = updateOmega_ness(ness,Gamma,residuals,T,XX,Tfactor);
 
-% ness = updateOmega_ness(ness,Gamma,residuals,T,XX,Tfactor);
-% 
-% % autoregression coefficient priors
+% autoregression coefficient priors
 ness = updateSigma_ness(ness); % sigma - channel x channel coefficients
 ness = updateAlpha_ness(ness); % alpha - one per order
 

@@ -27,7 +27,6 @@ if nargin>=6, Tres = size(residuals,1);
 else, Tres = sum(T) - length(T)*hmm.train.maxorder;
 end
 setstateoptions;
-regressed = sum(S,1)>0;
 ltpi = sum(regressed)/2 * log(2*pi);
 np = size(XX,2); ndim = size(residuals,2);
 

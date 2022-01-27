@@ -2,7 +2,7 @@ function hmm = states_supdate(hmm,hmm_noisy,rho,update)
 % update==1, W; update==2, Omega; update==3, sigma; update==4, alpha
 K = length(hmm_noisy.state);
 Sind = hmm.train.Sind==1;
-regressed = sum((hmm.train.S==1),1)>0;
+regressed = sum((hmm.train.Sind==1),1)>0;
 
 for k = 1:K
     if any(update==1) && isfield(hmm_noisy.state(1),'W') && ~isempty(hmm_noisy.state(1).W.Mu_W)

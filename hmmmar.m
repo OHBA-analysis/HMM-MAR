@@ -313,16 +313,21 @@ else
     is_there_hmm = false;
     if isempty(options.Gamma) && isempty(options.hmm) % both unspecified
         if options.K > 1
-            Sind = options.Sind;
             if options.nessmodel && isfield(options,'ness_Gamma_fromhmm')
                 GammaInit = options.ness_Gamma_fromhmm; 
                 options = rmfield(options,'ness_Gamma_fromhmm');
                 GammaInit = hmmmar_init_ness_fromhmm(GammaInit,T,options);
             elseif options.initrep>0 && options.initcyc>0 && options.nessmodel
-                GammaInit = hmmmar_init_ness(data,T,options,Sind);
+                GammaInit = hmmmar_init_ness(data,T,options);
+                if size(GammaInit,2) < options.K
+                    options.K = size(GammaInit,2);
+                    options.Pstructure = true(options.K);
+                    options.Pistructure = true(1,options.K);
+                    warning(['Number of states has been reduced to ' num2str(options.K) ])
+                end
             elseif options.initrep>0 && options.initcyc>0 && ...
                     (strcmpi(options.inittype,'HMM-MAR') || strcmpi(options.inittype,'HMMMAR'))
-                [hmm_wr,GammaInit,fehistInit] = hmmmar_init(data,T,options,Sind);
+                [hmm_wr,GammaInit,fehistInit] = hmmmar_init(data,T,options);
                 is_there_hmm = true;
             elseif strcmpi(options.inittype,'sequential')
                 GammaInit = initGamma_seq(T-options.maxorder,options.K);
@@ -391,14 +396,14 @@ else
         hmm_wr = hmmhsinit(hmm_wr,GammaInit,T);
         [hmm_wr,residuals_wr] = obsinit(data,T,hmm_wr,GammaInit);
         if isfield(options,'distribution') && strcmp(options.distribution,'logistic')
-            residuals_wr = getresidualslogistic(data.X,T,options.logisticYdim); 
+            residuals_wr = getresidualslogistic(data.X,T,options.logisticYdim);
         end
     else % using a warm restart from a previous run
         hmm_wr = versCompatibilityFix(options.hmm);
         options = rmfield(options,'hmm');
-        train = hmm_wr.train; 
+        train = hmm_wr.train;
         hmm_wr.train = options;
-        hmm_wr.train.active = train.active;  
+        hmm_wr.train.active = train.active;
         % set priors
         if options.nessmodel
             Dir2d_alpha = cell(options.K,1); P = cell(options.K,1); priors = cell(options.K,1);
@@ -429,7 +434,7 @@ else
         elseif do_HMM_pca
             residuals_wr = [];
         else
-            residuals_wr = getresidualslogistic(data.X,T,options.logisticYdim); 
+            residuals_wr = getresidualslogistic(data.X,T,options.logisticYdim);
         end
     end
     
@@ -451,12 +456,15 @@ else
                 f = getBehAssociation(GammaInit,y,T,sy);
                 hmm_wr.tudamonitor.behaviour.(fs{ifs}) = f;
             end
-        end        
+        end
     end
     
     fehist = Inf;
     if isfield(hmm_wr.train,'Gamma'), hmm_wr.train = rmfield(hmm_wr.train,'Gamma'); end
-    if ~options.nessmodel
+    if options.nessmodel
+        Xi = []; residuals = [];
+        [hmm,Gamma,fehist] = nesstrain(data,T,hmm_wr,GammaInit,residuals_wr);
+    else
         for it = 1:options.repetitions
             hmm0 = hmm_wr;
             [hmm0,Gamma0,Xi0,fehist0] = hmmtrain(data,T,hmm0,GammaInit,residuals_wr,fehistInit);
@@ -468,9 +476,6 @@ else
                 residuals = []; Gamma = GammaInit; Xi = [];
             end
         end
-    else
-        Xi = []; residuals = [];
-        [hmm,Gamma,fehist] = nesstrain(data,T,hmm_wr,GammaInit,residuals_wr);
     end
     
     if options.repetitions == 0
@@ -493,7 +498,7 @@ else
             end
         end   
     end
-    hmm.train = rmfield(hmm.train,'Sind');
+    %hmm.train = rmfield(hmm.train,'Sind');
     
     feterms = []; rho = [];
     

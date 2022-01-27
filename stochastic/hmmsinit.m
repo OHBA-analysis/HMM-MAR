@@ -67,7 +67,7 @@ if options.BIGinitStrategy == 2 % run through a subset of the subjects only
 end
 
 X = loadfile(Xin{1},T{1},options); ndim = size(X,2);
-S = options.S==1; regressed = sum(S,1)>0;
+Sind = options.Sind==1; regressed = sum(Sind,1)>0;
 if isfield(options,'B') && ~isempty(options.B)
     npred = length(options.orders)*size(options.B,2) + (~options.zeromean);
 elseif pcaprec

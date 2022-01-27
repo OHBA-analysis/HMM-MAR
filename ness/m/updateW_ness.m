@@ -3,7 +3,6 @@ function ness = updateW_ness(ness,Gamma,residuals,XX,Tfactor)
 
 if nargin < 5, Tfactor = 1; end
 setstateoptions;
-regressed = sum(S,1)>0;
 K = size(Gamma,2); np = size(XX,2); ndim = length(ness.state_shared); 
 
 noGamma = prod(1-Gamma,2);
@@ -61,7 +60,7 @@ for n = 1:ndim
     c = ness.Omega.Gam_shape / ness.Omega.Gam_rate(n);
     Regterm = diag(Regterm);
 
-    iS_W = Regterm + Tfactor * c * gram(Sind_all,Sind_all);
+    iS_W = Regterm(Sind_all,Sind_all) + Tfactor * c * gram(Sind_all,Sind_all);
     iS_W = (iS_W + iS_W') / 2; 
     S_W = inv(iS_W);
     Mu_W = Tfactor * c * S_W * X(:,Sind_all)' * residuals(:,n);

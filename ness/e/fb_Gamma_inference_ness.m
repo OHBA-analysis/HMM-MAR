@@ -13,36 +13,46 @@ function [Gamma,Xi,L] = fb_Gamma_inference_ness(XX,ness,residuals,Gamma,T)
 % likelihoods and then squaring, but that's not very easy to do.
 
 order = ness.train.maxorder;
-if nargin<5, T = size(residuals,1) + order; ttrial = size(residuals,1); N = 1;
-else, ttrial = T(1) - order; N = length(T);
+if nargin<5, T = size(residuals,1) + order; ttrial = T(1); N = 1;
+else, ttrial = T(1); N = length(T);
 end
 K = ness.K; show_warn = 1;
 
-Xi = zeros(ttrial-1,N,K,4);
+Xi = zeros(ttrial-1-order,K,4);
 
 % bloh = load('/tmp/bloh.mat');
 % sum(evalfreeenergy_ness(bloh.T,Gamma,bloh.Xi,ness,residuals,XX));
 % LK = [];
 % for k = 1:K, LK = [LK obslike_ness(ness,Gamma,residuals,XX,k)]; end
 
+if ness.train.acrosstrial_constrained
+    Gamma = squeeze(mean(reshape(Gamma,[ttrial-order,N,K]),2));
+end
+    
 
 for k = 1:K % %randperm(K) % chain K+1 is implicit
     
     Lk = zeros(ttrial * N, 2);
     
-    for j = 1:N
+    for j = 1:N % N is 1 except when acrosstrial_constrained
         ind = (1:ttrial) + ttrial * (j-1);
-        Lk(ind,:) = obslike_ness(ness,Gamma(ind,:),residuals(ind,:),XX(ind,:),k);
+        ind2 = (1:(ttrial-order)) + (ttrial-order) * (j-1);
+        Lk(ind,:) = obslike_ness(ness,Gamma,residuals(ind2,:),XX(ind2,:),k);
+        %lk = Lk(ind,:); lk = lk(:); if any(lk==0), keyboard; end
     end
     
-    scale = zeros(T,1);
-    alpha = zeros(T,2);
-    beta = zeros(T,2);
+    if ness.train.acrosstrial_constrained
+       Lk = squeeze(sum(reshape(Lk,[ttrial,N,2]),2)); 
+    end
+    
+    scale = zeros(ttrial,1);
+    alpha = zeros(ttrial,2);
+    beta = zeros(ttrial,2);
     
     alpha(1+order,:) = ness.state(k).Pi.*Lk(1+order,:);
     scale(1+order) = sum(alpha(1+order,:));
     alpha(1+order,:) = alpha(1+order,:)/scale(1+order);
-    for i = 2+order:T
+    for i = 2+order:ttrial
         alpha(i,:) = (alpha(i-1,:)*ness.state(k).P).*Lk(i,:);
         scale(i) = sum(alpha(i,:));		% P(X_i | X_1 ... X_{i-1})
         alpha(i,:) = alpha(i,:)/scale(i);
@@ -50,8 +60,8 @@ for k = 1:K % %randperm(K) % chain K+1 is implicit
     
     scale(scale<realmin) = realmin;
     
-    beta(T,:) = ones(1,2)/scale(T);
-    for i = T-1:-1:1+order
+    beta(ttrial,:) = ones(1,2)/scale(ttrial);
+    for i = ttrial-1:-1:1+order
         beta(i,:) = (beta(i+1,:).*Lk(i+1,:))*(ness.state(k).P')/scale(i);
         beta(i,beta(i,:)>realmax) = realmax;
     end
@@ -66,17 +76,17 @@ for k = 1:K % %randperm(K) % chain K+1 is implicit
     end
     
     Gamma2 = rdiv(Gamma2,sum(Gamma2,2));
-    Gamma(:,k) = Gamma2(order+1:T,1);
+    Gamma(:,k) = Gamma2(order+1:ttrial,1);
     
     if out_precision
-        xi = approximateXi(Gamma2(order+1:T,:),size(Gamma2,1),ness);
+        xi = approximateXi(Gamma2(order+1:ttrial,:),size(Gamma2,1),ness);
         Xi(:,k,:) = reshape(xi,[size(xi,1) size(xi,2)*size(xi,3)]);
         if show_warn
             show_warn = false;
             warning('out of precision when computing xi')
         end
     else
-        for i = 1+order:T-1
+        for i = 1+order:ttrial-1
             t = ness.state(k).P .* ( alpha(i,:)' * (beta(i+1,:).*Lk(i+1,:)));
             Xi(i-order,k,:) = t(:)'/sum(t(:));
         end
