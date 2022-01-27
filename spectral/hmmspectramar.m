@@ -247,8 +247,8 @@ for j = 1:NN
             Xj = data(t0+1:t0+T(j),:); Tj = T(j);
             t0 = sum(T(1:j-1)) - (j-1)*hmm.train.maxorder;
             Gammaj = Gamma(t0+1:t0+T(j)-hmm.train.maxorder,:);
-            Gammasum(j,:) = sum(Gammaj);
         end
+        Gammasum(j,:) = sum(Gammaj);
         hmm = mlhmmmar(Xj,Tj,hmm0,Gammaj,options.completelags);
     end
     for k = 1:K

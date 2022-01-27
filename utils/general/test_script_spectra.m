@@ -63,8 +63,8 @@ for opt = 1:2
             end
             
             fitmt = hmmspectramt(data,Tdata,Gamma{opt},options_s{opt});
-            fitmar1 = hmmspectramar([],[],hmm{opt},[],options_s{opt});
             if opt==1 % not valid for embedded
+                fitmar1 = hmmspectramar([],[],hmm{opt},[],options_s{opt});
                 fitmar2 = hmmspectramar(data,Tdata,[],Gamma{opt},options_s{opt});
             end
         end
