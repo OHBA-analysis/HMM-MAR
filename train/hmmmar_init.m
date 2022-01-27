@@ -1,4 +1,4 @@
-function [hmm,Gamma,fehist] = hmmmar_init(data,T,options,Sind)
+function [hmm,Gamma,fehist] = hmmmar_init(data,T,options)
 %
 % Initialise the hidden Markov chain using HMM-MAR
 %
@@ -34,7 +34,7 @@ hmm = cell(length(init_k),1);
 
 if options.useParallel && length(init_k) > 1 % not very elegant
     parfor it = 1:length(init_k)
-        [hmm{it},Gamma{it},fehist{it}] = run_initialization(data,T,options,Sind,init_k(it));
+        [hmm{it},Gamma{it},fehist{it}] = run_initialization(data,T,options,init_k(it));
         felast(it) = fehist{it}(end);
         maxfo(it) = mean(getMaxFractionalOccupancy(Gamma{it},T,options));
         if options.verbose
@@ -48,7 +48,7 @@ if options.useParallel && length(init_k) > 1 % not very elegant
     end
 else
     for it = 1:length(init_k)
-        [hmm{it},Gamma{it},fehist{it}] = run_initialization(data,T,options,Sind,init_k(it));
+        [hmm{it},Gamma{it},fehist{it}] = run_initialization(data,T,options,init_k(it));
         felast(it) = fehist{it}(end);
         maxfo(it) = mean(getMaxFractionalOccupancy(Gamma{it},T,options));
         if options.verbose
@@ -80,13 +80,15 @@ fehist = fehist{s};
 
 end
 
-function [hmm,Gamma,fehist] = run_initialization(data,T,options,Sind,init_k)
+function [hmm,Gamma,fehist] = run_initialization(data,T,options,init_k)
 % INPUTS
 % - data,T,options,Sind <same as hmmmar_init>
 % - init_k is the number of states to use for this initialization
 
 % Need to adjust the worker dirichletdiags if testing smaller K values
 %if ~options.nessmodel && init_k < options.K
+Sind = options.Sind; 
+
 if init_k < options.K
     for j = 1:length(options.DirichletDiag)
         p = options.DirichletDiag(j)/(options.DirichletDiag(j) + options.K - 1); % Probability of remaining in same state
@@ -127,9 +129,12 @@ while keep_trying
         [hmm,Gamma,~,fehist] = hmmtrain(data,T,hmm,Gamma,residuals);
         fehist(end) = [];
         keep_trying = false;
-    catch
+    catch exception
         notries = notries + 1; 
-        if notries > 10, error('Initialisation went wrong'); end
+        if notries > 10
+            disp('Initialisation went wrong'); 
+            throw(exception)  
+        end
         disp('Something strange happened in the initialisation - repeating')
     end
     hmm.train.verbose = options.verbose;

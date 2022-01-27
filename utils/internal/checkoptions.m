@@ -473,9 +473,15 @@ if cv==1
     if ~isfield(options,'cvmode'), options.cvmode = 1; end
     if ~isfield(options,'cvverbose'), options.cvverbose = 0; end
     if ~isobject(options.cvfolds)
-        if length(options.cvfolds)>1 && length(options.cvfolds)~=length(T), error('Incorrect assigment of trials to folds'); end
-        if length(options.cvfolds)>1 && ~isempty(options.Gamma), error('Set options.Gamma=[] for cross-validating'); end
-        if length(options.cvfolds)==1 && options.cvfolds==0, error('Set options.cvfolds to a positive integer'); end
+        if length(options.cvfolds)>1 && length(options.cvfolds)~=length(T) 
+            error('Incorrect assigment of trials to folds');
+        end
+        if length(options.cvfolds)>1 && ~isempty(options.Gamma) 
+            error('Set options.Gamma=[] for cross-validating'); 
+        end
+        if length(options.cvfolds)==1 && options.cvfolds==0
+            error('Set options.cvfolds to a positive integer'); 
+        end
     end
 end
 
@@ -577,7 +583,12 @@ if (strcmp(options.covtype,'full') || strcmp(options.covtype,'uniquefull')) && a
     regressors = sum(S,1)>=1;
     tmp = double(regressed)*double(regressors) ~= S; 
     if any(tmp(:))
-    	error('Decoding with full or uniquefull covariance matrix requires S to be in block design: current design not supported');
+    	error(['Decoding with full or uniquefull covariance matrix requires S ' ...
+            'to be in block design: current design not supported']);
+    end
+    if any((regressed + regressors') ~= 1) % test that regressors and regressed are mutually exclusive and exhaustive
+    	error(['Decoding with full or uniquefull covariance matrix requires S ' ...
+            'to be in block design: current design not supported']);
     end
 end
 
@@ -621,12 +632,14 @@ if (strcmp(options.covtype,'uniquediag') || strcmp(options.covtype,'uniquefull')
    error('Unique covariance matrix, order=0 and no mean modelling: there is nothing left to drive the states..') 
 end
 
-if options.pcapred>0
-    options.Sind = ones(options.pcapred,ndim);
-else
-    options.Sind = formindexes(orders,options.S);
+if ~isfield(options,'Sind')
+    if options.pcapred>0
+        options.Sind = ones(options.pcapred,ndim);
+    else
+        options.Sind = formindexes(orders,options.S);
+    end
+    if ~options.zeromean, options.Sind = [true(1,ndim); options.Sind]; end
 end
-if ~options.zeromean, options.Sind = [true(1,ndim); options.Sind]; end
 
 if ~strcmp(options.covtype,'pca') && options.lowrank > 0 
     warning('When states are probabilistic PCA models (option.lowrank>0), covtype has no meaning')

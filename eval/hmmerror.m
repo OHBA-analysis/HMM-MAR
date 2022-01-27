@@ -24,19 +24,17 @@ function [errY,fracerrY,errR,fracerrR,response]=hmmerror(X,T,hmm,Gamma,test,resi
 
 N = length(T);
 train = hmm.train;
-orders = formorders(train.order,train.orderoffset,train.timelag,train.exptimelag);
-S = hmm.train.S==1;
-Sind = formindexes(orders,train.S);
-regressed = sum(S,1)>0;
 
-if nargin<5,
+setstateoptions; 
+
+if nargin<5
     test = ones(sum(T),1);
 end
-if nargin<6 || isempty(residuals),
+if nargin<6 || isempty(residuals)
     residuals = ...
         getresiduals(X,T,Sind,train.maxorder,train.order,train.orderoffset,train.timelag,train.exptimelag,train.zeromean);
 end
-if nargin<7,
+if nargin<7
     actstates = ones(hmm.K,1);
 end
 

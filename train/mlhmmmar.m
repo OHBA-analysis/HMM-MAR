@@ -140,17 +140,15 @@ if iscell(X)
     
 else
     
+    setstateoptions;   
     ndim = size(X,2);
-    S = hmm.train.S==1; regressed = sum(S,1)>0;
-    Sind = formindexes(hmm.train.orders,hmm.train.S); hmm.train.Sind = Sind;
-    if ~hmm.train.zeromean, Sind = [true(1,size(X,2)); Sind]; end
     Y = getresiduals(X,T,Sind,hmm.train.maxorder,hmm.train.order,hmm.train.orderoffset,...
         hmm.train.timelag,hmm.train.exptimelag,hmm.train.zeromean);
     pred = zeros(size(Y));
     setxx; % build XX
     
     for k=1:K
-        setstateoptions;        
+             
         if hmm.train.uniqueAR
             XY = zeros(size(XX,1)*ndim,1);
             XGX = zeros(size(XX,2)/ndim,size(XX,2)/ndim);

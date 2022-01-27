@@ -97,6 +97,14 @@ end
 
 options.embeddedlags = 0; 
 
+% HMM-PCA
+options_pca = struct();
+options_pca.K = 2; 
+options_pca.lowrank = 2;
+options_pca.verbose = 0; 
+options_pca.useParallel = 0; 
+[hmm,Gamma,Xi,vpath,~,~,fe] = hmmmar(X,T,options_pca);
+
 % random initialization
 options.inittype = 'random';
 [hmm,Gamma,Xi,vpath,~,~,fe] = hmmmar(X,T,options);

@@ -220,7 +220,7 @@ for ik = 1:length(rangeK)
                         B_S = hmm.state(k).W.S_W(validentries,validentries);
                         for iT = 1:T
                             NormWishtrace(iT) = trace(kron(C(regressed,regressed),...
-                                residuals(1,~regressed)'*residuals(1,~regressed))*B_S);
+                                residuals(iT,~regressed)'*residuals(iT,~regressed))*B_S);
                         end
                     else
                         % implies a static regressor value over full course of each trial

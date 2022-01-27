@@ -4,7 +4,7 @@ is_gaussian = hmm.train.order == 0; % true if Gaussian observation model is bein
 K = hmm.K; ndim = hmm.train.ndim;
 if nargin < 10 || isempty(rangeK), rangeK = 1:K; end
 if nargin < 9, Tfactor = 1; end
-S = hmm.train.S==1; regressed = sum(S,1)>0;
+setstateoptions
 Tres = sum(T) - length(T)*hmm.train.maxorder;
 if isfield(hmm.train,'B'), Q = size(hmm.train.B,2);
 else Q = ndim; end
@@ -31,7 +31,6 @@ if strcmp(hmm.train.covtype,'uniquediag') && hmm.train.uniqueAR
     hmm.Omega.Gam_shape = hmm.prior.Omega.Gam_shape + 0.5 * Tfactor * Tres;
     
 elseif strcmp(hmm.train.covtype,'uniquediag')
-    setstateoptions;
     hmm.Omega.Gam_rate(regressed) = hmm.prior.Omega.Gam_rate(regressed);
     for k = rangeK
         if ~isempty(XW)
@@ -59,7 +58,6 @@ elseif strcmp(hmm.train.covtype,'uniquediag')
     
 elseif strcmp(hmm.train.covtype,'uniquefull')
     hmm.Omega.Gam_rate(regressed,regressed) = hmm.prior.Omega.Gam_rate(regressed,regressed);
-    setstateoptions;
     for k = rangeK
         if ~isempty(XW)
             XWk = XW(:,:,k);
@@ -110,7 +108,6 @@ elseif strcmp(hmm.train.covtype,'uniquefull')
     
 else % state dependent
     
-    setstateoptions;
     for k = rangeK
         if ~hmm.train.active, continue; end
         if ~isempty(XW)

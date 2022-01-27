@@ -44,8 +44,7 @@ if pcapred, M = hmm.train.pcapred; end
 
 N = length(T); 
 Tres = sum(T) - N*hmm.train.maxorder;
-setstateoptions;
-regressed = sum(S,1)>0;
+setstateoptions; 
 ltpi = sum(regressed)/2 * log(2*pi);
 
 if sum(~regressed)>1 && ~isempty(X)

@@ -44,8 +44,9 @@ try
     else
         L = obslikelogistic([],hmm,residuals,XX,slicepoints);
     end
-catch
-    error('obslike function is giving trouble - Out of precision?')
+catch exception
+    disp('obslike function is giving trouble - Out of precision?')
+    throw(exception)
 end
 
 if isfield(hmm.train,'id_mixture') && hmm.train.id_mixture

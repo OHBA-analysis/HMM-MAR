@@ -13,7 +13,7 @@ for k = rangeK
     %shape
     if train.symmetricprior
         hmm.state(k).sigma.Gam_shape = hmm.state(k).prior.sigma.Gam_shape + length(orders);
-        for n=1:ndim
+        for n = 1:ndim
             hmm.state(k).sigma.Gam_shape(n,n) = hmm.state(k).prior.sigma.Gam_shape(n,n) + 0.5*length(orders);
         end
     else

@@ -56,7 +56,7 @@ else
     defhmmprior = struct('Dir2d_alpha',[],'Dir_alpha',[]);
     defhmmprior.Dir_alpha = hmm.train.PriorWeightingPi * ones(1,hmm.K);
     defhmmprior.Dir_alpha(~hmm.train.Pistructure) = 0;
-    if hmm.train.cluster
+    if isfield(hmm.train,'cluster') && hmm.train.cluster
         defhmmprior.Dir2d_alpha = eye(hmm.K);
     else
         defhmmprior.Dir2d_alpha = ones(hmm.K);

@@ -81,17 +81,15 @@ else
     Xi = [];
 end
 
-S = hmm.train.S==1;
-regressed = sum(S,1)>0;
 setstateoptions;
 % Cache shared results for use in obslike
 for k = rangeK
     %hmm.cache = struct();
     hmm.cache.train{k} = train;
-    hmm.cache.order{k} = order;
-    hmm.cache.orders{k} = orders;
-    hmm.cache.Sind{k} = Sind;
-    hmm.cache.S{k} = S;
+    %hmm.cache.order{k} = order;
+    %hmm.cache.orders{k} = orders;
+    %hmm.cache.Sind{k} = Sind;
+    %hmm.cache.S{k} = S;
     if do_HMM_pca
         W = hmm.state(k).W.Mu_W;
         v = hmm.Omega.Gam_rate / hmm.Omega.Gam_shape;
@@ -314,8 +312,9 @@ elseif hmm.train.useParallel==1 && N>1
     end
     
 else
-    
+ 
     for j = 1:N % this is exactly the same than the code above but changing parfor by for
+ 
         t0 = sum(T(1:j-1)); s0 = t0 - order*(j-1);
         if order > 0
             R = [zeros(order,size(residuals,2)); residuals(s0+1:s0+T(j)-order,:)];

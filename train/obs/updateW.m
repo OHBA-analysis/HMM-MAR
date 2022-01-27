@@ -79,8 +79,7 @@ for k = rangeK
                 
     elseif strcmp(train.covtype,'diag') || strcmp(train.covtype,'uniquediag')
         for n = 1:ndim
-            ndim_n = sum(S(:,n)>0);
-            if ndim_n==0 && train.zeromean==1, continue; end
+            if ~regressed(n), continue; end
             regterm = [];
             if ~train.zeromean, regterm = hmm.state(k).prior.Mean.iS(n); end
             if ~isempty(orders)
@@ -88,7 +87,8 @@ for k = rangeK
                     regterm = [regterm; hmm.state(k).beta.Gam_shape ./ hmm.state(k).beta.Gam_rate(:,n)];
                 else
                     alphaterm = ...
-                        repmat( (hmm.state(k).alpha.Gam_shape ./  hmm.state(k).alpha.Gam_rate), ndim_n, 1);
+                        repmat( (hmm.state(k).alpha.Gam_shape ./  hmm.state(k).alpha.Gam_rate), ...
+                        sum(S(:,n)>0), 1);
                     if ndim>1
                         regterm = [regterm; repmat(hmm.state(k).sigma.Gam_shape(S(:,n),n) ./ ...
                             hmm.state(k).sigma.Gam_rate(S(:,n),n), length(orders), 1).*alphaterm(:) ];
