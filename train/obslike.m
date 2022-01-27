@@ -51,9 +51,9 @@ if ~do_HMM_pca && (nargin<3 || isempty(residuals))
         hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag,hmm.train.zeromean);
 end
 
+setstateoptions;
+
 T = T - hmm.train.maxorder;
-S = hmm.train.S==1;
-regressed = sum(S,1)>0;
 ltpi = sum(regressed)/2 * log(2*pi);
 L = zeros(T+hmm.train.maxorder,length(rangeK));
 
@@ -85,21 +85,10 @@ elseif strcmpi(hmm.train.covtype,'uniquefull')
     C = hmm.Omega.Gam_shape * hmm.Omega.Gam_irate;
 end
 
-if (~use_cache || do_HMM_pca)
-    setstateoptions;
-end
-
 for ik = 1:length(rangeK)
     
     k = rangeK(ik);
-    
-    % some temporal variables
-    if use_cache
-        train = cache.train{k};
-        orders = cache.orders{k};
-        Sind = cache.Sind{k};
-    end
-    
+
     % put together covariance-related variables
     if use_cache % pull state cov matrices and related stuff
         ldetWishB = cache.ldetWishB{k};
