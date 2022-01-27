@@ -197,8 +197,10 @@ elseif strcmp(classifier,'SVM') || strcmp(classifier,'SVM_rbf')
 elseif strcmp(classifier,'LDA')
     X = reshape(X,[ttrial*N,p]);
     [predictions_hard, predictions_soft] = LDApredict(model,repmat(eye(ttrial),N,1),X);
-    predictions_soft = exp(predictions_soft - repmat(max(predictions_soft,[],2),1,q));
-    predictions_soft = rdiv(predictions_soft,sum(predictions_soft,2)); 
+    if q>1
+        predictions_soft = exp(predictions_soft - repmat(max(predictions_soft,[],2),1,q));
+        predictions_soft = rdiv(predictions_soft,sum(predictions_soft,2)); 
+    end
 elseif strcmp(classifier,'KNN')
     if ~isfield(model,'K');model.K=1;end
     predictions_hard = zeros(ttrial,N,q);
@@ -239,10 +241,10 @@ elseif strcmp(classifier,'decisiontree');
 end
 
 %and compute accuracy metrics using hard classification output:
-Y = reshape(logical(Y),[ttrial*N q]);
+Y = reshape(logical(Y==1),[ttrial*N q]);
 predictions_hard=logical(predictions_hard);
 true_preds = all(~xor(predictions_hard,Y),2);
-acc=mean(true_preds);
+acc = mean(true_preds);
 acc_t = mean(reshape(true_preds,[ttrial,N]),2);
 if options.generalisationplot
     Y_true_genplot = repmat(permute(Ycopy,[4,1,2,3]),[ttrial,1,1,1]);
