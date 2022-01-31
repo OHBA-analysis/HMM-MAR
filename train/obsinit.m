@@ -24,7 +24,7 @@ else
     residuals = []; W0 = [];
 end
 hmm = initpriors(data.X,T,hmm,residuals);
-hmm = initpost(data.X,T,hmm,residuals,Gamma);
+[hmm,residuals] = initpost(data.X,T,hmm,residuals,Gamma);
 
 end
 
@@ -158,7 +158,7 @@ end
 end
 
 
-function hmm = initpost(X,T,hmm,residuals,Gamma)
+function [hmm,residuals] = initpost(X,T,hmm,residuals,Gamma)
 % Initialising the posteriors
 
 Tres = sum(T) - length(T)*hmm.train.maxorder;
@@ -181,7 +181,7 @@ Gammasum = sum(Gamma); % if nessmodel, Gammasum doesn't sum up to T
 
 % W
 if nessmodel
-    hmm = initW_ness(hmm,XX,residuals,Gamma,Sind,...
+    [hmm,residuals] = initW_ness(hmm,XX,residuals,Gamma,Sind,...
         hmm.train.ness_regularisation_baseline);
 else
     hmm = initW_hmm(hmm,XX,XXGXX,residuals,Gamma);
@@ -382,28 +382,38 @@ end
 % end
 
 
-function hmm = initW_ness(hmm,XX,residuals,Gamma,Sind,lambda)
+% options: 
+% baseline W calculated during initial baseline time : bad if you intend it to
+%   reestimate Gamma
+% baseline over the entire data set,
+% baseline over the entire data set, then discount from X, and then set to 0.
+%   I think more appropriate as the priors of the states will be pushing
+%   towards baseline, and not towards zero. This way we will pick up
+%   whatever is above and beyond
+
+function [hmm,residuals] = initW_ness(hmm,XX,residuals,Gamma,Sind,lambda)
 
 K = size(Gamma,2);
 np = size(XX,2); ndim = size(residuals,2);
 
 % baseline
+hmm.state(end).W.Mu_W = zeros(np,ndim);
+hmm.state(end).W.iS_W = zeros(ndim,np,np);
+hmm.state(end).W.S_W = zeros(ndim,np,np);
 if 0
     gram = (XX' * XX);
     gram = (gram + gram') / 2 ;
     gram = gram + trace(gram) * lambda * eye(np);
     igram = inv(gram);
     hmm.state(end).W.Mu_W = igram * (XX' * residuals);
-    hmm.state(end).W.iS_W = zeros(ndim,np,np);
-    hmm.state(end).W.S_W = zeros(ndim,np,np);
     for n = 1:ndim
         hmm.state(end).W.iS_W(n,:,:) = gram;
         hmm.state(end).W.S_W(n,:,:) = igram;
     end
-else
-    hmm.state(end).W.Mu_W = zeros(np,ndim);
-    hmm.state(end).W.iS_W = zeros(ndim,np,np);
-    hmm.state(end).W.S_W = zeros(ndim,np,np);
+elseif 1
+    gram = XX' * XX;
+    Mu_W = (gram + trace(gram) * lambda * eye(np)) \ (XX' * residuals);
+    residuals = residuals - XX * Mu_W;
 end
 
 % rest
@@ -446,7 +456,6 @@ if ndim == 1
 end
 
 end
-
 
 
 function hmm = initW_hmm(hmm,XX,XXGXX,residuals,Gamma)

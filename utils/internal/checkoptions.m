@@ -188,6 +188,9 @@ if stochastic_learning
     if ~isfield(options,'stopcriterion'), options.stopcriterion = 'FreeEnergy'; end
     if ~isfield(options,'verbose'), options.verbose = 0; end
     if ~isfield(options,'useParallel'), options.useParallel = 1; end
+    if isfield(options,'inittype') && strcmp(options.inittype,'window')
+        error('Window initialisation not allowed in stochastic learning')
+    end
 else
     if ~isfield(options,'cyc'), options.cyc = 500; end
     if ~isfield(options,'initcyc'), options.initcyc = 25; end
@@ -209,6 +212,11 @@ else
     if ~strcmp(options.inittype,'random') && options.initrep == 0
         options.inittype = 'random';
         warning('Non random init was set, but initrep==0')
+    end
+    if strcmp(options.inittype,'window') && ...
+            ((isfield(options,'order') && options.order == 0) || ...
+            (isfield(options,'zeromean') && options.zeromean == 0))
+        error('Window initialisation can only be used if options.order > 0 and options.zeromean = 1');
     end
     if ~isfield(options,'useParallel')
         options.useParallel = (length(T)>1);
@@ -585,8 +593,8 @@ if (strcmp(options.covtype,'full') || strcmp(options.covtype,'uniquefull')) && a
     if any(tmp(:))
     	error(['Decoding with full or uniquefull covariance matrix requires S ' ...
             'to be in block design: current design not supported']);
-    end
-    if any((regressed + regressors') ~= 1) % test that regressors and regressed are mutually exclusive and exhaustive
+    end % test that regressors and regressed are mutually exclusive and exhaustive
+    if any((regressed + regressors') ~= 1) 
     	error(['Decoding with full or uniquefull covariance matrix requires S ' ...
             'to be in block design: current design not supported']);
     end

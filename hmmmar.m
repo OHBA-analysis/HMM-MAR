@@ -318,7 +318,8 @@ else
                 options = rmfield(options,'ness_Gamma_fromhmm');
                 GammaInit = hmmmar_init_ness_fromhmm(GammaInit,T,options);
             elseif options.initrep>0 && options.initcyc>0 && options.nessmodel
-                GammaInit = hmmmar_init_ness(data,T,options);
+                %GammaInit = hmmmar_init_ness_iter(data,T,options); % K=2 iterative HMMs
+                GammaInit = hmmmar_init_ness(data,T,options); % 2*K single HMM run
                 if size(GammaInit,2) < options.K
                     options.K = size(GammaInit,2);
                     options.Pstructure = true(options.K);
@@ -329,6 +330,8 @@ else
                     (strcmpi(options.inittype,'HMM-MAR') || strcmpi(options.inittype,'HMMMAR'))
                 [hmm_wr,GammaInit,fehistInit] = hmmmar_init(data,T,options);
                 is_there_hmm = true;
+            elseif strcmpi(options.inittype,'window')
+                GammaInit = initGamma_window(data,T,options);
             elseif strcmpi(options.inittype,'sequential')
                 GammaInit = initGamma_seq(T-options.maxorder,options.K);
             elseif options.initrep>0 &&  strcmpi(options.inittype,'EM')

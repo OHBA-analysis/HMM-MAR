@@ -19,7 +19,6 @@ if ~isfield(options,'maxorder')
     options.maxorder = order;
 end
 K = options.K;
-% Run two initializations for each K less than requested K, plus options.initrep K
 if isfield(options,'initTestSmallerK') && options.initTestSmallerK
     warning('Option initTestSmallerK ignored')
 end
@@ -45,24 +44,32 @@ end
 end
 
 function [hmm,Gamma] = run_short_hmm(data,T,options)
+options.K = 2 * options.K;
+if options.order > 0 && options.zeromean
+    Gamma = initGamma_window(data,T,options);
+else
+    Gamma = initGamma_random(T-options.maxorder,options.K*2,...
+        min(median(double(T))/10,500));
+end
 hmm = struct('train',struct());
-hmm.K = options.K * 2;
+hmm.K = options.K;
 hmm.train = options;
 hmm.train.ndim = size(data.X,2);
 hmm.train.cyc = hmm.train.cyc;
 hmm.train.verbose = 0; %%%%
 hmm.train.nessmodel = 0;
-hmm.train.Pstructure = true(options.K*2);
-hmm.train.Pistructure = true(1,options.K*2);
+hmm.train.Pstructure = true(options.K);
+hmm.train.Pistructure = true(1,options.K);
 hmm = hmmhsinit(hmm);
-Gamma = initGamma_random(T-options.maxorder,options.K*2,...
-    min(median(double(T))/10,500));
 [hmm,residuals] = obsinit(data,T,hmm,Gamma);
+data.C = NaN(size(data.C,1),hmm.K);
 [hmm,Gamma] = hmmtrain(data,T,hmm,Gamma,residuals);
 end
 
 
 function I = selectStates(G,hmm,K)
+% Selecting the states that are not linear combination of the others,
+%  and with not too low FO
 Khmm = size(G,2); 
 if Khmm <= K, I = 1:Khmm; return; end
 bn = dec2bin(1:2^(Khmm-1)); bn = bn(1:end-1,2:end)';
@@ -70,14 +77,15 @@ D = zeros(size(bn)); % K x ncomb
 for ik = 1:size(bn,2)
     D(:,ik) = str2num(bn(:,ik));
 end
-B = abs(squeeze(tudabeta(hmm))); % p x K
+B = zeros(length(hmm.state(1).W.Mu_W(:)),Khmm); % p x K
+for k = 1:Khmm, B(:,k) = hmm.state(k).W.Mu_W(:); end
 err = zeros(Khmm,size(bn,2));
 for ik = 1:Khmm
     Bhat = B(:,setdiff(1:Khmm,ik)) * D;
     err(ik,:) = mean( abs(Bhat - repmat(B(:,ik),1,size(D,2))) );
 end
-err = min(err'); % how well is predicted by a sum of others  
-fo = mean(G); l1 = mean(B);
+err = min(err,[],2); % how well is predicted by a sum of others  
+fo = mean(G); l1 = mean(abs(B));
 kept = Khmm; % no. of kept states
 % remove the one with the lowest betas
 [v,ik] = min(l1);

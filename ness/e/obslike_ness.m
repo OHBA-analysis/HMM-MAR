@@ -37,7 +37,7 @@ for l = 1:2
     else, Gamma(:,k) = 0; 
     end
 
-    [meand,X] = computeStateResponses(XX,ness,Gamma,1);
+    [meand,X] = computeStateResponses(XX,ness,Gamma);
     d = residuals(:,regressed) - meand;
     Cd = bsxfun(@times,C(regressed),d)';
     dist = zeros(T,1);

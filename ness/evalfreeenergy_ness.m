@@ -121,7 +121,7 @@ if todo(2)==1
     C = hmm.Omega.Gam_shape ./ hmm.Omega.Gam_rate;
     avLL = avLL + (-ltpi-ldetWishB+PsiWish_alphasum);
     
-    if 0
+    if 0 % exact calculation 
         
         combinations = zeros(2^K,K);
         for k = 1:K
@@ -172,10 +172,10 @@ if todo(2)==1
             avLL = avLL + Gamma_prod .* (dist - NormWishtrace);
         end
         
-    else
+    else % approximate calculation
         
         % compute the mean response
-        [meand,X] = computeStateResponses(XX,hmm,Gamma,1);
+        [meand,X] = computeStateResponses(XX,hmm,Gamma);
         d = residuals(:,regressed) - meand;
         Cd = bsxfun(@times, C(regressed), d)';
         dist = zeros(Tres,1);
