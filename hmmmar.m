@@ -80,8 +80,8 @@ if stochastic_learn % data is a cell, either with strings or with matrices
     end
 else % data can be a cell or a matrix
     if isstruct(data) && isfield(data,'C') && ...
-            isfield(options,'nessmodel') && options.nessmodel
-        warning('data.C and options.nessmodel are not compatible')
+            isfield(options,'episodic') && options.episodic
+        warning('data.C and options.episodic are not compatible')
         data = data.X;
     end
     if iscell(T)
@@ -123,8 +123,8 @@ end
 
 if stochastic_learn
     
-    if options.nessmodel
-        error('Stochastic learning not yet implemented for NESS model')
+    if options.episodic
+        error('Stochastic learning not yet implemented for ehmm model')
     end
     % get PCA pre-embedded loadings
     if length(options.pca_spatial) > 1 || (options.pca_spatial > 0 && options.pca_spatial ~= 1)
@@ -218,7 +218,7 @@ if stochastic_learn
        end
     end
     vpath = []; 
-    if options.BIGdecodeGamma && nargout >= 4 && ~options.nessmodel && ~options.id_mixture
+    if options.BIGdecodeGamma && nargout >= 4 && ~options.episodic && ~options.id_mixture
        vpath = hmmdecode(data,T,hmm,1); 
     end
     
@@ -313,13 +313,13 @@ else
     is_there_hmm = false;
     if isempty(options.Gamma) && isempty(options.hmm) % both unspecified
         if options.K > 1
-            if options.nessmodel && isfield(options,'ness_Gamma_fromhmm')
-                GammaInit = options.ness_Gamma_fromhmm; 
-                options = rmfield(options,'ness_Gamma_fromhmm');
-                GammaInit = hmmmar_init_ness_fromhmm(GammaInit,T,options);
-            elseif options.initrep>0 && options.initcyc>0 && options.nessmodel
-                %GammaInit = hmmmar_init_ness_iter(data,T,options); % K=2 iterative HMMs
-                GammaInit = hmmmar_init_ness(data,T,options); % 2*K single HMM run
+            if options.episodic && isfield(options,'ehmm_Gamma_fromhmm')
+                GammaInit = options.ehmm_Gamma_fromhmm; 
+                options = rmfield(options,'ehmm_Gamma_fromhmm');
+                GammaInit = hmmmar_init_ehmm_fromhmm(GammaInit,T,options);
+            elseif options.initrep>0 && options.initcyc>0 && options.episodic
+                %GammaInit = hmmmar_init_ehmm_iter(data,T,options); % K=2 iterative HMMs
+                GammaInit = ehmminit(data,T,options); % 2*K single HMM run
                 if size(GammaInit,2) < options.K
                     options.K = size(GammaInit,2);
                     options.Pstructure = true(options.K);
@@ -342,10 +342,10 @@ else
                 error('GMM init is deprecated; use HMM-MAR initialisation instead')
                 %options.Gamma = gmm_init(data,T,options);
             elseif strcmpi(options.inittype,'random') || options.initrep==0 || options.initcyc==0
-                if options.nessmodel
+                if options.episodic
                     GammaInit = initGamma_random(T-options.maxorder,options.K,...
                         options.DirichletDiag,options.Pstructure,options.Pistructure,...
-                        options.ness_priorOFFvsON);
+                        options.ehmm_priorOFFvsON);
                 else
                     GammaInit = initGamma_random(T-options.maxorder,options.K,...
                         options.DirichletDiag,options.Pstructure,options.Pistructure);
@@ -358,7 +358,7 @@ else
             GammaInit = options.Gamma;
         end
     elseif isempty(options.Gamma) && ~isempty(options.hmm) % Gamma unspecified, hmm specified
-        if options.nessmodel
+        if options.episodic
             GammaInit = zeros(sum(T)-length(T)*options.maxorder,options.K);
         else
             GammaInit = [];
@@ -375,7 +375,7 @@ else
 
     % If initialization Gamma has fewer states than options.K, put those states back in
     % and renormalize
-    if ~isempty(GammaInit) && (size(GammaInit,2) < options.K) && ~options.nessmodel
+    if ~isempty(GammaInit) && (size(GammaInit,2) < options.K) && ~options.episodic
         % States were knocked out, but semisupervised in use, so put them back
         GammaInit = [GammaInit 0.0001*rand(size(GammaInit,1),options.K-size(GammaInit,2))];
         GammaInit = bsxfun(@rdivide,GammaInit,sum(GammaInit,2));
@@ -408,7 +408,7 @@ else
         hmm_wr.train = options;
         hmm_wr.train.active = train.active;
         % set priors
-        if options.nessmodel
+        if options.episodic
             Dir2d_alpha = cell(options.K,1); P = cell(options.K,1); priors = cell(options.K,1);
             for k = 1:options.K
                 Dir2d_alpha{k} = hmm_wr.state(k).Dir2d_alpha; P{k} = hmm_wr.state(k).P;
@@ -420,7 +420,7 @@ else
         if isfield(hmm_wr,'prior') && isfield(hmm_wr.prior,'Omega'), Omega_prior = hmm_wr.prior.Omega; end
         if isfield(hmm_wr,'prior'), hmm_wr = rmfield(hmm_wr,'prior'); end
         hmm_wr = hmmhsinit(hmm_wr);
-        if options.nessmodel
+        if options.episodic
             for k = 1:options.K
                 hmm_wr.state(k).Dir2d_alpha = Dir2d_alpha{k}; hmm_wr.state(k).P = P{k};
                 hmm_wr.state(k).prior = priors{k};
@@ -464,9 +464,9 @@ else
     
     fehist = Inf;
     if isfield(hmm_wr.train,'Gamma'), hmm_wr.train = rmfield(hmm_wr.train,'Gamma'); end
-    if options.nessmodel
+    if options.episodic
         Xi = []; residuals = [];
-        [hmm,Gamma,fehist] = nesstrain(data,T,hmm_wr,GammaInit,residuals_wr);
+        [hmm,Gamma,fehist] = ehmmtrain(data,T,hmm_wr,GammaInit,residuals_wr);
     else
         for it = 1:options.repetitions
             hmm0 = hmm_wr;
@@ -484,8 +484,8 @@ else
     if options.repetitions == 0
         hmm0 = hmm_wr;
         hmm0.train.updateObs = 0;
-        if options.nessmodel
-            [~,Gamma] = nesstrain(data,T,hmm0,GammaInit,residuals_wr,fehistInit); Xi = []; 
+        if options.episodic
+            [~,Gamma] = ehmmtrain(data,T,hmm0,GammaInit,residuals_wr,fehistInit); Xi = []; 
         else
             [~,Gamma,Xi] = hmmtrain(data,T,hmm0,GammaInit,residuals_wr,fehistInit);
         end
@@ -493,7 +493,7 @@ else
     end
     
     vpath = [];
-    if options.decodeGamma && nargout >= 4 && ~options.nessmodel && ~options.id_mixture
+    if options.decodeGamma && nargout >= 4 && ~options.episodic && ~options.id_mixture
         vpath = hmmdecode(data.X,T,hmm,1,residuals,0);
         if ~options.keepS_W
             for k = 1:hmm.K

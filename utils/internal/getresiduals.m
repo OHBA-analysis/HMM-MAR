@@ -32,7 +32,7 @@ else
     residuals = zeros(sum(T)-length(T)*maxorder,size(X,2)); 
     for in=1:N
         t0 = sum(T(1:in-1));
-        t = sum(T(1:in-1)) - (in-1)*maxorder;
+        t = t0 - (in-1)*maxorder;
         residuals(t+1:t+T(in)-maxorder,:) = X(t0+maxorder+1:t0+T(in),:);
     end
 end

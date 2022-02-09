@@ -16,7 +16,7 @@ function [beta,beta_t] = tudabeta(tuda,Gamma_mean)
 %
 % Author: Diego Vidaurre, OHBA, University of Oxford (2018)
 
-if isfield(tuda.train,'nessmodel') && tuda.train.nessmodel 
+if isfield(tuda.train,'episodic') && tuda.train.episodic 
     K = tuda.K+1;
 else
     K = tuda.K;

@@ -173,7 +173,7 @@ for k = rangeK
     else % full or unique full
         
         if all(S(:)==1)
-            mlW =  (bsxfun(@times, XXGXX{k} \ XX', Gamma(:,k)') * residuals)';
+            mlW = (bsxfun(@times, XXGXX{k} \ XX', Gamma(:,k)') * residuals)';
             regterm = [];
             if ~train.zeromean, regterm = hmm.state(k).prior.Mean.iS; end % ndim by 1
             if ~isempty(orders) 

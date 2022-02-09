@@ -1,4 +1,4 @@
-function Xi = approximateXi_ness(Gamma,T,par)
+function Xi = approximateXi_ehmm(Gamma,T,par)
 if nargin==3
     if ~isstruct(par)
         order = par;

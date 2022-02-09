@@ -1,7 +1,7 @@
 if exist('hmm','var') 
     train = hmm.train;
-elseif exist('ness','var') 
-    train = ness.train;
+elseif exist('ehmm','var') 
+    train = ehmm.train;
 else
     error('Incorrect use of setstateoptions')
 end

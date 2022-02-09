@@ -32,7 +32,7 @@ if any(isnan(sum(Gamma,2)))
 end
 
 K = size(Gamma,2);
-if train.nessmodel % no checking 
+if train.episodic % no checking 
     status = 0; 
 else
     status = (all(max(Gamma)<0.6) && all(min(Gamma)>(1/K/2)));

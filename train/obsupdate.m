@@ -33,7 +33,7 @@ if ~isfield(hmm.train,'distribution') || ~strcmp(hmm.train.distribution,'logisti
             %%% W
             [hmm,XW] = updateW(hmm,Gamma,residuals,XX,XXGXX,Tfactor);  
             %%% Omega
-            hmm = updateOmega(hmm,Gamma,Gammasum,residuals,T,XX,XXGXX,XW,Tfactor);
+            hmm = updateOmega(hmm,Gamma,Gammasum,residuals,XX,XXGXX,XW,Tfactor);
             %disp(num2str(hmm.Omega.Gam_rate / hmm.Omega.Gam_shape))
             
             %%% autoregression coefficient priors

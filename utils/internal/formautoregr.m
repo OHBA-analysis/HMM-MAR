@@ -6,6 +6,7 @@ function [XX,Y] = formautoregr(X,T,orders,maxorder,zeromean,single_format,B,V)
 % Author: Diego Vidaurre, OHBA, University of Oxford
  
 N = length(T); ndim = size(X,2);
+if nargin<4, maxorder = orders(end); end
 if nargin<5, zeromean = 1; end
 if nargin<6, single_format = 0; end
 if nargin<7 || isempty(B), B = []; Q = ndim; 

@@ -55,7 +55,7 @@ sequential = options.sequential;
 parallel_trials = options.parallel_trials; 
 plotGamma = options.plotGamma;
 Y_is_continuous = options.Y_is_continuous;
-nessmodel = isfield(options,'nessmodel') && options.nessmodel;
+episodic = isfield(options,'episodic') && options.episodic;
 options.plotGamma = 0; 
 options = rmfield(options,'parallel_trials');
 options = rmfield(options,'classifier');
@@ -96,9 +96,9 @@ end
 
 % init HMM, only if trials are temporally related
 if ~isfield(options,'Gamma')
-    if nessmodel
+    if episodic
         options2 = checkoptions(options,Z,T,0); 
-        GammaInit = hmmmar_init_ness(struct('X',Z),T,options2);
+        GammaInit = hmmmar_init_ehmm(struct('X',Z),T,options2);
         if size(GammaInit,2) < options.K
             options.K = size(GammaInit,2);
             options.Pstructure = true(options.K);

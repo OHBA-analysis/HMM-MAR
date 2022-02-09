@@ -50,6 +50,8 @@ if isempty(W)
     if order>0 
         if all(Sind(:)) 
             W = XX \ Y; 
+            %W = (XX' * XX + 1e-6 * eye(size(XX,2))) \ (XX' * Y);
+            %inv((XX' * XX + 1e-6 * eye(size(XX,2))) )
         else
             W = zeros(ndim*length(orders),ndim);
             for n=1:ndim

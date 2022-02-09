@@ -67,32 +67,32 @@ if ~isfield(options,'plotGamma'), options.plotGamma = 0; end
 
 % classic HMM or mixture?
 if ~isfield(options,'id_mixture'), options.id_mixture = 0; end
-% standard HMM or NESS
-if ~isfield(options,'nessmodel'), options.nessmodel = 0; end
+% standard HMM or ehmm
+if ~isfield(options,'episodic'), options.episodic = 0; end
 % clustering of time series? 
 if ~isfield(options,'cluster'), options.cluster = 0; end
 
-if options.nessmodel % NESS specific things
+if options.episodic % ehmm specific things
     if options.lowrank > 0
         error('Additive probabilistic PCA is not yet inplemented')
     end
     if options.K == 1
-        error('A NESS model must have more than options.K=1 chain')
+        error('A ehmm model must have more than options.K=1 chain')
     end
     if options.sequential
-        error('options.nessmodel and options.sequential are not compatible')
+        error('options.episodic and options.sequential are not compatible')
     end
     if isfield(options,'Pstructure') && ~all(options.Pstructure(:)==1)
-        error('Chains cannot be constrained with Pstructure in the NESS model')
+        error('Chains cannot be constrained with Pstructure in the ehmm model')
     end
     if isfield(options,'Pistructure') && ~all(options.Pistructure(:)==1)
-        error('Chains cannot be constrained with Pistructure in the NESS model')
+        error('Chains cannot be constrained with Pistructure in the ehmm model')
     end
-    if ~isfield(options,'ness_priorOFFvsON')
-        options.ness_priorOFFvsON = 10 * options.K; 
+    if ~isfield(options,'ehmm_priorOFFvsON')
+        options.ehmm_priorOFFvsON = 10 * options.K; 
     end % K*10 times more likely to be OFF
-    if ~isfield(options,'ness_regularisation_baseline')
-        options.ness_regularisation_baseline = 0.1; 
+    if ~isfield(options,'ehmm_regularisation_baseline')
+        options.ehmm_regularisation_baseline = 0.1; 
     end % K*10times more likely to be OFF
 end
 if options.lowrank > 0 && options.acrosstrial_constrained
@@ -102,8 +102,8 @@ end
     
 % stochastic options
 if stochastic_learning
-    if options.nessmodel  
-        error('Stochastic inference not yet implemented for NESS')
+    if options.episodic  
+        error('Stochastic inference not yet implemented for ehmm')
     end
     if options.K==1
         error('There is no purpose on using stochastic inference with K=1. Please restart')
@@ -174,11 +174,11 @@ end
 if stochastic_learning
     if ~isfield(options,'cyc'), options.cyc = 15; end
     if ~isfield(options,'initcyc'), options.initcyc = 5; end
-%     if options.nessmodel
+%     if options.episodic
 %         if isfield(options,'initrep') && options.initrep > 1
 %             % this is because we would just favour solutions with less of
 %             % the baseline state
-%             warning('initrep can only be 1 if options.nessmodel is true ')
+%             warning('initrep can only be 1 if options.episodic is true ')
 %         end
 %         options.initrep = 1;
 %     else
@@ -195,7 +195,7 @@ else
     if ~isfield(options,'cyc'), options.cyc = 500; end
     if ~isfield(options,'initcyc'), options.initcyc = 25; end
     if ~isfield(options,'initrep'), options.initrep = 5; end
-    if ~options.nessmodel
+    if ~options.episodic
         if ~isfield(options,'initcriterion'), options.initcriterion = 'FreeEnergy'; end
     end
     if ~isfield(options,'verbose'), options.verbose = 1; end
@@ -221,10 +221,10 @@ else
     if ~isfield(options,'useParallel')
         options.useParallel = (length(T)>1);
     end
-    if options.nessmodel && options.initTestSmallerK
-        error('options.nessmodel and options.initTestSmallerK are not compatible')
+    if options.episodic && options.initTestSmallerK
+        error('options.episodic and options.initTestSmallerK are not compatible')
     end
-    if options.nessmodel
+    if options.episodic
         if ~isfield(options,'stopcriterion'), options.stopcriterion = 'LogLik'; end
         if ~strcmpi(options.stopcriterion,'FreeEnergy') && ...
                 ~strcmpi(options.stopcriterion,'ChGamma') && ...
@@ -263,7 +263,7 @@ elseif ~all(options.grouping==1)
 end  
 if size(options.grouping,1)==1,  options.grouping = options.grouping'; end
 
-if options.nessmodel
+if options.episodic
     options.Pstructure = []; options.Pistructure = [];
 elseif options.sequential
     if isfield(options,'Pstructure'), Pstructure = options.Pstructure;
@@ -294,9 +294,9 @@ else
     for k = 1:options.K, options.Pstructure(k,k) = 1; end
     options.Pstructure = (options.Pstructure~=0);
 end
-if ~isfield(options,'Pistructure') && ~options.nessmodel
+if ~isfield(options,'Pistructure') && ~options.episodic
     options.Pistructure = true(1,options.K);
-elseif ~options.nessmodel
+elseif ~options.episodic
     if length(options.Pistructure) ~= options.K 
         error('The dimensions of options.Pistructure are incorrect')
     end
@@ -309,8 +309,8 @@ if ~isfield(options,'dropstates')
     %if any(~options.Pstructure), options.dropstates = 0;
     %else, options.dropstates = ~stochastic_learning; end
 else
-    if options.dropstates && options.nessmodel
-        warning('nessmodel and dropstates are incompatible options')
+    if options.dropstates && options.episodic
+        warning('episodic and dropstates are incompatible options')
         options.dropstates = 0;
     elseif options.dropstates && any(~options.Pstructure(:))
         warning('If Pstructure  has zeros, dropstates must be zero')
@@ -524,9 +524,9 @@ if length(options.embeddedlags)==1 && options.pca_spatial>0
    warning('pca_spatial only applies when using embedded lags; use pca instead')
    options.pca_spatial = 0;
 end
-if options.nessmodel
+if options.episodic
     if isfield(options,'covtype') && ~strcmp(options.covtype,'uniquediag')
-        error('For NESS, covtype must be uniquediag (other options not yet implemented)')
+        error('For ehmm, covtype must be uniquediag (other options not yet implemented)')
     end
     options.covtype = 'uniquediag';
 end

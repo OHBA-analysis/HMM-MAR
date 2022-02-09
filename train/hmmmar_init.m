@@ -19,7 +19,8 @@ if ~isfield(options,'maxorder')
     options.maxorder = order; 
 end
 
-if options.initTestSmallerK % Run two initializations for each K less than requested K, plus options.initrep K
+% Run two initializations for each K less than requested K, plus options.initrep K
+if options.initTestSmallerK 
     init_k = [repmat(1:(options.K-1),1,2) options.K*ones(1,options.initrep)];
     init_k = init_k(end:-1:1);
 else % Standard behaviour, test specified K options.initrep times
@@ -38,7 +39,7 @@ if options.useParallel && length(init_k) > 1 % not very elegant
         felast(it) = fehist{it}(end);
         maxfo(it) = mean(getMaxFractionalOccupancy(Gamma{it},T,options));
         if options.verbose
-            if options.nessmodel
+            if options.episodic
                 fprintf('Init run %2d, Free Energy = %f \n',it,felast(it));
             else
                 fprintf('Init run %2d, %2d->%2d states, Free Energy = %f \n',...
@@ -52,7 +53,7 @@ else
         felast(it) = fehist{it}(end);
         maxfo(it) = mean(getMaxFractionalOccupancy(Gamma{it},T,options));
         if options.verbose
-            if options.nessmodel
+            if options.episodic
                 fprintf('Init run %2d, Free Energy = %f \n',it,felast(it));
             else
                 fprintf('Init run %2d, %2d->%2d states, Free Energy = %f \n',...
@@ -86,7 +87,7 @@ function [hmm,Gamma,fehist] = run_initialization(data,T,options,init_k)
 % - init_k is the number of states to use for this initialization
 
 % Need to adjust the worker dirichletdiags if testing smaller K values
-%if ~options.nessmodel && init_k < options.K
+%if ~options.episodic && init_k < options.K
 Sind = options.Sind; 
 
 if init_k < options.K
@@ -103,8 +104,8 @@ if init_k < options.K
 end
 
 data.C = data.C(:,1:options.K);
-if ~isfield(options,'ness_priorOFFvsON'), ness_priorOFFvsON = []; 
-else, ness_priorOFFvsON = options.ness_priorOFFvsON; 
+if ~isfield(options,'ehmm_priorOFFvsON'), ehmm_priorOFFvsON = []; 
+else, ehmm_priorOFFvsON = options.ehmm_priorOFFvsON; 
 end
 % Note - initGamma_random uses DD=1 so that there are lots of transition times, which
 % helps the inference not get stuck in a local minimum. options.DirichletDiag is
@@ -114,7 +115,7 @@ while keep_trying
     Gamma = initGamma_random(T-options.maxorder,options.K,...
         min(median(double(T))/10,500),...
         options.Pstructure,options.Pistructure,...
-        options.nessmodel,ness_priorOFFvsON);
+        options.episodic,ehmm_priorOFFvsON);
     hmm = struct('train',struct());
     hmm.K = options.K;
     hmm.train = options;

@@ -18,13 +18,13 @@ function [hmm, residuals, W0] = obsinit (data,T,hmm,Gamma)
 if nargin<4, Gamma = []; end
 do_HMM_pca = (hmm.train.lowrank > 0);
 if ~do_HMM_pca
-    [residuals,W0] =  getresiduals(data.X,T,hmm.train.Sind,hmm.train.maxorder,hmm.train.order,...
+    [residuals,W0] = getresiduals(data.X,T,hmm.train.Sind,hmm.train.maxorder,hmm.train.order,...
         hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag,hmm.train.zeromean);
 else
     residuals = []; W0 = [];
 end
 hmm = initpriors(data.X,T,hmm,residuals);
-[hmm,residuals] = initpost(data.X,T,hmm,residuals,Gamma);
+hmm = initpost(data.X,T,hmm,residuals,Gamma);
 
 end
 
@@ -41,7 +41,7 @@ pcapred = hmm.train.pcapred>0;
 if pcapred, M = hmm.train.pcapred; end
 p = hmm.train.lowrank; do_HMM_pca = (p > 0);
 
-if hmm.train.nessmodel
+if hmm.train.episodic
     rangeK = 1:hmm.K+1;
 else
     rangeK = 1:hmm.K;
@@ -66,7 +66,7 @@ for k = rangeK
     else
         st = struct('sigma',[],'alpha',[],'Mean',[]);
     end
-    if hmm.train.nessmodel
+    if hmm.train.episodic
         st.P = []; st.Pi = []; st.Dir_alpha = []; st.Dir2d_alpha = [];
     end
     defstateprior(k) = st;
@@ -114,7 +114,7 @@ for k = rangeK
         defstateprior(k).Omega.Gam_rate = 0.5 * priorcov_rate;
         defstateprior(k).Omega.Gam_shape = 0.5 * (ndim+0.1-1);
     end
-    if hmm.train.nessmodel && k < hmm.K+1
+    if hmm.train.episodic && k < hmm.K+1
         defstateprior(k).Dir_alpha = hmm.state(k).prior.Dir_alpha;
         defstateprior(k).Dir2d_alpha = hmm.state(k).prior.Dir2d_alpha;
     end
@@ -158,7 +158,7 @@ end
 end
 
 
-function [hmm,residuals] = initpost(X,T,hmm,residuals,Gamma)
+function hmm = initpost(X,T,hmm,residuals,Gamma)
 % Initialising the posteriors
 
 Tres = sum(T) - length(T)*hmm.train.maxorder;
@@ -167,35 +167,28 @@ K = hmm.K;
 hmm.train.active = ones(1,K);
 pcapred = hmm.train.pcapred>0;
 p = hmm.train.lowrank; do_HMM_pca = (p > 0);
-nessmodel = hmm.train.nessmodel;
-
-% This is so that, on average, each chain contributes 1/K to the prediction
-% Note that's also true for the baseline state; therefore, the correct
-% interpretation is that there are K copies of the baseline state
-% contributing simultaneously, each with probability (0,1)
-%if nessmodel, residuals = residuals / K; end
+episodic = hmm.train.episodic;
 
 setxx; % build XX and get orders
 setstateoptions;
-Gammasum = sum(Gamma); % if nessmodel, Gammasum doesn't sum up to T
+Gammasum = sum(Gamma); % if episodic, Gammasum doesn't sum up to T
 
 % W
-if nessmodel
-    [hmm,residuals] = initW_ness(hmm,XX,residuals,Gamma,Sind,...
-        hmm.train.ness_regularisation_baseline);
+if episodic
+    hmm = initW_ehmm(hmm,XX,residuals,Gamma,Sind);
 else
     hmm = initW_hmm(hmm,XX,XXGXX,residuals,Gamma);
 end
 
 % Omega
-if strcmp(hmm.train.covtype,'uniquediag') && nessmodel
+if strcmp(hmm.train.covtype,'uniquediag') && episodic
     if hmm.train.uniqueAR, error('Not yet implemented'); end
     hmm.Omega.Gam_shape = hmm.prior.Omega.Gam_shape + Tres / 2;
     e = residuals(:,regressed) - computeStateResponses(XX,hmm,Gamma);
     hmm.Omega.Gam_rate = zeros(1,ndim);
     hmm.Omega.Gam_rate(regressed) = hmm.prior.Omega.Gam_rate(regressed) + 0.5 * sum(e.^2);
     
-elseif strcmp(hmm.train.covtype,'uniquefull') && nessmodel
+elseif strcmp(hmm.train.covtype,'uniquefull') && episodic
     hmm.Omega.Gam_shape = hmm.prior.Omega.Gam_shape + Tres;
     e = residuals(:,regressed) - computeStateResponses(XX,hmm,Gamma);
     hmm.Omega.Gam_rate = zeros(ndim,ndim); hmm.Omega.Gam_irate = zeros(ndim,ndim);
@@ -311,11 +304,11 @@ if ~pcapred && ~do_HMM_pca
             hmm.state(k).alpha.Gam_rate = hmm.state(k).prior.alpha.Gam_rate;
         end
     end
-    if nessmodel
+    if episodic
         %%% sigma - channel x channel coefficients
-        hmm = updateSigma_ness(hmm);
+        hmm = updateSigma_ehmm(hmm);
         %%% alpha - one per order
-        hmm = updateAlpha_ness(hmm);
+        hmm = updateAlpha_ehmm(hmm);
     else
         %%% sigma - channel x channel coefficients
         hmm = updateSigma(hmm);
@@ -341,7 +334,7 @@ end
 end
 
 %
-% function hmm = initW_ness(hmm,XX,residuals,Gamma,Sind)
+% function hmm = initW_ehmm(hmm,XX,residuals,Gamma,Sind)
 % % all at once
 %
 % K = size(Gamma,2);
@@ -391,69 +384,52 @@ end
 %   towards baseline, and not towards zero. This way we will pick up
 %   whatever is above and beyond
 
-function [hmm,residuals] = initW_ness(hmm,XX,residuals,Gamma,Sind,lambda)
+function ehmm = initW_ehmm(ehmm,XX,residuals,Gamma,Sind)
 
-K = size(Gamma,2);
-np = size(XX,2); ndim = size(residuals,2);
+np = size(XX,2); ndim = size(residuals,2); K = size(Gamma,2);
+
+ehmm.state_shared = struct();
+for n = 1:ndim
+    ehmm.state_shared(n).iS_W = zeros((K+1)*np,(K+1)*np);
+    ehmm.state_shared(n).S_W = zeros((K+1)*np,(K+1)*np);
+    ehmm.state_shared(n).Mu_W = zeros((K+1)*np,1);
+end
+for k = 1:K
+    ehmm.state(k).W.iS_W = zeros(ndim,np,np);
+    ehmm.state(k).W.S_W = zeros(ndim,np,np);
+    ehmm.state(k).W.Mu_W = zeros(np,ndim);
+end
 
 % baseline
-hmm.state(end).W.Mu_W = zeros(np,ndim);
-hmm.state(end).W.iS_W = zeros(ndim,np,np);
-hmm.state(end).W.S_W = zeros(ndim,np,np);
-if 0
-    gram = (XX' * XX);
+if isfield(ehmm.train,'ehmm_baseline_w')
+    ehmm.state(K+1).W = ehmm.train.ehmm_baseline_w;
+    ehmm.train = rmfield(ehmm.train,'ehmm_baseline_w');
+elseif isfield(ehmm.train,'ehmm_baseline_data')
+    ehmm.state(end).W = computeBaseline(ehmm.train);
+    ehmm.train = rmfield(ehmm.train,'ehmm_baseline_data');
+else
+    ehmm.state(K+1).W.Mu_W = zeros(np,ndim);
+    ehmm.state(K+1).W.iS_W = zeros(ndim,np,np);
+    ehmm.state(K+1).W.S_W = zeros(ndim,np,np);
+    lambda = ehmm.train.ehmm_regularisation_baseline;
+    gram = (XX(:,Sind)' * XX(:,Sind));
     gram = (gram + gram') / 2 ;
-    gram = gram + trace(gram) * lambda * eye(np);
+    gram = gram + trace(gram) * lambda * eye(size(gram,2));
     igram = inv(gram);
-    hmm.state(end).W.Mu_W = igram * (XX' * residuals);
+    ehmm.state(K+1).W.Mu_W = igram * (XX' * residuals);
     for n = 1:ndim
-        hmm.state(end).W.iS_W(n,:,:) = gram;
-        hmm.state(end).W.S_W(n,:,:) = igram;
+        ehmm.state(K+1).W.iS_W(n,Sind,Sind) = gram;
+        ehmm.state(K+1).W.S_W(n,Sind,Sind) = igram;
     end
-elseif 1
-    gram = XX' * XX;
-    Mu_W = (gram + trace(gram) * lambda * eye(np)) \ (XX' * residuals);
-    residuals = residuals - XX * Mu_W;
 end
-
-% rest
-X = zeros(size(XX,1),np * K);
-for k = 1:K
-    X(:,(1:np) + (k-1)*np) = bsxfun(@times, XX, Gamma(:,k));
-end
-gram = X' * X;
-
+Sind_all = false(np*(K+1),1); Sind_all(np*K + (1:np)) = true; 
 for n = 1:ndim
-    Sind_all = [];
-    for k = 1:K, Sind_all = [Sind_all; Sind(:,n)]; end
-    Sind_all = Sind_all == 1;
-    iS_W = gram(Sind_all,Sind_all);
-    iS_W = (iS_W + iS_W') / 2 + 1e-6 * eye(size(iS_W,1));
-    S_W = inv(iS_W);
-    Mu_W = S_W * X(:,Sind_all)' * residuals(:,n);
-    hmm.state_shared(n).iS_W = zeros(size(gram));
-    hmm.state_shared(n).S_W = zeros(size(gram));
-    hmm.state_shared(n).Mu_W = zeros(size(X,2),1);
-    hmm.state_shared(n).iS_W(Sind_all,Sind_all) = iS_W;
-    hmm.state_shared(n).S_W(Sind_all,Sind_all) = S_W;
-    hmm.state_shared(n).Mu_W(Sind_all) = Mu_W;
-end
-for k = 1:K
-    for n = 1:ndim
-        ind = (1:np) + (k-1)*np;
-        hmm.state(k).W.Mu_W(:,n) = hmm.state_shared(n).Mu_W(ind);
-        hmm.state(k).W.iS_W(n,:,:) = hmm.state_shared(n).iS_W(ind,ind);
-        hmm.state(k).W.S_W(n,:,:) = hmm.state_shared(n).S_W(ind,ind);
-    end
+    ehmm.state_shared(n).Mu_W(Sind_all) = ehmm.state(K+1).W.Mu_W(:,n);
 end
 
-if ndim == 1 
-    for k = 1:K+1
-        hmm.state(k).W.iS_W = squeeze(hmm.state(k).W.iS_W);
-        hmm.state(k).W.S_W = squeeze(hmm.state(k).W.S_W);
-        hmm.state(k).W.Mu_W = squeeze(hmm.state(k).W.Mu_W);
-    end
-end
+% states
+ehmm = updateW_ehmm(ehmm,Gamma,residuals,XX,1,...
+    ehmm.train.ehmm_regularisation_baseline); % using same regularisation
 
 end
 

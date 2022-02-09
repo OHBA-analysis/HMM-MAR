@@ -1,7 +1,7 @@
-function Gamma = initGamma_random(T,K,D,Pstructure,Pistructure,nessmodel,priorOFFvsON)
+function Gamma = initGamma_random(T,K,D,Pstructure,Pistructure,episodic,priorOFFvsON)
 % Return a Gamma timecourse corresponding to random transitions with a given
 % dirichletdiag (i.e. the transition probability prior)
-% For NESS , D must be a 2x2 matrix of prior transitions - or left
+% For ehmm , D must be a 2x2 matrix of prior transitions - or left
 %   empty
 %   first state is ON, second is OFF  (always start in OFF)
 %
@@ -10,14 +10,14 @@ function Gamma = initGamma_random(T,K,D,Pstructure,Pistructure,nessmodel,priorOF
 
 if nargin < 4, Pstructure = []; end 
 if nargin < 5, Pistructure = []; end 
-if nargin < 6, nessmodel = false; end 
+if nargin < 6, episodic = false; end 
 if nargin < 7, priorOFFvsON = 3; end 
 
 rng('default')
 rng('shuffle') % make this "truly" random
 
 % Form transition probability matrix
-if nessmodel
+if episodic
     P = (D-1)*eye(2)+ones(2);
     P(:,2) = P(:,2) * priorOFFvsON;
     P = bsxfun(@rdivide,P,sum(P,2));
@@ -38,7 +38,7 @@ end
 % Preallocate
 Gamma = zeros(sum(T),K);
 
-if nessmodel
+if episodic
     for n = 1:length(T)
         for k = 1:K
             while true
