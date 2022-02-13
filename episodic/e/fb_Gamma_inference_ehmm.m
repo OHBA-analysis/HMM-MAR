@@ -20,11 +20,6 @@ K = ehmm.K; show_warn = 1;
 
 Xi = zeros(ttrial-1-order,K,4);
 
-% bloh = load('/tmp/bloh.mat');
-% sum(evalfreeenergy_ehmm(bloh.T,Gamma,bloh.Xi,ehmm,residuals,XX));
-% LK = [];
-% for k = 1:K, LK = [LK obslike_ehmm(ehmm,Gamma,residuals,XX,k)]; end
-
 if ehmm.train.acrosstrial_constrained
     Gamma = squeeze(mean(reshape(Gamma,[ttrial-order,N,K]),2));
 end
@@ -38,7 +33,6 @@ for k = 1:K % %randperm(K) % chain K+1 is implicit
         ind = (1:ttrial) + ttrial * (j-1);
         ind2 = (1:(ttrial-order)) + (ttrial-order) * (j-1);
         Lk(ind,:) = obslike_ehmm(ehmm,Gamma,residuals(ind2,:),XX(ind2,:),k);
-        %lk = Lk(ind,:); lk = lk(:); if any(lk==0), keyboard; end
     end
     
     if ehmm.train.acrosstrial_constrained

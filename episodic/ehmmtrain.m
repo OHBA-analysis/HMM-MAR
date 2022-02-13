@@ -29,7 +29,9 @@ crithist = [];
     
 
 for cycle = 1:ehmm.train.cyc
-        
+
+    save(['/tmp/blah_' num2str(cycle) '.mat'],'Gamma','ehmm')
+
     if ehmm.train.updateGamma
         %%% E step - state inference
         if cycle > 1 && strcmpi(ehmm.train.stopcriterion,'ChGamma')
