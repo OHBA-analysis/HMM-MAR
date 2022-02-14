@@ -13,24 +13,17 @@ function [ehmm,Gamma,crithist] = ehmmtrain(data,T,ehmm,Gamma,residuals)
 % OUTPUTS
 % ehmm           estimated ehmm 
 % Gamma         estimated p(state | data)
-% maxchhist     historic of Gamma amount of change across iterations
+% crithist     historic of Gamma amount of change across iterations
 %
 % Author: Diego Vidaurre, 
 %         CFIN, Aarhus University / OHBA, University of Oxford (2021)
 
 setxx_ehmm;
 crithist = []; 
-%e = Inf; 
-
-% for k = 1:3 
-%     ehmm.state(k).P(1,1) = ehmm.state(k).P(2,2);
-%     ehmm.state(k).P(1,2) = ehmm.state(k).P(2,1);
-% end
-    
 
 for cycle = 1:ehmm.train.cyc
 
-    save(['/tmp/blah_' num2str(cycle) '.mat'],'Gamma','ehmm')
+    save(['/tmp/blah_' num2str(cycle) '.mat'])
 
     if ehmm.train.updateGamma
         %%% E step - state inference
@@ -46,10 +39,9 @@ for cycle = 1:ehmm.train.cyc
     
     % Observation model
     ehmm = obsupdate_ehmm(Gamma,ehmm,residuals,XX);
-                    
+    
     % Transition matrices and initial state
     ehmm = hsupdate_ehmm(Xi,Gamma,T,ehmm);
-    
     % Stopping conditions and reporting
     if strcmpi(ehmm.train.stopcriterion,'FreeEnergy')
         % computation of free energy is not exact

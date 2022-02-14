@@ -21,26 +21,7 @@ if isfield(ehmm.train,'distribution') && strcmp(ehmm.train.distribution,'logisti
     error('Logistic regression not yet implemented for ehmm')
 end
 
-
-% LK = [];
-% for k = 1:3, LK = [LK obslike_ehmm(ehmm,Gamma,residuals,XX,k)]; end
-
-
-% e1 = getError_here(Gamma,ehmm,residuals,XX);
-% ehmm = updateW_here(ehmm,Gamma,residuals,XX);
 ehmm = updateW_ehmm(ehmm,Gamma,residuals,XX,Tfactor); %_nobaseline
-% e2 = getError_here(Gamma,ehmm,residuals,XX);
-% e3 = getError_here(Gamma,ehmm2,residuals,XX);
-%disp(num2str(e1-e2));
-
-
-
-%ehmm.state_shared(1).Mu_W'
-
-% LK0 = LK; LK = [];
-% for k = 1:3, LK = [LK obslike_ehmm(ehmm,Gamma,residuals,XX,k)]; end
-% sum(LK-LK0)
-% mean(Gamma)
 
 % Omega
 ehmm = updateOmega_ehmm(ehmm,Gamma,residuals,XX,Tfactor);
@@ -50,6 +31,14 @@ ehmm = updateSigma_ehmm(ehmm); % sigma - channel x channel coefficients
 ehmm = updateAlpha_ehmm(ehmm); % alpha - one per order
 
 end
+
+
+
+
+
+
+
+
 
 % function ehmm = updateW_here(ehmm,Gamma,residuals,XX)
 % 

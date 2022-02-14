@@ -204,7 +204,8 @@ savLL = sum(avLL);
 
 FrEn=[-Entr -savLL -avLLGamma +KLdivTran +KLdiv];
 
-%fprintf(' %.10g + %.10g + %.10g + %.10g + %.10g =  %.10g \n',...
-% sum(-Entr) ,sum(-savLL) ,sum(-avLLGamma) ,sum(+KLdivTran) ,sum(+KLdiv) ,sum(FrEn));
+fprintf(' %.10g + %.10g + %.10g + %.10g + %.10g + %.10g =  %.10g \n',...
+    sum(-Entr) ,sum(-(-ltpi-ldetWishB+PsiWish_alphasum)*T) , sum(-(dist - NormWishtrace)), ...
+    sum(-avLLGamma) , sum(+KLdivTran) ,sum(+KLdiv) ,sum(FrEn));
 
 end

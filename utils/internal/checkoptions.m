@@ -225,7 +225,7 @@ else
         error('options.episodic and options.initTestSmallerK are not compatible')
     end
     if options.episodic
-        if ~isfield(options,'stopcriterion'), options.stopcriterion = 'LogLik'; end
+        if ~isfield(options,'stopcriterion'), options.stopcriterion = 'FreeEnergy'; end
         if ~strcmpi(options.stopcriterion,'FreeEnergy') && ...
                 ~strcmpi(options.stopcriterion,'ChGamma') && ...
                 ~strcmpi(options.stopcriterion,'LogLik') 

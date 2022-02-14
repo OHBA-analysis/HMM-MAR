@@ -24,7 +24,6 @@ if ehmm.train.acrosstrial_constrained
     Gamma = squeeze(mean(reshape(Gamma,[ttrial-order,N,K]),2));
 end
     
-
 for k = 1:K % %randperm(K) % chain K+1 is implicit
     
     Lk = zeros(ttrial * N, 2); % N > 1 only if we are averaging across trials
