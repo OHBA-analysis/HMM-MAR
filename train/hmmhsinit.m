@@ -22,7 +22,11 @@ if hmm.train.episodic
     defhmmprior.Dir_alpha = [0 1];
     defhmmprior.Dir2d_alpha = ones(2);
     defhmmprior.Dir2d_alpha(eye(2)==1) = hmm.train.DirichletDiag; % effect on diagonal
-    defhmmprior.Dir2d_alpha(:,2) = defhmmprior.Dir2d_alpha(:,2) * hmm.train.ehmm_priorOFFvsON; % effect on ->OFF
+    if hmm.train.ehmm_priorOFFvsON > 1 % effect on ->OFF
+        defhmmprior.Dir2d_alpha(:,2) = defhmmprior.Dir2d_alpha(:,2) * hmm.train.ehmm_priorOFFvsON; 
+    else % effect on ->ON
+        defhmmprior.Dir2d_alpha(:,1) = defhmmprior.Dir2d_alpha(:,1) * (1/hmm.train.ehmm_priorOFFvsON); 
+    end
     defhmmprior.Dir2d_alpha = defhmmprior.Dir2d_alpha * hmm.train.PriorWeightingP; % importance of prior
     %%%defhmmprior.Dir2d_alpha = [1000 10; 10 1000];
     for k = 1:hmm.K+1

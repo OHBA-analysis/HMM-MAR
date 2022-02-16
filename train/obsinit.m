@@ -414,7 +414,7 @@ else
     lambda = ehmm.train.ehmm_regularisation_baseline;
     gram = (XX(:,Sind)' * XX(:,Sind));
     gram = (gram + gram') / 2 ;
-    gram = gram + trace(gram) * lambda * eye(size(gram,2));
+    gram = gram + lambda * eye(size(gram,2));
     igram = inv(gram);
     ehmm.state(K+1).W.Mu_W = igram * (XX' * residuals);
     for n = 1:ndim
