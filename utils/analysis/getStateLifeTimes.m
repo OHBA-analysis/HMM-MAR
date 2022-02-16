@@ -17,15 +17,16 @@ function lifetimes = getStateLifeTimes (Gamma,T,options,threshold,threshold_Gamm
 %   vector of life times
 %
 % if do_concat is specified, the lifetimes are concatenated across
-% segments of data, so that lifetimes is a cell (1 by states)
+% segments of data, so that lifetimes is a single cell (1 by states)
 % 
 % Diego Vidaurre, OHBA, University of Oxford (2016)
 
+raise_warning=false;
 if nargin<3, options = struct(); options.Fs = 1; options.downsample = 1; end
 if ~isfield(options,'Fs'), options.Fs = 1; end
 if ~isfield(options,'downsample'), options.downsample = options.Fs; end
 if nargin<4 || isempty(threshold), threshold = 0; end
-if nargin<5 || isempty(threshold_Gamma), threshold_Gamma = (2/3); end
+if nargin<5 || isempty(threshold_Gamma), raise_warning=true; threshold_Gamma = (2/3); end
 if nargin<6 || isempty(do_concat), do_concat = true; end
     
 is_vpath = (size(Gamma,2)==1 && all(rem(Gamma,1)==0)); 
@@ -74,8 +75,10 @@ if is_vpath % viterbi path
        Gamma(vpath==k,k) = 1;   
     end
 else
-    warning(['Using the Viterbi path is here recommended instead of the state ' ...
-        'probabilistic time courses (Gamma)'])
+    if raise_warning
+        warning(['Using the Viterbi path is here recommended instead of the state ' ...
+            'probabilistic time courses (Gamma)'])
+    end
     K = size(Gamma,2); 
     Gamma = Gamma > threshold_Gamma;
 end
@@ -116,9 +119,9 @@ while ~isempty(g)
     
     t = find(g==1,1);
     if isempty(t), break; end
-    tend = find(g(t+1:end)==0,1);
+    lt = find(g(t+1:end)==0,1);
     
-    if isempty(tend) % end of trial
+    if isempty(lt) % end of trial
         if (length(g)-t+1)>threshold
             lifetimes = [lifetimes (length(g)-t+1)];
         else
@@ -127,13 +130,13 @@ while ~isempty(g)
         break;
     end
     
-    if tend<threshold % too short visit, resetting g and trying again
-        g(t:t+tend-1) = 0;
+    if lt<threshold % too short visit, resetting g and trying again
+        g(t:t+lt-1) = 0;
         continue;
     end
     
-    lifetimes = [lifetimes tend];
-    tnext = t + tend;
+    lifetimes = [lifetimes lt];
+    tnext = t + lt;
     g = g(tnext:end);
     
 end

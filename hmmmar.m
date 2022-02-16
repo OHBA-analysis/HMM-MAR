@@ -313,13 +313,13 @@ else
     is_there_hmm = false;
     if isempty(options.Gamma) && isempty(options.hmm) % both unspecified
         if options.K > 1
-            if options.episodic && isfield(options,'ehmm_Gamma_fromhmm')
-                GammaInit = options.ehmm_Gamma_fromhmm; 
-                options = rmfield(options,'ehmm_Gamma_fromhmm');
-                GammaInit = hmmmar_init_ehmm_fromhmm(GammaInit,T,options);
-            elseif options.initrep>0 && options.initcyc>0 && options.episodic
-                %GammaInit = hmmmar_init_ehmm_iter(data,T,options); % K=2 iterative HMMs
-                GammaInit = ehmminit(data,T,options); % 2*K single HMM run
+            if options.episodic && ...
+                    ((options.initrep>0 && options.initcyc>0) || ...
+                    isfield(options,'ehmm_init_from_hmm'))
+                GammaInit = ehmminit(data,T,options);  
+                if isfield(options,'ehmm_init_from_hmm')
+                    options = rmfield(options,'ehmm_init_from_hmm'); 
+                end
                 if size(GammaInit,2) < options.K
                     options.K = size(GammaInit,2);
                     options.Pstructure = true(options.K);

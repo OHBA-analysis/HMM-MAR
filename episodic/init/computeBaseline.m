@@ -1,6 +1,6 @@
 function baseline = computeBaseline(options,X,T)
 
-Sind = options.Sind; 
+Sind = options.Sind == 1; 
 lambda = options.ehmm_regularisation_baseline;
 if nargin == 1
     XX = formautoregr(options.ehmm_baseline_data.X,options.ehmm_baseline_data.T,...
@@ -18,7 +18,7 @@ end
 ndim = size(Y,2); np = size(XX,2);
 gram = (XX(:,Sind)' * XX(:,Sind));
 gram = (gram + gram') / 2 ;
-gram = gram + trace(gram) * lambda * eye(size(gram,2));
+gram = gram + lambda * eye(size(gram,2));
 igram = inv(gram);
 Mu_W = igram * (XX' * Y);
 iS_W = zeros(ndim,np,np);

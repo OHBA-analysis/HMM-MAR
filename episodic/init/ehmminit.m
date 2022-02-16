@@ -35,9 +35,22 @@ else
     baseline = computeBaseline(options,data.X,T);
 end
 
-[ehmm,Gamma] = run_short_hmm(data,T,options,K+1);
-I = findBaseline(ehmm,baseline);
-Gamma = Gamma(:,setdiff(1:K+1,I));
+if isfield(options,'ehmm_init_from_hmm')
+    hmm = options.ehmm_init_from_hmm.hmm;
+    Gamma = options.ehmm_init_from_hmm.Gamma;
+    if size(Gamma,2) ~= (K+1)
+        error('Init Gamma must have K+1 states')
+    end
+    if ~strcmp(hmm.train.covtype,'uniquediag')
+        error('Covtype of init HMM must be uniquediag')
+    end
+else
+    [hmm,Gamma] = run_short_hmm(data,T,options,K+1);
+end
+
+k = findBaseline(hmm,baseline);
+disp(['Baseline state: ' num2str(k)])
+Gamma = Gamma(:,setdiff(1:K+1,k));
 
 % while ~stop
 %     if provided_baseline
@@ -82,7 +95,13 @@ hmm.train.verbose = 0; %%%%
 hmm.train.episodic = 0;
 hmm.train.Pstructure = true(options.K);
 hmm.train.Pistructure = true(1,options.K);
+if isfield(options,'DirichletDiag_Init')
+    hmm.train.DirichletDiag = options.DirichletDiag_Init;
+end
 hmm = hmmhsinit(hmm);
+if isfield(options,'DirichletDiag_Init')
+    hmm.train.DirichletDiag = options.DirichletDiag;
+end
 [hmm,residuals] = obsinit(data,T,hmm,GammaInit);
 data.C = NaN(size(data.C,1),hmm.K);
 [hmm,Gamma] = hmmtrain(data,T,hmm,GammaInit,residuals);

@@ -46,7 +46,9 @@ for cycle = 1:ehmm.train.cyc
     if strcmpi(ehmm.train.stopcriterion,'FreeEnergy')
         % computation of free energy is not exact
         crithist(end+1) = sum(evalfreeenergy_ehmm(T,Gamma,Xi,ehmm,residuals,XX));
-        fprintf('cycle %i Approx free energy = %.10g \n',cycle,crithist(end));
+        if ehmm.train.verbose
+            fprintf('cycle %i Approx free energy = %.10g \n',cycle,crithist(end));
+        end
         if cycle > 1
             chgFrEn = (crithist(end) - crithist(end-1)) ...
                 / abs(crithist(1) - crithist(end));
@@ -56,17 +58,23 @@ for cycle = 1:ehmm.train.cyc
     elseif strcmpi(ehmm.train.stopcriterion,'ChGamma')
         if cycle > 1
             crithist(end+1) = mean(sum(abs(Gamma0 - Gamma),2)/2 );
-            fprintf('cycle %i mean Gamma change = %.3g \n',...
-                cycle,crithist(end));
+            if ehmm.train.verbose
+                fprintf('cycle %i mean Gamma change = %.3g \n',...
+                    cycle,crithist(end));
+            end
             if (crithist(end) < ehmm.train.tol), break; end
         else
             crithist(end+1) = 0;
-            fprintf('cycle 1  \n')
+            if ehmm.train.verbose
+                fprintf('cycle 1  \n')
+            end
         end
     else % log likelihood
         crithist(end+1) = -sum(evalfreeenergy_ehmm(T,Gamma,Xi,ehmm,residuals,...
             XX,[0 1 1 0 0]));
-        fprintf('cycle %i Approx log likelihood = %.10g \n',cycle,crithist(end));
+        if ehmm.train.verbose
+            fprintf('cycle %i Approx log likelihood = %.10g \n',cycle,crithist(end));
+        end
         if cycle > 1
             chL = (crithist(end) - crithist(end-1)) ...
                 / abs(crithist(1) - crithist(end));
