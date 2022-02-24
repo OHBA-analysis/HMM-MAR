@@ -407,7 +407,7 @@ if isfield(ehmm.train,'ehmm_baseline_w')
     ehmm.state(K+1).W.Mu_W = ehmm.train.ehmm_baseline_w;
     ehmm.train = rmfield(ehmm.train,'ehmm_baseline_w');
 elseif isfield(ehmm.train,'ehmm_baseline_data')
-    ehmm.state(end).W = computeBaseline(ehmm.train);
+    ehmm.state(K+1).W = computeBaseline(ehmm.train);
     ehmm.train = rmfield(ehmm.train,'ehmm_baseline_data');
 else
     ehmm.state(K+1).W.Mu_W = zeros(np,ndim);
@@ -424,10 +424,12 @@ else
         ehmm.state(K+1).W.S_W(n,Sind,Sind) = igram;
     end
 end
+try
 Sind_all = false(np*(K+1),1); Sind_all(np*K + (1:np)) = true; 
 for n = 1:ndim
     ehmm.state_shared(n).Mu_W(Sind_all) = ehmm.state(K+1).W.Mu_W(:,n);
 end
+catch,keyboard; end
 
 % states
 ehmm = updateW_ehmm(ehmm,Gamma,residuals,XX,1,...

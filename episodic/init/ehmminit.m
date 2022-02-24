@@ -99,6 +99,7 @@ hmm.train.verbose = 0; %%%%
 hmm.train.episodic = 0;
 hmm.train.Pstructure = true(options.K);
 hmm.train.Pistructure = true(1,options.K);
+hmm.train.stopcriterion = 'FreeEnergy'; 
 if isfield(options,'DirichletDiag_Init')
     hmm.train.DirichletDiag = options.DirichletDiag_Init;
 end
@@ -116,6 +117,7 @@ function I = findBaseline(hmm,baseline)
 K = length(hmm.state);
 hmm.state(K+1).W = baseline;
 hmm.train.Pstructure = true(K+1); hmm.train.Pistructure = true(1,K+1);
+hmm.train.stopcriterion = 'FreeEnergy'; 
 fit = hmmspectramar([],[],hmm);
 d = zeros(K,1);
 ndim = size(fit.state(K+1).psd,2);

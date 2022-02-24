@@ -1,9 +1,9 @@
-function Gamma = initGamma_window(data,T,options,winsize)
+function Gamma = initGamma_window(data,T,options)
 % Window-based init
 %
 % Author: Diego Vidaurre, Aarhus University (2022)       
 
-if nargin < 4, winsize = 1000; end
+winsize = options.init_windowsize;
 N = length(T); ndim = size(data.X,2); 
 
 B = zeros(sum(T) - N*(winsize-1),options.order*ndim^2);

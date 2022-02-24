@@ -218,6 +218,9 @@ else
             (isfield(options,'zeromean') && options.zeromean == 0))
         error('Window initialisation can only be used if options.order > 0 and options.zeromean = 1');
     end
+    if strcmp(options.inittype,'window') && ~isfield(options,'init_windowsize')
+        error('Parameter init_windowsize must be specified for window-based initialisation');
+    end
     if ~isfield(options,'useParallel')
         options.useParallel = (length(T)>1);
     end
