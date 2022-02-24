@@ -29,7 +29,10 @@ if ~isempty(data)
         ndim = size(data,2);
     end
 else
-    data = rand(10,2); ndim = 2; T = 10; % useless 
+    if isfield(options,'S'), ndim = size(options.S,1);
+    else, ndim = 1; 
+    end
+    data = rand(10,ndim); T = 10; % useless 
 end
 
 % MT and common

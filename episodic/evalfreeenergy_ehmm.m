@@ -68,18 +68,16 @@ if todo(5)==1
             hs = ehmm.state(k);
             pr = ehmm.state(k).prior;
             if ~regressed(n), continue; end
-            if train.zeromean==0
-                prior_prec = hs.prior.Mean.iS(n);
-            end
+            if ~train.zeromean, prior_prec = hs.prior.Mean.iS(n); end
             if train.order > 0
                 ndim_n = sum(S(:,n));
                 alphaterm = repmat( (hs.alpha.Gam_shape ./  hs.alpha.Gam_rate), ndim_n, 1);
-                if isfield(hs,'sigma')
+                if ndim==1
+                    prior_prec = [prior_prec; alphaterm(:)] ;
+                else
                     sigmaterm = repmat(hs.sigma.Gam_shape(S(:,n),n) ./ ...
                         hs.sigma.Gam_rate(S(:,n),n), length(orders), 1);
                     prior_prec = [prior_prec; sigmaterm .* alphaterm(:)] ;
-                else
-                    prior_prec = [prior_prec; alphaterm(:)] ;
                 end
             end
         end
@@ -202,10 +200,10 @@ end
 
 savLL = sum(avLL);
 
-FrEn=[-Entr -savLL -avLLGamma +KLdivTran +KLdiv];
+FrEn = [-Entr -savLL -avLLGamma +KLdivTran +KLdiv];
 
-% fprintf(' %.10g + %.10g + %.10g + %.10g + %.10g + %.10g =  %.10g \n',...
-%     sum(-Entr) ,sum(-(-ltpi-ldetWishB+PsiWish_alphasum)*T) , sum(-(dist - NormWishtrace)), ...
-%     sum(-avLLGamma) , sum(+KLdivTran) ,sum(+KLdiv) ,sum(FrEn));
+fprintf(' %.10g + %.10g + %.10g + %.10g + %.10g + %.10g =  %.10g \n',...
+    sum(-Entr) ,sum(-(-ltpi-ldetWishB+PsiWish_alphasum)*T) , sum(-(dist - NormWishtrace)), ...
+    sum(-avLLGamma) , sum(+KLdivTran) ,sum(+KLdiv) ,sum(FrEn));
 
 end

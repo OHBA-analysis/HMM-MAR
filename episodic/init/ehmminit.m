@@ -30,7 +30,11 @@ end
 if isfield(options,'ehmm_baseline_data') && ~isempty(options.ehmm_baseline_data)
     baseline = computeBaseline(options);
 elseif (isfield(options,'ehmm_baseline_w') && ~isempty(options.ehmm_baseline_w))
-    baseline = options.train.ehmm_baseline_w;
+    if isstruct(options.ehmm_baseline_w)
+        baseline = options.ehmm_baseline_w;
+    else
+        baseline = struct(); baseline.Mu_W = options.ehmm_baseline_w;
+    end
 else
     baseline = computeBaseline(options,data.X,T);
 end
@@ -108,10 +112,11 @@ data.C = NaN(size(data.C,1),hmm.K);
 end
 
 
-function I = findBaseline(ehmm,baseline)
-K = length(ehmm.state);
-ehmm.state(K+1).W = baseline;
-fit = hmmspectramar([],[],ehmm);
+function I = findBaseline(hmm,baseline)
+K = length(hmm.state);
+hmm.state(K+1).W = baseline;
+hmm.train.Pstructure = true(K+1); hmm.train.Pistructure = true(1,K+1);
+fit = hmmspectramar([],[],hmm);
 d = zeros(K,1);
 ndim = size(fit.state(K+1).psd,2);
 psd = []; for n = 1:ndim, psd = [psd; fit.state(K+1).psd(:,n,n)]; end

@@ -11,8 +11,10 @@ function fit = hmmspectramt(data,T,Gamma,options)
 % X: the data matrix, with all trials concatenated
 % T: length of each trial
 % Gamma: State time course  
-% options       structure with the training options - see documentation in 
-%                       https://github.com/OHBA-analysis/HMM-MAR/wiki
+% options: structure with the training options - see documentation in 
+%                       https://github.com/OHBA-analysis/HMM-MAR/wiki 
+%    OR
+% hmm: HMM structure                   
 %               IMPORTANT: If the HMM was run with the options order or embeddedlags, 
 %                           these must be specified here as well
 %
@@ -38,6 +40,9 @@ function fit = hmmspectramt(data,T,Gamma,options)
 %  the code uses some parts from Chronux
 
 if nargin<4, options = struct(); end
+if isfield(options,'train') % it's an HMM structure
+    options = options.train;
+end 
 if ~isfield(options,'order') && ~isfield(options,'embeddedlags')
     warning(['If you ran the HMM with options.order>0 or options.embeddedlags, ' ... 
         'these need to be specified too here'])
@@ -131,6 +136,10 @@ else
 end
 
 K = size(Gamma,2);
+if K > 1
+    Gamma = rdiv(Gamma,sum(Gamma,2)); 
+    Gamma(isnan(Gamma)) = 0; 
+end
 
 if options.p>0, options.err = [2 options.p]; end
 if isfield(options,'downsample') && options.downsample~=0

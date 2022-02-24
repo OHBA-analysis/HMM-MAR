@@ -225,7 +225,7 @@ else
         error('options.episodic and options.initTestSmallerK are not compatible')
     end
     if options.episodic
-        if ~isfield(options,'stopcriterion'), options.stopcriterion = 'FreeEnergy'; end
+        if ~isfield(options,'stopcriterion'), options.stopcriterion = 'LogLik'; end
         if ~strcmpi(options.stopcriterion,'FreeEnergy') && ...
                 ~strcmpi(options.stopcriterion,'ChGamma') && ...
                 ~strcmpi(options.stopcriterion,'LogLik') 
@@ -420,7 +420,11 @@ if ~isfield(options,'hmm'), options.hmm = []; end
 if ~isfield(options,'fehist'), options.fehist = []; end
 if ~isfield(options,'updateObs'), options.updateObs = 1; end
 if ~isfield(options,'updateGamma'), options.updateGamma = 1; end
-if ~isfield(options,'updateP'), options.updateP = options.updateGamma; end
+if ~isfield(options,'updateP')
+    if options.episodic, options.updateP = 0;
+    else, options.updateP = options.updateGamma; 
+    end
+end
 if ~isfield(options,'decodeGamma'), options.decodeGamma = 1; end
 if ~isfield(options,'keepS_W'), options.keepS_W = 1; end
 

@@ -14,13 +14,21 @@ Gamma = [Gamma prod(1-Gamma,2) ];
 Gamma = rdiv(Gamma,sum(Gamma,2));  
 
 XXstar = zeros(size(XX,1),np * K);
-%XXstar1 = zeros(size(XX,1),np * K);
 for k = 1:K
    XXstar(:,(1:np) + (k-1)*np) = bsxfun(@times, XX, Gamma(:,k)); 
-   %XXstar1(:,(1:np) + (k-1)*np) = bsxfun(@times, XX, sqrt(Gamma(:,k))); 
 end
 gram = XXstar' * XXstar;  
 XY = XXstar' * residuals;
+
+% not right 
+% XXstar = zeros(size(XX,1),np * K);
+% XXstar1 = zeros(size(XX,1),np * K);
+% for k = 1:K
+%    XXstar(:,(1:np) + (k-1)*np) = bsxfun(@times, XX, Gamma(:,k)); 
+%    XXstar1(:,(1:np) + (k-1)*np) = bsxfun(@times, XX, sqrt(Gamma(:,k))); 
+% end
+% gram = XXstar1' * XXstar1;  
+% XY = XXstar' * residuals;
 
 for n = 1:ndim
 

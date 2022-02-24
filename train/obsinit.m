@@ -41,11 +41,13 @@ pcapred = hmm.train.pcapred>0;
 if pcapred, M = hmm.train.pcapred; end
 p = hmm.train.lowrank; do_HMM_pca = (p > 0);
 
-if hmm.train.episodic
-    rangeK = 1:hmm.K+1;
-else
-    rangeK = 1:hmm.K;
-end
+rangeK = 1:hmm.K;
+
+% if hmm.train.episodic
+%     rangeK = 1:hmm.K+1;
+% else
+%     rangeK = 1:hmm.K;
+% end
 
 for k = rangeK
     
@@ -402,7 +404,7 @@ end
 
 % baseline
 if isfield(ehmm.train,'ehmm_baseline_w')
-    ehmm.state(K+1).W = ehmm.train.ehmm_baseline_w;
+    ehmm.state(K+1).W.Mu_W = ehmm.train.ehmm_baseline_w;
     ehmm.train = rmfield(ehmm.train,'ehmm_baseline_w');
 elseif isfield(ehmm.train,'ehmm_baseline_data')
     ehmm.state(end).W = computeBaseline(ehmm.train);

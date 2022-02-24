@@ -27,32 +27,33 @@ if hmm.train.episodic
     else % effect on ->ON
         defhmmprior.Dir2d_alpha(:,1) = defhmmprior.Dir2d_alpha(:,1) * (1/hmm.train.ehmm_priorOFFvsON); 
     end
-    defhmmprior.Dir2d_alpha = defhmmprior.Dir2d_alpha * hmm.train.PriorWeightingP; % importance of prior
+    defhmmprior.Dir2d_alpha = defhmmprior.Dir2d_alpha * hmm.train.PriorWeightingP; % prior's weight
     %%%defhmmprior.Dir2d_alpha = [1000 10; 10 1000];
-    for k = 1:hmm.K+1
+    for k = 1:hmm.K
         hmm.state(k).prior = defhmmprior;
     end
-    % assigning default priors for hidden state
+    % assigning initial posteriors and priors for hidden state
     if nargin > 1 && ~isempty(GammaInit) && hmm.train.updateP
         hmm = hsupdate_ehmm([],GammaInit,T,hmm);
-    else % this is reached basically if it's a warm restart
-        % State transitions
-        k = hmm.K+1;
-        hmm.state(k).Dir2d_alpha = defhmmprior.Dir2d_alpha;
-        hmm.state(k).P = zeros(2);
-        hmm.state(k).Dir2d_alpha(eye(2)==1) = hmm.train.DirichletDiag;
-        for k2 = 1:2
-            hmm.state(k).P(k2,:) = hmm.state(k).Dir2d_alpha(k2,:) ./ sum(hmm.state(k).Dir2d_alpha(k2,:));
+    elseif ~hmm.train.updateP && (~isfield(hmm.state(1),'P') || isempty(hmm.state(1).P))
+        for k = 1:hmm.K
+            Dir2d_alpha_norm = defhmmprior.Dir2d_alpha;
+            Dir2d_alpha_norm = Dir2d_alpha_norm / sum(Dir2d_alpha_norm(:));
+            hmm.state(k).Dir2d_alpha = T * Dir2d_alpha_norm;
+            hmm.state(k).P = zeros(2);
+            for k2 = 1:2
+                hmm.state(k).P(k2,:) = hmm.state(k).Dir2d_alpha(k2,:) ./ ...
+                    sum(hmm.state(k).Dir2d_alpha(k2,:));
+            end
         end
+    else % this is reached basically if it's a warm restart
+        % do nothing
     end
     % Initial state
     for k = 1:hmm.K
         hmm.state(k).Dir_alpha = [0 1];
         hmm.state(k).Pi = [0 1];
     end
-    % baseline
-    hmm.state(hmm.K+1).Dir_alpha = []; hmm.state(hmm.K+1).Dir2d_alpha = [];
-    hmm.state(hmm.K+1).P = []; hmm.state(hmm.K+1).Pi = [];
 
 else
     

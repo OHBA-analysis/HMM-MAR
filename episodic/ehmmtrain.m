@@ -23,25 +23,35 @@ crithist = [];
 
 for cycle = 1:ehmm.train.cyc
 
-    save(['/tmp/blah_' num2str(cycle) '.mat'])
-
+%     figure(2);imagesc(Gamma');colorbar;xlim([1 20000])
+%     W = zeros(length(ehmm.state(1).W.Mu_W),ehmm.train.K); 
+%     for k = 1:ehmm.train.K+1, W(:,k) = ehmm.state(k).W.Mu_W; end; 
+%     figure(5);imagesc(W);colorbar
+    %mean(Gamma)
+    
+    %%% E step - state inference
     if ehmm.train.updateGamma
-        %%% E step - state inference
+        
         if cycle > 1 && strcmpi(ehmm.train.stopcriterion,'ChGamma')
             Gamma0 = Gamma;
         end
-        [Gamma,~,Xi] = hsinference(data,T,ehmm,residuals,[],XX,Gamma); 
+        [Gamma,~,Xi] = hsinference(data,T,ehmm,residuals,[],XX,Gamma);
     else
         Xi = approximateXi_ehmm(Gamma,size(Gamma,1)+ehmm.train.order,ehmm.train.order);
     end
-    
+
     %%% M STEP
     
     % Observation model
-    ehmm = obsupdate_ehmm(Gamma,ehmm,residuals,XX);
+    if ehmm.train.updateObs
+        ehmm = obsupdate_ehmm(Gamma,ehmm,residuals,XX);
+    end
     
     % Transition matrices and initial state
-    ehmm = hsupdate_ehmm(Xi,Gamma,T,ehmm);
+    if ehmm.train.updateP
+        ehmm = hsupdate_ehmm(Xi,Gamma,T,ehmm);
+    end
+    
     % Stopping conditions and reporting
     if strcmpi(ehmm.train.stopcriterion,'FreeEnergy')
         % computation of free energy is not exact

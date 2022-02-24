@@ -2,21 +2,33 @@ function [Gamma,Xi,L] = fb_Gamma_inference_ehmm(XX,ehmm,residuals,Gamma,T)
 % Inference using forward backward propagation for parallel ehmm chains
 
 % Note that this is an approximation, so there can be small increments of
-% the free energy in this step. This is because in the free energy we
+% the free energy in this step. This is because of two reasons:
+% 1. in the free energy we
 % compute the weighted-average response and then get the squared error
 % (and same thing in the update of the state distributions), whereas here
 % we do the squaring per chain first. One solution would be to compute the
 % free energy for each combination of states (2^K) and do likewise for the
 % estimation of the states but this is too slow and possibly less accurate
-% in terms of the state estimation. The other solution would be to devise
-% some way to do the forward-backward equations all at once, combining
-% likelihoods and then squaring, but that's not very easy to do.
+% in terms of the state estimation.
+% 2. The weights of how each chain contributes to each time point are *not*
+% a linear combination of the Gamma state probabilities, because the way the weight 
+% for the baseline state is computed is nonlinear (and therefore everything
+% is not linear). In fact, the likelihood is also a nonlinear function of
+% the state probabilities. For example, we could have the highest
+% likelihood for gamma_kt = 0.3, but the forward-backward equations assume
+% a linear progression between 0 and 1. A potential solution would be to
+% bin the Gammas, and have L states per chain: 0% active, 20% active, etc.,
+% but that complicates the definition of the trans prob matrices and their
+% priors. 
+%
+% Author: Diego Vidaurre, University of Oxford / Aarhus University (2022)
+
 
 order = ehmm.train.maxorder;
 if nargin<5, T = size(residuals,1) + order; ttrial = T(1); N = 1;
 else, ttrial = T(1); N = length(T);
 end % normally this is called for a continuous segment
-K = ehmm.K; show_warn = 1;
+K = ehmm.K; show_warn = true;
 
 Xi = zeros(ttrial-1-order,K,4);
 

@@ -17,7 +17,7 @@ if nargin < 3 || isempty(coh), coh = 1; end
 if nargin < 4  || isempty(figure_number)
     figure;
 else
-    figure(figure_number);
+    figure(figure_number);clf(figure_number)
 end
 
 K = length(spectra.state);
@@ -26,14 +26,14 @@ d = size(spectra.state(1).psd,2);
 col = zeros(K,3);
 if nargin < 5 || isempty(colmap)
     cm = colormap;
-    r = round(linspace(1,64,K));
+    r = round(linspace(1,size(cm,1),K));
     for k = 1:K
         col(k,:) = cm(r(k),:);
     end
 else
     if isstr(colmap) % an actual colormap
         cm = colormap(colmap);
-        r = round(linspace(1,64,K));
+        r = round(linspace(1,size(cm,1),K));
         for k = 1:K
             col(k,:) = cm(r(k),:);
         end
