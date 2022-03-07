@@ -134,7 +134,7 @@ for cycle = 2:options.BIGcyc
         end
         % Omega
         if isfield(hmm.state(1),'Omega') || isfield(hmm,'Omega')
-            hmm_noisy = updateOmega(hmm,MGamma,sum(MGamma),Y,Tbatch,XX,XXGXX,XW,Tfactor);
+            hmm_noisy = updateOmega(hmm,MGamma,Y,XX,XXGXX,XW,Tfactor);
             hmm = states_supdate(hmm,hmm_noisy,rho(cycle),2);
         end
         % Priors
