@@ -177,7 +177,7 @@ Gammasum = sum(Gamma); % if episodic, Gammasum doesn't sum up to T
 
 % W
 if episodic
-    hmm = initW_ehmm(hmm,XX,residuals,Gamma,Sind);
+    hmm = initW_ehmm(hmm,XX,XXGXX,residuals,Gamma,Sind);
 else
     hmm = initW_hmm(hmm,XX,XXGXX,residuals,Gamma);
 end
@@ -386,7 +386,7 @@ end
 %   towards baseline, and not towards zero. This way we will pick up
 %   whatever is above and beyond
 
-function ehmm = initW_ehmm(ehmm,XX,residuals,Gamma,Sind)
+function ehmm = initW_ehmm(ehmm,XX,XXGXX,residuals,Gamma,Sind)
 
 np = size(XX,2); ndim = size(residuals,2); K = size(Gamma,2);
 
@@ -424,15 +424,19 @@ else
         ehmm.state(K+1).W.S_W(n,Sind,Sind) = igram;
     end
 end
-try
-Sind_all = false(np*(K+1),1); Sind_all(np*K + (1:np)) = true; 
+
+if ndim == 1
+    ehmm.state(K+1).W.iS_W = squeeze(ehmm.state(K+1).W.iS_W);
+    ehmm.state(K+1).W.S_W = squeeze(ehmm.state(K+1).W.S_W);    
+end
+
+Sind_all = false(np*(K+1),1); Sind_all(np*K + (1:np)) = true;
 for n = 1:ndim
     ehmm.state_shared(n).Mu_W(Sind_all) = ehmm.state(K+1).W.Mu_W(:,n);
 end
-catch,keyboard; end
 
 % states
-ehmm = updateW_ehmm(ehmm,Gamma,residuals,XX,1,...
+ehmm = updateW_ehmm(ehmm,Gamma,residuals,XX,XXGXX,1,...
     ehmm.train.ehmm_regularisation_baseline); % using same regularisation
 
 end

@@ -25,10 +25,14 @@ d = size(spectra.state(1).psd,2);
 
 col = zeros(K,3);
 if nargin < 5 || isempty(colmap)
-    cm = colormap;
-    r = round(linspace(1,size(cm,1),K));
-    for k = 1:K
-        col(k,:) = cm(r(k),:);
+    if K>1
+        cm = colormap;
+        r = round(linspace(5,size(cm,1)-5,K));
+        for k = 1:K
+            col(k,:) = cm(r(k),:);
+        end
+    else
+        col = [ 0.1 0.1 0.1];
     end
 else
     if isstr(colmap) % an actual colormap

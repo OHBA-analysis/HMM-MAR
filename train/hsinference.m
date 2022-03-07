@@ -1,4 +1,4 @@
-function [Gamma,Gammasum,Xi,LL] = hsinference(data,T,hmm,residuals,options,XX,Gamma0,cv)
+function [Gamma,Gammasum,Xi,LL] = hsinference(data,T,hmm,residuals,options,XX,Gamma0,Xi0,cv)
 %
 % inference engine for HMMs.
 %
@@ -25,7 +25,8 @@ N = length(T);
 K = hmm.K;
 p = hmm.train.lowrank; do_HMM_pca = (p > 0);
 if nargin < 7, Gamma0 = []; end
-if nargin < 8, cv = 0; end
+if nargin < 8, Xi0 = []; end
+if nargin < 9, cv = 0; end
 if ~isfield(hmm,'train')
     if nargin<5 || isempty(options)
         error('You must specify the field options if hmm.train is missing');
@@ -150,7 +151,7 @@ if hmm.train.acrosstrial_constrained % state probabilities are shared across tri
     
     ttrial = T(1)-order; L = zeros(N*ttrial,K);
     if episodic
-        [Gammastar,Xistar,LL] = fb_Gamma_inference_ehmm(XX,hmm,residuals,Gamma0,T);
+        [Gammastar,Xistar,LL] = fb_Gamma_inference_ehmm(XX,hmm,residuals,Gamma0,Xi0,T);
     else
         for j = 1:N
             t = (1:ttrial) + (j-1)*ttrial;
@@ -198,9 +199,10 @@ elseif hmm.train.useParallel==1 && N>1
 
     % to avoid the entire data being copied entirely in each parfor loop
     XX_copy = cell(N,1); residuals_copy = cell(N,1); 
-    Gamma0_copy = cell(N,1); C_copy = cell(N,1);
+    Gamma0_copy = cell(N,1); Xi0_copy = cell(N,1);
+    C_copy = cell(N,1);
     for j = 1:N
-        t0 = sum(T(1:j-1)); s0 = t0 - order*(j-1); 
+        t0 = sum(T(1:j-1)); s0 = t0 - order*(j-1); s02 = t0 - (order+1)*(j-1);
         XX_copy{j} = XX(s0+1:s0+T(j)-order,:);
         if ~do_HMM_pca
             residuals_copy{j} = residuals(s0+1:s0+T(j)-order,:);
@@ -211,12 +213,15 @@ elseif hmm.train.useParallel==1 && N>1
         if ~isempty(Gamma0)
             Gamma0_copy{j} = Gamma0(s0+1:s0+T(j)-order,:);
         end
-    end; clear data; clear Gamma0; clear XX; clear  residuals
+        if ~isempty(Xi0)
+            Xi0_copy{j} = Xi(s02+1:s02+T(j)-order-1,:,:,:);
+        end        
+    end; clear data; clear Gamma0; clear Xi0; clear XX; clear residuals
     
     parfor j = 1:N
         xit = []; llt = [];
         if order>0
-            R = [zeros(order,size(residuals_copy{j},2));  residuals_copy{j}];
+            R = [zeros(order,size(residuals_copy{j},2)); residuals_copy{j}];
             if ~isempty(C_copy{j})
                 C = [zeros(order,K); C_copy{j}];
             else
@@ -256,8 +261,10 @@ elseif hmm.train.useParallel==1 && N>1
             XXt = XX_copy{j}(slicepoints,:); 
             if isnan(C(t,1))
                 if episodic
-                    [gammat,xit,llt] = ...
-                        fb_Gamma_inference_ehmm(XXt,hmm,R(slicer,:),Gamma0_copy{j}(slicer,:)); 
+                    slicer2 = slicer(1:end-1);
+                    Gamma0t = Gamma0_copy{j}(slicer,:);
+                    Xi0t = []; if ~isempty(Xi0_copy{j}), Xi0t = Xi0_copy{j}(slicer2,:); end
+                    [gammat,xit,llt] = fb_Gamma_inference_ehmm(XXt,hmm,R(slicer,:),Gamma0t,Xi0t);
                 else
                     [gammat,xit,llt] = ...
                         fb_Gamma_inference(XXt,hmm,R(slicer,:),slicepoints,hmm.train.Gamma_constraint,cv);
@@ -315,7 +322,7 @@ else
  
     for j = 1:N % this is exactly the same than the code above but changing parfor by for
  
-        t0 = sum(T(1:j-1)); s0 = t0 - order*(j-1);
+        t0 = sum(T(1:j-1)); s0 = t0 - order*(j-1); s02 = t0 - (order+1)*(j-1);
         if order > 0
             R = [zeros(order,size(residuals,2)); residuals(s0+1:s0+T(j)-order,:)];
             if isfield(data,'C')
@@ -357,9 +364,11 @@ else
             XXt = XX(slicepoints,:);
             if isnan(C(t,1))
                 if episodic
+                    slicepoints2 = slicer(1:end-1) + s02 - order;
                     Gamma0t = Gamma0(slicepoints,:);
+                    Xi0t = []; if ~isempty(Xi0), Xi0t = Xi0(slicepoints2,:,:,:); end
                     [gammat,xit,llt] = ...
-                        fb_Gamma_inference_ehmm(XXt,hmm,R(slicer,:),Gamma0t);
+                        fb_Gamma_inference_ehmm(XXt,hmm,R(slicer,:),Gamma0t,Xi0t);
                 else
                     [gammat,xit,llt] = ...
                         fb_Gamma_inference(XXt,hmm,R(slicer,:),slicepoints,hmm.train.Gamma_constraint,cv);

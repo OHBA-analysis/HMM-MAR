@@ -1,5 +1,6 @@
 function hmm = updateAlpha(hmm,rangeK)
 
+if hmm.train.order == 0, return; end
 K = hmm.K; ndim = hmm.train.ndim;
 if nargin < 2 || isempty(rangeK), rangeK = 1:K; end
 if isfield(hmm.train,'B'), Q = size(hmm.train.B,2);

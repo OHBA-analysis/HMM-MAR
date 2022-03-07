@@ -1,4 +1,4 @@
-K = hmm.K;
+K = length(hmm.state);
 if exist('Gamma','var') && ~isempty(Gamma) && ~exist('XXGXX','var')
     XXGXX = cell(K,1);
 end

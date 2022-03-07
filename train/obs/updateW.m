@@ -1,8 +1,9 @@
- function [hmm,XW] = updateW(hmm,Gamma,residuals,XX,XXGXX,Tfactor,rangeK) 
+function [hmm,XW] = updateW(hmm,Gamma,residuals,XX,XXGXX,Tfactor,rangeK,lambda)
 
 K = hmm.K; ndim = hmm.train.ndim;
 if nargin < 6, Tfactor = 1; end
 if nargin < 7 || isempty(rangeK), rangeK = 1:K; end
+if nargin < 8 || isempty(lambda), lambda = []; end
 if ~isempty(hmm.state(1).W.Mu_W)
     XW = zeros(size(XX,1),ndim,K);
 else
@@ -27,8 +28,12 @@ for k = rangeK
     
     if k<hmm.K && ~hmm.train.active(k), continue; end
     if isempty(orders) && train.zeromean && ~do_HMM_pca, continue; end
-    if strcmp(train.covtype,'diag') || strcmp(train.covtype,'full'), omega = hmm.state(k).Omega;
-    elseif ~isfield(train,'distribution') || ~strcmp(train.distribution,'logistic'), omega = hmm.Omega;
+    if ~isempty(lambda)
+        % do nothing
+    elseif strcmp(train.covtype,'diag') || strcmp(train.covtype,'full')
+        omega = hmm.state(k).Omega;
+    elseif ~isfield(train,'distribution') || ~strcmp(train.distribution,'logistic')
+        omega = hmm.Omega;
     end
     
 %     if reweight
@@ -48,28 +53,38 @@ for k = rangeK
         XGX = zeros(npred+(~train.zeromean));
         for n = 1:ndim
             ind = n:ndim:size(XX,2);
-            iomegan = omega.Gam_shape / omega.Gam_rate(n);
-            XGX = XGX + iomegan * XXGXX{k}(ind,ind);
-            XY = XY + bsxfun(@times, iomegan * XX(:,ind), Gamma(:,k))' * residuals(:,n);
+            if isempty(lambda)
+                c = omega.Gam_shape / omega.Gam_rate(n);
+            else
+                c = 1;
+            end
+            XGX = XGX + c * XXGXX{k}(ind,ind);
+            XY = XY + bsxfun(@times, c * XX(:,ind), Gamma(:,k))' * residuals(:,n);
         end
         if ~isempty(train.prior)
-            hmm.state(k).W.S_W = inv(train.prior.iS + XGX);
+            hmm.state(k).W.iS_W = train.prior.iS + XGX;
+            hmm.state(k).W.S_W = inv(hmm.state(k).W.iS_W);
             hmm.state(k).W.Mu_W = hmm.state(k).W.S_W * (XY + train.prior.iSMu); % order by 1
         else
-            if train.zeromean==0 && pcapred
-                regterm = diag([hmm.state(k).prior.Mean.iS; (hmm.state(k).beta.Gam_shape ./ ...
-                    hmm.state(k).beta.Gam_rate) ]);  
-            elseif pcapred
-                regterm = diag((hmm.state(k).beta.Gam_shape ./  hmm.state(k).beta.Gam_rate));
-            elseif train.zeromean==0 && ~isempty(orders)
-                regterm = diag([hmm.state(k).prior.Mean.iS (hmm.state(k).alpha.Gam_shape ./ ...
-                    hmm.state(k).alpha.Gam_rate) ]);
-            elseif train.zeromean==0
-                regterm = diag(hmm.state(k).prior.Mean.iS);
+            if isempty(lambda)
+                if train.zeromean==0 && pcapred
+                    regterm = diag([hmm.state(k).prior.Mean.iS; (hmm.state(k).beta.Gam_shape ./ ...
+                        hmm.state(k).beta.Gam_rate) ]);
+                elseif pcapred
+                    regterm = diag((hmm.state(k).beta.Gam_shape ./  hmm.state(k).beta.Gam_rate));
+                elseif train.zeromean==0 && ~isempty(orders)
+                    regterm = diag([hmm.state(k).prior.Mean.iS (hmm.state(k).alpha.Gam_shape ./ ...
+                        hmm.state(k).alpha.Gam_rate) ]);
+                elseif train.zeromean==0
+                    regterm = diag(hmm.state(k).prior.Mean.iS);
+                else
+                    regterm = diag((hmm.state(k).alpha.Gam_shape ./  hmm.state(k).alpha.Gam_rate));
+                end
             else
-                regterm = diag((hmm.state(k).alpha.Gam_shape ./  hmm.state(k).alpha.Gam_rate));
+                regterm = lambda * eye(size(XGX,1));
             end
-            hmm.state(k).W.S_W = inv(regterm + Tfactor * XGX);
+            hmm.state(k).W.iS_W = regterm + Tfactor * XGX;
+            hmm.state(k).W.S_W = inv(hmm.state(k).W.iS_W);
             hmm.state(k).W.Mu_W = Tfactor * hmm.state(k).W.S_W * XY; % order by 1
         end        
         for n = 1:ndim
@@ -78,28 +93,39 @@ for k = rangeK
         end
                 
     elseif strcmp(train.covtype,'diag') || strcmp(train.covtype,'uniquediag')
+        
         for n = 1:ndim
+            
             if ~regressed(n), continue; end
-            regterm = [];
-            if ~train.zeromean, regterm = hmm.state(k).prior.Mean.iS(n); end
-            if ~isempty(orders)
-                if pcapred
-                    regterm = [regterm; hmm.state(k).beta.Gam_shape ./ hmm.state(k).beta.Gam_rate(:,n)];
-                else
-                    alphaterm = ...
-                        repmat( (hmm.state(k).alpha.Gam_shape ./  hmm.state(k).alpha.Gam_rate), ...
-                        sum(S(:,n)>0), 1);
-                    if ndim>1
-                        regterm = [regterm; repmat(hmm.state(k).sigma.Gam_shape(S(:,n),n) ./ ...
-                            hmm.state(k).sigma.Gam_rate(S(:,n),n), length(orders), 1).*alphaterm(:) ];
+            
+            if isempty(lambda)
+                regterm = [];
+                if ~train.zeromean, regterm = hmm.state(k).prior.Mean.iS(n); end
+                if ~isempty(orders)
+                    if pcapred
+                        regterm = [regterm; hmm.state(k).beta.Gam_shape ./ ...
+                            hmm.state(k).beta.Gam_rate(:,n)];
                     else
-                        regterm = [regterm; alphaterm(:)];
+                        alphaterm = ...
+                            repmat( (hmm.state(k).alpha.Gam_shape ./  hmm.state(k).alpha.Gam_rate), ...
+                            sum(S(:,n)>0), 1);
+                        if ndim>1
+                            regterm = [regterm; repmat(hmm.state(k).sigma.Gam_shape(S(:,n),n) ./ ...
+                                hmm.state(k).sigma.Gam_rate(S(:,n),n), length(orders), 1).*alphaterm(:) ];
+                        else
+                            regterm = [regterm; alphaterm(:)];
+                        end
                     end
                 end
+                if isempty(regterm), regterm = 0; end
+                regterm = diag(regterm);
+                c = omega.Gam_shape / omega.Gam_rate(n);
+            else
+                regterm = lambda * eye(sum(Sind(:,n)));
+                if ~train.zeromean, regterm(1,1) = 0; end
+                c = 1;
             end
-            if isempty(regterm), regterm = 0; end
-            regterm = diag(regterm);
-            c = omega.Gam_shape / omega.Gam_rate(n);
+            
             hmm.state(k).W.iS_W(n,Sind(:,n),Sind(:,n)) = ...
                 regterm + Tfactor * c * XXGXX{k}(Sind(:,n),Sind(:,n));
             hmm.state(k).W.iS_W(n,Sind(:,n),Sind(:,n)) = ...
@@ -110,6 +136,7 @@ for k = rangeK
             sx = permute(hmm.state(k).W.S_W(n,Sind(:,n),Sind(:,n)),[2 3 1]) * ...
                 Tfactor * c * XX(:,Sind(:,n))'; 
             hmm.state(k).W.Mu_W(Sind(:,n),n) = (sx .* Gamma(:,k)') * residuals(:,n);
+            
         end
         XW(:,:,k) = XX(:,Sind(:,n)) * hmm.state(k).W.Mu_W(Sind(:,n),:);
         
@@ -238,7 +265,8 @@ for k = rangeK
             hmm.state(k).W.S_W = zeros(length(S(:)));
             validentries = logical(S(:));
             hmm.state(k).W.iS_W(validentries,validentries) = regterm + gram;
-            hmm.state(k).W.S_W(validentries,validentries) = inv(hmm.state(k).W.iS_W(validentries,validentries));
+            hmm.state(k).W.S_W(validentries,validentries) = ...
+                inv(hmm.state(k).W.iS_W(validentries,validentries));
             hmm.state(k).W.iS_W = sparse(hmm.state(k).W.iS_W);
             hmm.state(k).W.S_W = sparse(hmm.state(k).W.S_W);
             

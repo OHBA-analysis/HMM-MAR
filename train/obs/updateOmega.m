@@ -1,9 +1,9 @@
-function hmm = updateOmega(hmm,Gamma,Gammasum,residuals,XX,XXGXX,XW,Tfactor,rangeK)
+function hmm = updateOmega(hmm,Gamma,residuals,XX,XXGXX,XW,Tfactor,rangeK)
 
 is_gaussian = hmm.train.order == 0; % true if Gaussian observation model is being used
 K = hmm.K; ndim = hmm.train.ndim;
-if nargin < 9 || isempty(rangeK), rangeK = 1:K; end
-if nargin < 8, Tfactor = 1; end
+if nargin < 8 || isempty(rangeK), rangeK = 1:K; end
+if nargin < 7, Tfactor = 1; end
 setstateoptions
 T = size(residuals,1);
 if isfield(hmm.train,'B'), Q = size(hmm.train.B,2);
@@ -41,7 +41,7 @@ elseif strcmp(hmm.train.covtype,'uniquediag')
         e = (residuals(:,regressed) - XWk(:,regressed)).^2;
         swx2 = zeros(T,ndim);
         if ~isempty(hmm.state(k).W.Mu_W)
-            for n=1:ndim
+            for n = 1:ndim
                 if ~regressed(n), continue; end
                 if ndim==1
                     tmp = XX(:,Sind(:,n)) * hmm.state(k).W.S_W;
@@ -85,7 +85,8 @@ elseif strcmp(hmm.train.covtype,'uniquefull')
                     end
                 end
             end
-            hmm.Omega.Gam_rate(regressed,regressed) = hmm.Omega.Gam_rate(regressed,regressed) + Tfactor * (e + swx2(regressed,regressed));
+            hmm.Omega.Gam_rate(regressed,regressed) = hmm.Omega.Gam_rate(regressed,regressed) ...
+                + Tfactor * (e + swx2(regressed,regressed));
         else % multivariate regression model
             index_iv = sum(S,2)>0; % the independent variables
             xdim = sum(index_iv);
@@ -108,10 +109,13 @@ elseif strcmp(hmm.train.covtype,'uniquefull')
     
 else % state dependent
     
+    Gammasum = sum(Gamma);
     for k = rangeK
         if ~hmm.train.active, continue; end
         if ~isempty(XW)
+            try
             XWk = XW(:,:,k);
+            catch,keyboard;end
         else
             XWk = zeros(size(residuals));
         end
@@ -124,7 +128,8 @@ else % state dependent
             end
             hmm.state(k).Omega.Gam_rate = hmm.state(k).prior.Omega.Gam_rate + ...
                 0.5 * Tfactor * sum( bsxfun(@times, e + swx2, Gamma(:,k)) );
-            hmm.state(k).Omega.Gam_shape = hmm.state(k).prior.Omega.Gam_shape + 0.5 * Tfactor * Gammasum(k);
+            hmm.state(k).Omega.Gam_shape = hmm.state(k).prior.Omega.Gam_shape ...
+                + 0.5 * Tfactor * Gammasum(k);
             
         elseif strcmp(train.covtype,'diag')
             e = (residuals(:,regressed) - XWk(:,regressed)).^2;
@@ -147,7 +152,7 @@ else % state dependent
             
         else % full
             if is_gaussian
-                if hmm.train.zeromean % If zeromean == 1 for Gaussian model, then XWk is zero and we don't need to subtract at all
+                if hmm.train.zeromean % If zeromean == 1 for Gaussian model, then XWk=0 and we don't need to subtract at all
                     e = residuals(:,regressed);
                 else % If zeromean == 0 for Gaussian model, then XWk has all the same rows, and bsxfun() is a fair bit faster
                     e = bsxfun(@minus,residuals(:,regressed),XWk(1,regressed));
@@ -206,7 +211,8 @@ else % state dependent
             %    C0 = hmm.state(k).Omega.Gam_rate(regressed,regressed) / hmm.state(k).Omega.Gam_shape;
             %    C = hmm.train.A' * corrcov(hmm.train.A * C0 * hmm.train.A',1) * hmm.train.A;
             %    %iC = hmm.train.A' * pinv(corrcov(hmm.train.A * C0 * hmm.train.A'),1e-10) * hmm.train.A;
-            %    iC = hmm.train.A' * ( (corrcov(hmm.train.A * C0 * hmm.train.A',1)+1e-4*eye(size(hmm.train.A,1))) \ hmm.train.A);
+            %    iC = hmm.train.A' * ( (corrcov(hmm.train.A * C0 * hmm.train.A',1)+1e-4*eye(size(hmm.train.A,1))) ... 
+            %           \ hmm.train.A);
             %    hmm.state(k).Omega.Gam_rate(regressed,regressed) = C * hmm.state(k).Omega.Gam_shape;
             %    hmm.state(k).Omega.Gam_irate(regressed,regressed) = iC / hmm.state(k).Omega.Gam_shape;
             %end

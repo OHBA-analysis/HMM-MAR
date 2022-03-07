@@ -110,7 +110,11 @@ if todo(5)==1
 end
 
 % data log likelihood
+savLL = []; 
 if todo(2)==1
+    
+    Gamma = [Gamma prod(1-Gamma,2) ];
+    Gamma = rdiv(Gamma,sum(Gamma,2));
     
     avLL = zeros(Tres,1);
     
@@ -124,86 +128,42 @@ if todo(2)==1
     C = ehmm.Omega.Gam_shape ./ ehmm.Omega.Gam_rate;
     avLL = avLL + (-ltpi-ldetWishB+PsiWish_alphasum);
     
-%     %%% exact calculation
-%     combinations = zeros(2^K,K);
-%     for k = 1:K
-%         combinations(:,k) = repmat([zeros(2^(k-1),1); ones(2^(k-1),1)],2^(K-k),1);
-%     end
-%     
-%     for c = 1:2^K
-%         Gamma_c = zeros(size(Gamma));
-%         Gamma_prod = ones(size(Gamma,1),1);
-%         for k = 1:K
-%             Gamma_c(:,k) = combinations(c,k);
-%             if combinations(c,k)
-%                 Gamma_prod = Gamma_prod .* Gamma(:,k);
-%             else
-%                 Gamma_prod = Gamma_prod .* (1-Gamma(:,k));
-%             end
-%         end
-%         % compute the mean response
-%         [meand,X] = computeStateResponses(XX,ehmm,Gamma_c);
-%         d = residuals(:,regressed) - meand;
-%         Cd = bsxfun(@times, C(regressed), d)';
-%         dist = zeros(Tres,1);
-%         for n = 1:sum(regressed)
-%             dist = dist - 0.5 * (d(:,n).*Cd(n,:)');
-%         end
-%         % Covariance of the distance
-%         NormWishtrace = zeros(Tres,1);
-%         for n = 1:ndim
-%             if ~regressed(n), continue; end
-%             Sind_all = [];
-%             for k = 1:K
-%                 Sind_all = [Sind_all; Sind(:,n)];
-%             end
-%             Sind_all = Sind_all == 1;
-%             if ndim==1
+    for k = 1:K+1
+    
+        % error
+        meand = XX * ehmm.state(n).W.Mu_W(:,regressed);
+        d = residuals(:,regressed) - meand;
+        Cd = bsxfun(@times, C(regressed), d)';
+        dist = zeros(Tres,1);
+        for n = 1:sum(regressed)
+            dist = dist - 0.5 * (d(:,n).*Cd(n,:)');
+        end
+  
+        % Covariance of the distance
+        NormWishtrace = zeros(Tres,1);
+%         if ndim == 1
+%             NormWishtrace = NormWishtrace + 0.5 * C * ...
+%                 sum( (XX * ehmm.state(k).W.S_W) .* XX, 2);
+%         else
+%             for n = 1:ndim
+%                 if ~regressed(n), continue; end
 %                 NormWishtrace = NormWishtrace + 0.5 * C(n) * ...
-%                     sum( (X(:,Sind_all) * ehmm.state_shared(n).S_W(Sind_all,Sind_all)) ...
-%                     .* X(:,Sind_all), 2);
-%             else
-%                 try
-%                     NormWishtrace = NormWishtrace + 0.5 * C(n) * ...
-%                         sum( (X(:,Sind_all) * ...
-%                         ehmm.state_shared(n).S_W(Sind_all,Sind_all)) ...
-%                         .* X(:,Sind_all), 2);
-%                 catch,keyboard; end
+%                     sum( (XX(:,Sind(:,n)) * ...
+%                     permute(ehmm.state(k).W.S_W(n,Sind(:,n),Sind(:,n)),[2 3 1])) ...
+%                     .* XX(:,Sind(:,n)), 2);
 %             end
 %         end
-%         avLL = avLL + Gamma_prod .* (dist - NormWishtrace);
-%     end
+        
+        avLL = avLL + Gamma(:,k) .* (dist - NormWishtrace);
     
-    % error
-    [Xhat,XXstar] = computeStateResponses(XX,ehmm,Gamma,1:K+1);
-    d = residuals(:,regressed) - Xhat(:,regressed);
-    Cd = bsxfun(@times, C(regressed), d)';
-    dist = zeros(Tres,1);
-    for n = 1:sum(regressed)
-        dist = dist - 0.5 * (d(:,n).*Cd(n,:)');
-    end
-    
-    % Covariance of the distance
-    NormWishtrace = zeros(Tres,1);
-    for n = 1:ndim
-        if ~regressed(n), continue; end
-        Sind_all = repmat(Sind(:,n),K+1,1);
-        Sind_all = Sind_all == 1;
-        NormWishtrace = NormWishtrace + 0.5 * C(n) * ...
-            sum( (XXstar(:,Sind_all) * ehmm.state_shared(n).S_W(Sind_all,Sind_all)) ...
-            .* XXstar(:,Sind_all), 2);
-    end
-    
-    avLL = avLL + dist - NormWishtrace;
-    
+    end    
+    savLL = sum(avLL);
 end
-
-savLL = sum(avLL);
 
 FrEn = [-Entr -savLL -avLLGamma +KLdivTran +KLdiv];
 
 % fprintf(' %.10g + %.10g + %.10g + %.10g + %.10g + %.10g =  %.10g \n',...
-%     sum(-Entr) ,sum(-(-ltpi-ldetWishB+PsiWish_alphasum)*T) , sum(-(dist - NormWishtrace)), ...
+%     sum(-Entr) ,sum(-(-ltpi-ldetWishB+PsiWish_alphasum)*Tres) , sum(-(dist - NormWishtrace)), ...
 %     sum(-avLLGamma) , sum(+KLdivTran) ,sum(+KLdiv) ,sum(FrEn));
 
 end

@@ -179,7 +179,7 @@ for iperm = 1:nperm
     Gamma = vpath_to_stc(vp_p,K);
     hmm = hmm_init;
     setxx;
-    hmm = obsupdate(T,Gamma,hmm,data.X,XX,XXGXX);
+    hmm = obsupdate(Gamma,hmm,data.X,XX,XXGXX);
     for k1 = 1:K-1
         [~,C1] = getFuncConn(hmm,k1);
         if ~isempty(A), C1 = A' * C1 * A; end 

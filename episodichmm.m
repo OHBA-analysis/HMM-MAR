@@ -19,6 +19,6 @@ function [ehmm, Gamma, GammaInit, crithist] = episodichmm (data,T,options)
 %         CFIN, Aarhus University / OHBA, University of Oxford (2021)
 
 options.episodic = true;
-[ehmm, Gamma, ~, crithist, GammaInit] = hmmmar(data,T,options); 
+[ehmm, Gamma, ~, ~, GammaInit, ~, crithist] = hmmmar(data,T,options);
 
 end

@@ -1,15 +1,13 @@
-function [Gamma,Xi,L] = fb_Gamma_inference_ehmm(XX,ehmm,residuals,Gamma,T)
+function [Gamma,Xi,L] = fb_Gamma_inference_ehmm(XX,ehmm,residuals,Gamma,Xi,T)
 % Inference using forward backward propagation for parallel ehmm chains
 
 % Note that this is an approximation, so there can be small increments of
 % the free energy in this step. This is because of two reasons:
-% 1. in the free energy we
-% compute the weighted-average response and then get the squared error
-% (and same thing in the update of the state distributions), whereas here
-% we do the squaring per chain first. One solution would be to compute the
-% free energy for each combination of states (2^K) and do likewise for the
-% estimation of the states but this is too slow and possibly less accurate
-% in terms of the state estimation.
+% 1. The likelihood for the free energy and for the FB equations is
+% computed slightly differently: the term NormWishtrace (related to the
+% W covariance) is computed across states for the FB equations, and per
+% state in the free energy. That's due to the fact that the FB equations
+% are approximate here. 
 % 2. The weights of how each chain contributes to each time point are *not*
 % a linear combination of the Gamma state probabilities, because the way the weight 
 % for the baseline state is computed is nonlinear (and therefore everything
@@ -24,20 +22,32 @@ function [Gamma,Xi,L] = fb_Gamma_inference_ehmm(XX,ehmm,residuals,Gamma,T)
 % Author: Diego Vidaurre, University of Oxford / Aarhus University (2022)
 
 
-order = ehmm.train.maxorder;
-if nargin<5, T = size(residuals,1) + order; ttrial = T(1); N = 1;
+order = ehmm.train.maxorder; K = ehmm.K; show_warn = true;
+
+if nargin<6, T = size(residuals,1) + order; ttrial = T(1); N = 1;
 else, ttrial = T(1); N = length(T);
 end % normally this is called for a continuous segment
-K = ehmm.K; show_warn = true;
-
-Xi = zeros(ttrial-1-order,K,4);
+% if nargin<5 || isempty(Xi), Xi = zeros(ttrial-1-order,K,4); check_improv = false;
+% else, check_improv = true;
+% end
+check_improv = false; 
 
 if ehmm.train.acrosstrial_constrained
     Gamma = squeeze(mean(reshape(Gamma,[ttrial-order,N,K]),2));
 end
-    
-for k = 1:K % %randperm(K) % chain K+1 is implicit
-    
+
+if check_improv
+    n_rejected = 0;
+    if strcmpi(ehmm.train.stopcriterion,'LogLik')
+        c = sum(evalfreeenergy_ehmm(T,Gamma,Xi,ehmm,residuals,XX,[0 1 1 0 0]));
+    else
+        c = sum(evalfreeenergy_ehmm(T,Gamma,Xi,ehmm,residuals,XX,[1 1 1 0 0]));
+    end
+    %disp(num2str(loglik))
+end    
+
+for k = randperm(K) 
+ 
     Lk = zeros(ttrial * N, 2); % N > 1 only if we are averaging across trials
     
     for j = 1:N % N is 1 except when acrosstrial_constrained
@@ -75,16 +85,17 @@ for k = 1:K % %randperm(K) % chain K+1 is implicit
         warning(['State time courses became NaN (out of precision). ' ...
             'There are probably extreme events in the data. ' ...
             'Using an approximation..' ])
-        Gamma2 = alpha; out_precision = true;
+        Gammak = alpha; out_precision = true;
     else
-        Gamma2 = (alpha.*beta); out_precision = false;
+        Gammak = (alpha.*beta); out_precision = false;
     end
     
-    Gamma2 = rdiv(Gamma2,sum(Gamma2,2));
-    Gamma(:,k) = Gamma2(order+1:ttrial,1);
+    Gammak = rdiv(Gammak,sum(Gammak,2));
+    if check_improv, Gammak0 = Gamma(:,k); Xi0k = Xi(:,k,:); end
+    Gamma(:,k) = Gammak(order+1:ttrial,1);
     
     if out_precision
-        xi = approximateXi(Gamma2(order+1:ttrial,:),size(Gamma2,1),ehmm);
+        xi = approximateXi(Gammak(order+1:ttrial,:),size(Gammak,1),ehmm);
         Xi(:,k,:) = reshape(xi,[size(xi,1) size(xi,2)*size(xi,3)]);
         if show_warn
             show_warn = false;
@@ -97,7 +108,26 @@ for k = 1:K % %randperm(K) % chain K+1 is implicit
         end
     end
     
+    if check_improv
+        if strcmpi(ehmm.train.stopcriterion,'LogLik')
+            c2 = sum(evalfreeenergy_ehmm(T,Gamma,reshape(Xi,T-order-1,K,2,2),...
+                ehmm,residuals,XX,[0 1 1 0 0]));
+        else
+            c2 = sum(evalfreeenergy_ehmm(T,Gamma,reshape(Xi,T-order-1,K,2,2),...
+                ehmm,residuals,XX,[1 1 1 0 0]));
+        end
+        %disp(num2str(loglik2))
+        if c2 > c % decrement of fitness, undo
+            Gamma(:,k) = Gammak0; Xi(:,k,:) = Xi0k;
+            n_rejected = n_rejected + 1;
+        else
+            c = c2;
+        end
+    end
+    
 end
+
+if check_improv, disp(['%Change rejected: ' num2str(n_rejected/K) ]); end
 
 L = scale; % only the last one
 

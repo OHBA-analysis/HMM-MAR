@@ -200,7 +200,6 @@ else
     end
     if ~isfield(options,'verbose'), options.verbose = 1; end
     % the rest of the stuff will get assigned in the recursive calls
-    if ~isfield(options,'tol'), options.tol = 1e-4; end
     if ~isfield(options,'meancycstop'), options.meancycstop = 1; end
     if ~isfield(options,'cycstogoafterevent'), options.cycstogoafterevent = 20; end
     if ~isfield(options,'initTestSmallerK'), options.initTestSmallerK = false; end
@@ -228,7 +227,7 @@ else
         error('options.episodic and options.initTestSmallerK are not compatible')
     end
     if options.episodic
-        if ~isfield(options,'stopcriterion'), options.stopcriterion = 'LogLik'; end
+        if ~isfield(options,'stopcriterion'), options.stopcriterion = 'ChGamma'; end
         if ~strcmpi(options.stopcriterion,'FreeEnergy') && ...
                 ~strcmpi(options.stopcriterion,'ChGamma') && ...
                 ~strcmpi(options.stopcriterion,'LogLik') 
@@ -239,6 +238,11 @@ else
         if ~strcmpi(options.stopcriterion,'FreeEnergy') && ...
                 ~strcmpi(options.stopcriterion,'ChGamma')
             error('options.stopcriterion must be ''FreeEnergy'' or ''ChGamma'' ')
+        end
+    end
+    if ~isfield(options,'tol')
+        if strcmpi(options.stopcriterion,'ChGamma'), options.tol = 0.1; % percentage
+        else, options.tol = 1e-4; 
         end
     end
 end

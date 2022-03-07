@@ -45,16 +45,20 @@ for l = 1:2
     for n = 1:sum(regressed)
         dist = dist - 0.5 * (d(:,n).*Cd(n,:)');
     end
-    
+     
     NormWishtrace = zeros(T,1);
-    for n = 1:ndim
-        if ~regressed(n), continue; end
-        Sind_all = repmat(Sind(:,n),K+1,1);
-        Sind_all = Sind_all == 1;
-        NormWishtrace = NormWishtrace + 0.5 * C(n) * ...
-            sum( (XXstar(:,Sind_all) * ehmm.state_shared(n).S_W(Sind_all,Sind_all)) ...
-            .* XXstar(:,Sind_all), 2);
-    end
+%     if ndim == 1
+%           NormWishtrace = NormWishtrace + 0.5 * C * ...
+%                 sum( (XXstar * ehmm.state_shared(1).W.S_W) .* XXstar, 2);
+%     else
+%         for n = 1:ndim
+%             if ~regressed(n), continue; end
+%             Sind_all = repmat(Sind(:,n),K+1,1) == 1;
+%             NormWishtrace = NormWishtrace + 0.5 * C(n) * ...
+%                 sum( (XXstar(:,Sind_all) * ehmm.state_shared(n).S_W(Sind_all,Sind_all)) ...
+%                 .* XXstar(:,Sind_all), 2);
+%         end
+%     end
     
     L(ehmm.train.maxorder+1:end,l) = - ltpi - ldetWishB + ...
         PsiWish_alphasum + dist - NormWishtrace;

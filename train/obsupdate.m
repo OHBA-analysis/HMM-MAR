@@ -1,10 +1,8 @@
-function hmm = obsupdate(T,Gamma,hmm,residuals,XX,XXGXX,Tfactor)
+function hmm = obsupdate(Gamma,hmm,residuals,XX,XXGXX,Tfactor)
 %
 % Update observation model
 %
 % INPUT
-% X             observations
-% T             length of series
 % Gamma         p(state given X)
 % hmm           hmm data structure
 % residuals     in case we train on residuals, the value of those.
@@ -21,19 +19,18 @@ obs_maxit = 1; %20;
 mean_change = Inf;
 obs_it = 1;
 p = hmm.train.lowrank; do_HMM_pca = (p > 0);
-Gammasum = sum(Gamma); 
 if nargin<7, Tfactor = 1; end
 
 if ~isfield(hmm.train,'distribution') || ~strcmp(hmm.train.distribution,'logistic')
     while mean_change>obs_tol && obs_it<=obs_maxit
         last_state = hmm.state;
         if do_HMM_pca
-            hmm = updatePCAparam (hmm,Gammasum,XXGXX,Tfactor);
+            hmm = updatePCAparam (hmm,sum(Gamma),XXGXX,Tfactor);
         else
             %%% W
             [hmm,XW] = updateW(hmm,Gamma,residuals,XX,XXGXX,Tfactor);  
             %%% Omega
-            hmm = updateOmega(hmm,Gamma,Gammasum,residuals,XX,XXGXX,XW,Tfactor);
+            hmm = updateOmega(hmm,Gamma,residuals,XX,XXGXX,XW,Tfactor);
             %disp(num2str(hmm.Omega.Gam_rate / hmm.Omega.Gam_shape))
             
             %%% autoregression coefficient priors

@@ -31,17 +31,20 @@ for cycle = 1:ehmm.train.cyc
     
     %%% E step - state inference
     if ehmm.train.updateGamma
-        
         if cycle > 1 && strcmpi(ehmm.train.stopcriterion,'ChGamma')
             Gamma0 = Gamma;
         end
-        [Gamma,~,Xi] = hsinference(data,T,ehmm,residuals,[],XX,Gamma);
+        if cycle == 1 
+            [Gamma,~,Xi] = hsinference(data,T,ehmm,residuals,[],XX,Gamma);
+        else
+            [Gamma,~,Xi] = hsinference(data,T,ehmm,residuals,[],XX,Gamma,Xi);
+        end
     else
         Xi = approximateXi_ehmm(Gamma,size(Gamma,1)+ehmm.train.order,ehmm.train.order);
     end
 
     %%% M STEP
-    
+        
     % Observation model
     if ehmm.train.updateObs
         ehmm = obsupdate_ehmm(Gamma,ehmm,residuals,XX);
@@ -67,9 +70,9 @@ for cycle = 1:ehmm.train.cyc
         
     elseif strcmpi(ehmm.train.stopcriterion,'ChGamma')
         if cycle > 1
-            crithist(end+1) = mean(sum(abs(Gamma0 - Gamma),2)/2 );
+            crithist(end+1) = 100 * mean(sum(abs(Gamma0 - Gamma),2)/2 );
             if ehmm.train.verbose
-                fprintf('cycle %i mean Gamma change = %.3g \n',...
+                fprintf('cycle %i Gamma change = %.3g %% \n',...
                     cycle,crithist(end));
             end
             if (crithist(end) < ehmm.train.tol), break; end
@@ -88,7 +91,7 @@ for cycle = 1:ehmm.train.cyc
         if cycle > 1
             chL = (crithist(end) - crithist(end-1)) ...
                 / abs(crithist(1) - crithist(end));
-            if (abs(chL) < ehmm.train.tol), break; end
+            if  (abs(chL) < ehmm.train.tol), break; end  % (chL < 0) ||
          end
     end
     

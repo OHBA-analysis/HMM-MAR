@@ -27,6 +27,6 @@ if nargin < 6 || isempty(XX)
 end
 
 
-hmm = obsupdate(T,Gamma,hmm,residuals,XX,XXGXX);
+hmm = obsupdate(Gamma,hmm,residuals,XX,XXGXX);
 
 end

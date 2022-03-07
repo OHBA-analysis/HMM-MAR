@@ -17,16 +17,23 @@ function ehmm = obsupdate_ehmm(Gamma,ehmm,residuals,XX,Tfactor)
 % Some stuff that will be later used
 if nargin<6, Tfactor = 1; end
 
-if isfield(ehmm.train,'distribution') && strcmp(ehmm.train.distribution,'logistic')
-    error('Logistic regression not yet implemented for ehmm')
+K = ehmm.K;
+
+Gamma = [Gamma prod(1-Gamma,2)];
+Gamma = rdiv(Gamma,sum(Gamma,2));  
+
+XXGXX = cell(K,1);
+for k = 1:K+1
+    XXGXX{k} = bsxfun(@times, XX, Gamma(:,k))' * XX;
 end
 
-ehmm = updateW_ehmm(ehmm,Gamma,residuals,XX,Tfactor); %_nobaseline
+% autoregression coefficients
+[ehmm,XW] = updateW_ehmm(ehmm,Gamma,residuals,XX,XXGXX,Tfactor);
 
 % Omega
-ehmm = updateOmega_ehmm(ehmm,Gamma,residuals,XX,Tfactor);
-
-% autoregression coefficient priors
+ehmm = updateOmega_ehmm(ehmm,Gamma,residuals,XX,XXGXX,XW,Tfactor);
+% 
+% % autoregression coefficient priors
 ehmm = updateSigma_ehmm(ehmm); % sigma - channel x channel coefficients
 ehmm = updateAlpha_ehmm(ehmm); % alpha - one per order
 
