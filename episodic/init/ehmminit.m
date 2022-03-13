@@ -39,57 +39,47 @@ else
     baseline = computeBaseline(options,data.X,T);
 end
 
-if isfield(options,'ehmm_init_from_hmm')
-    hmm = options.ehmm_init_from_hmm.hmm;
-    Gamma = options.ehmm_init_from_hmm.Gamma;
-    if size(Gamma,2) ~= (K+1)
-        error('Init Gamma must have K+1 states')
-    end
-    if ~strcmp(hmm.train.covtype,'uniquediag')
-        error('Covtype of init HMM must be uniquediag')
-    end
-else
-    [hmm,Gamma] = run_short_hmm(data,T,options,K+1);
+[hmm,I,G] = run_short_hmm_batches(data,T,options,K);
+Gamma = findStandoutChains(T-options.order,hmm,baseline,I,G,K);
+
 end
 
-k = findBaseline(hmm,baseline);
-disp(['Baseline state: ' num2str(k)])
-Gamma = Gamma(:,setdiff(1:K+1,k));
 
-% while ~stop
-%     if provided_baseline
-%         [ehmm,Gamma] = run_short_hmm(data,T,options,K+1);
-%         I = findBaseline(ehmm,baseline);
-%         Gamma = Gamma(:,setdiff(1:K+1,I));
-%         stop = true;
-%     else  
-%         [ehmm,Gammar] = run_short_hmm(data,T,options,K*2);
-%         I = selectStates(data,T,Gammar,ehmm,K);
-%         Gammar = Gammar(:,I);
-%         if length(I) < K
-%             disp(['Rep : ' num2str(r) '. Unable to initialize ' num2str(K) ...
-%                 ' chains; only got ' num2str(length(I)) ])
-%             if size(Gammar,2) > size(Gamma,2), Gamma = Gammar; end
-%             r = r + 1;
-%             if r == 10, error('Must stop here'); end
-%         else
-%             Gamma = Gammar;
-%             stop = true;
-%         end
-%     end
-% end
-
+function [hmm,I,G] = run_short_hmm_batches(data,T,options,K)
+L = 10000; step = 2000; threshold = 20; 
+N = length(T); order = options.order;
+hmm = []; I = []; G = []; 
+for j = 1:N
+    t0 = sum(T(1:j-1)); t0g = t0 - (j-1) * order; 
+    t =  t0 + (1:(L+order)); tg = t0g + (1:L);
+    while t(end) <= T
+        dat = data; dat.X = dat.X(t,:);
+        [hm,g] = run_short_hmm(dat,length(t),options,K);
+        if isempty(hmm)
+            hmm = hm;
+        else
+            for k = 1:length(hm.state)
+                if sum(g(:,k))>threshold
+                    hmm.state(end+1) = hm.state(k);
+                end
+            end
+        end
+        for k = 1:length(hm.state)
+            if sum(g(:,k))>threshold
+                I = [I; [tg(1) tg(end)]];
+                G = [G single(g(:,k))];
+            end
+        end
+        t = t + step; tg = tg + step;
+    end
+end
 end
 
 
 function [hmm,Gamma] = run_short_hmm(data,T,options,K)
 options.K = K;
-if options.order > 0 && options.zeromean
-    GammaInit = initGamma_window(data,T,options);
-else
-    GammaInit = initGamma_random(T-options.maxorder,K,...
-        min(median(double(T))/10,500));
-end
+GammaInit = initGamma_random(T-options.maxorder,K,...
+    min(median(double(T))/10,500));
 hmm = struct('train',struct());
 hmm.K = K;
 hmm.train = options;
@@ -113,130 +103,69 @@ data.C = NaN(size(data.C,1),hmm.K);
 end
 
 
-function I = findBaseline(hmm,baseline)
+function Gamma = findStandoutChains(T,hmm,baseline,I,G,nchains)
 K = length(hmm.state);
 hmm.state(K+1).W = baseline;
 hmm.train.Pstructure = true(K+1); hmm.train.Pistructure = true(1,K+1);
 hmm.train.stopcriterion = 'FreeEnergy'; 
 fit = hmmspectramar([],[],hmm);
-d = zeros(K,1);
+c = zeros(K,1);
 ndim = size(fit.state(K+1).psd,2);
 psd = []; for n = 1:ndim, psd = [psd; fit.state(K+1).psd(:,n,n)]; end
 psd = psd ./ sum(psd);
+W = zeros(length(baseline.Mu_W),K);
+PSD = zeros(length(psd),K);
 for k = 1:K
     psdk = []; for n = 1:ndim, psdk = [psdk; fit.state(k).psd(:,n,n)]; end
     psdk = psdk ./ sum(psdk);
-    d(k) = sum( (psdk - psd).^2);
+    c(k) = corr(psdk,psd); 
+    W(:,k) = hmm.state(k).W.Mu_W;
+    PSD(:,k) = psdk;
 end
-[~,I] = min(d);
+[~,jj] = min(c);
+while length(jj) < nchains
+   for k = 1:K
+      c(k) = max(c(k),corr(PSD(:,k),PSD(:,jj(end)))); 
+   end
+   [~,j] = min(c); jj = [jj j]; 
+end
+Gamma = zeros(sum(T),nchains);
+for k = 1:nchains
+   Gamma(I(jj(k),1):I(jj(k),2),k) = G(:,jj(k)); 
+end
 end
 
-
-
-% function I = selectStates(data,T,G,hmm,K)
-% lambda = hmm.train.ehmm_regularisation_baseline;
-% Kmax = size(G,2);
-% if Kmax <= K, I = 1:Kmax; return; end
-% if isfield(hmm.train,'ehmm_baseline_data')
-%     XXb = formautoregr(hmm.train.ehmm_baseline_data.X,hmm.train.ehmm_baseline_data.T,...
-%         hmm.train.orders,hmm.train.maxorder,hmm.train.zeromean);
-%     residualsb =  getresiduals(hmm.train.ehmm_baseline_data.X,hmm.train.ehmm_baseline_data.T,...
-%         hmm.train.Sind,hmm.train.maxorder,hmm.train.order,...
-%         hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag,hmm.train.zeromean);
-%     gram = (XXb' * XXb);
-%     gram = (gram + gram') / 2 ;
-%     gram = gram + trace(gram) * lambda * eye(size(gram,2));
-%     igram = inv(gram);
-%     Mu_W = igram * (XXb' * residualsb);
-%     provided_baseline = true;
-% elseif isfield(hmm.train,'ehmm_baseline_w')
-%     Mu_W = hmm.train.ehmm_baseline_w.Mu_W;
-%     provided_baseline = true;
-% else
-%     provided_baseline = false;
-% end
-% %%% choose baseline
-% use = true(Kmax,1);
-% if provided_baseline
-%     d = zeros(Kmax,1);
-%     for k = 1:Kmax
-%         d(k) = sum((hmm.state(k).W.Mu_W(:) - Mu_W(:)).^2);
-%     end
-%     [~,k] = min(d);
-%     use(k) = false;
-% end
-% %%% Selecting the states that are not well explained by others
-% % put the data in the right format
-% orders = formorders(hmm.train.order,hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag);
-% residuals = getresiduals(data.X,T,hmm.train.Sind,hmm.train.maxorder,hmm.train.order,...
-%     hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag,hmm.train.zeromean);
-% XX = formautoregr(data.X,T,orders,hmm.train.maxorder,hmm.train.zeromean);
-% p = size(residuals,2);
-% % regression coefficients
-% W = zeros([size(hmm.state(1).W.Mu_W) Kmax]);
-% for k = 1:Kmax, W(:,:,k) = hmm.state(k).W.Mu_W; end
-% r2 = zeros(Kmax,1);
-% for k = 1:Kmax
-%     if ~use(k), continue; end
-%     ind = G(:,k)>0.75; Nk = sum(ind);
-%     if Nk < 10, continue; end
-%     y = residuals(ind,:); y = y(:);
-%     % prediction within state parameters
-%     yhat = XX(ind,:) * hmm.state(k).W.Mu_W; yhat = yhat(:);
-%     r2(k) = 1 - sum((yhat-y).^2) / sum(y.^2);
-%     % prediction by others
-%     yhat = ones(Nk,p,Kmax);
-%     kk = setdiff(1:Kmax,k);
-%     for ik2 = 1:Kmax-1  % last column of ones
-%         yhat(:,:,ik2) = XX(ind,:) * hmm.state(kk(ik2)).W.Mu_W;
-%     end
-%     yhat = reshape(yhat,Nk*p,Kmax); % includes intercept
-%     opts1 = optimset('display','off');
-%     w = lsqlin(yhat,y,[],[],ones(1,Kmax),1,zeros(Kmax,1),ones(Kmax,1),[],opts1);
-%     yhat = yhat * w;
-%     r2k = 1 - sum((yhat-y).^2) / sum((y-mean(y)).^2);
-%     r2(k) = r2(k) * (r2(k) - max(r2k,0));
-% end
-% fo = sum(G);
-% r2(fo<100) = 0; % ignore those with too few points
-% [~,I] = sort(r2,'descend');
-% I = I(1:K);
-% end
-
-% function I = selectStates(G,hmm,K)
-% % Selecting the states that are not linear combination of the others,
-% %  and with not too low FO
-% Khmm = size(G,2);
-% if Khmm <= K, I = 1:Khmm; return; end
-% bn = dec2bin(1:2^(Khmm-1)); bn = bn(1:end-1,2:end)';
-% D = zeros(size(bn)); % K x ncomb
-% for ik = 1:size(bn,2)
-%     D(:,ik) = str2num(bn(:,ik));
-% end
-% B = zeros(length(hmm.state(1).W.Mu_W(:)),Khmm); % p x K
-% for k = 1:Khmm, B(:,k) = hmm.state(k).W.Mu_W(:); end
-% err = zeros(Khmm,size(bn,2)); % states by combination of states
-% for ik = 1:Khmm
-%     Bhat = B(:,setdiff(1:Khmm,ik)) * D;
-%     err(ik,:) = mean( abs(Bhat - repmat(B(:,ik),1,size(D,2))) );
-% end
-% err = min(err,[],2); % how well is predicted by a sum of others
-% fo = sum(G); %l1 = mean(abs(B));
-% kept = Khmm; % no. of kept states
-% % % remove the one with the lowest betas
-% % [v,ik] = min(l1);
-% % if v < 0.1 * median(l1(setdiff(1:Khmm,ik)))
-% %     err(ik) = -Inf; fo(ik) = Inf;
-% %     kept = kept-1;
+% 
+% function Gamma = estimateGamma(data,T,W,Wbaseline,options)
+% orders = formorders(options.order,options.orderoffset,options.timelag,options.exptimelag);
+% [XX,Y] = formautoregr(data.X,T,orders,orders(end),1);
+% K = size(W,2);
+% % r = zeros(size(Y,1),K+1);
+% % for k = 1:K
+% %     r(:,k) = (XX * W(:,k) - Y).^2;
 % % end
-% % remove the ones with too low FO
-% while true
-%     if kept < K, break; end
-%     if ~any(fo<1e-3), break; end
-%     [v,ik] = min(fo);
-%     if v < 50, err(ik) = -Inf; fo(ik) = Inf; kept = kept - 1; end
+% % r(:,K+1) = (XX * Wbaseline - Y).^2;
+% ehmm = struct('train',struct());
+% ehmm.K = options.K;
+% ehmm.train = options;
+% ehmm = hmmhsinit(ehmm,[],T);
+% for k = 1:K
+%     ehmm.state(k).W.Mu_W = W(:,k);
 % end
-% % choose the ones with the largest error (less well predicted by others)
-% [~,I] = sort(err,'descend');
-% I = I(1:K);
+% ehmm.state(K+1).W.Mu_W = Wbaseline;
+% ehmm.Omega = struct('Gam_rate',1,'Gam_shape',1);
+% np = size(W,1); ndim = 1;
+% for n = 1:ndim
+%     ehmm.state_shared(n).Mu_W = zeros((K+1)*np,1);
 % end
+% for k = 1:K+1
+%     ind = (k-1)*np + (1:np);
+%     for n = 1:ndim
+%         ehmm.state_shared(n).Mu_W(ind) = ehmm.state(k).W.Mu_W;
+%     end
+% end
+% Gamma = hsinference(data,T,ehmm,Y,options,XX,zeros(sum(T)-length(T)*options.order,K));
+% end
+% 
+% 
+

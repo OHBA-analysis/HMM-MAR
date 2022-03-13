@@ -23,11 +23,13 @@ crithist = [];
 
 for cycle = 1:ehmm.train.cyc
 
-%     figure(2);imagesc(Gamma');colorbar;xlim([1 20000])
+%     tt =  799676-10000:799875+10000;
+%     figure(2);imagesc(Gamma(tt,:)');colorbar;%xlim([tt(1) tt(end)])
 %     W = zeros(length(ehmm.state(1).W.Mu_W),ehmm.train.K); 
 %     for k = 1:ehmm.train.K+1, W(:,k) = ehmm.state(k).W.Mu_W; end; 
-%     figure(5);imagesc(W);colorbar
-    %mean(Gamma)
+%     fit = hmmspectramar(residuals,size(residuals,1),ehmm); 
+%     plot_hmmspectra (fit,[],[],5);legend
+    %figure(5);imagesc(W);colorbar
     
     %%% E step - state inference
     if ehmm.train.updateGamma

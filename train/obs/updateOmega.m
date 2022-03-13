@@ -113,9 +113,7 @@ else % state dependent
     for k = rangeK
         if ~hmm.train.active, continue; end
         if ~isempty(XW)
-            try
             XWk = XW(:,:,k);
-            catch,keyboard;end
         else
             XWk = zeros(size(residuals));
         end

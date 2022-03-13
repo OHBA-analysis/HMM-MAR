@@ -23,7 +23,7 @@ else
     data_new = zeros(sum(T_new),ndim);
 end
 
-for i=1:length(T)
+for i = 1:length(T)
     ind1 = sum(T(1:i-1))+ (1:T(i));
     ind2 = sum(T_new(1:i-1))+ (1:T_new(i));
     for n = 1:ndim

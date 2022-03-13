@@ -65,9 +65,12 @@ for l = 1:2
 
 end
 
-% if any(all(L<0,2))
-%     L(all(L<0,2),:) = L(all(L<0,2),:) - repmat(max(L(all(L<0,2),:),[],2),1,2);
-% end
+Lneg = all(L<0,2);
+if any(Lneg)
+    L(Lneg,:) = L(Lneg,:) - repmat(max(L(Lneg,:),[],2),1,2);
+end
+%if any(sum(exp(L),2)==0), keyboard; end
+
 L = exp(L);
 
 end

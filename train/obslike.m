@@ -240,11 +240,13 @@ for ik = 1:length(rangeK)
         end
     end
     
-    L(hmm.train.maxorder+1:end,ik)= - ltpi - ldetWishB + PsiWish_alphasum + dist - NormWishtrace;
+    L(hmm.train.maxorder+1:end,ik)= - ltpi - ldetWishB + ...
+        PsiWish_alphasum + dist - NormWishtrace;
 end
 % correct for stability problems by adding constant:
 if any(all(L<0,2)) && ~cv
-    L(all(L<0,2),:) = L(all(L<0,2),:) - repmat(max(L(all(L<0,2),:),[],2),1,length(rangeK));
+    L(all(L<0,2),:) = L(all(L<0,2),:) - ...
+        repmat(max(L(all(L<0,2),:),[],2),1,length(rangeK));
 end
 L = exp(L);
 end

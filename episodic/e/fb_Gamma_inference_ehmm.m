@@ -46,6 +46,8 @@ if check_improv
     %disp(num2str(loglik))
 end    
 
+if isempty(Xi), Xi = zeros(ttrial-order-1,K,4); end
+
 for k = randperm(K) 
  
     Lk = zeros(ttrial * N, 2); % N > 1 only if we are averaging across trials
@@ -63,7 +65,7 @@ for k = randperm(K)
     scale = zeros(ttrial,1);
     alpha = zeros(ttrial,2);
     beta = zeros(ttrial,2);
-    
+
     alpha(1+order,:) = ehmm.state(k).Pi.*Lk(1+order,:);
     scale(1+order) = sum(alpha(1+order,:));
     alpha(1+order,:) = alpha(1+order,:)/scale(1+order);
@@ -72,7 +74,7 @@ for k = randperm(K)
         scale(i) = sum(alpha(i,:));		% P(X_i | X_1 ... X_{i-1})
         alpha(i,:) = alpha(i,:)/scale(i);
     end
-    
+
     scale(scale<realmin) = realmin;
     
     beta(ttrial,:) = ones(1,2)/scale(ttrial);
@@ -80,7 +82,7 @@ for k = randperm(K)
         beta(i,:) = (beta(i+1,:).*Lk(i+1,:))*(ehmm.state(k).P')/scale(i);
         beta(i,beta(i,:)>realmax) = realmax;
     end
-    
+
     if any(isnan(beta(:)))
         warning(['State time courses became NaN (out of precision). ' ...
             'There are probably extreme events in the data. ' ...
@@ -94,6 +96,7 @@ for k = randperm(K)
     if check_improv, Gammak0 = Gamma(:,k); Xi0k = Xi(:,k,:); end
     Gamma(:,k) = Gammak(order+1:ttrial,1);
     
+    if isempty(Xi), Xi = zeros(ttrial-order-1,K,4); end
     if out_precision
         xi = approximateXi(Gammak(order+1:ttrial,:),size(Gammak,1),ehmm);
         Xi(:,k,:) = reshape(xi,[size(xi,1) size(xi,2)*size(xi,3)]);
