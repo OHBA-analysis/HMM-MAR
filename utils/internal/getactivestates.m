@@ -1,14 +1,15 @@
-function [actstates,hmm,Gamma,Xi] = getactivestates(hmm,Gamma,Xi)
+function [actstates,hmm,Gamma,Xi] = getactivestates(hmm,Gamma,Xi,threshold)
 
-%ndim = size(X,2);
 K = hmm.K;
 orders = formorders(hmm.train.order,hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag);
 
 Gammasum = sum(Gamma);
-if isfield(hmm.train,'B'), Q = size(hmm.train.B,2);
-else, Q = sum(any(hmm.train.S==1)); end
+if isfield(hmm.train,'B'), ndim = size(hmm.train.B,2);
+else, ndim = sum(any(hmm.train.S==1)); end
 
-threshold = max(4*length(orders)*Q+5,10);
+if nargin < 4
+    threshold = max(4*length(orders)*ndim+5,10);
+end
 
 actstates = ones(1,K); % length = to the last no. of states (=the original K if dropstates==0)
 for k = 1:K
