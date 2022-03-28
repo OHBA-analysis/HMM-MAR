@@ -27,7 +27,10 @@ function tests = specttest(sp_fit,Nperm,within_state,relative)
 % Nperm                 No. of permutations
 % within_state          If 1, test each value of PSD/Coh  
 %                           against the rest of the values within each state 
-%                       If 0, test each value of PSD/Coh across states
+%                       If 0, test each value of PSD/Coh across states.
+%                           Note that if the number of states is not high,
+%                           the number of possible permutations will be too
+%                           low
 % relative              Test for relative changes within state? (default 0) 
 %
 % OUTPUT:
@@ -56,9 +59,21 @@ tests.lower_corr.state = struct();
 N = length(sp_fit);
 K = length(sp_fit{1}.state); 
 [Nf,ndim,~] = size(sp_fit{1}.state(1).psd);
+p = ndim;
+
+if within_state
+    if factorial(p) < Nperm
+        warning(['The number of possible permutations to test the PSD is lower than Nperm, ' ...
+            'given the number of channels'])
+    end
+else
+    if factorial(K) < Nperm
+       warning(['The number of possible permutations (given K) is lower than Nperm. ' ...
+           'Lower Nperm or use a higher K in training']) 
+    end
+end
 
 % PSD
-p = ndim;
 X = zeros(N,K,p,Nf); 
 for n = 1:N
     for nf = 1:Nf
