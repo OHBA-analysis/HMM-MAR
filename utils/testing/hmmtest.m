@@ -132,7 +132,8 @@ end
 if ~isfield(options,'confounds'), confounds = [];
 else, confounds = options.confounds;
 end
-if ~isfield(hmm.train,'downsample') || ~isfield(hmm.train,'Fs')
+if ~isfield(hmm.train,'downsample') || hmm.train.downsample==0 || ...
+        ~isfield(hmm.train,'Fs')
     r = 1; 
 else
     r = hmm.train.downsample/hmm.train.Fs;
