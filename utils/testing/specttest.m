@@ -63,13 +63,15 @@ p = ndim;
 
 if within_state
     if factorial(p) < Nperm
-        warning(['The number of possible permutations to test the PSD is lower than Nperm, ' ...
-            'given the number of channels'])
+        warning(['Given the number of channels, ' ...
+            'the number of possible permutations to test the PSD, '...
+            num2str(factorial(p)) ', is lower than Nperm, ' num2str(Nperm) ])
     end
 else
     if factorial(K) < Nperm
-       warning(['The number of possible permutations (given K) is lower than Nperm. ' ...
-           'Lower Nperm or use a higher K in training']) 
+        warning(['Given the number of states, ' ...
+            'the number of possible permutations, '...
+            num2str(factorial(K)) ', is lower than Nperm, ' num2str(Nperm) ])
     end
 end
 
