@@ -31,7 +31,7 @@ function tests = hmmtest (Gamma,T,Tsubject,Y,options,hmm,Xi)
 % Tsubject: length of time series per subject (no. subjects by 1); 
 %       if empty it will be interpreted that there is only one subject
 % Y: (no. trials by no. conditions) design matrix if testing is done at the subject level
-%   or (no. trials by no. subjects) if testing is  done at the group level.
+%   or (no. subjects by no. conditions) if testing is  done at the group level.
 % options: testing related options
 %   .Nperm: number of permutations (default 1000)
 %   .subjectlevel: run subject-level tests? if 0, group testing will be done
