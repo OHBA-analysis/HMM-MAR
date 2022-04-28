@@ -43,7 +43,11 @@ if ~isfield(options,'detrend'), options.detrend = 0; end
 if ~isfield(options,'downsample'), options.downsample = 0; end
 if ~isfield(options,'leakagecorr'), options.leakagecorr = 0; end
 if ~isfield(options,'sequential'), options.sequential = 0; end
-if ~isfield(options,'standardise'), options.standardise = 1; end
+if ~isfield(options,'standardise') && (~isfield(options,'distribution') || strcmp(options.distribution,'Gaussian')), 
+    options.standardise = 1; 
+else
+    options.standardise = 0;
+end
 if ~isfield(options,'standardise_pc') 
     options.standardise_pc = length(options.embeddedlags)>1; 
 end
@@ -256,7 +260,14 @@ if ~isfield(options,'tuda'), options.tuda = 0; end
 if options.tudamonitoring && stochastic_learning
    error('Stochastic learning is not currently compatible with TUDA monitoring options') 
 end
-if ~isfield(options,'distribution'),options.distribution = 'Gaussian';end
+if ~isfield(options,'distribution')
+    options.distribution = 'Gaussian';
+elseif ~strcmp(options.distribution,'Gaussian')
+    options.covtype=''; %to avoid later errors
+    if ~strcmp(options.distribution,{'logistic','poisson','bernoulli'})
+        error('options.distribution takes only values Gaussian, logistic, poisson or bernoulli');
+    end
+end
 
 % Trans prob mat related options
 if ~isfield(options,'grouping') || isempty(options.grouping)  

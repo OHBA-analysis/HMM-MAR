@@ -21,7 +21,7 @@ obs_it = 1;
 p = hmm.train.lowrank; do_HMM_pca = (p > 0);
 if nargin<7, Tfactor = 1; end
 
-if ~isfield(hmm.train,'distribution') || ~strcmp(hmm.train.distribution,'logistic')
+if ~isfield(hmm.train,'distribution') || strcmp(hmm.train.distribution,'Gaussian')
     while mean_change>obs_tol && obs_it<=obs_maxit
         last_state = hmm.state;
         if do_HMM_pca
@@ -54,7 +54,7 @@ if ~isfield(hmm.train,'distribution') || ~strcmp(hmm.train.distribution,'logisti
         end
         mean_change = mean_changew;
     end
-else
+elseif strcmp(hmm.train.distribution,'logistic')
     if isfield(hmm,'psi')
         hmm = rmfield(hmm,'psi');
     end
@@ -81,5 +81,7 @@ else
         mean_change = mean_changew;
         obs_it = obs_it + 1;
     end
+else
+    hmm = updateW(hmm,Gamma,residuals,XX,XXGXX);
 end
 end

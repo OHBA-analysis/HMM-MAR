@@ -137,7 +137,7 @@ for k = rangeK
         [hmm.cache.WishTrace{k},hmm.cache.codevals] = computeWishTrace(hmm,regressed,XX,C,k);
     end
     % Set up cache
-    if ~isfield(train,'distribution') || ~strcmp(train.distribution,'logistic')
+    if ~isfield(train,'distribution') || strcmp(train.distribution,'Gaussian')
         hmm.cache.ldetWishB{k} = ldetWishB;
         hmm.cache.PsiWish_alphasum{k} = PsiWish_alphasum;
         hmm.cache.C{k} = C;
