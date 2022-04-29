@@ -292,7 +292,7 @@ for k = rangeK
         % unsupervised Bernoulli model:
         a0 = hmm.state(k).prior.alpha.a;
         b0 = hmm.state(k).prior.alpha.b; %prior terms
-        X=logical(residuals);
+        X = logical(residuals);
         GamTemp = repmat(Gamma(:,k),1,size(X,2));
         hmm.state(k).W.a = a0 + sum(GamTemp.*X);
         hmm.state(k).W.b = b0 + sum(GamTemp.*(~X));
