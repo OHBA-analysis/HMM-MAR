@@ -532,24 +532,24 @@ if todo(2)==1
         L = zeros(sum(T),K);  
         for k=1:K
             % expectation of log(p) is psi(a) - psi(a+b):
-            pterm = [X .* repmat( psi(hmm.state(k).W.a) - psi(hmm.state(k).W.a + hmm.state(k).W.b) ,sum(T),1)];
-            qterm = [(~X) .* repmat(psi(hmm.state(k).W.b) - psi(hmm.state(k).W.a + hmm.state(k).W.b) ,sum(T),1)];
-            L(:,k) = sum(pterm+qterm,2) .* Gamma(:,k);
+            pterm = X .* repmat( psi(hmm.state(k).W.a) - psi(hmm.state(k).W.a + hmm.state(k).W.b) ,sum(T),1);
+            qterm = (~X) .* repmat(psi(hmm.state(k).W.b) - psi(hmm.state(k).W.a + hmm.state(k).W.b) ,sum(T),1);
+            L(:,k) = sum(pterm + qterm,2) .* Gamma(:,k);
         end
         
-        avLL=sum(L,2);
+        avLL = sum(L,2);
     
     elseif strcmp(distname,'poisson')
         L = zeros(sum(T),K);  
         constterm = -gammaln(X+1);
         for k=1:K
             % note the expectation of log(lambda) is -log(lambda_b) + psigamma(lambda_a)
-            num = (X.*(repmat(psi(hmm.state(k).W.W_shape),sum(T),1)-log(hmm.state(k).W.W_rate)))- hmm.state(k).W.W_mean;
+            num = (X.*(repmat(psi(hmm.state(k).W.W_shape),sum(T),1) - log(hmm.state(k).W.W_rate))) - hmm.state(k).W.W_mean;
             num = num.*repmat(Gamma(:,k),1,ndim);
-            L(:,k) = sum(num+constterm,2);
+            L(:,k) = sum(num + constterm,2);
         end
         
-        avLL=sum(L,2);
+        avLL = sum(L,2);
     
     elseif strcmp(distname,'logistic')
         if isfield(hmm,'Gamma');hmm=rmfield(hmm,'Gamma');end
