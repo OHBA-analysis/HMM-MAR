@@ -230,7 +230,7 @@ for k = rangeK
         Xdim = size(XX,2)-hmm.train.logisticYdim;
         X = XX(:,1:Xdim);
         Y = residuals;
-        vp = Y~=0; % for multinomial logistic regression, only include valid points
+        vp = Y==1; % for multinomial logistic regression, only include valid points
         if hmm.train.balancedata
             w = (1/(hmm.train.origlogisticYdim))*sum(Gamma(:,k)) ./ ...
                 (sum([Y==1] .* Gamma(:,k)));%(1+hmm.train.origlogisticYdim));

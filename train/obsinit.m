@@ -311,7 +311,16 @@ else
     for k=1:K
         hmm.state(1).W.Mu_W = [];
     end
-    [hmm,XW] = updateW(hmm,Gamma,residuals,XX,XXGXX);
+    if ~strcmp(train.distribution,'logistic')
+        [hmm,XW] = updateW(hmm,Gamma,residuals,XX,XXGXX);
+    else
+        for k = 1:K
+            hmm.state(k).alpha.Gam_rate = 0.1*ones(1,ndim);
+            hmm.state(k).alpha.Gam_shape = 0.1;
+        end
+
+        [hmm,XW] = updateW(hmm,Gamma,residuals(:,end),XX,XXGXX);
+    end
 end
 
 % Priors over the parameters
