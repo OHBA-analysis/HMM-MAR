@@ -54,7 +54,7 @@ elseif strcmp(distname,'logistic')
     else
         ndim = size(hmm.state(1).Omega.Gam_rate,2);
     end
-    regressed = sum(S,1)>0;
+    regressed = sum(hmm.train.S,1)>0;
     % Set Y (unidimensional for now) and X: 
     Xdim = size(XX,2) - hmm.train.logisticYdim;
     X = XX(:,1:Xdim);

@@ -185,7 +185,7 @@ setxx; % build XX and get orders
 setstateoptions;
 Gammasum = sum(Gamma); % if episodic, Gammasum doesn't sum up to T
 
-if ~isfield(train,'distribution') || strcmp(train.distribution,'Gaussian')
+if ~isfield(train,'distribution') || any(strcmp(train.distribution,{'Gaussian','logistic'}))
     % W
     if episodic
         hmm = initW_ehmm(hmm,XX,XXGXX,residuals,Gamma,Sind);
@@ -266,7 +266,7 @@ if ~isfield(train,'distribution') || strcmp(train.distribution,'Gaussian')
         end
         hmm.Omega.Gam_irate(regressed,regressed) = inv(hmm.Omega.Gam_rate(regressed,regressed));
         
-    else % state dependent
+    elseif ~isfield(hmm.train,'distribution') || ~strcmp(hmm.train.distribution,'logistic')  % state dependent
         for k = 1:K
             setstateoptions;
             if train.uniqueAR
@@ -337,8 +337,10 @@ if ~pcapred && ~do_HMM_pca
         %%% alpha - one per order
         hmm = updateAlpha_ehmm(hmm);
     else
-        %%% sigma - channel x channel coefficients
-        hmm = updateSigma(hmm);
+        if ~isfield(train,'distribution') || strcmp(train.distribution,'Gaussian')
+            %%% sigma - channel x channel coefficients
+            hmm = updateSigma(hmm);
+        end
         %%% alpha - one per order
         hmm = updateAlpha(hmm);
     end

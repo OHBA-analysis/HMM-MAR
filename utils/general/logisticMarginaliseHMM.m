@@ -27,15 +27,8 @@ end
 for st=1:hmm_out.train.K
     %recall that for logistic setups, alpha has dimension Xdim x logisticYdim 
     hmm_out.state(st).alpha.Gam_rate = hmm_out.state(st).alpha.Gam_rate(:,iY);
-    hmm_out.state(st).sigma.Gam_shape = hmm_out.state(st).sigma.Gam_shape(select_vec,select_vec);
-    hmm_out.state(st).sigma.Gam_rate = hmm_out.state(st).sigma.Gam_rate(select_vec,select_vec);
 end
 
-%update prior over sigma
-for st=1:hmm_out.train.K
-    hmm_out.state(st).prior.sigma.Gam_shape = hmm_out.state(st).prior.sigma.Gam_shape(select_vec,select_vec);
-    hmm_out.state(st).prior.sigma.Gam_rate = hmm_out.state(st).prior.sigma.Gam_rate(select_vec,select_vec);
-end
 
 %update psi:
 if isfield(hmm_in,'psi')
