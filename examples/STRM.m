@@ -29,7 +29,7 @@ N = 20; % number of trials
 % assign a location to save figures to:
 %figdir = ['C:\Users\chiggins\Google Drive\MATLAB\6.0 Classification Work\LDAPaperScripts\STRMSimulationFigures\'];
 figdir = '/Users/chiggins/Google Drive/MATLAB/6.0 Classification Work/LDAPaperScripts/STRMSimulationFigures/'
-
+mkdir(figdir);
 % generate state timecourses:
 z = zeros(N*T,K);
 for itrial = 1:N
@@ -161,7 +161,7 @@ for k=1:2
                 ZG(i1,i2) = mvnpdf([XG(1,i1),YG(i2,1)],[W_exp_k(iclass,1),W_exp_k(iclass,2)],Sigma_est);
             end
         end
-        contour(XG,YG,ZG');hold on;
+        contour(XG,YG,ZG','LineWidth',2);hold on;
     end
     a(1) = plot(W_exp_k(1,1),W_exp_k(1,2),'+','MarkerSize',20,'MarkerFaceColor',cols{1},'LineWidth',5,'Color',cols{1});
     % a = scatter(W_exp_k(1,1),W_exp_k(1,2),'+','LineWidth',10)
@@ -194,7 +194,7 @@ for k=1:2
                 ZG(i1,i2) = mvnpdf([XG(1,i1),YG(i2,1)],[W_exp_k(iclass,1),W_exp_k(iclass,2)],Sigma_est);
             end
         end
-        contour(XG,YG,ZG');hold on;
+        contour(XG,YG,ZG','LineWidth',2);hold on;
     end
     a(1) = plot(W_exp_k(1,1),W_exp_k(1,2),'+','MarkerSize',20,'MarkerFaceColor',cols{1},'LineWidth',5,'Color',cols{1});
     hold on;
@@ -407,7 +407,7 @@ for k=1:2
                 ZG(i1,i2) = mvnpdf([XG(1,i1),YG(i2,1)],[W_exp_k(1,:)],Sigma_est);
             end
         end
-        contour(XG,YG,ZG');hold on;
+        contour(XG,YG,ZG','LineWidth',2);hold on;
     end
     h = plot([W_exp_k(:,1)],[W_exp_k(:,2)],'k-','LineWidth',1.5);hold on;
     plot([W_exp_k(2,1)],[W_exp_k(2,2)],'k>','LineWidth',1.5);
@@ -435,7 +435,7 @@ for k=1:2
                 ZG(i1,i2) = mvnpdf([XG(1,i1),YG(i2,1)],[W_exp_k(1,:)],Sigma_est);
             end
         end
-        contour(XG,YG,ZG');hold on;
+        contour(XG,YG,ZG','LineWidth',2);hold on;
     end
     h = plot([W_exp_k(:,1)],[W_exp_k(:,2)],'k-','LineWidth',1.5);hold on;
     plot([W_exp_k(2,1)],[W_exp_k(2,2)],'k>','LineWidth',1.5);
@@ -845,6 +845,7 @@ for iSj = Sjs_to_do
     gamtemp = gamtemp(:,inds,:);
     gamtemp = reshape(gamtemp,length(inds)*50,K);
     gammaRasterPlot(gamtemp,50);
+    set(gcf, 'InvertHardCopy', 'off');
     print([figdir,'SJ',int2str(iSj),'RasterPlots_RTsorted'],'-depsc');
 end
 close all;
@@ -855,6 +856,7 @@ gamtemp = reshape(Gamma_all,50,size(Gamma_all,1)/50,K);
 gamtemp = gamtemp(:,inds,:);
 gamtemp = reshape(gamtemp,length(inds)*50,K);
 gammaRasterPlot(Gamma_all,50);
+set(gcf, 'InvertHardCopy', 'off');
 print([figdir,'AllSJRasterPlot'],'-depsc');
 
 figure('Position', [187 600 1212 205]);
@@ -862,7 +864,7 @@ cols = parula(8);
 t=0.01:0.01:0.5;
 clear h;
 for k=1:8
-    shadedErrorBar(t,mean(gammean(:,k,:),3),std(gammean(:,k,:),[],3),{'Color',cols(k,:),'LineWidth',2},0.5);
+    shadedErrorBar(t,mean(gammean(:,k,:),3),std(gammean(:,k,:),[],3),{'Color',cols(k,:),'LineWidth',2});
     hold on;
     leglabels{k} = ['State ',int2str(k)];
     h(k) = plot(NaN,NaN,'Color',cols(k,:),'LineWidth',2);
@@ -870,6 +872,7 @@ end
 legend(h,leglabels,'Location','EastOutside');
 ylim([0,1]);
 plot4paper('Time','State Probability');
+set(gcf, 'InvertHardCopy', 'off');
 print([figdir,'AllSJ_meanGamma'],'-depsc');
 
 % and maps themselves:
@@ -926,6 +929,7 @@ for ik = 1:K
     dat = f_stat_group(:,ik);dat(dat<thresh)=NaN;
     plot_surf_summary_neuron(parc,dat,1,[],[],[],[],CA);
     print([figdir,'activitymap_K',int2str(K),'_Fstat_St',int2str(ik)],'-depsc');
+    set(gcf, 'InvertHardCopy', 'off');
     close(gcf);
 end
 

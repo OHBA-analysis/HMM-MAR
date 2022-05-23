@@ -235,7 +235,7 @@ tuda.train.Y_is_continuous = Y_is_continuous;
 % Explained variance per state, square error &
 % Square error for the standard time point by time point regression
 
-if parallel_trials
+if parallel_trials && Y_is_continuous
     [stats.R2_states,stats.R2] = tudaR2(X,Y,T-1,tuda,Gamma);
     stats.R2_stddec = R2_standard_dec(X,Y,T-1);
 end
