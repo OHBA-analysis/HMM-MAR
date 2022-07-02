@@ -1,4 +1,4 @@
-function L = obslike(X,hmm,residuals,XX,cache,cv)
+function L = obslike(X,hmm,residuals,XX,cache,dont_rescale)
 %
 % Evaluate likelihood of data given observation model, for one continuous trial
 %
@@ -21,7 +21,7 @@ end
 
 p = hmm.train.lowrank; do_HMM_pca = (p > 0);
 K = hmm.K; rangeK = 1:K;
-if nargin < 6, cv = 0; end
+if nargin < 6, dont_rescale = 0; end
 
 if nargin<4 || size(XX,1)==0
     [T,ndim] = size(X);
@@ -241,10 +241,11 @@ for ik = 1:length(rangeK)
     end
     
     L(hmm.train.maxorder+1:end,ik)= - ltpi - ldetWishB + ...
-        PsiWish_alphasum + dist - NormWishtrace;
+        PsiWish_alphasum + dist - NormWishtrace;    
+    
 end
 % correct for stability problems by adding constant:
-if any(all(L<0,2)) && ~cv
+if any(all(L<0,2)) && ~dont_rescale
     L(all(L<0,2),:) = L(all(L<0,2),:) - ...
         repmat(max(L(all(L<0,2),:),[],2),1,length(rangeK));
 end
