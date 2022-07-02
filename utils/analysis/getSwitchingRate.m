@@ -56,7 +56,11 @@ end
 
 if is_vpath % viterbi path
     vpath = Gamma; 
-    K = length(unique(vpath));
+    if options.dropstates==1
+        K = length(unique(vpath));
+    else
+        K = options.K;
+    end
     Gamma = zeros(length(vpath),K);
     for k = 1:K
        Gamma(vpath==k,k) = 1;   

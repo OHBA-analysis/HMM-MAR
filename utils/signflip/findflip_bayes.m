@@ -1,8 +1,5 @@
 function [flips,scorepath,covmats_unflipped,flips_init] = findflip_bayes(data,T,options)
-% Finds an optimal permutation of the channels, where goodness is measured
-% as the mean lagged partial  cross-correlation across pair of channels and lags.
-% In other words, it finds a permutation where the signs of the lagged
-% partial correlations agree as much as possible across subjects.
+% 
 %
 % INPUTS
 % data          observations, either a struct with X (time series)
@@ -110,10 +107,8 @@ for r = 1:options.noruns
         SFmodel.P = updateP(SFmodel,covmats_unflipped,sjs_thisbatch);
         SFmodel.S = updateS(SFmodel,covmats_unflipped);
         
-             
         flips_new = SFmodel.P<0.5;
         flips_debugrec(:,:,cyc) = flips_new;
-        
 
         if cyc>mincyc && all(flips_new(:)==flips_bayes(:))
             repcount = repcount+1;

@@ -316,7 +316,16 @@ else
         if do_HMM_pca
             B = obslike(data(t0+1:t0+T(n),:),hmm,[]);
         else
-            B = obslike(data(t0+1:t0+T(n),:),hmm,residuals(s0+1:s0+T(n)-order,:));
+            %B = obslike(data(t0+1:t0+T(n),:),hmm,residuals(s0+1:s0+T(n)-order,:));
+            if ~isfield(hmm.train,'distribution') || strcmp(hmm.train.distribution,'Gaussian')
+                B = obslike(data(t0+1:t0+T(n),:),hmm,residuals(s0+1:s0+T(n)-order,:));
+            elseif strcmp(hmm.train.distribution ,'bernoulli')
+                B = obslikebernoulli(data(t0+1:t0+T(n),:),hmm);
+            elseif strcmp(hmm.train.distribution ,'poisson')
+                B = obslikepoisson(data(t0+1:t0+T(n),:),hmm);
+            elseif strcmp(hmm.train.distribution ,'logistic')
+                B = obslikelogistic([],hmm,residuals(s0+1:s0+T(n)-order,:),XX);
+            end
         end
         B(B<realmin) = realmin;
         

@@ -71,11 +71,8 @@ for cycle = 1:hmm.train.cyc
                     checkGamma(Gamma,T,hmm.train);
                 end
                 if sum(hmm.train.active)==1
-                    if isfield(hmm.train,'distribution') && strcmp(hmm.train.distribution,'logistic')
-                        fehist(end+1) = sum(evalfreeenergylogistic(T,Gamma,Xi,hmm,residuals,XX));
-                    else
-                        fehist(end+1) = sum(evalfreeenergy(data.X,T,Gamma,Xi,hmm,residuals,XX));
-                    end
+                    fehist(end+1) = sum(evalfreeenergy(data.X,T,Gamma,Xi,hmm,residuals,XX));
+                    
                     if hmm.train.verbose
                         fprintf('cycle %i: All the points collapsed in one state, free energy = %g \n',...
                             cycle,fehist(end));
@@ -103,11 +100,9 @@ for cycle = 1:hmm.train.cyc
         end
        
         %%%% Free energy computation
-        if isfield(hmm.train,'distribution') && strcmp(hmm.train.distribution,'logistic')
-            fehist(end+1) = sum(evalfreeenergylogistic(T,Gamma,Xi,hmm,residuals,XX));
-        else
-            fehist(end+1) = sum(evalfreeenergy(data.X,T,Gamma,Xi,hmm,residuals,XX));
-        end
+        fehist(end+1) = sum(evalfreeenergy(data.X,T,Gamma,Xi,hmm,residuals,XX));
+        
+        
         strwin = ''; if hmm.train.meancycstop>1, strwin = ' windowed'; end
         if length(fehist) > (hmm.train.meancycstop+1)
             chgFrEn = mean( fehist(end:-1:(end-hmm.train.meancycstop+1)) - ...

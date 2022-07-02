@@ -23,7 +23,11 @@ if size(Y,1) < size(Y,2); Y = Y'; end
 q = size(Y,2);
 
 if size(Y,1) == length(T) % one value per trial
-    responses = repelem(Y,[ttrial,1]);
+    if ttrial>1
+        responses = repelem(Y,[ttrial,1]);
+    else
+        responses = Y;
+    end
     responses = reshape(responses,[ttrial,N,q]);
 elseif length(Y(:)) ~= (ttrial*N*q)
     error('Incorrect dimensions in Y')

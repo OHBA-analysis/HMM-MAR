@@ -29,7 +29,7 @@ N = 20; % number of trials
 % assign a location to save figures to:
 %figdir = ['C:\Users\chiggins\Google Drive\MATLAB\6.0 Classification Work\LDAPaperScripts\STRMSimulationFigures\'];
 figdir = '/Users/chiggins/Google Drive/MATLAB/6.0 Classification Work/LDAPaperScripts/STRMSimulationFigures/'
-
+mkdir(figdir);
 % generate state timecourses:
 z = zeros(N*T,K);
 for itrial = 1:N
@@ -52,21 +52,21 @@ end
 %Sigma{2} = 0.25*eye(2);
 
 % generate design matrices:
-X = [ones(N*T,1),[ones(N*T/2,1);zeros(N*T/2,1)],[zeros(N*T/2,1);ones(N*T/2,1)]];
+DM = [ones(N*T,1),[ones(N*T/2,1);zeros(N*T/2,1)],[zeros(N*T/2,1);ones(N*T/2,1)]];
 
 % generate data itself:
-Y = zeros(N*T,P);
+data = zeros(N*T,P);
 for itrial=1:N
     t_offset = (itrial-1)*T;
     for iT = 1:T
-        Y(t_offset+iT,:) = mvnrnd(X(t_offset+iT,:)*W{find(z(t_offset+iT,:),1)},Sigma{find(z(t_offset+iT,:),1)});
+        data(t_offset+iT,:) = mvnrnd(DM(t_offset+iT,:)*W{find(z(t_offset+iT,:),1)},Sigma{find(z(t_offset+iT,:),1)});
     end
 end
 % scatter plot:
 figure('Position', [6 478 1885 620]);
 subplot(1,3,1);
-scatter(Y(X(:,2)==1,1),Y(X(:,2)==1,2),10,cols{1});hold on;
-scatter(Y(X(:,3)==1,1),Y(X(:,3)==1,2),10,cols{2});
+scatter(data(DM(:,2)==1,1),data(DM(:,2)==1,2),10,cols{1});hold on;
+scatter(data(DM(:,3)==1,1),data(DM(:,3)==1,2),10,cols{2});
 plot4paper('Channel 1','Channel 2');
 title('Scatter plot of all data generated')
 legend('Class 1','Class 2')
@@ -74,7 +74,7 @@ legend('Class 1','Class 2')
 t = 1:T;
 subplot(2,3,2);
 itrial = N/2;t_offset = (itrial-1)*T;
-plot(t,Y(t_offset + [1:T],:),'LineWidth',2);
+plot(t,data(t_offset + [1:T],:),'LineWidth',2);
 title('Sample trial: Class 1');
 plot4paper('Time','Channel signal');
 z_thistrial = find(z(t_offset + [1:iT],2),1);
@@ -83,7 +83,7 @@ plot([z_thistrial,z_thistrial],ylim,'k--')
 legend({'Channel 1','Channel 2','Transition time'},'Location','EastOutside');
 subplot(2,3,5);
 itrial = N;t_offset = (itrial-1)*T;
-plot(t,Y(t_offset + [1:T],:),'LineWidth',2);
+plot(t,data(t_offset + [1:T],:),'LineWidth',2);
 title('Sample trial: Class 2');
 plot4paper('Time','Channel signal');
 z_thistrial = find(z(t_offset + [1:iT],2),1);
@@ -105,7 +105,7 @@ options.K = K;
 options.encodemodel = true; % this activates the STRM model
 options.intercept = true;
 options.covtype = 'full';
-[STRMmodel,STRMstates] = tucatrain(Y,X(:,2:3),repmat(T,N,1),options);
+[STRMmodel,STRMstates] = tucatrain(data,DM(:,2:3),repmat(T,N,1),options);
 
 figure('Position',[156 678 1563 420]);
 subplot(1,3,1);
@@ -131,7 +131,7 @@ figure('Position', [680 180 1020 918]);
 for k=1:2
     subplot(2,2,k);
     for iclass=1:2
-        scatter(Y(vpath(:,k)==1 & X(:,1+iclass)==1,1),Y(vpath(:,k)==1 & X(:,1+iclass)==1,2),10,cols{iclass})
+        scatter(data(vpath(:,k)==1 & DM(:,1+iclass)==1,1),data(vpath(:,k)==1 & DM(:,1+iclass)==1,2),10,cols{iclass})
         hold on;
     end
     title(['Samples assigned to state ',int2str(k)])
@@ -161,7 +161,7 @@ for k=1:2
                 ZG(i1,i2) = mvnpdf([XG(1,i1),YG(i2,1)],[W_exp_k(iclass,1),W_exp_k(iclass,2)],Sigma_est);
             end
         end
-        contour(XG,YG,ZG');hold on;
+        contour(XG,YG,ZG','LineWidth',2);hold on;
     end
     a(1) = plot(W_exp_k(1,1),W_exp_k(1,2),'+','MarkerSize',20,'MarkerFaceColor',cols{1},'LineWidth',5,'Color',cols{1});
     % a = scatter(W_exp_k(1,1),W_exp_k(1,2),'+','LineWidth',10)
@@ -194,7 +194,7 @@ for k=1:2
                 ZG(i1,i2) = mvnpdf([XG(1,i1),YG(i2,1)],[W_exp_k(iclass,1),W_exp_k(iclass,2)],Sigma_est);
             end
         end
-        contour(XG,YG,ZG');hold on;
+        contour(XG,YG,ZG','LineWidth',2);hold on;
     end
     a(1) = plot(W_exp_k(1,1),W_exp_k(1,2),'+','MarkerSize',20,'MarkerFaceColor',cols{1},'LineWidth',5,'Color',cols{1});
     hold on;
@@ -245,7 +245,7 @@ addintercept = true;
 
 T_full = repmat(T,nTr,1);
 
-clear mu Sigma X;
+clear mu Sigma DM;
 mu{1} = randn(1,2);%[1,0];
 Sigma{1} = 0.5*wishrnd(eye(P),P);%[1,0.95;0.95,1];
 mu{2} = randn(1,2);%[0,1];
@@ -257,9 +257,9 @@ else
     offset{1} = zeros(1,2);
     offset{2} = zeros(1,2);
 end
-X = randn(nTr,1);
+DM = randn(nTr,1);
 % simulate state timecourses:
-Y = zeros(T,nTr,2);
+data = zeros(T,nTr,2);
 Gamma_true = zeros(T,nTr,2);
 
 for itr = 1:nTr
@@ -267,26 +267,26 @@ for itr = 1:nTr
     Gamma_true(1:floor(t_stateswitch),itr,1) = 1;
     Gamma_true((t_stateswitch+1):end,itr,2) = 1;
     %simulate data in each state:
-    Y(1:t_stateswitch,itr,:) = repmat(permute(mu{1}*X(itr,:)+offset{1},[1,3,2]),t_stateswitch,1,1);
+    data(1:t_stateswitch,itr,:) = repmat(permute(mu{1}*DM(itr,:)+offset{1},[1,3,2]),t_stateswitch,1,1);
     %Y(:,itr,:) = repmat(permute(mu{1}*X(itr,:)+offset{1},[1,3,2]),T,1,1);
-    Y((t_stateswitch+1):end,itr,:) = repmat(permute(mu{2}*X(itr,:)+offset{2},[1,3,2]),T-t_stateswitch,1,1);
+    data((t_stateswitch+1):end,itr,:) = repmat(permute(mu{2}*DM(itr,:)+offset{2},[1,3,2]),T-t_stateswitch,1,1);
 end
-Y = reshape(Y,[T*nTr,ndim]);
+data = reshape(data,[T*nTr,ndim]);
 Gamma_true = reshape(Gamma_true,[T*nTr,ndim]);
-X = repelem(X,T,1);
+DM = repelem(DM,T,1);
 
 % finally, add noise:
 for t=1:T*nTr
-    Y(t,:) = Y(t,:) + mvnrnd([0;0],Sigma{find(Gamma_true(t,:))});
+    data(t,:) = data(t,:) + mvnrnd([0;0],Sigma{find(Gamma_true(t,:))});
 end
 
 
 % plot for sanity check - 
 figure();
-for k=1:size(X,1)
-    col = min([max([0,(X(k)+1.5) ./3]),1]);
+for k=1:size(DM,1)
+    col = min([max([0,(DM(k)+1.5) ./3]),1]);
     col = col*[1,0,0.75];
-    plot(Y(k,1),Y(k,2),'*','Color',col);hold on;
+    plot(data(k,1),data(k,2),'*','Color',col);hold on;
 end
 colmap = [0:0.01:1]'*[1,0,0.75];
 colormap(colmap);
@@ -299,15 +299,15 @@ print([figdir,'STRMRegression_Fig1'],'-dpng')
 % scatter plot:
 figure('Position', [6 478 1885 620]);
 subplot(1,3,1);
-for k=1:size(X,1)
-    col = (X(k) - min(X)) ./ (max(X)-min(X));
+for k=1:size(DM,1)
+    col = (DM(k) - min(DM)) ./ (max(DM)-min(DM));
     col = col*[1,0,0.75];
-    plot(Y(k,1),Y(k,2),'*','Color',col);hold on;
+    plot(data(k,1),data(k,2),'*','Color',col);hold on;
 end
 colmap = [0:0.01:1]'*[1,0,0.75];
 colormap(colmap);
 cb = colorbar;
-TB = ([-1.5:0.5:1.5]- min(X)) ./ (max(X)-min(X));
+TB = ([-1.5:0.5:1.5]- min(DM)) ./ (max(DM)-min(DM));
 set(cb,'Ticks',TB)
 set(cb,'TickLabels',[-1.5:0.5:1.5]);
 plot4paper('Channel 1','Channel 2');
@@ -316,9 +316,9 @@ title('Scatter plot of all data generated')
 t = 1:T;
 subplot(2,3,2);
 itrial = randi(N/2);t_offset = (itrial-1)*T;
-plot(t,Y(t_offset + [1:T],:),'LineWidth',2);
+plot(t,data(t_offset + [1:T],:),'LineWidth',2);
 ylim([-3,3]);
-title(['Sample trial: X=',num2str(X(t_offset+1),3)]);
+title(['Sample trial: X=',num2str(DM(t_offset+1),3)]);
 plot4paper('Time','Channel signal');
 z_thistrial = find(Gamma_true(t_offset + [1:iT],2),1);
 hold on;
@@ -326,9 +326,9 @@ plot([z_thistrial,z_thistrial],ylim,'k--');
 legend({'Channel 1','Channel 2','Transition time'},'Location','EastOutside');
 subplot(2,3,5);
 itrial = N;t_offset = (itrial-1)*T;
-plot(t,Y(t_offset + [1:T],:),'LineWidth',2);
+plot(t,data(t_offset + [1:T],:),'LineWidth',2);
 ylim([-3,3]);
-title(['Sample trial: X=',num2str(X(t_offset+1),3)]);
+title(['Sample trial: X=',num2str(DM(t_offset+1),3)]);
 plot4paper('Time','Channel signal');
 z_thistrial = find(Gamma_true(t_offset + [1:iT],2),1);
 hold on;
@@ -350,7 +350,7 @@ options.K = K;
 options.encodemodel = true; % this activates the STRM model
 options.intercept = true;
 options.covtype = 'full';
-[STRMmodel,STRMstates] = tucatrain(Y,X,repmat(T,N,1),options);
+[STRMmodel,STRMstates] = tucatrain(data,DM,repmat(T,N,1),options);
 
 figure('Position',[156 678 1563 420]);
 subplot(1,3,1);
@@ -378,11 +378,11 @@ for k=1:2
     %    scatter(Y(vpath(:,k)==1,1),Y(vpath(:,k)==1,2),10,cols{iclass})
     %    hold on;
     %end
-    for t=1:size(X,1)
-        col = min([max([0,(X(t)+1.5) ./3]),1]);
+    for t=1:size(DM,1)
+        col = min([max([0,(DM(t)+1.5) ./3]),1]);
         col = col*[1,0,0.75];
         if vpath(t,k)==1
-            plot(Y(t,1),Y(t,2),'*','Color',col);hold on;
+            plot(data(t,1),data(t,2),'*','Color',col);hold on;
         end
     end
     title(['Samples assigned to state ',int2str(k)])
@@ -407,7 +407,7 @@ for k=1:2
                 ZG(i1,i2) = mvnpdf([XG(1,i1),YG(i2,1)],[W_exp_k(1,:)],Sigma_est);
             end
         end
-        contour(XG,YG,ZG');hold on;
+        contour(XG,YG,ZG','LineWidth',2);hold on;
     end
     h = plot([W_exp_k(:,1)],[W_exp_k(:,2)],'k-','LineWidth',1.5);hold on;
     plot([W_exp_k(2,1)],[W_exp_k(2,2)],'k>','LineWidth',1.5);
@@ -435,7 +435,7 @@ for k=1:2
                 ZG(i1,i2) = mvnpdf([XG(1,i1),YG(i2,1)],[W_exp_k(1,:)],Sigma_est);
             end
         end
-        contour(XG,YG,ZG');hold on;
+        contour(XG,YG,ZG','LineWidth',2);hold on;
     end
     h = plot([W_exp_k(:,1)],[W_exp_k(:,2)],'k-','LineWidth',1.5);hold on;
     plot([W_exp_k(2,1)],[W_exp_k(2,2)],'k>','LineWidth',1.5);
@@ -845,6 +845,7 @@ for iSj = Sjs_to_do
     gamtemp = gamtemp(:,inds,:);
     gamtemp = reshape(gamtemp,length(inds)*50,K);
     gammaRasterPlot(gamtemp,50);
+    set(gcf, 'InvertHardCopy', 'off');
     print([figdir,'SJ',int2str(iSj),'RasterPlots_RTsorted'],'-depsc');
 end
 close all;
@@ -855,6 +856,7 @@ gamtemp = reshape(Gamma_all,50,size(Gamma_all,1)/50,K);
 gamtemp = gamtemp(:,inds,:);
 gamtemp = reshape(gamtemp,length(inds)*50,K);
 gammaRasterPlot(Gamma_all,50);
+set(gcf, 'InvertHardCopy', 'off');
 print([figdir,'AllSJRasterPlot'],'-depsc');
 
 figure('Position', [187 600 1212 205]);
@@ -862,7 +864,7 @@ cols = parula(8);
 t=0.01:0.01:0.5;
 clear h;
 for k=1:8
-    shadedErrorBar(t,mean(gammean(:,k,:),3),std(gammean(:,k,:),[],3),{'Color',cols(k,:),'LineWidth',2},0.5);
+    shadedErrorBar(t,mean(gammean(:,k,:),3),std(gammean(:,k,:),[],3),{'Color',cols(k,:),'LineWidth',2});
     hold on;
     leglabels{k} = ['State ',int2str(k)];
     h(k) = plot(NaN,NaN,'Color',cols(k,:),'LineWidth',2);
@@ -870,6 +872,7 @@ end
 legend(h,leglabels,'Location','EastOutside');
 ylim([0,1]);
 plot4paper('Time','State Probability');
+set(gcf, 'InvertHardCopy', 'off');
 print([figdir,'AllSJ_meanGamma'],'-depsc');
 
 % and maps themselves:
@@ -885,16 +888,16 @@ for iSj = Sjs_to_do
     load(fname,'data');
     fnamesource = sourcedatafile(iSj);
     load(fnamesource,'X_source');
-    Y = [ones(length(data.Y_train),1),data.Y_train];
+    data = [ones(length(data.Y_train),1),data.Y_train];
     Y2=[];
     for ik=1:K_options(iK)
-        Y2 = [Y2,Y.*repmat(Gamma_LDA{iK}(:,ik),[1,size(Y,2)])];
+        Y2 = [Y2,data.*repmat(Gamma_LDA{iK}(:,ik),[1,size(data,2)])];
     end
     
     temp = pinv(Y2)*X_source;
     resid = X_source - Y2*temp;
     for ik=1:K
-        K_set = [1:size(Y,2)] + (ik-1)*(size(Y,2));
+        K_set = [1:size(data,2)] + (ik-1)*(size(data,2));
         Betas(:,:,ik,iSj) = temp(K_set,:);
         Sigmas(:,ik,iSj) = var(resid,Gamma_LDA{iK}(:,ik));
     end
@@ -926,6 +929,7 @@ for ik = 1:K
     dat = f_stat_group(:,ik);dat(dat<thresh)=NaN;
     plot_surf_summary_neuron(parc,dat,1,[],[],[],[],CA);
     print([figdir,'activitymap_K',int2str(K),'_Fstat_St',int2str(ik)],'-depsc');
+    set(gcf, 'InvertHardCopy', 'off');
     close(gcf);
 end
 
@@ -1137,17 +1141,17 @@ for iSj = Sjs_to_do
     clear data DM T varexpl
     load(fname,'data','DM','T');
     
-    Y = DM(:,1); % this is the stimulus value
+    data = DM(:,1); % this is the stimulus value
     
     % and decode using LDA classifiers:
     rng(1); %ensure cross validation consistent
-    [acc_LGS_synchronous] = standard_decoding(data,Y,T,options_LGS);
+    [acc_LGS_synchronous] = standard_decoding(data,data,T,options_LGS);
 
     for iK = 1:length(K_options)
         K = K_options(iK);
         options_LGS.K=K;
         rng(1); %ensure cross validation consistent
-        [~,acc_LGS_HMM(:,:,:,iK,:),~,~,~,K_acc_LGS_HMM(1:K_options(iK),:,:,iK,:)] = tudacv(data,Y,T,options_LGS);
+        [~,acc_LGS_HMM(:,:,:,iK,:),~,~,~,K_acc_LGS_HMM(1:K_options(iK),:,:,iK,:)] = tudacv(data,data,T,options_LGS);
         % note second dimension is different regressors; third is
         % different state fitting methods
     end
@@ -1181,20 +1185,20 @@ for iSj = Sjs_to_do
     clear data DM T
     load(fname,'data','DM','T');
     
-    Y = DM(:,1);
+    data = DM(:,1);
     
     rng(1); %ensure cross validation consistent
     
     options_reg.intercept = 1;
-    acc_LGS_synchronous(:,1) = standard_decoding(data,Y,T,options_reg);
+    acc_LGS_synchronous(:,1) = standard_decoding(data,data,T,options_reg);
 
     options_regSVM = options_reg;
     options_regSVM.SVMreg = true;
     options_regSVM.SVMkernel = 'linear';
-    acc_LGS_synchronous(:,2) =  standard_decoding(data,Y,T,options_regSVM);
+    acc_LGS_synchronous(:,2) =  standard_decoding(data,data,T,options_regSVM);
     
     options_regSVM.SVMkernel = 'rbf';
-    acc_LGS_synchronous(:,3) = standard_decoding(data,Y,T,options_regSVM);
+    acc_LGS_synchronous(:,3) = standard_decoding(data,data,T,options_regSVM);
     
     fnameout = accsynchfile(iSj);
     save(fnameout,'acc_LGS_synchronous','synch_class_labels');
@@ -1222,14 +1226,14 @@ for iSj = Sjs_to_do
     clear data DM T varexpl
     load(fname,'data','DM','T');
     
-    Y = DM(:,1);
+    data = DM(:,1);
     
     rng(1); %ensure cross validation consistent
     
     % apply sliding window averaging
     for iwindow=1:length(windows)
         options_LGS.slidingwindow = windows(iwindow);
-        acc_LGS_slidingwindow(:,iwindow,:) = squeeze(standard_decoding(data,Y,T,options_LGS));
+        acc_LGS_slidingwindow(:,iwindow,:) = squeeze(standard_decoding(data,data,T,options_LGS));
     end
     
     fnameout = accfile_SW(iSj);
@@ -1258,7 +1262,7 @@ for iSj = Sjs_to_do
     fname = datafile(iSj);
     clear data DM T
     load(fname,'data','DM','T');
-    Y = DM(:,1); % note Y is just stimulus value
+    data = DM(:,1); % note Y is just stimulus value
     
     model_LGS_HMM = cell(length(K_options),1);
     for iK = 1:length(K_options)
@@ -1266,7 +1270,7 @@ for iSj = Sjs_to_do
         options_LGS.K=K;
         options_LGS.verbose=false;
         rng(1); %ensure cross validation consistent
-        [model_temp,Gamma_LGS{iK}] = tudatrain(data,Y,T,options_LGS);
+        [model_temp,Gamma_LGS{iK}] = tudatrain(data,data,T,options_LGS);
         model_LGS_HMM{iK}.beta = tudabeta(model_temp);
         model_LGS_HMM{iK}.Sigma= tudaomega(model_temp);
     end

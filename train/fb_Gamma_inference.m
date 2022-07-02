@@ -39,9 +39,13 @@ P = hmm.P; Pi = hmm.Pi;
 if ~isfield(hmm,'cache'), hmm.cache = []; end
 
 try
-    if ~isfield(hmm.train,'distribution') || ~strcmp(hmm.train.distribution,'logistic')
+    if ~isfield(hmm.train,'distribution') || strcmp(hmm.train.distribution,'Gaussian')
         L = obslike([],hmm,residuals,XX,hmm.cache,cv);
-    else
+    elseif strcmp(hmm.train.distribution ,'bernoulli')
+        L = obslikebernoulli(residuals,hmm);
+    elseif strcmp(hmm.train.distribution ,'poisson')
+        L = obslikepoisson(residuals,hmm);
+    elseif strcmp(hmm.train.distribution ,'logistic')
         L = obslikelogistic([],hmm,residuals,XX,slicepoints);
     end
 catch exception

@@ -295,7 +295,7 @@ if size(Y,1) == N % one value for the entire trial
 end
 
 if q == 1 && length(unique(Y))==2
-    if ismember(0,unique(Y)) || all(unique(Y)>0)
+    if ismember(0,unique(Y)) || all(unique(Y)>0) && ~strcmp(options.distribution,'logistic')
         warning('Seems this is binary classification, transforming stimulus to have elements (-1,+1)')
         if islogical(Y);Y=1*Y;end
         v = unique(Y);
