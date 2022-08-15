@@ -122,19 +122,19 @@ for cycle = 2:options.BIGcyc
         
     % global parameters (hmm), and collect state free energy
     rho(cycle) = (cycle + options.BIGdelay)^(-options.BIGforgetrate); 
-    MGamma = cell2mat(Gamma);
+    Gamma = cell2mat(Gamma);
     if do_HMM_pca
-        hmm_noisy = updatePCAparam (hmm,sum(MGamma),XXGXX,Tfactor,rangeK);
+        hmm_noisy = updatePCAparam (hmm,sum(Gamma),XXGXX,Tfactor,rangeK);
         hmm = states_supdate(hmm,hmm_noisy,rho(cycle),[1 2]);
     else
         % W
         if isfield(hmm.state(1),'W') && ~isempty(hmm.state(1).W.Mu_W)
-            [hmm_noisy,XW] = updateW(hmm,MGamma,Y,XX,XXGXX,Tfactor);
+            [hmm_noisy,XW] = updateW(hmm,Gamma,Y,XX,XXGXX,Tfactor);
             hmm = states_supdate(hmm,hmm_noisy,rho(cycle),1);
         end
         % Omega
         if isfield(hmm.state(1),'Omega') || isfield(hmm,'Omega')
-            hmm_noisy = updateOmega(hmm,MGamma,Y,XX,XXGXX,XW,Tfactor);
+            hmm_noisy = updateOmega(hmm,Gamma,Y,XX,XXGXX,XW,Tfactor);
             hmm = states_supdate(hmm,hmm_noisy,rho(cycle),2);
         end
         % Priors
@@ -157,7 +157,7 @@ for cycle = 2:options.BIGcyc
     end
    
     % rest of the free energy (states' KL and data loglikelihood)
-    [fe,ll] = evalfreeenergy(X,Tbatch,MGamma,cell2mat(Xi),hmm,Y,XX,[0 1 0 0 1]); % state KL & loglik
+    [fe,ll] = evalfreeenergy(X,Tbatch,Gamma,cell2mat(Xi),hmm,Y,XX,[0 1 0 0 1]); % state KL & loglik
     statekl(cycle) = sum(fe(2:end));
     tacc = 0;
     for ii = 1:length(I)

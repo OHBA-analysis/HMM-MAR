@@ -163,8 +163,8 @@ if stochastic_learn
             end
         end
         options.ndim = size(options.A,2);
-        options.S = ones(options.ndim);
-        options.Sind = formindexes(options.orders,options.S);
+        options.S = true(options.ndim);
+        options.Sind = formindexes(options.orders,options.S)==1;
         if ~options.zeromean, options.Sind = [true(1,size(options.Sind,2)); options.Sind]; end
     else
         options.As = [];
@@ -291,7 +291,7 @@ else
         data = standardisedata(data,T,options.standardise_pc);
         options.ndim = size(options.A,2);
         options.S = ones(options.ndim);
-        options.Sind = formindexes(options.orders,options.S);
+        options.Sind = formindexes(options.orders,options.S) == 1;
         if ~options.zeromean, options.Sind = [true(1,size(options.Sind,2)); options.Sind]; end
     else
         options.ndim = size(data.X,2);

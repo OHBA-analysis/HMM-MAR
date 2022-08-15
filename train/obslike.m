@@ -41,9 +41,9 @@ if ~do_HMM_pca && (nargin<3 || isempty(residuals))
         if hmm.train.pcapred==0
             orders = formorders(hmm.train.order,hmm.train.orderoffset,...
                 hmm.train.timelag,hmm.train.exptimelag);
-            hmm.train.Sind = formindexes(orders,hmm.train.S);
+            hmm.train.Sind = formindexes(orders,hmm.train.S) == 1;
         else
-            hmm.train.Sind = ones(hmm.train.pcapred,ndim);
+            hmm.train.Sind = true(hmm.train.pcapred,ndim);
         end
     end
     if ~hmm.train.zeromean, hmm.train.Sind = [true(1,ndim); hmm.train.Sind]; end

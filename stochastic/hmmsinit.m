@@ -67,7 +67,17 @@ if options.BIGinitStrategy == 2 % run through a subset of the subjects only
 end
 
 X = loadfile(Xin{1},T{1},options); ndim = size(X,2);
-Sind = options.Sind==1; regressed = sum(Sind,1)>0;
+
+if options.pcapred>0
+    Sind = true(options.pcapred,ndim);
+else
+    Sind = formindexes(options.orders,options.S)==1;
+end
+if ~options.zeromean, Sind = [true(1,ndim); Sind]; end
+if isempty(Sind), regressed = true(1,length(options.S)); 
+else, regressed = sum(Sind==1,1)>0;
+end
+
 if isfield(options,'B') && ~isempty(options.B)
     npred = length(options.orders)*size(options.B,2) + (~options.zeromean);
 elseif pcaprec
@@ -148,7 +158,7 @@ for rep = 1:options.BIGinitrep
             options.grouping = [];
             options.cyc = options.BIGinitcyc;
             options.initrep = 1; options.initcyc = 1;  
-            options.verbose = 0;
+            options.verbose = 1;
             %options.initcriterion = 'FreeEnergy';
             if length(Ti)==1, options.useParallel = 0; end
             [hmm_i,Gamma,Xi] = hmmmar(X,Ti,options);
@@ -171,12 +181,6 @@ for rep = 1:options.BIGinitrep
             Dir_alpha_prior = hmm_i.prior.Dir_alpha;
             hmm_i.train.orders = formorders(hmm_i.train.order,hmm_i.train.orderoffset,...
                 hmm_i.train.timelag,hmm_i.train.exptimelag);
-            if options.pcapred>0
-                Sind = true(options.pcapred,ndim);
-            else
-                Sind = formindexes(hmm_i.train.orders,hmm_i.train.S)==1;
-            end
-            if ~hmm_i.train.zeromean, Sind = [true(1,ndim); Sind]; end
         end
         if options.BIGverbose
             fprintf('Init: repetition %d, batch %d \n',rep,ii);

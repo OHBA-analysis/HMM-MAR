@@ -140,7 +140,7 @@ if preproc % Adjust the data if necessary
         train.ndim = size(train.A,2);
         train.S = ones(train.ndim);
         orders = formorders(train.order,train.orderoffset,train.timelag,train.exptimelag);
-        train.Sind = formindexes(orders,train.S);
+        train.Sind = formindexes(orders,train.S) == 1;
     end
     % Downsampling
     if train.downsample > 0
@@ -169,7 +169,7 @@ K = length(hmm.state);
 if isempty(residuals) && ~do_HMM_pca
     if ~isfield(hmm.train,'Sind')
         orders = formorders(hmm.train.order,hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag);
-        hmm.train.Sind = formindexes(orders,hmm.train.S);
+        hmm.train.Sind = formindexes(orders,hmm.train.S) == 1;
     end
     residuals =  getresiduals(data,T,hmm.train.Sind,hmm.train.maxorder,hmm.train.order,...
         hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag,hmm.train.zeromean);

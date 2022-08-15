@@ -8,9 +8,7 @@ ndim = size(m,2); npred = size(gram,1);
 fullcovmat = strcmp(covtype,'full') || strcmp(covtype,'uniquefull');
 uniquecovmat = strcmp(covtype,'uniquediag') || strcmp(covtype,'uniquefull');
 eps = 1e-8;
-if nargin<6, Sind = true(npred,ndim);
-else Sind = (Sind==1);
-end
+if nargin<6, Sind = true(npred,ndim); end
 if isempty(Sind), regressed = true(1,ndim);
 else, regressed = sum(Sind,1)>0;
 end

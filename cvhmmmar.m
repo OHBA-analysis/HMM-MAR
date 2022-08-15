@@ -74,7 +74,7 @@ if ~isobject(options.cvfolds)
 end
 nfolds = options.cvfolds.NumTestSets;
 orders = formorders(options.order,options.orderoffset,options.timelag,options.exptimelag);
-Sind = formindexes(orders,options.S);
+Sind = formindexes(orders,options.S) == 1;
 if ~options.zeromean, Sind = [true(1,size(Sind,2)); Sind]; end
 maxorder = options.maxorder;
 cv = zeros(nfolds,1);

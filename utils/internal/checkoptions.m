@@ -197,7 +197,7 @@ if stochastic_learning
     end
 else
     if ~isfield(options,'cyc'), options.cyc = 500; end
-    if ~isfield(options,'initcyc'), options.initcyc = 25; end
+    if ~isfield(options,'initcyc'), options.initcyc = 10; end
     if ~isfield(options,'initrep'), options.initrep = 5; end
     if ~options.episodic
         if ~isfield(options,'initcriterion'), options.initcriterion = 'FreeEnergy'; end
@@ -665,9 +665,9 @@ end
 
 if ~isfield(options,'Sind')
     if options.pcapred>0
-        options.Sind = ones(options.pcapred,ndim);
+        options.Sind = true(options.pcapred,ndim);
     else
-        options.Sind = formindexes(orders,options.S);
+        options.Sind = formindexes(orders,options.S)==1;
     end
     if ~options.zeromean, options.Sind = [true(1,ndim); options.Sind]; end
 end

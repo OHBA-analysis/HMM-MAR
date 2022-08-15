@@ -84,7 +84,7 @@ end
 if ~do_HMM_pca && (nargin<6 || isempty(residuals)) && todo(2)==1
     if ~isfield(hmm.train,'Sind')
         orders = formorders(hmm.train.order,hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag);
-        hmm.train.Sind = formindexes(orders,hmm.train.S);
+        hmm.train.Sind = formindexes(orders,hmm.train.S) == 1;
     end
     if ~hmm.train.zeromean, hmm.train.Sind = [true(1,ndim); hmm.train.Sind]; end
     residuals =  getresiduals(X,T,hmm.train.Sind,hmm.train.maxorder,hmm.train.order,...

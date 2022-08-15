@@ -17,7 +17,7 @@ X = X - repmat(mean(X),sum(T),1);
 X = X ./ repmat(std(X),sum(T),1);
 
 orders = formorders(options.order,options.orderoffset,options.timelag,options.exptimelag);
-if ~isempty(options.S), Sind = formindexes(orders,options.S); else, Sind = []; end
+if ~isempty(options.S), Sind = formindexes(orders,options.S) == 1; else, Sind = []; end
 XX = formautoregr(X,T,orders,options.order,1);
 
 Y = zeros(sum(T)-length(T)*options.order,ndim);  

@@ -18,7 +18,7 @@ X = loadfile(Xin{1},T{1},options); ndim = size(X,2);
 subjfe_init = zeros(N,3);
 loglik_init = zeros(N,1);
 pcaprec = options.pcapred>0;
-Sind = options.Sind==1; regressed = sum(Sind,1)>0;
+
 if pcaprec
     npred = options.pcapred + (~options.zeromean);
 else
@@ -64,6 +64,7 @@ for i = 1:N
             Sind = formindexes(options.orders,options.S)==1;
         end        
         if ~options.zeromean, Sind = [true(1,ndim); Sind]; end
+        regressed = sum(Sind,1)>0;
         options.useParallel = useParallel;
     end
     % get the range of the data to set the prior later
