@@ -25,6 +25,7 @@ raise_warning=false;
 if nargin<3, options = struct(); options.Fs = 1; options.downsample = 1; end
 if ~isfield(options,'Fs'), options.Fs = 1; end
 if ~isfield(options,'downsample'), options.downsample = options.Fs; end
+if ~isfield(options, 'dropstates'), options.dropstates = 0; end
 if nargin<4 || isempty(threshold), threshold = 0; end
 if nargin<5 || isempty(threshold_Gamma), raise_warning=true; threshold_Gamma = (2/3); end
 if nargin<6 || isempty(do_concat), do_concat = true; end
