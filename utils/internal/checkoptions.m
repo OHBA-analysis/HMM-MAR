@@ -43,7 +43,8 @@ if ~isfield(options,'detrend'), options.detrend = 0; end
 if ~isfield(options,'downsample'), options.downsample = 0; end
 if ~isfield(options,'leakagecorr'), options.leakagecorr = 0; end
 if ~isfield(options,'sequential'), options.sequential = 0; end
-if ~isfield(options,'standardise') && (~isfield(options,'distribution') || strcmp(options.distribution,'Gaussian')), 
+if ~isfield(options,'standardise') && (~isfield(options,'distribution') ...
+        || strcmp(options.distribution,'Gaussian')), 
     options.standardise = 1; 
 else
     options.standardise = 0;
@@ -176,18 +177,14 @@ end
 
 % non-stochastic training options
 if stochastic_learning
-    if ~isfield(options,'cyc'), options.cyc = 15; end
-    if ~isfield(options,'initcyc'), options.initcyc = 5; end
-%     if options.episodic
-%         if isfield(options,'initrep') && options.initrep > 1
-%             % this is because we would just favour solutions with less of
-%             % the baseline state
-%             warning('initrep can only be 1 if options.episodic is true ')
-%         end
-%         options.initrep = 1;
-%     else
-        if ~isfield(options,'initrep'), options.initrep = 3; end
-%     end
+    % these are for the init, which is done in batches
+    
+    if isfield(options,'cyc') && ~isempty(options.cyc)
+        warning('Option cyc has no effect in stochastic learning, use BIGinitcyc')
+    end
+    options.cyc = [];
+    if ~isfield(options,'initcyc'), options.initcyc = 3; end
+    if ~isfield(options,'initrep'), options.initrep = 1; end
     if ~isfield(options,'initcriterion'), options.initcriterion = 'FreeEnergy'; end
     if ~isfield(options,'stopcriterion'), options.stopcriterion = 'FreeEnergy'; end
     if ~isfield(options,'verbose'), options.verbose = 0; end
@@ -195,7 +192,12 @@ if stochastic_learning
     if isfield(options,'inittype') && strcmp(options.inittype,'window')
         error('Window initialisation not allowed in stochastic learning')
     end
+    if ~isfield(options,'repetitions'), options.repetitions = 1; end
 else
+    if isfield(options,'repetitions') && options.repetitions>1
+        warning('options.repetitions does not have an effect for non-stochastic learning')
+    end
+    options.repetitions = 1;
     if ~isfield(options,'cyc'), options.cyc = 500; end
     if ~isfield(options,'initcyc'), options.initcyc = 10; end
     if ~isfield(options,'initrep'), options.initrep = 5; end
@@ -432,7 +434,6 @@ if ~isfield(options,'PriorWeightingP'), options.PriorWeightingP = 1; end
 if ~isfield(options,'PriorWeightingPi'), options.PriorWeightingPi = 1; end
 
 % Some more hmm model options unrelated to the observational model
-if ~isfield(options,'repetitions'), options.repetitions = 1; end
 if ~isfield(options,'Gamma'), options.Gamma = []; end
 if ~isfield(options,'hmm'), options.hmm = []; end
 if ~isfield(options,'fehist'), options.fehist = []; end
@@ -692,7 +693,6 @@ if ~isfield(options,'orders') || ~isfield(options,'maxorder')
     [options.orders,options.maxorder] = ...
         formorders(options.order,options.orderoffset,options.timelag,options.exptimelag);
 end
-
 
 end
 

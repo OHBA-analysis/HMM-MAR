@@ -27,7 +27,6 @@ if options.BIGinitStrategy == 2 % run through a subset of the subjects only
     options = rmfield(options,'orders');
     options.verbose = 0;
     options.cyc = options.BIGinitcyc;
-    options.initrep = 1; options.initcyc = 1;
     hmm = hmmmar(Xin(I),T(I),options);
     hmm.train.Sind = formindexes(hmm.train.orders,hmm.train.S)==1;
     options = options_copy;
@@ -157,7 +156,6 @@ for rep = 1:options.BIGinitrep
             options.downsample = 0; % done in loadfile.m
             options.grouping = [];
             options.cyc = options.BIGinitcyc;
-            options.initrep = 1; options.initcyc = 1;  
             options.verbose = 1;
             %options.initcriterion = 'FreeEnergy';
             if length(Ti)==1, options.useParallel = 0; end
