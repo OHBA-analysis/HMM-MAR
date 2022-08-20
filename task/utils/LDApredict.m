@@ -15,7 +15,8 @@ betas_mu = cell(K,1);
 betas_sigma = cell(K,1);
 for k = 1:K
     betas_mu{k} = model.state(k).W.Mu_W((nDimX+1):end,1:nDimX);
-    if strcmp(model.train.covtype,'full') || strcmp(model.train.covtype,'uniquefull')
+    if strcmp(model.train.covtype,'full') || strcmp(model.train.covtype,'uniquefull') ...
+            || strcmp(model.train.covtype,'sharedfull')
         S = model.train.S==1;
         betas_sigma{k} = model.state(k).W.S_W(logical(S(:)),logical(S(:)));
     else
@@ -42,7 +43,8 @@ for testcond = 1:numconds
         else
             betamu_givenY(testcond,k,:) = betas_mu{k}(testcond,:);
         end
-        if strcmp(model.train.covtype,'full') || strcmp(model.train.covtype,'uniquefull')
+        if strcmp(model.train.covtype,'full') || strcmp(model.train.covtype,'uniquefull') || ...
+            strcmp(model.train.covtype,'sharedfull')
             betasig_givenY(testcond,k,:,:) = betas_sigma{k}([1:nDimY:nDimY*nDimX],[1:nDimY:nDimY*nDimX])+...
                 betas_sigma{k}([testcond:nDimY:nDimY*nDimX],[testcond:nDimY:nDimY*nDimX]);
         else % Naive bayes classifier - just take uncertainty on each channel
@@ -56,10 +58,11 @@ end
 if isfield(model,'Omega')
     if isfield(model.Omega,'pseudomean')
         CovMat = model.Omega.pseudomean(1:nDimX,1:nDimX);
-    elseif strcmp(model.train.covtype,'uniquediag')  % Naive Bayes case
+    elseif strcmp(model.train.covtype,'uniquediag') || ...
+           strcmp(model.train.covtype,'shareddiag')  % Naive Bayes case
         prec = diag(model.Omega.Gam_shape ./ model.Omega.Gam_rate(1:nDimX));
         CovMat = inv(prec);
-    else % unique full covariance matrix
+    else % shared full covariance matrix
         prec = model.Omega.Gam_shape * model.Omega.Gam_irate(1:nDimX,1:nDimX);
         CovMat = inv(prec);
     end

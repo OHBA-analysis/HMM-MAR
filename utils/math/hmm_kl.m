@@ -34,13 +34,13 @@ nu = compute_nu (hmm_p.Pi,hmm_p.P); % weight vector
 
 % Non-state specific stuff
 switch train.covtype
-    case 'uniquediag'
+    case {'uniquediag','shareddiag'}
         for n = 1:ndim
             if ~regressed(n), continue; end
             D = D + gamma_kl(hmm_p.Omega.Gam_shape,hmm_q.Omega.Gam_shape, ...
                 hmm_p.Omega.Gam_rate(n),hmm_q.Omega.Gam_rate(n));
         end
-    case 'uniquefull'
+    case {'uniquefull','sharedfull'}
         D = D + wishart_kl(hmm_p.Omega.Gam_rate(regressed,regressed),...
             hmm_q.Omega.Gam_rate(regressed,regressed), ...
             hmm_p.Omega.Gam_shape,hmm_q.Omega.Gam_shape);
@@ -69,13 +69,14 @@ for k = 1:K
                     permute(hs.W.S_W,[2 3 1]), permute(hs0.W.S_W,[2 3 1]));
             end
         elseif strcmp(train.covtype,'diag') || ...
-                strcmp(train.covtype,'uniquediag') || strcmp(train.covtype,'pca')
+                strcmp(train.covtype,'uniquediag') || strcmp(train.covtype,'shareddiag') || ...
+                strcmp(train.covtype,'pca')
             for n = 1:ndim
                 D = D + nu(k) * gauss_kl(hs.W.Mu_W(Sind(:,n),n),hs0.W.Mu_W(Sind(:,n),n), ...
                     permute(hs.W.S_W(n,Sind(:,n),Sind(:,n)),[2 3 1]),...
                     permute(hs0.W.S_W(n,Sind(:,n),Sind(:,n)),[2 3 1]));
             end
-        else % full or uniquefull
+        else % full or sharedfull
             mu_w = hs.W.Mu_W';
             mu_w = mu_w(:);
             mu_w0 = hs0.W.Mu_W';

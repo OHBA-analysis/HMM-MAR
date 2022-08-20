@@ -38,10 +38,10 @@ options.useParallel = 0;
 %options.grouping = [1 1 1 1 1 1 1 1]; 
 %options.grouping = [1 1 1 1 2 2 2 2];
 
-for covtype = {'full','diag','uniquefull','uniquediag'}
+for covtype = {'full','diag','sharedfull','shareddiag'}
     for order = [0 2]
         for zeromean = [0 1]
-            if (strcmp(covtype,'uniquefull') || strcmp(covtype,'uniquediag')) ...
+            if (strcmp(covtype,'sharedfull') || strcmp(covtype,'shareddiag')) ...
                     && zeromean==1 && order==0
                 continue;
             end
@@ -124,10 +124,10 @@ for i=1:4
 end
 options.downsample = 0; 
 
-for covtype = {'full','diag','uniquefull','uniquediag'}
+for covtype = {'full','diag','sharedfull','shareddiag'}
     for order = [0 2]
         for zeromean = [0 1]
-            if (strcmp(covtype,'uniquefull') || strcmp(covtype,'uniquediag')) ...
+            if (strcmp(covtype,'sharedfull') || strcmp(covtype,'shareddiag')) ...
                     && zeromean==1 && order==0
                 continue;
             end
@@ -199,10 +199,10 @@ options.BIGdelay = 1;
 options.BIGforgetrate = 0.7;
 options.BIGbase_weights = 0.9;
     
-for covtype = {'full','diag'} %,'uniquefull','uniquediag'}
+for covtype = {'full','diag'} %,'sharedfull','shareddiag'}
     for order = [0 2]
         for zeromean = [0 1]
-            if (strcmp(covtype,'uniquefull') || strcmp(covtype,'uniquediag')) ...
+            if (strcmp(covtype,'sharedfull') || strcmp(covtype,'shareddiag')) ...
                     && zeromean==1 && order==0
                 continue;
             end

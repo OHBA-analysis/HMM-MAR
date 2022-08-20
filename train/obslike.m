@@ -21,6 +21,8 @@ end
 
 p = hmm.train.lowrank; do_HMM_pca = (p > 0);
 K = hmm.K; rangeK = 1:K;
+sharedcovmat = strcmpi(hmm.train.covtype,'uniquediag') || strcmpi(hmm.train.covtype,'uniquefull') || ...
+    strcmpi(hmm.train.covtype,'shareddiag') || strcmpi(hmm.train.covtype,'sharedfull');
 if nargin < 6, dont_rescale = 0; end
 
 if nargin<4 || size(XX,1)==0
@@ -57,8 +59,7 @@ T = T - hmm.train.maxorder;
 ltpi = sum(regressed)/2 * log(2*pi);
 L = zeros(T+hmm.train.maxorder,length(rangeK));
 
-if use_cache && ...
-        (strcmpi(hmm.train.covtype,'uniquediag') || strcmpi(hmm.train.covtype,'uniquefull'))
+if use_cache && sharedcovmat
     ldetWishB = cache.ldetWishB{1};
     PsiWish_alphasum  = cache.PsiWish_alphasum{1};
     C = cache.C{1};
@@ -66,7 +67,7 @@ elseif do_HMM_pca
     % This is done later because ldetWishB needs W, so it's state dependent
     ldetWishB = 0;
     PsiWish_alphasum = 0;
-elseif strcmpi(hmm.train.covtype,'uniquediag')
+elseif strcmpi(hmm.train.covtype,'uniquediag') || strcmpi(hmm.train.covtype,'shareddiag')
     ldetWishB = 0;
     PsiWish_alphasum = 0;
     for n = 1:ndim
@@ -75,7 +76,7 @@ elseif strcmpi(hmm.train.covtype,'uniquediag')
         PsiWish_alphasum = PsiWish_alphasum+0.5*psi(hmm.Omega.Gam_shape);
     end
     C = hmm.Omega.Gam_shape ./ hmm.Omega.Gam_rate;
-elseif strcmpi(hmm.train.covtype,'uniquefull')
+elseif strcmpi(hmm.train.covtype,'uniquefull') || strcmpi(hmm.train.covtype,'sharedfull')
     ldetWishB = 0.5*logdet(hmm.Omega.Gam_rate(regressed,regressed));
     PsiWish_alphasum = 0;
     for n = 1:sum(regressed)
@@ -159,7 +160,8 @@ for ik = 1:length(rangeK)
         d = residuals(:,regressed) - meand;
         dist = zeros(T,1);
         
-        if strcmp(train.covtype,'diag') || strcmp(train.covtype,'uniquediag')
+        if strcmp(train.covtype,'diag') || strcmp(train.covtype,'uniquediag') || ...
+                strcmp(train.covtype,'shareddiag')
             Cd = bsxfun(@times,C(regressed),d)';
         else
             Cd = C(regressed,regressed) * d';
@@ -174,7 +176,7 @@ for ik = 1:length(rangeK)
     NormWishtrace = zeros(T,1);
     if ~do_HMM_pca && ~isempty(hmm.state(k).W.Mu_W(:))
         switch train.covtype
-            case {'diag','uniquediag'}
+            case {'diag','uniquediag','shareddiag'}
                 for n = 1:ndim
                     if ~regressed(n), continue; end
                     if train.uniqueAR
@@ -192,7 +194,7 @@ for ik = 1:length(rangeK)
                             .* XX(:,Sind(:,n)), 2);
                     end
                 end
-            case {'full','uniquefull'}
+            case {'full','uniquefull','sharedfull'}
                 if isempty(orders)
                     NormWishtrace = 0.5 * sum(sum(C .* hmm.state(k).W.S_W));
                 else

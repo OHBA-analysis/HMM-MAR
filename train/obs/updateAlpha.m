@@ -24,7 +24,8 @@ for k = rangeK
             0.5 * diag(hmm.state(k).W.S_W(1+(~train.zeromean):end,1+(~train.zeromean):end))' ;
         hmm.state(k).alpha.Gam_shape = hmm.state(k).alpha.Gam_shape + 0.5;
    
-    elseif strcmp(train.covtype,'full') || strcmp(train.covtype,'uniquefull')
+    elseif strcmp(train.covtype,'full') || strcmp(train.covtype,'uniquefull') || ...
+            strcmp(train.covtype,'sharedfull')
         for n = 1:Q
             indr = S(n,:)==1;
             for i=1:length(orders)

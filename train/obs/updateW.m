@@ -92,7 +92,8 @@ for k = rangeK
                 XW(:,n,k) = XX(:,ind) * hmm.state(k).W.Mu_W;
             end
                     
-        elseif strcmp(train.covtype,'diag') || strcmp(train.covtype,'uniquediag')
+        elseif strcmp(train.covtype,'diag') || strcmp(train.covtype,'uniquediag') || ...
+                strcmp(train.covtype,'shareddiag')
             
             for n = 1:ndim
                 
@@ -140,7 +141,7 @@ for k = rangeK
             end
             XW(:,:,k) = XX(:,Sind(:,n)) * hmm.state(k).W.Mu_W(Sind(:,n),:);
             
-        else % full or unique full
+        else % full or shared full
             
             if all(S(:)==1)
                 mlW = (bsxfun(@times, XXGXX{k} \ XX', Gamma(:,k)') * residuals)';

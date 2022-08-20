@@ -13,7 +13,7 @@ for k = 1:K
         if length(size(hmm.state(k).W.S_W))==2 && ... % full, uniquefull, uniqueAR or 1 dimension 
                size(hmm.state(k).W.S_W,1)==size(hmm.state(k).W.S_W,2)
             hmm.state(k).W.S_W = inv(hmm.state(k).W.iS_W);
-        else % diag or uniquediag
+        else % diag or shareddiag
             for n = 1:size(hmm.state(k).W.S_W,1)
                 hmm.state(k).W.S_W(n,Sind(:,n),Sind(:,n)) = ...
                     inv(permute(hmm.state(k).W.iS_W(n,Sind(:,n),Sind(:,n)),[2 3 1]));
@@ -24,7 +24,9 @@ for k = 1:K
             rho * hmm_noisy.state(k).Omega.Gam_rate;
         hmm.state(k).Omega.Gam_shape = (1-rho) * hmm.state(k).Omega.Gam_shape + ...
             rho * hmm_noisy.state(k).Omega.Gam_shape;
-        if strcmp(hmm_noisy.train.covtype,'full') || strcmp(hmm_noisy.train.covtype,'uniquefull')
+        if strcmp(hmm_noisy.train.covtype,'full') || ...
+                strcmp(hmm_noisy.train.covtype,'uniquefull') || ...
+                strcmp(hmm_noisy.train.covtype,'sharedfull')
             hmm.state(k).Omega.Gam_irate(regressed,regressed) = ...
                 inv(hmm.state(k).Omega.Gam_rate(regressed,regressed));
         end
@@ -51,7 +53,8 @@ if any(update==2) && isfield(hmm_noisy,'Omega')
         rho * hmm_noisy.Omega.Gam_rate;
     hmm.Omega.Gam_shape = (1-rho) * hmm.Omega.Gam_shape + ...
         rho * hmm_noisy.Omega.Gam_shape;
-    if strcmp(hmm_noisy.train.covtype,'uniquefull')
+    if strcmp(hmm_noisy.train.covtype,'uniquefull') || ...
+            strcmp(hmm_noisy.train.covtype,'sharedfull')
         hmm.Omega.Gam_irate(regressed,regressed) = ...
             inv(hmm.Omega.Gam_rate(regressed,regressed));
     end

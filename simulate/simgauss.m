@@ -17,7 +17,7 @@ X = zeros(T,ndim);
 mu = zeros(T,ndim);
 
 switch hmm.train.covtype
-    case 'uniquediag'
+    case {'uniquediag','shareddiag'}
         Std = sqrt(hmm.Omega.Gam_rate / hmm.Omega.Gam_shape);
         X = repmat(Std,T,1) .* randn(T,ndim);
     case 'diag'
@@ -25,7 +25,7 @@ switch hmm.train.covtype
             Std = sqrt(hmm.state(k).Omega.Gam_rate / hmm.state(k).Omega.Gam_shape);
             X = X + repmat(Gamma(:,k),1,ndim) .* repmat(Std,T,1) .* randn(T,ndim);
         end
-    case 'uniquefull'
+    case {'uniquefull','sharedfull'}
         Cov = hmm.Omega.Gam_rate / hmm.Omega.Gam_shape;
         X = mvnrnd(mu,Cov);
     case 'full'

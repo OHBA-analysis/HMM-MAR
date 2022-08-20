@@ -5,8 +5,10 @@ function state = state_snew(rate,shape,gram,m,covtype,Sind)
 state = struct();
 state.W = struct();
 ndim = size(m,2); npred = size(gram,1);
-fullcovmat = strcmp(covtype,'full') || strcmp(covtype,'uniquefull');
-uniquecovmat = strcmp(covtype,'uniquediag') || strcmp(covtype,'uniquefull');
+fullcovmat = strcmp(covtype,'full') || ...
+    strcmp(covtype,'uniquefull') || strcmp(covtype,'sharedfull');
+sharedcovmat = strcmp(covtype,'uniquediag') || strcmp(covtype,'uniquefull') || ...
+    strcmp(covtype,'shareddiag') || strcmp(covtype,'sharedfull') ;
 eps = 1e-8;
 if nargin<6, Sind = true(npred,ndim); end
 if isempty(Sind), regressed = true(1,ndim);
@@ -14,7 +16,7 @@ else, regressed = sum(Sind,1)>0;
 end
 
 % Omega
-if uniquecovmat
+if sharedcovmat
     if fullcovmat
         prec = inv(rate / shape);
     else

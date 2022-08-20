@@ -103,7 +103,7 @@ for k = number_states
         configurations{i}.K = k;
         configurations{i}.pca = pca_comp;
         configurations{i}.zeromean = 0; 
-        configurations{i}.covtype = 'uniquefull';
+        configurations{i}.covtype = 'sharedfull';
         i = i + 1;
     end
 end

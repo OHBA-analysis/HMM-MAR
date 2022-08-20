@@ -98,10 +98,10 @@ if iscell(X)
         c = c + length(ind);
         %sumT = sumT + size(Y,1); 
         if i==1
-            if strcmp(hmm.train.covtype,'uniquediag')
+            if strcmp(hmm.train.covtype,'uniquediag') || strcmp(hmm.train.covtype,'shareddiag')
                 hmm.Omega.Gam_rate = zeros(1,ndim); 
                 hmm.Omega.Gam_shape = 0; 
-            elseif strcmp(hmm.train.covtype,'uniquefull')
+            elseif strcmp(hmm.train.covtype,'uniquefull') || strcmp(hmm.train.covtype,'sharedfull')
                 hmm.Omega.Gam_rate = zeros(ndim); 
                 hmm.Omega.Gam_shape = 0; 
             elseif strcmp(hmm.train.covtype,'diag')
@@ -127,7 +127,7 @@ if iscell(X)
                 hmm.state(k).Omega.Gam_shape = hmm.state(k).Omega.Gam_shape + sum(Gamma(ind,k));
                 hmm.state(k).Omega.Gam_rate = hmm.state(k).Omega.Gam_rate + ...
                     (e' .* repmat(Gamma(ind,k)',ndim,1)) * e;
-            elseif strcmp(hmm.train.covtype,'uniquediag')
+            elseif strcmp(hmm.train.covtype,'uniquediag') || strcmp(hmm.train.covtype,'shareddiag')
                 hmm.Omega.Gam_shape = hmm.Omega.Gam_shape + 0.5 * sum(Gamma(ind,k));
                 hmm.Omega.Gam_rate = hmm.Omega.Gam_rate + 0.5 *  sum( repmat(Gamma(ind,k),1,ndim) .* e.^2 );
             else
@@ -197,11 +197,11 @@ else
     % end
     
     e = Y(:,regressed) - pred(:,regressed);
-    if strcmp(hmm.train.covtype,'uniquediag')
+    if strcmp(hmm.train.covtype,'uniquediag') || strcmp(hmm.train.covtype,'shareddiag')
        hmm.Omega.Gam_shape = 0.5 * sum(T);
        hmm.Omega.Gam_rate = zeros(1,ndim);
        hmm.Omega.Gam_rate(regressed) = 0.5 * sum( e.^2 );
-    elseif strcmp(hmm.train.covtype,'uniquefull')
+    elseif strcmp(hmm.train.covtype,'uniquefull') || strcmp(hmm.train.covtype,'sharedfull')
        hmm.Omega.Gam_shape = sum(T);
        hmm.Omega.Gam_rate = zeros(ndim);
        hmm.Omega.Gam_rate(regressed,regressed) =  (e' * e);

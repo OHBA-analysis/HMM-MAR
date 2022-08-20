@@ -1,6 +1,7 @@
 function kl = symm_kl_div(m1,m2,Sind,covtype)
 % symmetric kullback leibler divergence between MVN m1.W and m2.W
-fullcovtype = strcmp(covtype,'full') || strcmp(covtype,'uniquefull');
+fullcovtype = strcmp(covtype,'full') || strcmp(covtype,'uniquefull') || ...
+    strcmp(covtype,'sharedfull');
 if isfield(m1,'W') && ~isempty(m1.W.Mu_W)
     [nprec,ndim] = size(m1.W.Mu_W);
     kl = 0;  

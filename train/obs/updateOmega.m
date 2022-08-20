@@ -9,7 +9,8 @@ T = size(residuals,1);
 if isfield(hmm.train,'B'), Q = size(hmm.train.B,2);
 else Q = ndim; end
 
-if strcmp(hmm.train.covtype,'uniquediag') && hmm.train.uniqueAR
+if (strcmp(hmm.train.covtype,'uniquediag') || strcmp(hmm.train.covtype,'shareddiag')) ...
+        && hmm.train.uniqueAR
     % all are AR and there's a single covariance matrix
     hmm.Omega.Gam_rate = hmm.prior.Omega.Gam_rate;
     for k = rangeK
@@ -30,7 +31,7 @@ if strcmp(hmm.train.covtype,'uniquediag') && hmm.train.uniqueAR
     end
     hmm.Omega.Gam_shape = hmm.prior.Omega.Gam_shape + 0.5 * Tfactor * T;
     
-elseif strcmp(hmm.train.covtype,'uniquediag')
+elseif strcmp(hmm.train.covtype,'uniquediag') || strcmp(hmm.train.covtype,'shareddiag')
     hmm.Omega.Gam_rate(regressed) = hmm.prior.Omega.Gam_rate(regressed);
     for k = rangeK
         if ~isempty(XW)
@@ -56,7 +57,7 @@ elseif strcmp(hmm.train.covtype,'uniquediag')
     end
     hmm.Omega.Gam_shape = hmm.prior.Omega.Gam_shape + 0.5 * Tfactor * T;
     
-elseif strcmp(hmm.train.covtype,'uniquefull')
+elseif strcmp(hmm.train.covtype,'uniquefull') || strcmp(hmm.train.covtype,'sharedfull')
     hmm.Omega.Gam_rate(regressed,regressed) = hmm.prior.Omega.Gam_rate(regressed,regressed);
     for k = rangeK
         if ~isempty(XW)

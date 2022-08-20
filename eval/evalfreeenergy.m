@@ -129,7 +129,7 @@ if strcmp(distname,'Gaussian')
             OmegaKL = gamma_kl(hmm.Omega.Gam_shape,hmm.prior.Omega.Gam_shape, ...
                 hmm.Omega.Gam_rate,hmm.prior.Omega.Gam_rate);
             KLdiv = [KLdiv OmegaKL];
-        elseif strcmp(hmm.train.covtype,'uniquediag')
+        elseif strcmp(hmm.train.covtype,'uniquediag') || strcmp(hmm.train.covtype,'shareddiag')
             OmegaKL = 0;
             for n = 1:ndim
                 if ~regressed(n), continue; end
@@ -137,7 +137,7 @@ if strcmp(distname,'Gaussian')
                     hmm.Omega.Gam_rate(n),hmm.prior.Omega.Gam_rate(n));
             end
             KLdiv = [KLdiv OmegaKL];
-        elseif strcmp(hmm.train.covtype,'uniquefull')
+        elseif strcmp(hmm.train.covtype,'uniquefull') || strcmp(hmm.train.covtype,'sharedfull')
             OmegaKL = wishart_kl(hmm.Omega.Gam_rate(regressed,regressed),...
                 hmm.prior.Omega.Gam_rate(regressed,regressed), ...
                 hmm.Omega.Gam_shape,hmm.prior.Omega.Gam_shape);
@@ -186,7 +186,8 @@ if strcmp(distname,'Gaussian')
                     %       diag(hs.W.S_W(:,n,n)), eye(ndim)*prior_var);
                     %end
                     
-                elseif strcmp(train.covtype,'diag') || strcmp(train.covtype,'uniquediag')
+                elseif strcmp(train.covtype,'diag') || ...
+                        strcmp(train.covtype,'uniquediag') || strcmp(train.covtype,'shareddiag')
                     for n = 1:ndim
                         if ~regressed(n), continue; end
                         prior_prec = [];
@@ -208,7 +209,7 @@ if strcmp(distname,'Gaussian')
                             permute(hs.W.S_W(n,Sind(:,n),Sind(:,n)),[2 3 1]), prior_var);
                     end
                     
-                else % full or uniquefull
+                else % full or sharedfull
                     if all(S(:)==1)
                         prior_prec = [];
                         if train.zeromean==0
@@ -374,7 +375,7 @@ savLL = [];
 if todo(2)==1
     if strcmp(distname,'Gaussian')    
         avLL = zeros(Tres,1);
-        if strcmp(hmm.train.covtype,'uniquediag')
+        if strcmp(hmm.train.covtype,'uniquediag') || strcmp(hmm.train.covtype,'shareddiag')
             ldetWishB = 0;
             PsiWish_alphasum = 0;
             for n = 1:ndim
@@ -384,7 +385,7 @@ if todo(2)==1
             end
             C = hmm.Omega.Gam_shape ./ hmm.Omega.Gam_rate;
             avLL = avLL + (-ltpi-ldetWishB+PsiWish_alphasum);
-        elseif strcmp(hmm.train.covtype,'uniquefull')
+        elseif strcmp(hmm.train.covtype,'uniquefull') || strcmp(hmm.train.covtype,'sharedfull')
             ldetWishB = 0.5*logdet(hmm.Omega.Gam_rate(regressed,regressed));
             PsiWish_alphasum = 0;
             for n = 1:sum(regressed)
@@ -436,7 +437,8 @@ if todo(2)==1
                     meand = XX * hs.W.Mu_W(:,regressed);
                 end
                 d = residuals(:,regressed) - meand;
-                if strcmp(train.covtype,'diag') || strcmp(train.covtype,'uniquediag')
+                if strcmp(train.covtype,'diag') || ...
+                        strcmp(train.covtype,'uniquediag') || strcmp(hmm.train.covtype,'shareddiag')
                     Cd = bsxfun(@times, C(regressed), d)';
                 else
                     Cd = C(regressed,regressed) * d';
@@ -450,7 +452,7 @@ if todo(2)==1
             NormWishtrace = zeros(Tres,1); % covariance of the distance
             if ~isempty(hs.W.Mu_W)
                 switch train.covtype
-                    case {'diag','uniquediag'}
+                    case {'diag','uniquediag','shareddiag'}
                         if do_HMM_pca
                             %SW = eye(ndim) * trace(permute(hs.W.S_W(1,:,:),[2 3 1]));
                             %C = (hs.Omega.Gam_rate ./ hs.Omega.Gam_shape) * eye(ndim) + SW;
@@ -478,7 +480,7 @@ if todo(2)==1
                             end
                         end
                         
-                    case {'full','uniquefull'}
+                    case {'full','uniquefull','sharedfull'}
                         if isempty(orders)
                             NormWishtrace = 0.5 * sum(sum(C .* hs.W.S_W));
                         else

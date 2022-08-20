@@ -59,6 +59,12 @@ if length(options.embeddedlags)>1 && isfield(options,'covtype') && ...
     options.covtype = 'full';
     warning('options.covtype will be set to ''full'' because embeddedlags is used')
 end
+if isfield(options,'covtype') && strcmp(options.covtype,'uniquefull')
+    options.covtype = 'sharedfull'; 
+end
+if isfield(options,'covtype') && strcmp(options.covtype,'uniquediag')
+    options.covtype = 'shareddiag'; 
+end
 if ~isfield(options,'acrosstrial_constrained'), options.acrosstrial_constrained = 0; end
 if options.acrosstrial_constrained && stochastic_learning
     error('acrosstrial_constrained not implemented (or necessary) for stochastic learning')
@@ -549,26 +555,29 @@ if length(options.embeddedlags)==1 && options.pca_spatial>0
    options.pca_spatial = 0;
 end
 if options.episodic
-    if isfield(options,'covtype') && ~strcmp(options.covtype,'uniquediag')
-        error('For ehmm, covtype must be uniquediag (other options not yet implemented)')
+    if isfield(options,'covtype') && ~strcmp(options.covtype,'shareddiag')
+        error('For ehmm, covtype must be shareddiag (other options not yet implemented)')
     end
-    options.covtype = 'uniquediag';
+    options.covtype = 'shareddiag';
 end
 if ~isfield(options,'covtype') && options.leida 
-    options.covtype = 'uniquediag'; 
+    options.covtype = 'shareddiag'; 
 elseif ~isfield(options,'covtype') && options.lowrank>0
     options.covtype = 'pca'; 
 elseif ~isfield(options,'covtype') && (ndim==1 || (isfield(options,'S') && ~isempty(options.S) && ~all(options.S==1)))
     options.covtype = 'diag'; 
 elseif ~isfield(options,'covtype') && ndim>1, options.covtype = 'full'; 
 elseif ~isfield(options,'covtype'), options.covtype = 'diag';
-elseif (strcmp(options.covtype,'full') || strcmp(options.covtype,'uniquefull')) && ...
+elseif (strcmp(options.covtype,'full') || strcmp(options.covtype,'sharedfull')) && ...
         ndim==1 && length(options.embeddedlags)==1
-    warning('Covariance can only be diag or uniquediag if data has only one channel')
+    warning('Covariance can only be diag or shareddiag if data has only one channel')
     if strcmp(options.covtype,'full'), options.covtype = 'diag';
-    else, options.covtype = 'uniquediag';
+    else, options.covtype = 'shareddiag';
     end
 end
+if strcmp(options.covtype,'uniquefull'), options.covtype = 'sharedfull'; end
+if strcmp(options.covtype,'uniquediag'), options.covtype = 'shareddiag'; end
+
 if ~isfield(options,'zeromean')
     if length(options.embeddedlags)>1, options.zeromean = 1; 
     elseif options.lowrank>0, options.zeromean = 1; 
@@ -607,19 +616,19 @@ end
 if options.uniqueAR==1 && any(options.S(:)~=1)
     warning('S has no effect if uniqueAR=1')
 end
-if (strcmp(options.covtype,'full') || strcmp(options.covtype,'uniquefull')) && any(options.S(:)~=1)
+if (strcmp(options.covtype,'full') || strcmp(options.covtype,'sharedfull')) && any(options.S(:)~=1)
     if any(options.S(:)==0)
-        error('Global modelling of MAR coefficients not supported with full or uniquefull covariance matrix');
+        error('Global modelling of MAR coefficients not supported with full or sharedfull covariance matrix');
     end
     regressed = sum(S,2)>=1;
     regressors = sum(S,1)>=1;
     tmp = double(regressed)*double(regressors) ~= S; 
     if any(tmp(:))
-    	error(['Decoding with full or uniquefull covariance matrix requires S ' ...
+    	error(['Decoding with full or sharedfull covariance matrix requires S ' ...
             'to be in block design: current design not supported']);
     end % test that regressors and regressed are mutually exclusive and exhaustive
     if any((regressed + regressors') ~= 1) 
-    	error(['Decoding with full or uniquefull covariance matrix requires S ' ...
+    	error(['Decoding with full or sharedfull covariance matrix requires S ' ...
             'to be in block design: current design not supported']);
     end
 end
@@ -653,13 +662,13 @@ if ~issymmetric(options.S) && options.symmetricprior==1
    error('In order to use a symmetric prior, you need S to be symmetric as well') 
 end
 
-if (strcmp(options.covtype,'full') || strcmp(options.covtype,'uniquefull')) && options.uniqueAR
-    error('covtype must be diag or uniquediag if uniqueAR==1')
+if (strcmp(options.covtype,'full') || strcmp(options.covtype,'sharedfull')) && options.uniqueAR
+    error('covtype must be diag or shareddiag if uniqueAR==1')
 end
 if options.uniqueAR && ~options.zeromean
-    error('When unique==1, modelling the mean is not yet supported')
+    error('When uniqueAR==1, modelling the mean is not yet supported')
 end
-if (strcmp(options.covtype,'uniquediag') || strcmp(options.covtype,'uniquefull')) && ...
+if (strcmp(options.covtype,'shareddiag') || strcmp(options.covtype,'sharedfull')) && ...
         options.order == 0 && options.zeromean == 1 && options.lowrank == 0
    error('Unique covariance matrix, order=0 and no mean modelling: there is nothing left to drive the states..') 
 end

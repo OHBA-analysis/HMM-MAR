@@ -34,6 +34,10 @@ function hmm = initpriors(X,T,hmm,residuals)
 
 ndim = size(X,2);
 rangresiduals2 = (range(residuals)/2).^2;
+sharedcovmat = strcmpi(hmm.train.covtype,'uniquediag') || ...
+    strcmpi(hmm.train.covtype,'uniquefull') || ...
+    strcmpi(hmm.train.covtype,'shareddiag') || ...
+    strcmpi(hmm.train.covtype,'sharedfull');
 if isfield(hmm.train,'B'), Q = size(hmm.train.B,2);
 else Q = ndim;
 end
@@ -61,7 +65,7 @@ for k = rangeK
             st = struct('Omega',[]); %'beta',[]
         elseif (strcmp(train.covtype,'diag') || strcmp(train.covtype,'full'))
             st = struct('sigma',[],'alpha',[],'Omega',[],'Mean',[]);
-        elseif (strcmp(train.covtype,'uniquediag') || strcmp(train.covtype,'uniquefull')) && pcapred
+        elseif sharedcovmat && pcapred
             st = struct('beta',[],'Mean',[]);
         else
             st = struct('sigma',[],'alpha',[],'Mean',[]);
@@ -131,13 +135,13 @@ for k = rangeK
 end
 
 if ~isfield(train,'distribution') || strcmp(train.distribution,'Gaussian')
-    if strcmp(hmm.train.covtype,'uniquefull')
+    if strcmp(hmm.train.covtype,'uniquefull') || strcmp(hmm.train.covtype,'sharedfull')
         hmm.prior.Omega.Gam_shape = ndim+0.1-1;
         hmm.prior.Omega.Gam_rate = diag(priorcov_rate);
     elseif do_HMM_pca
         hmm.prior.Omega.Gam_shape = 0.5 * (ndim+0.1-1);
         hmm.prior.Omega.Gam_rate = 0.5 * median(priorcov_rate);
-    elseif strcmp(hmm.train.covtype,'uniquediag')
+    elseif strcmp(hmm.train.covtype,'uniquediag') || strcmp(hmm.train.covtype,'shareddiag')
         hmm.prior.Omega.Gam_shape = 0.5 * (ndim+0.1-1);
         hmm.prior.Omega.Gam_rate = 0.5 * priorcov_rate;
     end
@@ -194,21 +198,24 @@ if ~isfield(train,'distribution') || any(strcmp(train.distribution,{'Gaussian','
     end
     
     % Omega
-    if strcmp(hmm.train.covtype,'uniquediag') && episodic
+    if (strcmp(hmm.train.covtype,'uniquediag') || strcmp(hmm.train.covtype,'shareddiag')) ...
+            && episodic
         if hmm.train.uniqueAR, error('Not yet implemented'); end
         hmm.Omega.Gam_shape = hmm.prior.Omega.Gam_shape + Tres / 2;
         e = residuals(:,regressed) - computeStateResponses(XX,hmm,Gamma);
         hmm.Omega.Gam_rate = zeros(1,ndim);
         hmm.Omega.Gam_rate(regressed) = hmm.prior.Omega.Gam_rate(regressed) + 0.5 * sum(e.^2);
         
-    elseif strcmp(hmm.train.covtype,'uniquefull') && episodic
+    elseif (strcmp(hmm.train.covtype,'uniquefull') || strcmp(hmm.train.covtype,'sharedfull')) ...
+            && episodic
         hmm.Omega.Gam_shape = hmm.prior.Omega.Gam_shape + Tres;
         e = residuals(:,regressed) - computeStateResponses(XX,hmm,Gamma);
         hmm.Omega.Gam_rate = zeros(ndim,ndim); hmm.Omega.Gam_irate = zeros(ndim,ndim);
         hmm.Omega.Gam_rate(regressed,regressed) = hmm.prior.Omega.Gam_rate(regressed,regressed) + e' * e;
         hmm.Omega.Gam_irate(regressed,regressed) = inv(hmm.Omega.Gam_rate(regressed,regressed));
         
-    elseif strcmp(hmm.train.covtype,'uniquediag') && hmm.train.uniqueAR
+    elseif (strcmp(hmm.train.covtype,'uniquediag') || strcmp(hmm.train.covtype,'shareddiag')) ...
+            && hmm.train.uniqueAR
         hmm.Omega.Gam_rate = hmm.prior.Omega.Gam_rate;
         for k = 1:K
             XW = zeros(size(XX,1),ndim);
@@ -237,7 +244,7 @@ if ~isfield(train,'distribution') || any(strcmp(train.distribution,{'Gaussian','
             hmm.Omega.Gam_shape = hmm.Omega.Gam_shape + hmm.Omega.Gam_shape_state(k);
         end
         
-    elseif strcmp(hmm.train.covtype,'uniquediag')
+    elseif strcmp(hmm.train.covtype,'uniquediag') || strcmp(hmm.train.covtype,'shareddiag')
         hmm.Omega.Gam_shape = hmm.prior.Omega.Gam_shape + Tres / 2;
         hmm.Omega.Gam_rate = zeros(1,ndim);
         hmm.Omega.Gam_rate(regressed) = hmm.prior.Omega.Gam_rate(regressed);
@@ -251,7 +258,7 @@ if ~isfield(train,'distribution') || any(strcmp(train.distribution,{'Gaussian','
                 0.5 * sum( repmat(Gamma(:,k),1,sum(regressed)) .* e.^2 );
         end
         
-    elseif strcmp(hmm.train.covtype,'uniquefull')
+    elseif strcmp(hmm.train.covtype,'uniquefull') || strcmp(hmm.train.covtype,'sharedfull')
         hmm.Omega.Gam_shape = hmm.prior.Omega.Gam_shape + Tres;
         hmm.Omega.Gam_rate = zeros(ndim,ndim); hmm.Omega.Gam_irate = zeros(ndim,ndim);
         hmm.Omega.Gam_rate(regressed,regressed) = hmm.prior.Omega.Gam_rate(regressed,regressed);
@@ -518,6 +525,7 @@ for k = 1:K
             end
             
         elseif strcmp(train.covtype,'uniquediag') || strcmp(train.covtype,'diag') || ...
+               strcmp(train.covtype,'shareddiag') || ... 
                 (isfield(train,'distribution') && strcmp(train.distribution,'logistic'))
             hmm.state(k).W.Mu_W = zeros((~train.zeromean)+npred,ndim);
             hmm.state(k).W.iS_W = zeros(ndim,(~train.zeromean)+npred,(~train.zeromean)+npred);

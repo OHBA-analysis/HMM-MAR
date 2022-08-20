@@ -126,7 +126,7 @@ if ~isempty(options.classifier) || options.encodemodel
             q = size(Y,2);
         end
         if ~isfield(options,'covtype')
-            options.covtype = 'uniquefull'; 
+            options.covtype = 'sharedfull'; 
         end
         options=rmfield(options,'intercept');
         if ~isfield(options,'sequential')
@@ -246,7 +246,7 @@ if strcmp(options.distribution,'logistic')
     options.covtype = '';
 end
 if ~isfield(options,'covtype') && strcmp(options.distribution,'Gaussian')
-    options.covtype = 'uniquediag'; 
+    options.covtype = 'shareddiag'; 
 end
 if ~isfield(options,'inittype'), options.inittype = 'HMM-MAR'; end
 

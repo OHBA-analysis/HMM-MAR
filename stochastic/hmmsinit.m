@@ -15,6 +15,8 @@ N = length(T); K = options.K;
 subjfe_init = zeros(N,3);
 loglik_init = zeros(N,1);
 pcaprec = options.pcapred>0;
+sharedcovmat = strcmp(options.covtype,'uniquefull') || strcmp(options.covtype,'uniquediag') || ...
+    strcmp(options.covtype,'sharedfull') || strcmp(options.covtype,'shareddiag');
 tp_less = max(options.embeddedlags) + max(-options.embeddedlags);
 if options.downsample > 0, downs_ratio = (options.downsample/options.Fs);
 else, downs_ratio = 1; 
@@ -206,7 +208,7 @@ for rep = 1:options.BIGinitrep
             end
             hmm_init = struct('train',hmm_i.train);
             hmm_init.train.active = ones(1,K);
-            if strcmp(options.covtype,'uniquefull') || strcmp(options.covtype,'uniquediag')
+            if sharedcovmat
                 hmm_init.Omega = hmm_i.Omega; 
             end
         else
@@ -244,12 +246,12 @@ for rep = 1:options.BIGinitrep
                 % hence, an underestimation of the group ones
             end
         end
-        if ii>1 && (strcmp(options.covtype,'uniquefull') || strcmp(options.covtype,'uniquediag'))
+        if ii>1 && sharedcovmat
             hmm_init.Omega.Gam_shape = hmm_init.Omega.Gam_shape + ...
                 hmm_i.Omega.Gam_shape - hmm_i.prior.Omega.Gam_shape;
             hmm_init.Omega.Gam_rate = hmm_init.Omega.Gam_rate + ...
                 hmm_i.Omega.Gam_rate - hmm_i.prior.Omega.Gam_rate;
-            if strcmp(options.covtype,'uniquediag')
+            if strcmp(options.covtype,'uniquediag') || strcmp(options.covtype,'shareddiag')
                 hmm_init.Omega.Gam_rate(~regressed) = 0;
             end
         end
@@ -295,9 +297,9 @@ for rep = 1:options.BIGinitrep
                 end
             end
             hmm_init.prior = hmm_i.prior;
-            if strcmp(options.covtype,'uniquediag')
+            if strcmp(options.covtype,'uniquediag') || strcmp(options.covtype,'shareddiag')
                 hmm_init.prior.Omega.Gam_rate = 0.5 * range_data;
-            elseif strcmp(options.covtype,'uniquefull')
+            elseif strcmp(options.covtype,'uniquefull') || strcmp(options.covtype,'sharedfull')
                 hmm_init.prior.Omega.Gam_rate = diag(range_data);
             end
         else

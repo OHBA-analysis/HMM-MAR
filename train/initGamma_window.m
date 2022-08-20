@@ -22,7 +22,7 @@ end
 % options.ndim = size(B,2);
 % options.order = 0; 
 % options.zeromean = 0;
-% options.covtype = 'uniquediag';
+% options.covtype = 'shareddiag';
 % options.initrep = 1; 
 % options.inittype = 'random'; 
 % options.cyc = 100; 

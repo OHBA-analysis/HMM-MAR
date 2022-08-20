@@ -8,7 +8,7 @@ function [C,A,e,Av] = corrStaticFC (data,T,options,use_pca)
 % no room to capture any dynamic FC. 
 % This function computes the (subjects by subjects) matrix of static FC 
 % similarities (measured in terms of correlation) between each pair of
-% subjects. If the obtained values are too low, then covtype='uniquefull'
+% subjects. If the obtained values are too low, then covtype='sharedfull'
 % has a higher chance to do a good job. 
 %
 % If options.embeddedlags is specified, then it compares the time-embedded

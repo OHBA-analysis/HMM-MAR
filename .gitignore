@@ -2,6 +2,7 @@
 *.swp
 *.m~
 *~
+*.asv
 
 hidden_state_inference/mac/makefile14
 

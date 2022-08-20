@@ -21,11 +21,11 @@ p = find(tuda.train.S(1,:)>0,1) - 1;
 if ~(isempty(q) && isempty(p))
     omega = zeros(q,q,tuda.K);
     for k = 1:tuda.K
-        if strcmp(tuda.train.covtype,'uniquediag')
+        if strcmp(tuda.train.covtype,'uniquediag') || strcmp(tuda.train.covtype,'shareddiag')
             omega(:,:,k) = diag(tuda.Omega.Gam_shape ./ tuda.Omega.Gam_rate((p+1):(q+p)));
         elseif strcmp(tuda.train.covtype,'diag')
             omega(:,:,k) = diag(tuda.state(k).Omega.Gam_shape ./ tuda.state(k).Omega.Gam_rate((p+1):(q+p)));
-        elseif strcmp(tuda.train.covtype,'uniquefull')
+        elseif strcmp(tuda.train.covtype,'uniquefull') || strcmp(tuda.train.covtype,'sharedfull')
             omega(:,:,k) = tuda.Omega.Gam_shape * tuda.Omega.Gam_irate((p+1):(q+p),(p+1):(q+p));
         elseif strcmp(tuda.train.covtype,'full')
             omega(:,:,k) = tuda.state(k).Omega.Gam_shape * tuda.state(k).Omega.Gam_irate((p+1):(q+p),(p+1):(q+p));
@@ -36,11 +36,11 @@ else % LDA / LGS style setup:
     q = find(tuda.train.S(:,1)>0,1) - 1; 
     omega = zeros(q,q,tuda.K);
     for k = 1:tuda.K
-        if strcmp(tuda.train.covtype,'uniquediag')
+        if strcmp(tuda.train.covtype,'uniquediag') || strcmp(tuda.train.covtype,'shareddiag')
             omega(:,:,k) = diag(tuda.Omega.Gam_shape ./ tuda.Omega.Gam_rate(1:q));
         elseif strcmp(tuda.train.covtype,'diag')
             omega(:,:,k) = diag(tuda.state(k).Omega.Gam_shape ./ tuda.state(k).Omega.Gam_rate(1:q));
-        elseif strcmp(tuda.train.covtype,'uniquefull')
+        elseif strcmp(tuda.train.covtype,'uniquefull') || strcmp(tuda.train.covtype,'sharedfull')
             omega(:,:,k) = tuda.Omega.Gam_shape * tuda.Omega.Gam_irate(1:q,1:q);
         elseif strcmp(tuda.train.covtype,'full')
             omega(:,:,k) = tuda.state(k).Omega.Gam_shape * tuda.state(k).Omega.Gam_irate(1:q,1:q);

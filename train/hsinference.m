@@ -96,7 +96,7 @@ for k = rangeK
         v = hmm.Omega.Gam_rate / hmm.Omega.Gam_shape;
         C = W * W' + v * eye(ndim); 
         ldetWishB = 0.5*logdet(C); PsiWish_alphasum = 0;
-    elseif k == 1 && strcmp(train.covtype,'uniquediag') 
+    elseif k == 1 && strcmp(train.covtype,'uniquediag') || strcmp(train.covtype,'shareddiag') 
         ldetWishB = 0;
         PsiWish_alphasum = 0;
         for n = 1:ndim
@@ -105,7 +105,7 @@ for k = rangeK
             PsiWish_alphasum = PsiWish_alphasum+0.5*psi(hmm.Omega.Gam_shape);
         end
         C = hmm.Omega.Gam_shape ./ hmm.Omega.Gam_rate;
-    elseif k == 1 && strcmp(train.covtype,'uniquefull')
+    elseif k == 1 && strcmp(train.covtype,'uniquefull') || strcmp(train.covtype,'sharedfull')
         ldetWishB = 0.5*logdet(hmm.Omega.Gam_rate(regressed,regressed));
         PsiWish_alphasum = 0;
         for n = 1:sum(regressed)

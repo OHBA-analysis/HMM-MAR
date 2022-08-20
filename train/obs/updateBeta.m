@@ -15,7 +15,8 @@ for k = rangeK
     hmm.state(k).beta.Gam_rate = hmm.state(k).prior.beta.Gam_rate + ...
         hmm.state(k).W.Mu_W(1+(~train.zeromean):end,:).^2;
     % rate - cov(W)
-    if strcmp(train.covtype,'full') || strcmp(train.covtype,'uniquefull')
+    if strcmp(train.covtype,'full') || strcmp(train.covtype,'uniquefull') || ...
+            strcmp(train.covtype,'sharedfull')
         for n1 = 1:M
             for n2 = 1:ndim
                 index = (n1-1) * ndim + n2 + (~train.zeromean)*ndim;
