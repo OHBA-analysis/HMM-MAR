@@ -242,7 +242,7 @@ elseif strcmp(cluster_method,'hierarchical')
     end
     assig = cluster(link,'MaxClust',K);
     
-elseif strcmp(cluster_method,'sequential')
+elseif strcmp(cluster_method,'sequential')  
     regularization = 1.0;
     assig = zeros(ttrial,1);
     err = 0;

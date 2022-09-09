@@ -18,12 +18,12 @@ if nargin < 5 || isempty(cache)
 else
     use_cache = true;
 end
+if nargin < 6, dont_rescale = 0; end
 
 p = hmm.train.lowrank; do_HMM_pca = (p > 0);
 K = hmm.K; rangeK = 1:K;
 sharedcovmat = strcmpi(hmm.train.covtype,'uniquediag') || strcmpi(hmm.train.covtype,'uniquefull') || ...
     strcmpi(hmm.train.covtype,'shareddiag') || strcmpi(hmm.train.covtype,'sharedfull');
-if nargin < 6, dont_rescale = 0; end
 
 if nargin<4 || size(XX,1)==0
     [T,ndim] = size(X);

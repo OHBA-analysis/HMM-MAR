@@ -101,10 +101,10 @@ if ~isempty(options.classifier) || options.encodemodel
         end
         options = rmfield(options,'intercept');
         if ~isfield(options,'sequential')
-            options.sequential = true;
+            options.sequential = 1;
         end
         if ~isfield(options,'inittype')
-            if options.sequential
+            if options.sequential > 0
                 options.inittype = 'sequential';
             else
                 options.inittype = 'HMM-MAR';
@@ -130,10 +130,10 @@ if ~isempty(options.classifier) || options.encodemodel
         end
         options=rmfield(options,'intercept');
         if ~isfield(options,'sequential')
-            options.sequential = true;
+            options.sequential = 1;
         end
         if ~isfield(options,'inittype')
-            if options.sequential
+            if options.sequential > 0
                 options.inittype = 'sequential';
             else
                 options.inittype = 'HMM-MAR';
@@ -141,11 +141,12 @@ if ~isempty(options.classifier) || options.encodemodel
         end
         options.add_noise = 0;
         add_noise = 0;
-    elseif strcmp(options.classifier,'SVM') || strcmp(options.classifier,'SVM_rbf') || strcmp(options.classifier,'KNN') ||...
+    elseif strcmp(options.classifier,'SVM') || strcmp(options.classifier,'SVM_rbf') || ...
+            strcmp(options.classifier,'KNN') || ...
             strcmp(options.classifier,'decisiontree')
         add_noise = 0;
         demeanstim = false;
-        options.sequential = false;
+        options.sequential = 0;
     elseif strcmp(options.classifier,'regression')
         options.distribution = 'Gaussian';
         demeanstim = false;
@@ -171,7 +172,7 @@ if ~isempty(options.classifier) || options.encodemodel
         end      
         add_noise = ~options.Y_is_continuous;
         if ~isfield(options,'sequential')
-            options.sequential = true;
+            options.sequential = 1;
         end
         if ~isfield(options,'inittype')
             if options.sequential
@@ -190,10 +191,10 @@ else % Standard regression problem
     else, add_noise = options.add_noise;
     end
     if ~isfield(options,'sequential')
-        options.sequential = true;
+        options.sequential = 1;
     end
     if ~isfield(options,'inittype')
-        if options.sequential
+        if options.sequential > 0
             options.inittype = 'sequential';
         else
             options.inittype = 'HMM-MAR';
@@ -204,17 +205,25 @@ else % Standard regression problem
        X = [X,ones(size(X,1),1)];
     end
     options = rmfield(options,'intercept');
+    if ~isfield(options,'cyc'), options.cyc = 1; end
 end
-if ~isfield(options,'cyc'), options.cyc = 25; end
 
+if ~isfield(options,'cyc'), options.cyc = 25; end
 if ~isfield(options,'logisticYdim'), options.logisticYdim = 0; end
 
 % Set up states to be a a sequence
-if isfield(options,'sequential') && options.sequential
-    options.Pstructure = logical(eye(options.K) + diag(ones(1,options.K-1),1));
-    options.Pistructure = zeros(1,options.K);
-    options.Pistructure(1) = 1;
-    options.Pistructure = logical(options.Pistructure);
+if isfield(options,'sequential') 
+    if options.sequential == 1
+        options.Pstructure = logical(eye(options.K) + diag(ones(1,options.K-1),1));
+        options.Pistructure = zeros(1,options.K);
+        options.Pistructure(1) = 1;
+        options.Pistructure = logical(options.Pistructure);
+    elseif options.sequential == 2
+        options.Pstructure = triu(true(options.K));
+        options.Pistructure = zeros(1,options.K);
+        options.Pistructure(1) = 1;
+        options.Pistructure = logical(options.Pistructure);
+    end
 end
 
 % Options relative to constraints in the trans prob mat

@@ -106,7 +106,7 @@ if ~isfield(options,'Gamma')
             warning(['Number of states has been reduced to ' num2str(options.K) ])
         end
     elseif parallel_trials
-        if sequential
+        if sequential > 0
             GammaInit = cluster_decoding(X,Y,T0,options.K,'fixedsequential');
         else
             GammaInit = cluster_decoding(X,Y,T0,options.K,'regression','',...
