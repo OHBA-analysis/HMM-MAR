@@ -38,7 +38,7 @@ end
 %         end
 %     end
 %     if ~hmm.train.zeromean, hmm.train.Sind = [true(1,ndim); hmm.train.Sind]; end
-%     Y =  getresiduals(X,T,hmm.train.Sind,hmm.train.maxorder,hmm.train.order,...
+%     Y =  getresiduals(X,T,hmm.train.S,hmm.train.maxorder,hmm.train.order,...
 %         hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag,hmm.train.zeromean);
 % end
 % 

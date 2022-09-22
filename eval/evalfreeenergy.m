@@ -27,7 +27,6 @@ else
     distname = 'Gaussian';
 end
 
-
 p = hmm.train.lowrank; do_HMM_pca = (p > 0);
 K = hmm.K;
 
@@ -83,11 +82,10 @@ end
 
 if ~do_HMM_pca && (nargin<6 || isempty(residuals)) && todo(2)==1
     if ~isfield(hmm.train,'Sind')
-        orders = formorders(hmm.train.order,hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag);
         hmm.train.Sind = formindexes(orders,hmm.train.S) == 1;
     end
     if ~hmm.train.zeromean, hmm.train.Sind = [true(1,ndim); hmm.train.Sind]; end
-    residuals =  getresiduals(X,T,hmm.train.Sind,hmm.train.maxorder,hmm.train.order,...
+    residuals =  getresiduals(X,T,hmm.train.S,hmm.train.maxorder,hmm.train.order,...
         hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag,hmm.train.zeromean);
 end
 
@@ -534,8 +532,10 @@ if todo(2)==1
         L = zeros(sum(T),K);  
         for k=1:K
             % expectation of log(p) is psi(a) - psi(a+b):
-            pterm = X .* repmat( psi(hmm.state(k).W.a) - psi(hmm.state(k).W.a + hmm.state(k).W.b) ,sum(T),1);
-            qterm = (~X) .* repmat(psi(hmm.state(k).W.b) - psi(hmm.state(k).W.a + hmm.state(k).W.b) ,sum(T),1);
+            pterm = X .* repmat( psi(hmm.state(k).W.a) - ...
+                psi(hmm.state(k).W.a + hmm.state(k).W.b) ,sum(T),1);
+            qterm = (~X) .* repmat(psi(hmm.state(k).W.b) - ...
+                psi(hmm.state(k).W.a + hmm.state(k).W.b) ,sum(T),1);
             L(:,k) = sum(pterm + qterm,2) .* Gamma(:,k);
         end
         
@@ -546,7 +546,8 @@ if todo(2)==1
         constterm = -gammaln(X+1);
         for k=1:K
             % note the expectation of log(lambda) is -log(lambda_b) + psigamma(lambda_a)
-            num = (X.*(repmat(psi(hmm.state(k).W.W_shape),sum(T),1) - log(hmm.state(k).W.W_rate))) - hmm.state(k).W.W_mean;
+            num = (X.*(repmat(psi(hmm.state(k).W.W_shape),sum(T),1) - ...
+                log(hmm.state(k).W.W_rate))) - hmm.state(k).W.W_mean;
             num = num.*repmat(Gamma(:,k),1,ndim);
             L(:,k) = sum(num + constterm,2);
         end

@@ -32,50 +32,50 @@ if nargout==2
 end
 
 t_cumulative = cumsum([0;T(:)]);
-for in=1:N
-    t0 = t_cumulative(in); 
-    s0 = t0 - maxorder*(in-1);
+for j = 1:N
+    t0 = t_cumulative(j); 
+    s0 = t0 - maxorder*(j-1);
     if nargout==2
-        Y(s0+1:s0+T(in)-maxorder,:) = X(t0+maxorder+1:t0+T(in),:);
+        Y(s0+1:s0+T(j)-maxorder,:) = X(t0+maxorder+1:t0+T(j),:);
     end
     if ~isempty(V)
         if single_format
-            XX_i = zeros(T(in)-maxorder,length(orders)*Q,'single'); 
+            XX_i = zeros(T(j)-maxorder,length(orders)*Q,'single'); 
         else
-            XX_i = zeros(T(in)-maxorder,length(orders)*Q); 
+            XX_i = zeros(T(j)-maxorder,length(orders)*Q); 
         end
     end
     for i=1:length(orders)
         o = orders(i);
         if ~isempty(B)
             if single_format
-                XX(s0+1:s0+T(in)-maxorder,(1:Q)+(i-1)*Q+(~zeromean)) = ...
-                    single(X(t0+maxorder-o+1:t0+T(in)-o,:)) * single(B(:,:,i));
+                XX(s0+1:s0+T(j)-maxorder,(1:Q)+(i-1)*Q+(~zeromean)) = ...
+                    single(X(t0+maxorder-o+1:t0+T(j)-o,:)) * single(B(:,:,i));
             else
-                XX(s0+1:s0+T(in)-maxorder,(1:Q)+(i-1)*Q+(~zeromean)) = ...
-                    X(t0+maxorder-o+1:t0+T(in)-o,:) * B(:,:,i); 
+                XX(s0+1:s0+T(j)-maxorder,(1:Q)+(i-1)*Q+(~zeromean)) = ...
+                    X(t0+maxorder-o+1:t0+T(j)-o,:) * B(:,:,i); 
             end
         elseif ~isempty(V)
             if single_format
-                XX_i(:,(1:Q)+(i-1)*Q) = single(X(t0+maxorder-o+1:t0+T(in)-o,:));
+                XX_i(:,(1:Q)+(i-1)*Q) = single(X(t0+maxorder-o+1:t0+T(j)-o,:));
             else
-                XX_i(:,(1:Q)+(i-1)*Q) = X(t0+maxorder-o+1:t0+T(in)-o,:);
+                XX_i(:,(1:Q)+(i-1)*Q) = X(t0+maxorder-o+1:t0+T(j)-o,:);
             end
         else
             if single_format
-                XX(s0+1:s0+T(in)-maxorder,(1:ndim)+(i-1)*ndim+(~zeromean)) = ...
-                    single(X(t0+maxorder-o+1:t0+T(in)-o,:));
+                XX(s0+1:s0+T(j)-maxorder,(1:ndim)+(i-1)*ndim+(~zeromean)) = ...
+                    single(X(t0+maxorder-o+1:t0+T(j)-o,:));
             else
-                XX(s0+1:s0+T(in)-maxorder,(1:ndim)+(i-1)*ndim+(~zeromean)) = ...
-                    X(t0+maxorder-o+1:t0+T(in)-o,:);
+                XX(s0+1:s0+T(j)-maxorder,(1:ndim)+(i-1)*ndim+(~zeromean)) = ...
+                    X(t0+maxorder-o+1:t0+T(j)-o,:);
             end
         end
     end
     if ~isempty(V) 
         if single_format
-            XX(s0+1:s0+T(in)-maxorder,(1:M)+(~zeromean)) = XX_i * single(V);
+            XX(s0+1:s0+T(j)-maxorder,(1:M)+(~zeromean)) = XX_i * single(V);
         else
-            XX(s0+1:s0+T(in)-maxorder,(1:M)+(~zeromean)) = XX_i * V;
+            XX(s0+1:s0+T(j)-maxorder,(1:M)+(~zeromean)) = XX_i * V;
         end
     end
 end

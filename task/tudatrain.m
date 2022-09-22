@@ -12,8 +12,8 @@ function [tuda,Gamma,GammaInit,vpath,stats] = tudatrain(X,Y,T,options,noGamma)
 %               has values -1 or 1
 %               For multiclass classification problems, Y is (time by classes) 
 %               with indicators values taking 0 or 1. 
-%           If the stimulus is the same for all trials, Y can have as many
-%           rows as trials, e.g. (trials by q) 
+%           If the stimulus is the same for all time points within a trial, 
+%           Y can have as many rows as trials, e.g. (trials by q) 
 % T: Length of series or trials
 % options: structure with the training options - see documentation in 
 %                       https://github.com/OHBA-analysis/HMM-MAR/wiki

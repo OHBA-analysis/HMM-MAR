@@ -85,7 +85,7 @@ if do_estimate_W
             options.timelag,options.exptimelag);
         maxorder = max(orders);
         XX = formautoregr(data,T,orders,maxorder,options.zeromean,0);
-        Y =  getresiduals(data,T,1,max(orders));
+        Y =  getresiduals(data,T,[],max(orders));
         if isfield(options,'AR') && options.AR
             for j = 1:ndim
                 ind = (0:options.order-1)*ndim + j;

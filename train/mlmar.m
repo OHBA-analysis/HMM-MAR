@@ -1,5 +1,5 @@
 function [W,covm,pred,residuals,fracerr] = mlmar (X,maxorder,T,...
-    Sind,order,orderoffset,timelag,exptimelag,zeromean,W,Gamma)
+    S,order,orderoffset,timelag,exptimelag,zeromean,W,Gamma)
 %
 % Estimates maximum-likelihood (ML) MAR model 
 %
@@ -22,24 +22,23 @@ function [W,covm,pred,residuals,fracerr] = mlmar (X,maxorder,T,...
 ndim = size(X,2);
 if nargin<2, maxorder = 1; end
 if nargin<3, T = size(X,1); end
-if nargin<4, Sind = []; end
+if nargin<4, S = []; end
 if nargin<5, order = maxorder; end
-if nargin<6, orderoffset=0; end
-if nargin<7, timelag=1; end
-if nargin<8, exptimelag=1; end
-if nargin<9, zeromean=1; end
+if nargin<6, orderoffset = 0; end
+if nargin<7, timelag = 1; end
+if nargin<8, exptimelag = 1; end
+if nargin<9, zeromean = 1; end
 if nargin<10, W = []; end
 if nargin<11, Gamma = []; end
 
 [orders,order] = formorders(order,orderoffset,timelag,exptimelag);
 [XX,Y] = formautoregr(X,T,orders,maxorder,zeromean);
-
-if isempty(Sind)
-    Sind = true(ndim*length(orders),ndim);
-end
+if isempty(S), S = ones(ndim); end
+Sind = formindexes(orders,S);
 if ~zeromean
-    Sind = [true(1,size(X,2)); Sind];
+    Sind = [ones(1,size(X,2)); Sind]; 
 end
+Sind = (Sind == 1);
 
 if ~isempty(Gamma)
     if order>0, XX = repmat(sqrt(Gamma),1,size(XX,2)) .* XX; end

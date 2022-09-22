@@ -13,7 +13,7 @@ function [Gamma,Xi,scale] = fb_Gamma_inference(XX,hmm,residuals,slicepoints,cons
 %         hmm.train.Sind = formindexes(orders,hmm.train.S);
 %     end
 %     if ~hmm.train.zeromean, hmm.train.Sind = [true(1,ndim); hmm.train.Sind]; end
-%     residuals =  getresiduals(data.X,T,hmm.train.Sind,hmm.train.maxorder,hmm.train.order,...
+%     residuals =  getresiduals(data.X,T,hmm.train.S,hmm.train.maxorder,hmm.train.order,...
 %         hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag,hmm.train.zeromean);
 % end
 

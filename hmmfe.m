@@ -127,7 +127,7 @@ if ~stochastic_learn && ~do_HMM_pca
         hmm.train.Sind = formindexes(orders,hmm.train.S) == 1;
         if ~hmm.train.zeromean, hmm.train.Sind = [true(1,ndim); hmm.train.Sind]; end
     end
-    residuals =  getresiduals(data,T,hmm.train.Sind,hmm.train.maxorder,hmm.train.order,...
+    residuals =  getresiduals(data,T,hmm.train.S,hmm.train.maxorder,hmm.train.order,...
         hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag,hmm.train.zeromean);
 else
     residuals = [];

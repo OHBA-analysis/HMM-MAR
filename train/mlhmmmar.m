@@ -51,9 +51,10 @@ if completelags
     end
 end
 
-[hmm.train.orders,order] = formorders(hmm.train.order,hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag);
+[hmm.train.orders,order] = formorders(hmm.train.order,hmm.train.orderoffset,...
+    hmm.train.timelag,hmm.train.exptimelag);
 
-for k=1:K
+for k = 1:K
     if ~isfield(hmm.state(k),'train') || isempty(hmm.state(k).train)
         hmm.state(k).train = hmm.train;
     end
@@ -69,12 +70,6 @@ if iscell(X)
         if i==1, ndim = size(Y,2); end
         ind = (1:sum(T{i})-length(T{i})*order) + c;
         c = c + length(ind);
-        %else
-        %    ind = sum(T(1:i-1)) + (1:T(i));
-        %    Y = getresiduals(data(ind,:),T(i),Sind,hmm.train.maxorder,hmm.train.order,hmm.train.orderoffset,...
-        %        hmm.train.timelag,hmm.train.exptimelag,hmm.train.zeromean);
-        %    XX = formautoregr(data.X,T,orders,hmm.train.maxorder,hmm.train.zeromean,0,B,V);
-        %end
         if i==1
             XX2 = zeros(size(XX,2),size(XX,2),K);
             XXY = zeros(size(XX,2),ndim,K);
@@ -116,7 +111,7 @@ if iscell(X)
                 end
             end
         end
-        for k=1:K
+        for k = 1:K
             e = Y - XX * hmm.state(k).W.Mu_W;
             %ge = ge + e' * e;
             if strcmp(hmm.train.covtype,'diag')
@@ -142,8 +137,8 @@ else
     
     setstateoptions;   
     ndim = size(X,2);
-    Y = getresiduals(X,T,Sind,hmm.train.maxorder,hmm.train.order,hmm.train.orderoffset,...
-        hmm.train.timelag,hmm.train.exptimelag,hmm.train.zeromean);
+    Y = getresiduals(X,T,hmm.train.S,hmm.train.maxorder,hmm.train.order,...
+        hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag,hmm.train.zeromean);
     pred = zeros(size(Y));
     setxx; % build XX
     

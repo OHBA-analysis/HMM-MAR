@@ -5,6 +5,10 @@ elseif exist('ehmm','var')
 else
     error('Incorrect use of setstateoptions')
 end
+if ~isfield(train,'orders')
+    train.orders = formorders(hmm.train.order,hmm.train.orderoffset,...
+        hmm.train.timelag,hmm.train.exptimelag);
+end
 orders = train.orders;
 order = max(orders); if isempty(order), order = 0; end
 if ~isfield(train,'Sind') 
@@ -15,7 +19,7 @@ if ~isfield(train,'Sind')
     end
     if ~train.zeromean, train.Sind = [true(1,size(train.Sind,2)); train.Sind]; end
 end
-Sind = train.Sind==1; S = train.S==1; 
+Sind = (train.Sind==1); S = (train.S == 1); 
 if isempty(Sind), regressed = true(1,length(S)); % model with just covariance
 else, regressed = sum(Sind==1,1)>0;
 end

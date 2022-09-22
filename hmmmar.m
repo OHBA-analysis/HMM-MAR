@@ -397,7 +397,7 @@ else
         elseif isfield(options,'distribution') && strcmp(options.distribution,'logistic')
             residuals = getresidualslogistic(data.X,T,options.logisticYdim); 
         else
-            residuals =  getresiduals(data.X,T,hmm.train.Sind,hmm.train.maxorder,...
+            residuals =  getresiduals(data.X,T,hmm.train.S,hmm.train.maxorder,...
                 hmm.train.order,hmm.train.orderoffset,hmm.train.timelag,...
                 hmm.train.exptimelag,hmm.train.zeromean);
         end
@@ -442,7 +442,7 @@ else
         if exist('Omega_prior','var'), hmm.prior.Omega = Omega_prior; end
         % get residuals
         if ~isfield(options,'distribution') || ~strcmp(options.distribution,'logistic')
-            residuals = getresiduals(data.X,T,hmm.train.Sind,hmm.train.maxorder,hmm.train.order,...
+            residuals = getresiduals(data.X,T,hmm.train.S,hmm.train.maxorder,hmm.train.order,...
                 hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag,hmm.train.zeromean);
         elseif do_HMM_pca
             residuals = [];

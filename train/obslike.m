@@ -49,7 +49,7 @@ if ~do_HMM_pca && (nargin<3 || isempty(residuals))
         end
     end
     if ~hmm.train.zeromean, hmm.train.Sind = [true(1,ndim); hmm.train.Sind]; end
-    residuals =  getresiduals(X,T,hmm.train.Sind,hmm.train.maxorder,hmm.train.order,...
+    residuals =  getresiduals(X,T,hmm.train.S,hmm.train.maxorder,hmm.train.order,...
         hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag,hmm.train.zeromean);
 end
 

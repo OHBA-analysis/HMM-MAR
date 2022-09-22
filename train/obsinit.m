@@ -18,7 +18,7 @@ function [hmm, residuals, W0] = obsinit (data,T,hmm,Gamma)
 if nargin<4, Gamma = []; end
 do_HMM_pca = (hmm.train.lowrank > 0);
 if ~do_HMM_pca
-    [residuals,W0] = getresiduals(data.X,T,hmm.train.Sind,hmm.train.maxorder,hmm.train.order,...
+    [residuals,W0] = getresiduals(data.X,T,hmm.train.S,hmm.train.maxorder,hmm.train.order,...
         hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag,hmm.train.zeromean);
 else
     residuals = []; W0 = [];

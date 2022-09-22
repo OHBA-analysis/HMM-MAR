@@ -564,7 +564,8 @@ if ~isfield(options,'covtype') && options.leida
     options.covtype = 'shareddiag'; 
 elseif ~isfield(options,'covtype') && options.lowrank>0
     options.covtype = 'pca'; 
-elseif ~isfield(options,'covtype') && (ndim==1 || (isfield(options,'S') && ~isempty(options.S) && ~all(options.S==1)))
+elseif ~isfield(options,'covtype') && (ndim==1 || (isfield(options,'S') ...
+&& ~isempty(options.S) && ~all(options.S==1)))
     options.covtype = 'diag'; 
 elseif ~isfield(options,'covtype') && ndim>1, options.covtype = 'full'; 
 elseif ~isfield(options,'covtype'), options.covtype = 'diag';
