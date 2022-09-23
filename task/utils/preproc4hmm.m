@@ -104,7 +104,7 @@ if ~isempty(options.classifier) || options.encodemodel
             options.sequential = 1;
         end
         if ~isfield(options,'inittype')
-            if options.sequential > 0
+            if options.sequential ~= 0
                 options.inittype = 'sequential';
             else
                 options.inittype = 'HMM-MAR';
@@ -133,7 +133,7 @@ if ~isempty(options.classifier) || options.encodemodel
             options.sequential = 1;
         end
         if ~isfield(options,'inittype')
-            if options.sequential > 0
+            if options.sequential ~= 0
                 options.inittype = 'sequential';
             else
                 options.inittype = 'HMM-MAR';
@@ -175,7 +175,7 @@ if ~isempty(options.classifier) || options.encodemodel
             options.sequential = 1;
         end
         if ~isfield(options,'inittype')
-            if options.sequential
+            if options.sequential ~= 0
                 options.inittype = 'sequential';
             else
                 options.inittype = 'HMM-MAR';
@@ -194,8 +194,8 @@ else % Standard regression problem
         options.sequential = 1;
     end
     if ~isfield(options,'inittype')
-        if options.sequential > 0
-            options.inittype = 'sequential';
+        if options.sequential ~= 0
+            options.inittype = 'fixedsequential';
         else
             options.inittype = 'HMM-MAR';
         end
@@ -212,17 +212,18 @@ if ~isfield(options,'cyc'), options.cyc = 25; end
 if ~isfield(options,'logisticYdim'), options.logisticYdim = 0; end
 
 % Set up states to be a a sequence
-if isfield(options,'sequential') 
-    if options.sequential == 1
-        options.Pstructure = logical(eye(options.K) + diag(ones(1,options.K-1),1));
-        options.Pistructure = zeros(1,options.K);
-        options.Pistructure(1) = 1;
-        options.Pistructure = logical(options.Pistructure);
-    elseif options.sequential == 2
-        options.Pstructure = triu(true(options.K));
-        options.Pistructure = zeros(1,options.K);
-        options.Pistructure(1) = 1;
-        options.Pistructure = logical(options.Pistructure);
+if isfield(options,'sequential') && options.sequential ~= 0
+    options.Pistructure = zeros(1,options.K);
+    options.Pistructure(1:abs(options.sequential)) = 1;
+    options.Pistructure = logical(options.Pistructure);
+    options.Pstructure = logical(eye(options.K));
+    for k = 1:abs(options.sequential)
+        options.Pstructure = options.Pstructure + diag(ones(options.K-k,1),k);
+    end
+    if options.sequential < 0
+        for k = 1:abs(options.sequential)
+            options.Pstructure = options.Pstructure + diag(ones(options.K-k,1),-k);
+        end
     end
 end
 

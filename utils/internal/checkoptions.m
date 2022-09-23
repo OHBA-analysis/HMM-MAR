@@ -291,17 +291,25 @@ if size(options.grouping,1)==1,  options.grouping = options.grouping'; end
 
 if options.episodic
     options.Pstructure = []; options.Pistructure = [];
-elseif options.sequential
+elseif options.sequential ~= 0 
     if isfield(options,'Pstructure'), Pstructure = options.Pstructure;
     else, Pstructure = [];
     end
     if isfield(options,'Pistructure'), Pistructure = options.Pistructure;
     else, Pistructure = [];
     end
-    options.Pstructure = logical(eye(options.K) + diag(ones(1,options.K-1),1));
     options.Pistructure = zeros(1,options.K);
-    options.Pistructure(1) = 1;
+    options.Pistructure(1:abs(options.sequential)) = 1;
     options.Pistructure = logical(options.Pistructure);
+    options.Pstructure = logical(eye(options.K));
+    for k = 1:abs(options.sequential)
+        options.Pstructure = options.Pstructure + diag(ones(options.K-k,1),k);
+    end
+    if options.sequential < 0
+        for k = 1:abs(options.sequential)
+            options.Pstructure = options.Pstructure + diag(ones(options.K-k,1),-k);
+        end
+    end
     if ~isempty(Pstructure) && any(Pstructure(:)~=options.Pstructure(:))
         warning('Pstructure will be ignored because sequential was specified')
     end
