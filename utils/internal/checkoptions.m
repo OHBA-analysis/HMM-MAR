@@ -43,8 +43,9 @@ if ~isfield(options,'detrend'), options.detrend = 0; end
 if ~isfield(options,'downsample'), options.downsample = 0; end
 if ~isfield(options,'leakagecorr'), options.leakagecorr = 0; end
 if ~isfield(options,'sequential'), options.sequential = 0; end
-if ~isfield(options,'standardise') && (~isfield(options,'distribution') ...
-        || strcmp(options.distribution,'Gaussian')), 
+
+if isfield(options,'standardise') || (~isfield(options,'standardise') ...
+    && (~isfield(options,'distribution') || strcmp(options.distribution,'Gaussian'))), 
     options.standardise = 1; 
 else
     options.standardise = 0;
