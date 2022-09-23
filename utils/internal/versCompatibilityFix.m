@@ -75,6 +75,9 @@ end
 if ~isfield(hmm.train,'Gamma_constraint')
     hmm.train.Gamma_constraint = [];
 end
+if ~isfield(hmm.train,'Gamma_constraint_radius')
+    hmm.train.Gamma_constraint = [];
+end
 if ~isfield(hmm.train,'episodic')
     hmm.train.episodic = 0;
 end

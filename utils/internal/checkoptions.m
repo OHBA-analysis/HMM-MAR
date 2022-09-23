@@ -45,7 +45,7 @@ if ~isfield(options,'leakagecorr'), options.leakagecorr = 0; end
 if ~isfield(options,'sequential'), options.sequential = 0; end
 
 if isfield(options,'standardise') || (~isfield(options,'standardise') ...
-    && (~isfield(options,'distribution') || strcmp(options.distribution,'Gaussian'))), 
+    && (~isfield(options,'distribution') || strcmp(options.distribution,'Gaussian')))
     options.standardise = 1; 
 else
     options.standardise = 0;
@@ -55,6 +55,24 @@ if ~isfield(options,'standardise_pc')
 end
 if ~isfield(options,'regularisation'), options.regularisation = 'ARD'; end
 if ~isfield(options,'Gamma_constraint'), options.Gamma_constraint = []; end
+if ~isfield(options,'Gamma_constraint_radius'), options.Gamma_constraint_radius = []; end
+if ~isempty(options.Gamma_constraint_radius)
+    if isfield(options,'order') && options.order > 0
+        ttrial = T(1) - options.order;
+    elseif isfield(options,'embeddedlags') && ~isempty(options.embeddedlags)
+        ttrial = T(1) + options.embeddedlags(1) - options.embeddedlags(end); 
+    else
+        ttrial = T(1);
+    end
+    options.Gamma_constraint = zeros(ttrial,options.K);
+    for k = 1:options.K
+        m = (k-0.5)*(ttrial/options.K);
+        for t = 1:ttrial
+            options.Gamma_constraint(t,k) = exp(-( (t-m).^2) / ...
+                options.Gamma_constraint_radius); 
+        end
+    end
+end
 if length(options.embeddedlags)>1 && isfield(options,'covtype') && ...
         ~strcmpi(options.covtype,'full')
     options.covtype = 'full';
