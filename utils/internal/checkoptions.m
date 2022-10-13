@@ -44,13 +44,14 @@ if ~isfield(options,'downsample'), options.downsample = 0; end
 if ~isfield(options,'leakagecorr'), options.leakagecorr = 0; end
 if ~isfield(options,'sequential'), options.sequential = 0; end
 
-if isfield(options,'standardise') || (~isfield(options,'standardise') ...
-    && (~isfield(options,'distribution') || strcmp(options.distribution,'Gaussian')))
-    options.standardise = 1; 
-else
-    options.standardise = 0;
+if ~isfield(options,'standardise')
+    if ~isfield(options,'distribution') || strcmp(options.distribution,'Gaussian')
+        options.standardise = 1;
+    else
+        options.standardise = 0;
+    end
 end
-if ~isfield(options,'standardise_pc') 
+if ~isfield(options,'standardise_pc')
     options.standardise_pc = length(options.embeddedlags)>1; 
 end
 if ~isfield(options,'regularisation'), options.regularisation = 'ARD'; end

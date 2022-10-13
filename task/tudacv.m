@@ -54,6 +54,12 @@ function [acc,acc_star,Ypred,Ypred_star,Gammapred,acc_Gamma] = tudacv(X,Y,T,opti
 % Author: Diego Vidaurre, OHBA, University of Oxford 
 % Author: Cam Higgins, OHBA, University of Oxford  
 
+warning("tuda cv is a deprecated function.")
+disp("Validation of models by predicting the stimulus out of sample is limited this way ")
+disp("because to estimate Y we need Gamma and to estimate Gamma we need Y.")
+disp("An alternative method to validate the models is recommmended, through the prediction ")
+disp("of a third behavioural variable -ie not included in the original model.")
+
 N = length(T); q = size(Y,2); ttrial = T(1); K = options.K;
 if ~all(T==T(1)), error('All elements of T must be equal for cross validation'); end 
 
