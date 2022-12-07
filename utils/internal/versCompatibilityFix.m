@@ -78,7 +78,6 @@ end
 if ~isfield(hmm.train,'Gamma_constraint_radius')
     hmm.train.Gamma_constraint = [];
 end
-acrosstrial_constrained
 if ~isfield(hmm.train,'acrosstrial_constrained')
     hmm.train.acrosstrial_constrained = [];
 end
