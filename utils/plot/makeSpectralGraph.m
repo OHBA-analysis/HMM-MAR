@@ -1,5 +1,5 @@
 function graphs = makeSpectralGraph(sp_fit,k,freqindex,type,parcellation_file,...
-    maskfile,centergraphs,scalegraphs,threshold,outputfile,figure_numbe)
+    maskfile,centergraphs,scalegraphs,threshold,outputfile,figure_number)
 % Project spectral connectomes into brain space for visualisation  
 %
 % sp_fit: spectral fit, from hmmspectramt, hmmspectramar, spectbands or spectdecompose
@@ -32,7 +32,7 @@ function graphs = makeSpectralGraph(sp_fit,k,freqindex,type,parcellation_file,..
 %
 % Diego Vidaurre (2020)
 
-if isempty(type), disp('type not specified, using coherence.'); type = 1; end
+if nargin < 4 || isempty(type), disp('type not specified, using coherence.'); type = 1; end
 
 if nargin < 7 || isempty(centergraphs), centergraphs = 0; end
 if nargin < 8 || isempty(scalegraphs), scalegraphs = 0; end

@@ -3,6 +3,13 @@ function tests = hmmtest (Gamma,T,Tsubject,Y,options,hmm,Xi)
 % time they spend on the different states, or how quickly they switch between states,
 % or how their transition probability matrices (TPM) differ. 
 % Tests are done at the subject or at the group level.
+% There are two types of group level tests: 
+% (i) when Y (the behavioural variable, see below) has one element per
+% subject; then permutations are done across subjects. That means we are
+% testing here subject differences
+% (ii) when Y has one element per trial/session; then permutations are run within
+% subject even though the p-value is obtained at the group level. That
+% means that we are testing for between-trial/session differences. 
 % Tests are *not* corrected for multiple comparisons. 
 % 
 %For statistical testing on how the probability of the states is modulated
@@ -27,7 +34,7 @@ function tests = hmmtest (Gamma,T,Tsubject,Y,options,hmm,Xi)
 % INPUTS:
 %
 % Gamma: state time courses, as returned by hmmmar
-% T: length of time series (no. trials by 1) in number of time points
+% T: length of time series (no. trials/sessions by 1) in number of time points
 % Tsubject: length of time series per subject (no. subjects by 1); 
 %       if empty it will be interpreted that there is only one subject
 % Y: (no. trials by no. conditions) design matrix if testing is done at the subject level
@@ -213,50 +220,72 @@ end
 % Testing at the group level
 if grouplevel
     tests.grouplevel = struct();
-    if length(Y)~=Nsubj
-        error(['Y must have as many rows as subjects, in this case ' num2str(Nsubj) ])
-    end
-    fo1 = getFractionalOccupancy(Gamma,T);
-    sr1 = getSwitchingRate(Gamma,T);
-    fo = zeros(Nsubj,K);
-    sr = zeros(Nsubj,1);
-    for j = 1:Nsubj
-        jj = (1:Ntrials_per_subject(j)) + sum(Ntrials_per_subject(1:j-1));
-        if Ntrials_per_subject(j) == 1
-            fo(j,:) = fo1(jj,:); sr(j) = sr1(jj);
-        else
-            fo(j,:) = mean(fo1(jj,:)); sr(j) = mean(sr1(jj,:));
-        end
-    end
-    tests.grouplevel.p_fractional_occupancy = permtest_aux(fo,Y,Nperm,confounds,pairs);
-    tests.grouplevel.p_aggr_fractional_occupancy = permtest_aux_NPC(fo,Y,Nperm,confounds,pairs);
-    tests.grouplevel.p_switching_rate = permtest_aux(sr,Y,Nperm,confounds,pairs);
-    if testP
-        P1 = zeros(K,K,N); 
-        for j = 1:N
-            if isempty(Xi)
-                t2_1 = (1:T(j)-1) + sum(T(1:j-1)); t2_2 = (2:T(j)) + sum(T(1:j-1));
-                xi = Gamma(t2_1,:)' * Gamma(t2_2,:); xi = xi / sum(xi(:)); % approximation
-            else
-                t2 = (1:T(j)-1) + sum(T(1:j-1)) - (j-1);
-                xi = Xi(t2,:,:);
-            end
-            P1(:,:,j) = xi;
-        end
-        P = zeros(K,K,Nsubj); 
+    if size(Y,1)==Nsubj % alternative hypothesis: are subjects different with respect to Y?
+        fo1 = getFractionalOccupancy(Gamma,T);
+        sr1 = getSwitchingRate(Gamma,T);
+        fo = zeros(Nsubj,K);
+        sr = zeros(Nsubj,1);
         for j = 1:Nsubj
             jj = (1:Ntrials_per_subject(j)) + sum(Ntrials_per_subject(1:j-1));
             if Ntrials_per_subject(j) == 1
-                P(:,:,j) = P1(:,:,jj); 
+                fo(j,:) = fo1(jj,:); sr(j) = sr1(jj);
             else
-                P(:,:,j) = mean(P1(:,:,jj),3); 
+                fo(j,:) = mean(fo1(jj,:)); sr(j) = mean(sr1(jj,:));
             end
         end
-        tests.grouplevel.p_transProbMat = zeros(K);
-        P = reshape(P,K*K,Nsubj)';
-        pv = permtest_aux(P,Y,Nperm,confounds,pairs);
-        tests.grouplevel.p_transProbMat = reshape(pv,K,K);
+        tests.grouplevel.p_fractional_occupancy = permtest_aux(fo,Y,Nperm,confounds,pairs);
+        tests.grouplevel.p_aggr_fractional_occupancy = permtest_aux_NPC(fo,Y,Nperm,confounds,pairs);
+        tests.grouplevel.p_switching_rate = permtest_aux(sr,Y,Nperm,confounds,pairs);
+        if testP
+            P1 = zeros(K,K,N);
+            for j = 1:N
+                if isempty(Xi)
+                    t2_1 = (1:T(j)-1) + sum(T(1:j-1)); t2_2 = (2:T(j)) + sum(T(1:j-1));
+                    xi = Gamma(t2_1,:)' * Gamma(t2_2,:); xi = xi / sum(xi(:)); % approximation
+                else
+                    t2 = (1:T(j)-1) + sum(T(1:j-1)) - (j-1);
+                    xi = Xi(t2,:,:);
+                end
+                P1(:,:,j) = xi;
+            end
+            P = zeros(K,K,Nsubj);
+            for j = 1:Nsubj
+                jj = (1:Ntrials_per_subject(j)) + sum(Ntrials_per_subject(1:j-1));
+                if Ntrials_per_subject(j) == 1
+                    P(:,:,j) = P1(:,:,jj);
+                else
+                    P(:,:,j) = mean(P1(:,:,jj),3);
+                end
+            end
+            tests.grouplevel.p_transProbMat = zeros(K);
+            P = reshape(P,K*K,Nsubj)';
+            pv = permtest_aux(P,Y,Nperm,confounds,pairs);
+            tests.grouplevel.p_transProbMat = reshape(pv,K,K);
+        end
+    elseif size(Y,1)==N  % alternative hypothesis: are there trial differences with respect to Y?
+        if paired
+           error('Pair t-test can only be used when there is one row in Y per subject') 
+        end
+        index_subjects = zeros(N,1);
+        n_acc = 0;
+        for n = 1:Nsubj
+            ind = (1:Ntrials_per_subject(n)) + n_acc; 
+            index_subjects(ind) = n;
+            n_acc = n_acc + Ntrials_per_subject(n);
+        end
+        fo = getFractionalOccupancy(Gamma,T);
+        sr = getSwitchingRate(Gamma,T);   
+        tests.grouplevel.p_fractional_occupancy = permtest_aux(fo,Y,Nperm,confounds,pairs,index_subjects);
+        tests.grouplevel.p_aggr_fractional_occupancy = permtest_aux_NPC(fo,Y,Nperm,confounds,pairs,index_subjects);
+        tests.grouplevel.p_switching_rate = permtest_aux(sr,Y,Nperm,confounds,pairs,index_subjects);
+        if testP
+            warning('Test on state probability matrix only implemented when testing between-subject differences')
+        end
+    else
+        
+        error('Y must have either as many rows as subjects or as many as sessions' )
     end
+
 end
           
 end

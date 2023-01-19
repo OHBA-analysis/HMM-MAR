@@ -12,7 +12,7 @@ for k = 1:K
             Cov = 0.001 * var(hmm.state(k).W.Mu_W(:,n)) * ...
                 eye(size(hmm.state(1).W.Mu_W,1));
             hmm.state(k).W.Mu_W(:,n) = hmm.state(k).W.Mu_W(:,n) + ...
-                epsilon * mvnrnd(hmm.state(k).W.Mu_W(:,n),Cov)';
+                epsilon * mvnrnd(zeros(size(hmm.state(k).W.Mu_W(:,n))),Cov)';
         end
     elseif isfield(hmm.state(k),'W') && ~isempty(hmm.state(k).W.Mu_W)
         if length(size(hmm.state(k).W.S_W)) == 3 || ...
@@ -22,15 +22,14 @@ for k = 1:K
                 Cov = permute(hmm.state(k).W.S_W(n,Sind(:,n),Sind(:,n)),[2 3 1]);
                 Cov = Cov + 0.001 * eye(length(Cov)); Cov = (Cov+Cov')/2;
                 hmm.state(k).W.Mu_W(Sind(:,n),n) = hmm.state(k).W.Mu_W(Sind(:,n),n) + ...
-                    epsilon * mvnrnd(hmm.state(k).W.Mu_W(Sind(:,n),n),Cov)';
+                    epsilon * mvnrnd(zeros(size(hmm.state(k).W.Mu_W(Sind(:,n),n))),Cov)';
             end
         else % full covmat
             mu = hmm.state(k).W.Mu_W(:);
             Cov = hmm.state(k).W.S_W;
             Cov = Cov + 0.001 * eye(length(Cov)); Cov = (Cov+Cov')/2;
-            W = mvnrnd(mu,Cov)';
             hmm.state(k).W.Mu_W =  hmm.state(k).W.Mu_W + ...
-                epsilon * reshape(W,size(hmm.state(k).W.Mu_W));
+                epsilon * reshape(mvnrnd(zeros(size(mu)),Cov)',size(hmm.state(k).W.Mu_W));
         end
     else % if there is no regression coeff / mean , perturbe the noise cov mat
         if size(hmm.state(k).Omega.Gam_rate,1) == 1 % diagonal

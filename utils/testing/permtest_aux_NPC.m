@@ -1,4 +1,4 @@
-function pval = permtest_aux_NPC(X,D,Nperm,confounds,pairs)
+function pval = permtest_aux_NPC(X,D,Nperm,confounds,pairs,index_subjects)
 % permutation testing routine, integrating tests through the NPC algorithm
 % X: data
 % D: design matrix
@@ -22,16 +22,26 @@ if (nargin>3) && ~isempty(confounds)
     %D = D - confounds * pinv(confounds) * D;    
 end
 paired = (nargin>4) && ~isempty(pairs);
+permute_per_subject = (nargin>5) && ~isempty(index_subjects);
 
 %D = bsxfun(@minus,D,mean(D));   
 X = zscore(X);
-proj = (D' * D + 0.001 * eye(size(D,2))) \ D';  
-rss0 = sum(X.^2);
+%proj = (D' * D + 0.001 * eye(size(D,2))) \ D';  
+%rss0 = sum(X.^2);
 
 T = zeros(Nperm,1);
 for perm=1:Nperm
     if perm==1
         Xin = X;
+    elseif permute_per_subject
+        Xin = zeros(size(X));
+        Nsubj = max(index_subjects);
+        for j = 1:Nsubj
+           jj = find(index_subjects == j); 
+           Ntrials = length(jj);
+           r = randperm(Ntrials);
+           Xin(jj,:) = X(jj(r),:);
+        end
     elseif paired
         r = 1:N;
         for j = 1:max(pairs)
@@ -46,11 +56,13 @@ for perm=1:Nperm
         Xin = X(randperm(N),:);
     end
     pv = zeros(1,p);
-    beta = proj * Xin;
+    %beta = proj * Xin;
     for i = 1:p
-        rss = sum((D * beta - Xin).^2);
-        F = (rss0-rss)/rss * ((N-q)/q) ; 
-        pv(i) = 1 - fcdf(F,q,N-q);
+        [~,~,~,~,pv_i] = regress(Xin(:,i),D);
+        pv(i) = pv_i(3);
+        %rss = sum((D * beta(:,i) - Xin(:,i)).^2);
+        %F = (rss0(i)-rss)/rss * ((N-q)/q) ; 
+        %pv(i) = 1 - fcdf(F,q,N-q);
     end
     T(perm) = -2 * sum(log(pv));
 end

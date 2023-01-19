@@ -1,4 +1,4 @@
-function pval = permtest_aux(X,D,Nperm,confounds,pairs)
+function pval = permtest_aux(X,D,Nperm,confounds,pairs,index_subjects)
 % permutation testing routine (through regression)
 % X: data
 % D: design matrix
@@ -18,6 +18,7 @@ if (nargin>3) && ~isempty(confounds)
     %D = D - confounds * pinv(confounds) * D;    
 end
 paired = (nargin>4) && ~isempty(pairs);
+permute_per_subject = (nargin>5) && ~isempty(index_subjects);
 
 %D = bsxfun(@minus,D,mean(D));   
 X = bsxfun(@minus,X,mean(X));  
@@ -27,6 +28,15 @@ proj = (D' * D + 0.001 * eye(size(D,2))) \ D';
 for perm = 1:Nperm
     if perm==1
         Xin = X;
+    elseif permute_per_subject
+        Xin = zeros(size(X));
+        Nsubj = max(index_subjects);
+        for j = 1:Nsubj
+           jj = find(index_subjects == j); 
+           Ntrials = length(jj);
+           r = randperm(Ntrials);
+           Xin(jj,:) = X(jj(r),:);
+        end
     elseif paired
         r = 1:N;
         for j = 1:max(pairs)
