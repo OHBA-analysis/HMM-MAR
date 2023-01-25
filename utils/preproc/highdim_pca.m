@@ -159,4 +159,12 @@ if ~isempty(B)
     end
 end    
 
+[~,jj] = max(abs(B));
+for j = 1:ncomp
+   if B(jj(j),j) < 0
+       B(:,j) = -B(:,j);
+       A(:,j) = -A(:,j);
+   end
+end
+
 end
