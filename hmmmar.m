@@ -275,8 +275,7 @@ else
         elmsg = ''; 
     end
     % PCA transform
-    if length(options.pca) > 1 || (options.pca > 0 && options.pca ~= 1) || ...
-            isfield(options,'A')
+    if length(options.pca) > 1 || (options.pca > 0) || isfield(options,'A')
         if isfield(options,'A')
             data.X = bsxfun(@minus,data.X,mean(data.X));   
             data.X = data.X * options.A; 

@@ -422,6 +422,7 @@ if options.leida
    end
 end
 
+nowarnings = false; 
 if iscell(data)
     X = loadfile(data{1},T{1},options); 
     ndim = size(X,2);
@@ -432,6 +433,7 @@ elseif length(options.pca)==1 && options.pca == 0
         ndim = length(options.embeddedlags) * size(data,2);
     end
 elseif options.pca(1) < 1
+    nowarnings = true;
     if isstruct(data) % temporal assignment
         ndim = size(data.X,2);
     else
@@ -442,7 +444,7 @@ else
 end
 
 % state parameters
-options = checkStateParametrization(options,ndim);  
+options = checkStateParametrization(options,ndim,nowarnings);  
 
 if ~stochastic_learning
     data = data2struct(data,T,options);
@@ -554,7 +556,7 @@ end
 end
 
 
-function options = checkStateParametrization(options,ndim)
+function options = checkStateParametrization(options,ndim,nowarnings)
 
 if isfield(options,'embeddedlags') && length(options.embeddedlags)>1 && options.order>0 
     error('Order needs to be zero for multiple embedded lags')
@@ -664,7 +666,7 @@ end
 
 orders = formorders(options.order,options.orderoffset,options.timelag,options.exptimelag);
 npar = sum(S(:)) * length(orders);
-if npar > 250 && (options.K > 1) && all(options.S(:)==1)
+if npar > 250 && (options.K > 1) && all(options.S(:)==1) && ~nowarnings
    warning(['There is a risk of overparametrisation in the MAR model, with ' num2str(npar) ...
        ' parameters per state'])
    disp('The time-delay embedded model if this is the case (use options.embeddedlags)')
