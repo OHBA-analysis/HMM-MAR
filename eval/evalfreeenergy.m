@@ -1,4 +1,4 @@
-function [FrEn,avLL] = evalfreeenergy(X,T,Gamma,Xi,hmm,residuals,XX,todo)
+function [FrEn,avLL] = evalfreeenergy(X,T,Gamma,Xi,hmm,residuals,XX,todo,scale)
 % Computes the Free Energy of an HMM depending on observation model
 %
 % INPUT
@@ -20,7 +20,9 @@ function [FrEn,avLL] = evalfreeenergy(X,T,Gamma,Xi,hmm,residuals,XX,todo)
 %
 % Author: Diego Vidaurre, OHBA, University of Oxford
 
-if nargin<8, todo = ones(1,5); end
+if nargin<8 || isempty(todo), todo = ones(1,5); end
+if nargin<9, scale = []; end
+
 if isfield(hmm.train,'distribution')
     distname = hmm.train.distribution;
 else
@@ -34,7 +36,7 @@ if (nargin<7 || isempty(XX)) && todo(2)==1
     setxx; % build XX and get orders
 end
 if strcmp(distname,'Gaussian')
-    if isfield(hmm.state(1),'W')
+    if isfield(hmm.state(1),'W') && ~isempty(hmm.state(1).W.Mu_W)
         if do_HMM_pca
             ndim = size(hmm.state(1).W.Mu_W,1);
         else
@@ -390,7 +392,7 @@ if todo(2)==1
                 PsiWish_alphasum=PsiWish_alphasum+0.5*psi(hmm.Omega.Gam_shape/2+0.5-n/2);
             end
             C = hmm.Omega.Gam_shape * hmm.Omega.Gam_irate;
-            avLL = avLL + (-ltpi-ldetWishB+PsiWish_alphasum+0.5*sum(regressed)*log(2));
+            avLL = avLL + (-ltpi-ldetWishB+PsiWish_alphasum);
         end
         
         for k = 1:K
@@ -414,7 +416,7 @@ if todo(2)==1
                     PsiWish_alphasum = PsiWish_alphasum+0.5*psi(hs.Omega.Gam_shape/2+0.5-n/2);
                 end
                 C = hs.Omega.Gam_shape * hs.Omega.Gam_irate;
-                avLL = avLL + Gamma(:,k) * (-ltpi-ldetWishB+PsiWish_alphasum+0.5*sum(regressed)*log(2));
+                avLL = avLL + Gamma(:,k) * (-ltpi-ldetWishB+PsiWish_alphasum);
             end
             
             if do_HMM_pca
@@ -422,7 +424,7 @@ if todo(2)==1
                 v = hmm.Omega.Gam_rate / hmm.Omega.Gam_shape;
                 C = W * W' + v * eye(ndim);
                 ldetWishB = 0.5*logdet(C); PsiWish_alphasum = 0;
-                avLL = avLL + Gamma(:,k) * (-ltpi-ldetWishB+PsiWish_alphasum+0.5*sum(regressed)*log(2));
+                avLL = avLL + Gamma(:,k) * (-ltpi-ldetWishB+PsiWish_alphasum);
                 dist = - 0.5 * sum((XX / C) .* XX,2);
             else
                 meand = zeros(size(XX,1),sum(regressed)); % mean distance
@@ -564,6 +566,7 @@ if todo(2)==1
     end
     savLL = sum(avLL);
 end
+
 FrEn=[-Entr -savLL -avLLGamma +KLdivTran +KLdiv];
 
 % fprintf(' %.10g + %.10g + %.10g + %.10g + %.10g =  %.10g \n',...

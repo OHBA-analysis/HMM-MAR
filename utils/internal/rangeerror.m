@@ -21,3 +21,5 @@ else
         r(n) = range(Y(:,n) - XX(:,Sind(:,n)) * W(Sind(:,n),n));
     end
 end
+
+end

@@ -50,11 +50,13 @@ if ~isempty(Xi) && ~do_clustering % a proper HMM
         end
         PsiDir2d_alphasum = zeros(K,1);
         for l = 1:K, PsiDir2d_alphasum(l) = psi(sum(hmm.Dir2d_alpha(l,:,i))); end
+        %PsiDir2d_alphasum = psi(sum(sum(hmm.Dir2d_alpha(:,:,i))));
         for k = 1:K
             for l = 1:K
                 if ~hmm.train.Pstructure(l,k), continue; end
                 if Q==1
                     avLL = avLL + sum(Xi(:,l,k)) * (psi(hmm.Dir2d_alpha(l,k))-PsiDir2d_alphasum(l));
+                    %avLL = avLL + sum(Xi(:,l,k)) * (psi(hmm.Dir2d_alpha(l,k))-PsiDir2d_alphasum);
                     if isnan(avLL)
                         error(['Error computing log likelihood of the state time courses  - ' ...
                             'Out of precision?'])

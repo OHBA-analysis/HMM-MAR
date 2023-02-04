@@ -597,6 +597,7 @@ elseif ~isfield(options,'covtype') && options.lowrank>0
 elseif ~isfield(options,'covtype') && (ndim==1 || (isfield(options,'S') ...
 && ~isempty(options.S) && ~all(options.S==1)))
     options.covtype = 'diag'; 
+elseif ~isfield(options,'covtype') && options.order>0, options.covtype = 'diag';
 elseif ~isfield(options,'covtype') && ndim>1, options.covtype = 'full'; 
 elseif ~isfield(options,'covtype'), options.covtype = 'diag';
 elseif (strcmp(options.covtype,'full') || strcmp(options.covtype,'sharedfull')) && ...

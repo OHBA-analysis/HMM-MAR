@@ -25,6 +25,7 @@ function [hmm,Gamma,Xi,fehist,maxchhist] = hmmtrain(data,T,hmm,Gamma,residuals,f
 
 if nargin<6, fehist = []; end
 maxchhist = [];
+Xi = [];
 
 cyc_to_go = 0;
 setxx;
@@ -45,7 +46,7 @@ for cycle = 1:hmm.train.cyc
         if hmm.K>1 || cycle==1
             % state inference
             if cycle > 1 && useChGamma,  Gamma0 = Gamma; end
-            [Gamma,~,Xi] = hsinference(data,T,hmm,residuals,[],XX);
+            [Gamma,~,Xi,scale] = hsinference(data,T,hmm,residuals,[],XX);
             status = checkGamma(Gamma,T,hmm.train);
             
             % check local minima
@@ -56,7 +57,7 @@ for cycle = 1:hmm.train.cyc
                     disp('Stuck in bad local minima - perturbing the model and retrying...')
                     show_message = false;
                 end
-                [Gamma,~,Xi] = hsinference(data,T,hmm,residuals,[],XX);
+                [Gamma,~,Xi,scale] = hsinference(data,T,hmm,residuals,[],XX);
                 status = checkGamma(Gamma,T,hmm.train);
                 epsilon = epsilon * 2;
             end
@@ -67,11 +68,11 @@ for cycle = 1:hmm.train.cyc
                 if any(as==0)
                     cyc_to_go = hmm.train.cycstogoafterevent;
                     data.C = data.C(:,as==1);
-                    [Gamma,~,Xi] = hsinference(data,T,hmm,residuals,[],XX);
+                    [Gamma,~,Xi,scale] = hsinference(data,T,hmm,residuals,[],XX);
                     checkGamma(Gamma,T,hmm.train);
                 end
                 if sum(hmm.train.active)==1
-                    fehist(end+1) = sum(evalfreeenergy(data.X,T,Gamma,Xi,hmm,residuals,XX));
+                    fehist(end+1) = sum(evalfreeenergy(data.X,T,Gamma,Xi,hmm,residuals,XX,[],scale));
                     
                     if hmm.train.verbose
                         fprintf('cycle %i: All the points collapsed in one state, free energy = %g \n',...
@@ -100,8 +101,7 @@ for cycle = 1:hmm.train.cyc
         end
        
         %%%% Free energy computation
-        fehist(end+1) = sum(evalfreeenergy(data.X,T,Gamma,Xi,hmm,residuals,XX));
-        
+        fehist(end+1) = sum(evalfreeenergy(data.X,T,Gamma,Xi,hmm,residuals,XX,[],scale));
         
         strwin = ''; if hmm.train.meancycstop>1, strwin = ' windowed'; end
         if length(fehist) > (hmm.train.meancycstop+1)
