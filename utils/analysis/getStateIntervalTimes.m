@@ -54,7 +54,14 @@ if isfield(options,'downsample') && options.downsample>0
     r = (options.downsample/options.Fs);
 end
 
-if isfield(options,'order') && options.order > 0
+if ~isfield(options,'order') && ~isfield(options,'embeddedlags')
+   options.order = (sum(T) - size(Gamma,1)) / length(T);
+end
+
+if isfield(options,'tuda') && options.tuda | ...
+        isfield(options, 'order') && options.order == 0
+    T = ceil(r * T);
+elseif isfield(options,'order') && options.order > 0
     T = ceil(r * T);
     T = T - options.order; 
 elseif isfield(options,'embeddedlags') && length(options.embeddedlags) > 1
@@ -62,9 +69,6 @@ elseif isfield(options,'embeddedlags') && length(options.embeddedlags) > 1
     d2 = max(0,options.embeddedlags(end));
     T = T - (d1+d2);
     T = ceil(r * T);
-else
-    options.order = (sum(T) - size(Gamma,1)) / length(T); 
-    T = T - options.order; 
 end
 
 if is_vpath % viterbi path
