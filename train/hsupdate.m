@@ -19,13 +19,14 @@ function hmm = hsupdate(Xi,Gamma,T,hmm)
 % else
 %     Q = 1;
 % end
+
 Q = 1;
 N = length(T); K = hmm.K;
 mixture_model = isfield(hmm.train,'id_mixture') && hmm.train.id_mixture;
 [~,order] = formorders(hmm.train.order,hmm.train.orderoffset,...
     hmm.train.timelag,hmm.train.exptimelag);
-embeddedlags = abs(hmm.train.embeddedlags);
-L = order + embeddedlags(1) + embeddedlags(end);
+%embeddedlags = abs(hmm.train.embeddedlags);
+%L = order + embeddedlags(1) + embeddedlags(end);
 do_clustering = isfield(hmm.train,'cluster') && hmm.train.cluster;
 % if hmm.train.acrosstrial_constrained
 %     Gamma = Gamma(1:T(1)-order,:); T = T(1); N = 1;
@@ -83,8 +84,8 @@ else
         %t = sum(T(1:n-1)) - order*(n-1) + 1;
         if order > 0
             t = sum(T(1:n-1)) - order*(n-1) + 1;
-        elseif length(embeddedlags) > 1
-            t = sum(T(1:n-1)) - L*(n-1) + 1;
+        %elseif length(embeddedlags) > 1
+        %    t = sum(T(1:n-1)) - L*(n-1) + 1;
         else
             t = sum(T(1:n-1)) + 1;
         end
