@@ -9,9 +9,11 @@ function [predictedY,predictedYD,YD,stats] = predictPhenotype (Yin,Din,options,v
 %           is to be predicted, then Yin should be encoded by a
 %           (no. subjects by no. classes) matrix, with zeros or ones
 %           indicator entries.
-% Din       (no. subjects by no. subjects) matrix of distances between
-%           subjects, calculated (for example) by computeDistMatrix or
-%           computeDistMatrix_AVFC
+% Din       (no. subjects by no. subjects) matrix calculated (for 
+%           example) by hmm_kernel, computeDistMatrix or
+%           computeDistMatrix_AVFC. For the Gaussian kernel, this should be
+%           distances/divergences. For the linear kernel, this should be
+%           the kernel itself (dot-product).   
 % options   Struct with the prediction options, with fields:
 %   + alpha - for method='KRR', a vector of weights on the L2 penalty on the regression
 %           By default: [0.0001 0.001 0.01 0.1 0.4 0.7 1.0 10 100]
@@ -24,6 +26,7 @@ function [predictedY,predictedYD,YD,stats] = predictPhenotype (Yin,Din,options,v
 %   + CVfolds - prespecified CV folds for the outer loop
 %   + biascorrect - whether we correct for bias in the estimation 
 %                   (Smith et al. 2019, NeuroImage)
+%   + kernel - which kernel to use ('linear' or 'gaussian')
 %   + verbose -  display progress?
 % cs        optional (no. subjects X no. subjects) dependency structure matrix with
 %           specifying possible relations between subjects (e.g., family
@@ -51,8 +54,17 @@ function [predictedY,predictedYD,YD,stats] = predictPhenotype (Yin,Din,options,v
 %
 % Author: Diego Vidaurre, OHBA, University of Oxford
 %         Steve Smith, fMRIB University of Oxford
+% adapted to different kernels:
+% Christine Ahrends, Aarhus University, 2022
 
-Din(eye(size(Din,1))==1) = 0; 
+if ~isfield(options, 'kernel')
+    kernel = 'linear';
+else
+    kernel = options.kernel;
+end
+if strcmp(kernel, 'gaussian')
+    Din(eye(size(Din,1))==1) = 0; 
+end
 [N,q] = size(Yin);
 
 which_nan = false(N,1); 
@@ -81,10 +93,14 @@ if ~isfield(options,'alpha')
 else
     alpha = options.alpha;
 end
-if ~isfield(options,'sigmafact')
-    sigmafact = [1/5 1/3 1/2 1 2 3 5];
+if strcmp(kernel, 'gaussian')
+    if ~isfield(options,'sigmafact')
+        sigmafact = [1/5 1/3 1/2 1 2 3 5];
+    else
+        sigmafact = options.sigmafact;
+    end
 else
-    sigmafact = options.sigmafact;
+    sigmafact = 1;
 end
 if ~isfield(options,'K')
     KN = 1:min(50,round(0.5*N));
@@ -145,10 +161,12 @@ if isempty(CVfolds)
     if CVscheme(1)==1
         folds = {1:N};
     elseif q == 1
+        
         Yin_copy = Yin; Yin_copy(isnan(Yin)) = realmax;
-        folds = cvfolds(Yin_copy,CVscheme(1),allcs);
+        folds = cvfolds(Yin_copy,CVscheme(1),allcs,1);
     else % no stratification
-        folds = cvfolds(randn(size(Yin,1),1),CVscheme(1),allcs);
+        
+        folds = cvfolds(randn(size(Yin,1),1),CVscheme(1),allcs,1);
     end
 else
     folds = CVfolds;
@@ -192,7 +210,7 @@ for ifold = 1:length(folds)
         QDin = Dii(ind,ind); 
         QN = length(ind);
         
-        Qfolds = cvfolds(Yii,CVscheme(2),Qallcs); % we stratify
+        Qfolds = cvfolds(Yii,CVscheme(2),Qallcs,1); % we stratify
 
         % deconfounding business
         if deconfounding
@@ -224,11 +242,15 @@ for ifold = 1:length(folds)
                 Nji = length(Qji);
                 QD2 = QDin(QJ,Qji);
                 
-                sigmabase = auto_sigma(QD);
-                sigma = sigmf * sigmabase;
-                
-                K = gauss_kernel(QD,sigma);
-                K2 = gauss_kernel(QD2,sigma);
+                if strcmp(kernel, 'gaussian')
+                    sigmabase = auto_sigma(QD);
+                    sigma = sigmf * sigmabase;
+                    K = gauss_kernel(QD,sigma);
+                    K2 = gauss_kernel(QD2,sigma);
+                elseif strcmp(kernel, 'linear')
+                    K = QD;
+                    K2 = QD2;
+                end
                 I = eye(Nji);
                 ridg_pen_scale = mean(diag(K));
                 
@@ -246,15 +268,20 @@ for ifold = 1:length(folds)
         
         [~,m] = min(Dev(:)); % Pick the one with the lowest deviance
         [ialph,isigm] = ind2sub(size(Dev),m);
-        sigmf = sigmafact(isigm);
-        sigmabase = auto_sigma(D);
-        sigma = sigmf * sigmabase;
         alph = alpha(ialph);
-        
         Dii = D(ind,ind); D2ii = D2(:,ind);
         
-        K = gauss_kernel(Dii,sigma);
-        K2 = gauss_kernel(D2ii,sigma);
+        if strcmp(kernel, 'gaussian')
+            sigmf = sigmafact(isigm);
+            sigmabase = auto_sigma(D);
+            sigma = sigmf * sigmabase;
+            K = gauss_kernel(Dii,sigma);
+            K2 = gauss_kernel(D2ii,sigma);
+        elseif strcmp(kernel, 'linear')
+            K = Dii;
+            K2 = D2ii;
+            sigmf = NaN;
+        end
         Nji = length(ind);
         I = eye(Nji);
         
@@ -329,7 +356,10 @@ for ifold = 1:length(folds)
     end
     
     %disp(['Fold ' num2str(ifold) ])
-    
+    stats.alpha(ifold) = alph;
+    stats.sigma(ifold) = sigmf;
+
+
 end
 
 stats.sse = zeros(q,1);

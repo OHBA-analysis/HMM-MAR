@@ -159,6 +159,9 @@ save(['KLdistances_ICA' num2str(ICAdim) '.mat'],'DistMat','DistStatic');
 %% Predictions of behaviour using structurals
 % The code here is a bit complex but what matters is the calls to
 % predictPhenotype.m
+% NOTE: to replicate this with the most recent version of the toolbox, 
+% you'll have to set parameters_prediction.kernel = 'gaussian'; and change 
+% the call to cvfolds to not permute (new default is to permute) % CA
 
 % prediction parameters
 parameters_prediction = struct();

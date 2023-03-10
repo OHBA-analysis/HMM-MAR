@@ -93,7 +93,7 @@ end
 
 % dual estimation to get subject-specific HMM, Gamma, Xi, likelihood, and
 % transformed data (in case of embeddings)
-[hmm_sub, gamma_tmp, Xi_tmp, ~, LL,Xt] = hmmdual_FK(X,T,hmm); % embed data within hmmdual_FK
+[hmm_sub, gamma_tmp, ~, Xi_tmp, LL,Xt] = hmmdual(X,T,hmm); % embed data within hmmdual
 LL = -sum(LL);
 
 % compute gradient
