@@ -1,4 +1,4 @@
-function [hmm,Gamma,vpath] = hmmdual(data,T,hmm,Gamma,Xi,residuals)
+function [hmm,Gamma,vpath,Xi,LL,datat] = hmmdual(data,T,hmm,Gamma,Xi,residuals)
 %
 % Dual estimation of the HMM, first Gamma and then the HMM structure
 %
@@ -17,6 +17,9 @@ function [hmm,Gamma,vpath] = hmmdual(data,T,hmm,Gamma,Xi,residuals)
 % vpath            estimated Viterbi path
 %
 % Author: Diego Vidaurre, OHBA, University of Oxford (2019)
+%
+% edits to work for gradient computation (for Fisher kernel):
+% Christine Ahrends, Aarhus University 2022
 
 % to fix potential compatibility issues with previous versions
 hmm = versCompatibilityFix(hmm);
@@ -110,7 +113,7 @@ if isempty(residuals) && ~do_HMM_pca
 end
 
 if isempty(Gamma)   
-    [Gamma,~,Xi] = hsinference(data,T,hmm,residuals); 
+    [Gamma,~,Xi,LL] = hsinference(data,T,hmm,residuals); 
 elseif isempty(Xi) 
     Xi = approximateXi(Gamma,T,hmm);
 end
@@ -125,6 +128,7 @@ end
 if nargout > 2
     vpath = hmmdecode(data,T,hmm,1,residuals,0);
 end
+datat = data;
 
 end
 
