@@ -187,6 +187,11 @@ episodic = hmm.train.episodic;
 
 setxx; % build XX and get orders
 setstateoptions;
+
+if length(hmm.train.embeddedlags_batched) > 1
+    Gamma = Gamma_unwrapped;
+end
+
 Gammasum = sum(Gamma); % if episodic, Gammasum doesn't sum up to T
 
 if ~isfield(train,'distribution') || any(strcmp(train.distribution,{'Gaussian','logistic'}))

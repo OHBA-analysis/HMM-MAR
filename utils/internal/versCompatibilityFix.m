@@ -21,6 +21,9 @@ end
 if ~isfield(hmm.train,'embeddedlags')
     hmm.train.embeddedlags = 0;
 end
+if ~isfield(hmm.train,'embeddedlags_batched')
+    hmm.train.embeddedlags_batched = 0;
+end
 if ~isfield(hmm.train,'pca')
     hmm.train.pca = 0;
 end

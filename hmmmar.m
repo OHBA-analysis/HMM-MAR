@@ -356,7 +356,8 @@ else
                         options.DirichletDiag,options.Pstructure,options.Pistructure,...
                         options.ehmm_priorOFFvsON);
                 else
-                    GammaInit = initGamma_random(T-options.maxorder,options.K,...
+                    tminus = options.maxorder+2*options.embeddedlags_batched(end);
+                    GammaInit = initGamma_random(T-tminus,options.K,...
                         options.DirichletDiag,options.Pstructure,options.Pistructure);
                 end
             else

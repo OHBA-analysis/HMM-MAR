@@ -20,6 +20,10 @@ function hmm = hsupdate(Xi,Gamma,T,hmm)
 %     Q = 1;
 % end
 
+if isfield(hmm.train,'embeddedlags_batched') && length(hmm.train.embeddedlags_batched) > 1
+    T = T-2*hmm.train.embeddedlags_batched(end)-hmm.train.maxorder;
+end
+
 Q = 1;
 N = length(T); K = hmm.K;
 mixture_model = isfield(hmm.train,'id_mixture') && hmm.train.id_mixture;

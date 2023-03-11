@@ -47,20 +47,20 @@ for cycle = 1:hmm.train.cyc
             % state inference
             if cycle > 1 && useChGamma,  Gamma0 = Gamma; end
             [Gamma,~,Xi,scale] = hsinference(data,T,hmm,residuals,[],XX);
-            status = checkGamma(Gamma,T,hmm.train);
-            
+            checkGamma(Gamma,T,hmm.train);
+         
             % check local minima
-            epsilon = 1; show_message = true;
-            while status == 1
-                hmm = hmmperturb(hmm,epsilon);
-                if show_message
-                    disp('Stuck in bad local minima - perturbing the model and retrying...')
-                    show_message = false;
-                end
-                [Gamma,~,Xi,scale] = hsinference(data,T,hmm,residuals,[],XX);
-                status = checkGamma(Gamma,T,hmm.train);
-                epsilon = epsilon * 2;
-            end
+%             epsilon = 1; show_message = true;
+%             while status == 1
+%                 hmm = hmmperturb(hmm,epsilon);
+%                 if show_message
+%                     disp('Stuck in bad local minima - perturbing the model and retrying...')
+%                     show_message = false;
+%                 end
+%                 [Gamma,~,Xi,scale] = hsinference(data,T,hmm,residuals,[],XX);
+%                 status = checkGamma(Gamma,T,hmm.train);
+%                 epsilon = epsilon * 2;
+%             end
             
             % any state to remove?
             [as,hmm,Gamma,Xi] = getactivestates(hmm,Gamma,Xi);
@@ -153,7 +153,11 @@ for cycle = 1:hmm.train.cyc
     % Observation model
     if hmm.train.updateObs
         setxx
-        hmm = obsupdate(Gamma,hmm,residuals,XX,XXGXX);
+        if length(hmm.train.embeddedlags_batched) > 1
+            hmm = obsupdate(Gamma_unwrapped,hmm,residuals,XX,XXGXX);
+        else
+            hmm = obsupdate(Gamma,hmm,residuals,XX,XXGXX);
+        end
     end
   
     % Transition matrices and initial state
@@ -203,6 +207,26 @@ for cycle = 1:hmm.train.cyc
     end
  
 end
+
+% check local minimum where states are too similar
+[hmm,Gamma,Xi,re_do_M] = pruneRedundantStates(hmm,Gamma,Xi);
+if re_do_M
+    disp('Some states were too similar and will be pruned')
+    % Observation model
+    if hmm.train.updateObs
+        setxx
+        if length(hmm.train.embeddedlags_batched) > 1
+            hmm = obsupdate(Gamma_unwrapped,hmm,residuals,XX,XXGXX);
+        else
+            hmm = obsupdate(Gamma,hmm,residuals,XX,XXGXX);
+        end
+    end
+    % Transition matrices and initial state
+    if hmm.train.updateP
+        hmm = hsupdate(Xi,Gamma,T,hmm);
+    end
+end
+
 
 for k = 1:K
     if isfield(hmm.state(k),'cache')

@@ -45,9 +45,17 @@ end
 if exist('Gamma','var') && ~isempty(Gamma)
     if ~isfield(hmm.train,'distribution') || ~strcmp(hmm.train.distribution,'logistic') || ~isfield(hmm.state,'W') 
         %do not proceed below if W not initialised yet
-        for k = 1:K
-            XXGXX{k} = bsxfun(@times, XX, Gamma(:,k))' * XX; 
-        end 
+        if isfield(hmm.train,'embeddedlags_batched') && length(hmm.train.embeddedlags_batched) > 1
+            T_wrapped = T-2*hmm.train.embeddedlags_batched(end)-hmm.train.maxorder;
+            Gamma_unwrapped = unwrap_embedding(Gamma,T_wrapped,hmm.train.embeddedlags_batched);
+            for k = 1:K
+                XXGXX{k} = bsxfun(@times, XX, Gamma_unwrapped(:,k))' * XX;
+            end
+        else
+            for k = 1:K
+                XXGXX{k} = bsxfun(@times, XX, Gamma(:,k))' * XX;
+            end
+        end
     else
         n = size(XX,2)-hmm.train.logisticYdim;
         hmm = updatePsi(hmm,Gamma,XX(:,1:n),residuals);

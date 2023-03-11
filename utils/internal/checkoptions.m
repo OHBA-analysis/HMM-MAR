@@ -30,6 +30,13 @@ if ~isfield(options,'leida'), options.leida = 0; end
 if ~isfield(options,'embeddedlags') || isempty(options.embeddedlags) 
     options.embeddedlags = 0; 
 end
+if ~isfield(options,'embeddedlags_batched') || isempty(options.embeddedlags_batched) 
+    options.embeddedlags_batched = 0; 
+elseif (-options.embeddedlags_batched(1)) ~= (options.embeddedlags_batched(end))
+    error('embeddedlags_batched must by symmetric around 0 and have 1 lag step')
+elseif any(diff(options.embeddedlags_batched)~=1)
+    error('embeddedlags_batched must by symmetric around 0 and have 1 lag step')
+end
 if ~isfield(options,'pca'), options.pca = 0; end
 if ~isfield(options,'pca_spatial'), options.pca_spatial = 0; end
 if ~isfield(options,'lowrank'), options.lowrank = 0; end
