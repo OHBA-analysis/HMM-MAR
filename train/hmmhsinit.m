@@ -108,7 +108,7 @@ else
             hmm.P = zeros(hmm.K,hmm.K,Q);
             for i = 1:Q
                 for k = 1:hmm.K
-                    kk = hmm.train.Pstructure(k,:);
+                    kk = (hmm.train.Pstructure(k,:)==1);
                     hmm.Dir2d_alpha(k,kk,i) = 1;
                     if length(hmm.train.DirichletDiag) == 1
                         hmm.Dir2d_alpha(k,k,i) = hmm.train.DirichletDiag;
