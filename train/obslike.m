@@ -247,10 +247,10 @@ for ik = 1:length(rangeK)
     
 end
 % correct for stability problems by adding constant:
-if any(all(L<0,2)) && ~dont_rescale
-    L(all(L<0,2),:) = L(all(L<0,2),:) - ...
-        repmat(max(L(all(L<0,2),:),[],2),1,length(rangeK));
-end
+% if any(all(L<0,2)) && ~dont_rescale
+%     L(all(L<0,2),:) = L(all(L<0,2),:) - ...
+%         repmat(max(L(all(L<0,2),:),[],2),1,length(rangeK));
+% end
 L = exp(L);
 end
 

@@ -91,26 +91,30 @@ if ~do_HMM_pca && (nargin<6 || isempty(residuals)) && todo(2)==1
         hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag,hmm.train.zeromean);
 end
 
-% Entropy of Gamma
-Entr = [];
-if todo(1)==1
-    if hmm.train.acrosstrial_constrained
-        Entr = GammaEntropy(Gamma(1:T(1)-order,:),Xi(1:T(1)-order-1,:,:),...
-            T(1),hmm.train.maxorder);
-    else
-        Entr = GammaEntropy(Gamma,Xi,T,hmm.train.maxorder);
+if isempty(scale)
+    
+    % Entropy of Gamma
+    Entr = [];
+    if todo(1)==1
+        if hmm.train.acrosstrial_constrained
+            Entr = GammaEntropy(Gamma(1:T(1)-order,:),Xi(1:T(1)-order-1,:,:),...
+                T(1),hmm.train.maxorder);
+        else
+            Entr = GammaEntropy(Gamma,Xi,T,hmm.train.maxorder);
+        end
     end
-end
-
-% loglikelihood of Gamma
-avLLGamma = [];
-if todo(3)==1
-    if hmm.train.acrosstrial_constrained
-        avLLGamma = GammaavLL(hmm,Gamma(1:T(1)-order,:),...
-            Xi(1:T(1)-order-1,:,:),T(1));
-    else
-        avLLGamma = GammaavLL(hmm,Gamma,Xi,T);
-    end    
+    
+    % loglikelihood of Gamma
+    avLLGamma = [];
+    if todo(3)==1
+        if hmm.train.acrosstrial_constrained
+            avLLGamma = GammaavLL(hmm,Gamma(1:T(1)-order,:),...
+                Xi(1:T(1)-order-1,:,:),T(1));
+        else
+            avLLGamma = GammaavLL(hmm,Gamma,Xi,T);
+        end
+        
+    end
     
 end
 
@@ -119,6 +123,7 @@ KLdivTran = [];
 if todo(4)==1
     KLdivTran = KLtransition(hmm);
 end
+
 
 % state KL
 if strcmp(distname,'Gaussian')
@@ -371,203 +376,210 @@ elseif strcmp(distname,'logistic')
 end
 
 % data log likelihood
-savLL = [];
-if todo(2)==1
-    if strcmp(distname,'Gaussian')    
-        avLL = zeros(Tres,1);
-        if strcmp(hmm.train.covtype,'uniquediag') || strcmp(hmm.train.covtype,'shareddiag')
-            ldetWishB = 0;
-            PsiWish_alphasum = 0;
-            for n = 1:ndim
-                if ~regressed(n), continue; end
-                ldetWishB = ldetWishB+0.5*log(hmm.Omega.Gam_rate(n));
-                PsiWish_alphasum = PsiWish_alphasum+0.5*psi(hmm.Omega.Gam_shape);
-            end
-            C = hmm.Omega.Gam_shape ./ hmm.Omega.Gam_rate;
-            avLL = avLL + (-ltpi-ldetWishB+PsiWish_alphasum);
-        elseif strcmp(hmm.train.covtype,'uniquefull') || strcmp(hmm.train.covtype,'sharedfull')
-            ldetWishB = 0.5*logdet(hmm.Omega.Gam_rate(regressed,regressed));
-            PsiWish_alphasum = 0;
-            for n = 1:sum(regressed)
-                PsiWish_alphasum=PsiWish_alphasum+0.5*psi(hmm.Omega.Gam_shape/2+0.5-n/2);
-            end
-            C = hmm.Omega.Gam_shape * hmm.Omega.Gam_irate;
-            avLL = avLL + (-ltpi-ldetWishB+PsiWish_alphasum);
-        end
-        
-        for k = 1:K
-            hs = hmm.state(k);
-            
-            if strcmp(train.covtype,'diag')
+if isempty(scale)
+    savLL = [];
+    if todo(2)==1
+        if strcmp(distname,'Gaussian')
+            avLL = zeros(Tres,1);
+            if strcmp(hmm.train.covtype,'uniquediag') || strcmp(hmm.train.covtype,'shareddiag')
                 ldetWishB = 0;
                 PsiWish_alphasum = 0;
                 for n = 1:ndim
                     if ~regressed(n), continue; end
-                    ldetWishB = ldetWishB+0.5*log(hs.Omega.Gam_rate(n));
-                    PsiWish_alphasum = PsiWish_alphasum+0.5*psi(hs.Omega.Gam_shape);
+                    ldetWishB = ldetWishB+0.5*log(hmm.Omega.Gam_rate(n));
+                    PsiWish_alphasum = PsiWish_alphasum+0.5*psi(hmm.Omega.Gam_shape);
                 end
-                C = hs.Omega.Gam_shape ./ hs.Omega.Gam_rate;
-                avLL = avLL + Gamma(:,k) * (-ltpi-ldetWishB+PsiWish_alphasum);
+                C = hmm.Omega.Gam_shape ./ hmm.Omega.Gam_rate;
+                avLL = avLL + (-ltpi-ldetWishB+PsiWish_alphasum);
+            elseif strcmp(hmm.train.covtype,'uniquefull') || strcmp(hmm.train.covtype,'sharedfull')
+                ldetWishB = 0.5*logdet(hmm.Omega.Gam_rate(regressed,regressed));
+                PsiWish_alphasum = 0;
+                for n = 1:sum(regressed)
+                    PsiWish_alphasum=PsiWish_alphasum+0.5*psi(hmm.Omega.Gam_shape/2+0.5-n/2);
+                end
+                C = hmm.Omega.Gam_shape * hmm.Omega.Gam_irate;
+                avLL = avLL + (-ltpi-ldetWishB+PsiWish_alphasum);
+            end
+            
+            for k = 1:K
+                hs = hmm.state(k);
                 
-            elseif strcmp(train.covtype,'full')
-                ldetWishB = 0.5*logdet(hs.Omega.Gam_rate(regressed,regressed));
-                PsiWish_alphasum=0;
-                for n = 1:sum(regressed)
-                    PsiWish_alphasum = PsiWish_alphasum+0.5*psi(hs.Omega.Gam_shape/2+0.5-n/2);
-                end
-                C = hs.Omega.Gam_shape * hs.Omega.Gam_irate;
-                avLL = avLL + Gamma(:,k) * (-ltpi-ldetWishB+PsiWish_alphasum);
-            end
-            
-            if do_HMM_pca
-                W = hmm.state(k).W.Mu_W;
-                v = hmm.Omega.Gam_rate / hmm.Omega.Gam_shape;
-                C = W * W' + v * eye(ndim);
-                ldetWishB = 0.5*logdet(C); PsiWish_alphasum = 0;
-                avLL = avLL + Gamma(:,k) * (-ltpi-ldetWishB+PsiWish_alphasum);
-                dist = - 0.5 * sum((XX / C) .* XX,2);
-            else
-                meand = zeros(size(XX,1),sum(regressed)); % mean distance
-                if train.uniqueAR
+                if strcmp(train.covtype,'diag')
+                    ldetWishB = 0;
+                    PsiWish_alphasum = 0;
                     for n = 1:ndim
-                        ind = n:ndim:size(XX,2);
-                        meand(:,n) = XX(:,ind) * hs.W.Mu_W;
+                        if ~regressed(n), continue; end
+                        ldetWishB = ldetWishB+0.5*log(hs.Omega.Gam_rate(n));
+                        PsiWish_alphasum = PsiWish_alphasum+0.5*psi(hs.Omega.Gam_shape);
                     end
-                elseif ~isempty(hs.W.Mu_W(:))
-                    meand = XX * hs.W.Mu_W(:,regressed);
+                    C = hs.Omega.Gam_shape ./ hs.Omega.Gam_rate;
+                    avLL = avLL + Gamma(:,k) * (-ltpi-ldetWishB+PsiWish_alphasum);
+                    
+                elseif strcmp(train.covtype,'full')
+                    ldetWishB = 0.5*logdet(hs.Omega.Gam_rate(regressed,regressed));
+                    PsiWish_alphasum=0;
+                    for n = 1:sum(regressed)
+                        PsiWish_alphasum = PsiWish_alphasum+0.5*psi(hs.Omega.Gam_shape/2+0.5-n/2);
+                    end
+                    C = hs.Omega.Gam_shape * hs.Omega.Gam_irate;
+                    avLL = avLL + Gamma(:,k) * (-ltpi-ldetWishB+PsiWish_alphasum);
                 end
-                d = residuals(:,regressed) - meand;
-                if strcmp(train.covtype,'diag') || ...
-                        strcmp(train.covtype,'uniquediag') || strcmp(hmm.train.covtype,'shareddiag')
-                    Cd = bsxfun(@times, C(regressed), d)';
+                
+                if do_HMM_pca
+                    W = hmm.state(k).W.Mu_W;
+                    v = hmm.Omega.Gam_rate / hmm.Omega.Gam_shape;
+                    C = W * W' + v * eye(ndim);
+                    ldetWishB = 0.5*logdet(C); PsiWish_alphasum = 0;
+                    avLL = avLL + Gamma(:,k) * (-ltpi-ldetWishB+PsiWish_alphasum);
+                    dist = - 0.5 * sum((XX / C) .* XX,2);
                 else
-                    Cd = C(regressed,regressed) * d';
-                end
-                dist = zeros(Tres,1);
-                for n = 1:sum(regressed)
-                    dist = dist - 0.5 * (d(:,n).*Cd(n,:)');
-                end
-            end
-            
-            NormWishtrace = zeros(Tres,1); % covariance of the distance
-            if ~isempty(hs.W.Mu_W)
-                switch train.covtype
-                    case {'diag','uniquediag','shareddiag'}
-                        if do_HMM_pca
-                            %SW = eye(ndim) * trace(permute(hs.W.S_W(1,:,:),[2 3 1]));
-                            %C = (hs.Omega.Gam_rate ./ hs.Omega.Gam_shape) * eye(ndim) + SW;
-                            %iC = inv(C);
-                            %for t = 1:T
-                            %    NormWishtrace(t) = 0.5 * trace(iC * (XX(t,:)' * XX(t,:)) );
-                            %end
-                        else
-                            for n = 1:ndim
-                                if ~regressed(n), continue; end
-                                if train.uniqueAR
-                                    ind = n:ndim:size(XX,2);
-                                    NormWishtrace = NormWishtrace + 0.5 * C(n) * ...
-                                        sum( (XX(:,ind) * hs.W.S_W) .* XX(:,ind), 2);
-                                elseif ndim==1
-                                    NormWishtrace = NormWishtrace + 0.5 * C(n) * ...
-                                        sum( (XX(:,Sind(:,n)) * hs.W.S_W) ...
-                                        .* XX(:,Sind(:,n)), 2);
-                                else
-                                    NormWishtrace = NormWishtrace + 0.5 * C(n) * ...
-                                        sum( (XX(:,Sind(:,n)) * ...
-                                        permute(hs.W.S_W(n,Sind(:,n),Sind(:,n)),[2 3 1])) ...
-                                        .* XX(:,Sind(:,n)), 2);
-                                end
-                            end
+                    meand = zeros(size(XX,1),sum(regressed)); % mean distance
+                    if train.uniqueAR
+                        for n = 1:ndim
+                            ind = n:ndim:size(XX,2);
+                            meand(:,n) = XX(:,ind) * hs.W.Mu_W;
                         end
-                        
-                    case {'full','uniquefull','sharedfull'}
-                        if isempty(orders)
-                            NormWishtrace = 0.5 * sum(sum(C .* hs.W.S_W));
-                        else
-                            if hmm.train.pcapred>0
-                                I = (0:hmm.train.pcapred+(~train.zeromean)-1) * ndim;
+                    elseif ~isempty(hs.W.Mu_W(:))
+                        meand = XX * hs.W.Mu_W(:,regressed);
+                    end
+                    d = residuals(:,regressed) - meand;
+                    if strcmp(train.covtype,'diag') || ...
+                            strcmp(train.covtype,'uniquediag') || strcmp(hmm.train.covtype,'shareddiag')
+                        Cd = bsxfun(@times, C(regressed), d)';
+                    else
+                        Cd = C(regressed,regressed) * d';
+                    end
+                    dist = zeros(Tres,1);
+                    for n = 1:sum(regressed)
+                        dist = dist - 0.5 * (d(:,n).*Cd(n,:)');
+                    end
+                end
+                
+                NormWishtrace = zeros(Tres,1); % covariance of the distance
+                if ~isempty(hs.W.Mu_W)
+                    switch train.covtype
+                        case {'diag','uniquediag','shareddiag'}
+                            if do_HMM_pca
+                                %SW = eye(ndim) * trace(permute(hs.W.S_W(1,:,:),[2 3 1]));
+                                %C = (hs.Omega.Gam_rate ./ hs.Omega.Gam_shape) * eye(ndim) + SW;
+                                %iC = inv(C);
+                                %for t = 1:T
+                                %    NormWishtrace(t) = 0.5 * trace(iC * (XX(t,:)' * XX(t,:)) );
+                                %end
                             else
-                                I = (0:length(orders)*Q+(~train.zeromean)-1) * ndim;
-                            end
-                            if ~(all(S(:)==1) || ~trialwiseregression)
-                                [WishTrace,X_coded_vals] = computeWishTrace(hmm,regressed,XX,C,k);
-                            end
-                            
-                            if all(S(:)==1) || ~trialwiseregression
-                                for n1 = 1:ndim
-                                    if ~regressed(n1), continue; end
-                                    index1 = I + n1; index1 = index1(Sind(:,n1));
-                                    tmp = (XX(:,Sind(:,n1)) * hs.W.S_W(index1,:));
-                                    for n2 = 1:ndim
-                                        if ~regressed(n2), continue; end
-                                        index2 = I + n2; index2 = index2(Sind(:,n2));
-                                        NormWishtrace = NormWishtrace + 0.5 * C(n1,n2) * ...
-                                            sum( tmp(:,index2) .* XX(:,Sind(:,n2)),2);
+                                for n = 1:ndim
+                                    if ~regressed(n), continue; end
+                                    if train.uniqueAR
+                                        ind = n:ndim:size(XX,2);
+                                        NormWishtrace = NormWishtrace + 0.5 * C(n) * ...
+                                            sum( (XX(:,ind) * hs.W.S_W) .* XX(:,ind), 2);
+                                    elseif ndim==1
+                                        NormWishtrace = NormWishtrace + 0.5 * C(n) * ...
+                                            sum( (XX(:,Sind(:,n)) * hs.W.S_W) ...
+                                            .* XX(:,Sind(:,n)), 2);
+                                    else
+                                        NormWishtrace = NormWishtrace + 0.5 * C(n) * ...
+                                            sum( (XX(:,Sind(:,n)) * ...
+                                            permute(hs.W.S_W(n,Sind(:,n),Sind(:,n)),[2 3 1])) ...
+                                            .* XX(:,Sind(:,n)), 2);
                                     end
                                 end
-                            elseif ~isempty(WishTrace)
-                                Xval = XX(:,~regressed)*[2.^(1:sum(~regressed))]';
-                                for iR = 1:length(X_coded_vals)
-                                    NormWishtrace(Xval==X_coded_vals(iR)) = WishTrace(iR);
-                                end
+                            end
+                            
+                        case {'full','uniquefull','sharedfull'}
+                            if isempty(orders)
+                                NormWishtrace = 0.5 * sum(sum(C .* hs.W.S_W));
                             else
-                                % time varying regressors - this inference will be
-                                % exceedingly slow, is approximated here by
-                                % using first value at each trial
-                                validentries = logical(S(:));
-                                B_S = hmm.state(k).W.S_W(validentries,validentries);
-                                for iT=1:length(T)
-                                    T_temp = T - order;
-                                    t = sum(T_temp(1:iT-1))+1;
-                                    NormWishtrace(t:t+T_temp(iT)-1) = trace(kron(C(regressed,regressed),...
-                                        XX(t,~regressed)'*XX(t,~regressed))*B_S);
+                                if hmm.train.pcapred>0
+                                    I = (0:hmm.train.pcapred+(~train.zeromean)-1) * ndim;
+                                else
+                                    I = (0:length(orders)*Q+(~train.zeromean)-1) * ndim;
+                                end
+                                if ~(all(S(:)==1) || ~trialwiseregression)
+                                    [WishTrace,X_coded_vals] = computeWishTrace(hmm,regressed,XX,C,k);
+                                end
+                                
+                                if all(S(:)==1) || ~trialwiseregression
+                                    for n1 = 1:ndim
+                                        if ~regressed(n1), continue; end
+                                        index1 = I + n1; index1 = index1(Sind(:,n1));
+                                        tmp = (XX(:,Sind(:,n1)) * hs.W.S_W(index1,:));
+                                        for n2 = 1:ndim
+                                            if ~regressed(n2), continue; end
+                                            index2 = I + n2; index2 = index2(Sind(:,n2));
+                                            NormWishtrace = NormWishtrace + 0.5 * C(n1,n2) * ...
+                                                sum( tmp(:,index2) .* XX(:,Sind(:,n2)),2);
+                                        end
+                                    end
+                                elseif ~isempty(WishTrace)
+                                    Xval = XX(:,~regressed)*[2.^(1:sum(~regressed))]';
+                                    for iR = 1:length(X_coded_vals)
+                                        NormWishtrace(Xval==X_coded_vals(iR)) = WishTrace(iR);
+                                    end
+                                else
+                                    % time varying regressors - this inference will be
+                                    % exceedingly slow, is approximated here by
+                                    % using first value at each trial
+                                    validentries = logical(S(:));
+                                    B_S = hmm.state(k).W.S_W(validentries,validentries);
+                                    for iT=1:length(T)
+                                        T_temp = T - order;
+                                        t = sum(T_temp(1:iT-1))+1;
+                                        NormWishtrace(t:t+T_temp(iT)-1) = trace(kron(C(regressed,regressed),...
+                                            XX(t,~regressed)'*XX(t,~regressed))*B_S);
+                                    end
                                 end
                             end
-                        end
+                    end
                 end
+                avLL = avLL + Gamma(:,k).*(dist - NormWishtrace);
             end
-            avLL = avLL + Gamma(:,k).*(dist - NormWishtrace);
-        end
-        if hmm.train.acrosstrial_constrained, avLL = avLL / N; end
+            if hmm.train.acrosstrial_constrained, avLL = avLL / N; end
             
-    elseif strcmp(distname,'bernoulli')
-        L = zeros(sum(T),K);  
-        for k=1:K
-            % expectation of log(p) is psi(a) - psi(a+b):
-            pterm = X .* repmat( psi(hmm.state(k).W.a) - ...
-                psi(hmm.state(k).W.a + hmm.state(k).W.b) ,sum(T),1);
-            qterm = (~X) .* repmat(psi(hmm.state(k).W.b) - ...
-                psi(hmm.state(k).W.a + hmm.state(k).W.b) ,sum(T),1);
-            L(:,k) = sum(pterm + qterm,2) .* Gamma(:,k);
+        elseif strcmp(distname,'bernoulli')
+            L = zeros(sum(T),K);
+            for k=1:K
+                % expectation of log(p) is psi(a) - psi(a+b):
+                pterm = X .* repmat( psi(hmm.state(k).W.a) - ...
+                    psi(hmm.state(k).W.a + hmm.state(k).W.b) ,sum(T),1);
+                qterm = (~X) .* repmat(psi(hmm.state(k).W.b) - ...
+                    psi(hmm.state(k).W.a + hmm.state(k).W.b) ,sum(T),1);
+                L(:,k) = sum(pterm + qterm,2) .* Gamma(:,k);
+            end
+            
+            avLL = sum(L,2);
+            
+        elseif strcmp(distname,'poisson')
+            L = zeros(sum(T),K);
+            constterm = -gammaln(X+1);
+            for k=1:K
+                % note the expectation of log(lambda) is -log(lambda_b) + psigamma(lambda_a)
+                num = (X.*(repmat(psi(hmm.state(k).W.W_shape),sum(T),1) - ...
+                    log(hmm.state(k).W.W_rate))) - hmm.state(k).W.W_mean;
+                num = num.*repmat(Gamma(:,k),1,ndim);
+                L(:,k) = sum(num + constterm,2);
+            end
+            
+            avLL = sum(L,2);
+            
+        elseif strcmp(distname,'logistic')
+            if isfield(hmm,'Gamma');hmm=rmfield(hmm,'Gamma');end
+            hmm.Gamma = Gamma;
+            
+            exp_H_LL = loglikelihoodofH(Y,X,hmm);
+            avLL = exp_H_LL;
+            
         end
-        
-        avLL = sum(L,2);
-    
-    elseif strcmp(distname,'poisson')
-        L = zeros(sum(T),K);  
-        constterm = -gammaln(X+1);
-        for k=1:K
-            % note the expectation of log(lambda) is -log(lambda_b) + psigamma(lambda_a)
-            num = (X.*(repmat(psi(hmm.state(k).W.W_shape),sum(T),1) - ...
-                log(hmm.state(k).W.W_rate))) - hmm.state(k).W.W_mean;
-            num = num.*repmat(Gamma(:,k),1,ndim);
-            L(:,k) = sum(num + constterm,2);
-        end
-        
-        avLL = sum(L,2);
-    
-    elseif strcmp(distname,'logistic')
-        if isfield(hmm,'Gamma');hmm=rmfield(hmm,'Gamma');end
-        hmm.Gamma = Gamma;
-        
-        exp_H_LL = loglikelihoodofH(Y,X,hmm);
-        avLL = exp_H_LL;
-    
+        savLL = sum(avLL);
     end
-    savLL = sum(avLL);
+    
 end
 
-FrEn=[-Entr -savLL -avLLGamma +KLdivTran +KLdiv];
+if isempty(scale)
+    FrEn=[-Entr -savLL -avLLGamma +KLdivTran +KLdiv];
+else
+    FrEn=[sum(-log(scale)) +KLdivTran +KLdiv];
+end
 
 % fprintf(' %.10g + %.10g + %.10g + %.10g + %.10g =  %.10g \n',...
 %     sum(-Entr) ,sum(-savLL) ,sum(-avLLGamma) ,sum(+KLdivTran) ,sum(+KLdiv) ,sum(FrEn));
