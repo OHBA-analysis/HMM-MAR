@@ -29,6 +29,7 @@ if isempty(allcs)
     folds = cell(nfolds,1);
     if nfolds==N
         for j = 1:N, folds{j} = j; end
+        foldsi = folds;
         return
     else
         if q > 1
@@ -43,6 +44,7 @@ if isempty(allcs)
     for k = 1:nfolds
         folds{k} = find(c.test(k));
     end
+    foldsi = folds;
     return
 end
 
