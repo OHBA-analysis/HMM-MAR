@@ -62,7 +62,8 @@ if ~isfield(options,'order') && ~isfield(options,'embeddedlags')
    options.order = (sum(T) - size(Gamma,1)) / length(T);
 end
 
-if isfield(options,'tuda') && options.tuda
+if isfield(options,'tuda') && options.tuda | ...
+        isfield(options, 'order') && options.order == 0
     T = ceil(r * T);
 elseif isfield(options,'order') && options.order > 0
     T = ceil(r * T);
