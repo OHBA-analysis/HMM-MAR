@@ -72,7 +72,7 @@ for cycle = 1:hmm.train.cyc
                     checkGamma(Gamma,T,hmm.train);
                 end
                 if sum(hmm.train.active)==1
-                    fehist(end+1) = sum(evalfreeenergy(data.X,T,Gamma,Xi,hmm,residuals,XX,[],scale));
+                    fehist(end+1) = sum(evalfreeenergy(data.X,T,Gamma,Xi,hmm,residuals,XX,[]));
                     
                     if hmm.train.verbose
                         fprintf('cycle %i: All the points collapsed in one state, free energy = %g \n',...
@@ -101,7 +101,7 @@ for cycle = 1:hmm.train.cyc
         end
        
         %%%% Free energy computation
-        fehist(end+1) = sum(evalfreeenergy(data.X,T,Gamma,Xi,hmm,residuals,XX,[],scale));
+        fehist(end+1) = sum(evalfreeenergy(data.X,T,Gamma,Xi,hmm,residuals,XX,[])); 
         
         strwin = ''; if hmm.train.meancycstop>1, strwin = ' windowed'; end
         if length(fehist) > (hmm.train.meancycstop+1)
