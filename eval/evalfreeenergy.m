@@ -59,6 +59,7 @@ elseif strcmp(distname,'logistic')
     % Set Y (unidimensional for now) and X: 
     Xdim = size(XX,2) - hmm.train.logisticYdim;
     X = XX(:,1:Xdim);
+    T = T-1;
     Y = residuals;
 end
 

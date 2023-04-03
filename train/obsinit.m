@@ -360,7 +360,7 @@ if ~pcapred && ~do_HMM_pca
         if train.logisticYdim>1
             for k = 1:K
                 hmm.state(k).alpha.Gam_rate = ...
-                    repmat(hmm.state(k).alpha.Gam_rate(1:ndim_n,end),1,train.logisticYdim);
+                    repmat(hmm.state(k).alpha.Gam_rate(~regressed,end),1,train.logisticYdim);
             end
         end
     end
