@@ -1,4 +1,4 @@
-function [predictedY,predictedYD,YD,stats] = predictPhenotype (Yin,Din,options,varargin)
+function [predictedY,predictedYD,YD,stats] = predictPhenotype(Yin,Din,options,varargin)
 %
 % Kernel ridge regression estimation using a distance matrix using (stratified) LOO. 
 % Using this means that the HMM was run once, out of the cross-validation loop
@@ -26,7 +26,7 @@ function [predictedY,predictedYD,YD,stats] = predictPhenotype (Yin,Din,options,v
 %   + CVfolds - prespecified CV folds for the outer loop
 %   + biascorrect - whether we correct for bias in the estimation 
 %                   (Smith et al. 2019, NeuroImage)
-%   + kernel - which kernel to use ('linear' or 'gaussian')
+%   + shape - which kernel to use ('linear' or 'gaussian')
 %   + verbose -  display progress?
 % cs        optional (no. subjects X no. subjects) dependency structure matrix with
 %           specifying possible relations between subjects (e.g., family
@@ -57,12 +57,12 @@ function [predictedY,predictedYD,YD,stats] = predictPhenotype (Yin,Din,options,v
 % adapted to different kernels:
 % Christine Ahrends, Aarhus University, 2022
 
-if ~isfield(options, 'kernel')
-    kernel = 'linear';
+if ~isfield(options, 'shape')
+    shape = 'linear';
 else
-    kernel = options.kernel;
+    shape = options.shape;
 end
-if strcmp(kernel, 'gaussian')
+if strcmp(shape, 'gaussian')
     Din(eye(size(Din,1))==1) = 0; 
 end
 [N,q] = size(Yin);
@@ -93,7 +93,7 @@ if ~isfield(options,'alpha')
 else
     alpha = options.alpha;
 end
-if strcmp(kernel, 'gaussian')
+if strcmp(shape, 'gaussian')
     if ~isfield(options,'sigmafact')
         sigmafact = [1/5 1/3 1/2 1 2 3 5];
     else
@@ -242,12 +242,12 @@ for ifold = 1:length(folds)
                 Nji = length(Qji);
                 QD2 = QDin(QJ,Qji);
                 
-                if strcmp(kernel, 'gaussian')
+                if strcmp(shape, 'gaussian')
                     sigmabase = auto_sigma(QD);
                     sigma = sigmf * sigmabase;
                     K = gauss_kernel(QD,sigma);
                     K2 = gauss_kernel(QD2,sigma);
-                elseif strcmp(kernel, 'linear')
+                elseif strcmp(shape, 'linear')
                     K = QD;
                     K2 = QD2;
                 end
@@ -271,13 +271,13 @@ for ifold = 1:length(folds)
         alph = alpha(ialph);
         Dii = D(ind,ind); D2ii = D2(:,ind);
         
-        if strcmp(kernel, 'gaussian')
+        if strcmp(shape, 'gaussian')
             sigmf = sigmafact(isigm);
             sigmabase = auto_sigma(D);
             sigma = sigmf * sigmabase;
             K = gauss_kernel(Dii,sigma);
             K2 = gauss_kernel(D2ii,sigma);
-        elseif strcmp(kernel, 'linear')
+        elseif strcmp(shape, 'linear')
             K = Dii;
             K2 = D2ii;
             sigmf = NaN;

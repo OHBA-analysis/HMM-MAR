@@ -3,7 +3,6 @@ function [LL,feat] = hmm_gradient(X, hmm, options)
 %
 % computes the gradient of HMM log-likelihood for time series X (single
 % subject/session) with respect to specified parameters
-% for use with HMM-MAR toolbox (https://github.com/OHBA-analysis/HMM-MAR)
 % 
 % INPUT:
 % X:            example data (timeseries of a single subject/session, in

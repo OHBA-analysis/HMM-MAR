@@ -1,11 +1,30 @@
-function foldsi = cvfolds(Y,CVscheme,allcs,perm)
-% allcs can be a N x 1 vector with family memberships, an (N x N) matrix
-% with family relationships, or empty.
-% perm: whether to permute subjects when assigning them to folds or not (if
-% not, they will be assigned (accounting for family structure) in the order
-% they appear
+function foldsi = cvfolds(Y, CVscheme, allcs, perm)
+% foldsi = cvfolds(Y, CVscheme, allcs, perm)
+%
+% creates (stratified) CV folds using either LOO or k-fold CV, optionally 
+% accounting for family structure
+% 
+% INPUT:
+% Y:            data that should be split into folds. If this is a vector
+%               with more than 4 unique entries, this assumes one
+%               continuous variable. If this is a matrix, this assumes
+%               classes corresponding to the columns in Y and automatically
+%               stratifies
+% CVscheme:     CV scheme to be applied, 0 for LOO, k>1 for k-fold CV
+% allcs:        can be a N x 1 vector with family memberships, an (N x N) 
+%               matrix with family relationships, or empty.
+% perm:         only relevant when using family structure: whether to 
+%               permute subjects when assigning them to folds (if 0, 
+%               subjects will be assigned to folds in the order they 
+%               appear). When not using family structure, subjects are 
+%               always randomly assigned
+%
+% OUTPUT:
+% foldsi:       cell with (k) CV folds containing indices of Y for each
+%               fold
+%
 % Diego Vidaurre
-% edits Christine Ahrends
+% edits Christine Ahrends, 2023
 
 if nargin<3, allcs = []; end
 is_cs_matrix = (size(allcs,2) == 2);
@@ -15,11 +34,6 @@ if nargin<4
 end
 
 [N,q] = size(Y); 
-
-if perm==1
-    indperm = randperm(N);
-    Y = Y(indperm,:);
-end
 
 if CVscheme==0, nfolds = N;
 else nfolds = CVscheme;
@@ -58,6 +72,11 @@ folds = cell(nfolds,1); grotDONE = false(N,1);
 counts = zeros(nfolds,q); Scounts = sum(Y);
 foldsDONE = false(nfolds,1); foldsUSED = false(nfolds,1);
 j = 1;
+
+if perm==1
+    indperm = randperm(N);
+    Y = Y(indperm,:);
+end
 
 while j<=N
     if grotDONE(j), j = j+1; continue; end
