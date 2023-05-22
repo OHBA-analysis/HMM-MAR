@@ -19,10 +19,13 @@ while any(D(:)<threshold)
     [k1,k2] = ind2sub([K,K],ind);
     Gamma(:,k1) = Gamma(:,k1) + Gamma(:,k2);
     Gamma(:,k2) = 0;
-    Xi(:,k1,:) = Xi(:,k1,:) + Xi(:,k2,:);
-    Xi(:,k2,:) = 0; 
-    Xi(:,:,k1) = Xi(:,:,k1) + Xi(:,:,k2);
-    Xi(:,:,k2) = 0;  
+    try
+        Xi(:,k1,:) = Xi(:,k1,:) + Xi(:,k2,:);
+        Xi(:,k2,:) = 0; 
+        Xi(:,:,k1) = Xi(:,:,k1) + Xi(:,:,k2);
+        Xi(:,:,k2) = 0; 
+    catch
+    end
     hmm.train.active(k2) = 0;
     D(k1,k2) = 1;
     re_do_M = 1;
