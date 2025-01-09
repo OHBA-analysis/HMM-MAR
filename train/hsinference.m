@@ -435,7 +435,7 @@ else
 end
 
 % join
-if ~hmm.train.acrosstrial_constrained
+if ~isfield(hmm.train, 'acrosstrial_constrained') || isempty(hmm.train.acrosstrial_constrained)
     Gamma = cell2mat(Gamma);
     LL = cell2mat(LL);
     if ~mixture_model, Xi = cell2mat(Xi); end
