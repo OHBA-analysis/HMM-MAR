@@ -35,7 +35,7 @@ if do_HMM_pca
 elseif is_diagonal
     covmat = diag( hmm.state(k).Omega.Gam_rate / (hmm.state(k).Omega.Gam_shape-1) );
     if ~isfield(hmm.state(k).Omega,'Gam_irate')
-        hmm.state(k).Omega.Gam_irate = 1 ./ hmm.state(k).Omega.Gam_irate;
+        hmm.state(k).Omega.Gam_irate = 1 ./ hmm.state(k).Omega.Gam_rate;
     end
     icovmat = diag( hmm.state(k).Omega.Gam_irate * (hmm.state(k).Omega.Gam_shape-1) );
 else
